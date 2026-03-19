@@ -84,7 +84,7 @@ function CodeBlock({ code, lang }: { code: string; lang?: string }) {
 
 function getModelMeta(model?: string) {
   if (!model) return null;
-  return { label: "S1", color: "rgba(232,68,42,0.6)" };
+  return { label: "Kemma", color: "rgba(232,68,42,0.6)" };
 }
 
 export function MessageBubble({ message, onSave }: MessageBubbleProps) {

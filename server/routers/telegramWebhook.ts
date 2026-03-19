@@ -58,7 +58,7 @@ export function registerTelegramWebhookRoute(app: Express) {
         // Direct S1 routing (fallback)
         console.log("[Telegram] No OpenClaw configured. Using direct S1 routing.");
         const { config: agentConfig } = s1Route(messageText, false);
-        const systemPrompt = buildS1SystemPrompt({ agent: "s1", label: "S1", reason: "chat", emoji: "🧠", color: "#E8442A" });
+        const systemPrompt = buildS1SystemPrompt({ agent: "s1", label: "Kemma", reason: "chat", emoji: "🧠", color: "#E8442A" });
 
         const fullMessages = [
           { role: "system" as const, content: systemPrompt },

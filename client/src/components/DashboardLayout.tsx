@@ -48,7 +48,7 @@ const menuItems = [
   { icon: Compass, label: "Discover", path: "/discover", group: "sutaeru" },
   { icon: Rss, label: "Feed", path: "/feed", group: "sutaeru" },
   { icon: Heart, label: "Health", path: "/health", group: "sutaeru" },
-  { icon: Phone, label: "HER", path: "/her-settings", group: "sutaeru" },
+  { icon: Phone, label: "Kemma Calls", path: "/her-settings", group: "sutaeru" },
   { icon: LayoutGrid, label: "Board", path: "/board", group: "sutaeru" },
   { icon: GitBranch, label: "Workflows", path: "/workflow", group: "sutaeru" },
   // ── File generation ──

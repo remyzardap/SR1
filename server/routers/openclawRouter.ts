@@ -5,7 +5,7 @@ import { s1Route, buildS1SystemPrompt } from "./s1Router";
 
 export const openclawRouter = router({
   /**
-   * Chat with S1 from OpenClaw
+   * Chat with Kemma from OpenClaw
    * POST /api/trpc/openclaw.chat
    * 
    * Request body:
@@ -32,7 +32,7 @@ export const openclawRouter = router({
         const { config: agentConfig } = s1Route(message, false);
         const systemPrompt = buildS1SystemPrompt({
           agent: "s1",
-          label: "S1",
+          label: "Kemma",
           reason: "openclaw",
           emoji: "🧠",
           color: "#E8442A",

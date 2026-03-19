@@ -45,7 +45,7 @@ export function ChatEmptyState({ agentName, onSuggestion }: ChatEmptyStateProps)
           className="text-2xl sm:text-3xl font-light tracking-[0.25em] uppercase mb-2"
           style={{ color: "#f2f2f2", fontFamily: "'Syne', sans-serif" }}
         >
-          {agentName ? `${agentName}'s Agent` : "S1"}
+          {agentName ? `${agentName}'s Agent` : "Kemma"}
         </motion.h2>
         <motion.p
           initial={{ opacity: 0 }}

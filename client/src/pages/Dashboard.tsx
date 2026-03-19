@@ -789,7 +789,7 @@ export default function Dashboard() {
               </div>
               <div style={{ flex: 1, position: "relative" }}>
                 <p style={{ color: "#fff", fontWeight: 800, fontSize: 17, margin: 0 }}>Upgrade to Pro</p>
-                <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, fontWeight: 500, margin: 0 }}>Unlock unlimited S1 access</p>
+                <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, fontWeight: 500, margin: 0 }}>Unlock unlimited Kemma access</p>
               </div>
               <button style={{
                 background: "#fff", color: "#c97a2e", fontSize: 14, fontWeight: 800,

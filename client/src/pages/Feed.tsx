@@ -387,7 +387,7 @@ const FeedInner: React.FC = () => {
                   }}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  Ask S1 about this content…
+                  Ask Kemma about this content…
                 </button>
               )}
             </div>

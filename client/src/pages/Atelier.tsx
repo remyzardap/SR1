@@ -495,7 +495,7 @@ export default function Atelier() {
               <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(242,242,242,0.06)", border: "1px solid rgba(242,242,242,0.10)" }}>
                 <Pen className="w-4 h-4" style={{ color: "#f2f2f2" }} />
               </div>
-              <span className="text-sm font-semibold" style={{ color: "#f2f2f2" }}>Chat with S1</span>
+              <span className="text-sm font-semibold" style={{ color: "#f2f2f2" }}>Chat with Kemma</span>
             </div>
             <p className="text-[13px]" style={{ color: "rgba(242,242,242,0.45)" }}>
               S1 interviews you with targeted questions to gather everything needed, then builds your report automatically.

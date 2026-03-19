@@ -66,7 +66,7 @@ export function ChatHeader({
           />
           <div className="min-w-0">
             <span className="text-sm font-semibold truncate block" style={{ color: TEXT_PRIMARY, fontFamily: F, fontWeight: 700 }}>
-              {agentHandle ? `@${agentHandle}'s Agent` : agentName ? `${agentName} · S1` : "S1"}
+              {agentHandle ? `@${agentHandle}'s Agent` : agentName ? `${agentName} · S1` : "Kemma"}
             </span>
             {agentHandle ? (
               <p className="text-[11px] truncate" style={{ color: TEXT_SOFT }}>Public agent</p>
