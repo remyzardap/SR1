@@ -10,6 +10,10 @@ import { ChatErrorBanner } from "@/components/ChatErrorBanner";
 import { SaveMemoryDialog } from "@/components/SaveMemoryDialog";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
+import {
+  F, FD, PAGE_BG, NOISE_OVERLAY, CSS_ANIM,
+  innerGlowStrong, MOCHA, MOCHA_DARK,
+} from "@/lib/design";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type MemoryType = "preference" | "project" | "document" | "interaction" | "fact";
@@ -294,33 +298,38 @@ export default function Chat() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div
-      className="flex h-full overflow-hidden"
-      style={{ color: "var(--t1, #f2f2f2)", background: "transparent" }}
-    >
-      {/* Session sidebar */}
+    <div style={{ ...PAGE_BG, display: "flex", minHeight: "100vh" }}>
+      <style>{CSS_ANIM}</style>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap" rel="stylesheet" />
+      <div style={NOISE_OVERLAY} />
+      
+      {/* Session sidebar with Mocha gradient */}
       {!agentHandle && (
         <div
           className={cn(
-            "flex-none border-r transition-all duration-200 overflow-hidden",
+            "flex-none transition-all duration-200 overflow-hidden flex flex-col",
             sidebarOpen ? "w-64" : "w-0"
           )}
           style={{
-            borderColor: "var(--line-1, rgba(255,255,255,0.055))",
-            background: "var(--bg, #050505)",
+            background: `linear-gradient(180deg, ${MOCHA} 0%, ${MOCHA_DARK} 100%)`,
+            position: "relative",
+            zIndex: 10,
           }}
         >
+          <div style={innerGlowStrong} />
           {sidebarOpen && (
-            <ChatSessionList
-              activeSessionId={sessionId}
-              onSelectSession={handleSelectSession}
-              onNewSession={handleNewChat}
-            />
+            <div style={{ position: "relative", height: "100%" }}>
+              <ChatSessionList
+                activeSessionId={sessionId}
+                onSelectSession={handleSelectSession}
+                onNewSession={handleNewChat}
+              />
+            </div>
           )}
         </div>
       )}
 
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden" style={{ position: "relative", zIndex: 1 }}>
         <ChatHeader
           agentHandle={agentHandle}
           agentName={agentCtx?.identity?.displayName ?? undefined}

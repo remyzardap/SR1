@@ -1,6 +1,7 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowUp, Square } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { glassCard, MOCHA, TEXT_PRIMARY, TEXT_SOFT } from "@/lib/design";
 
 interface ChatInputProps {
   value: string;
@@ -39,13 +40,16 @@ export function ChatInput({
       <div className="w-full max-w-2xl mx-auto">
         {/* Floating input container */}
         <motion.div
-          animate={focused ? { boxShadow: "0 0 0 1.5px rgba(242,242,242,0.15), 0 8px 40px rgba(0,0,0,0.5)" } : { boxShadow: "0 4px 24px rgba(0,0,0,0.35)" }}
+          animate={focused 
+            ? { boxShadow: "0 0 0 1.5px rgba(164,119,100,0.3), 0 8px 40px rgba(0,0,0,0.1)" } 
+            : { boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }
+          }
           transition={{ duration: 0.2 }}
           className="relative flex items-end gap-2 px-4 py-3 rounded-2xl"
           style={{
-            background: "rgba(18,18,18,0.92)",
-            backdropFilter: "blur(28px)",
-            border: focused ? "1px solid rgba(255,255,255,0.14)" : "1px solid rgba(255,255,255,0.08)",
+            ...glassCard,
+            borderRadius: 20,
+            border: focused ? `1px solid ${MOCHA}40` : "1px solid rgba(255,255,255,0.6)",
           }}
         >
           <textarea
@@ -60,9 +64,9 @@ export function ChatInput({
             disabled={false}
             className="flex-1 min-w-0 resize-none bg-transparent text-[14px] outline-none leading-relaxed min-h-[24px] max-h-[180px]"
             style={{
-              color: "#f2f2f2",
-              fontFamily: "'DM Sans', sans-serif",
-              caretColor: "#f2f2f2",
+              color: TEXT_PRIMARY,
+              fontFamily: "'Inter', sans-serif",
+              caretColor: MOCHA,
             }}
           />
 
@@ -78,9 +82,9 @@ export function ChatInput({
                 onClick={onStop}
                 className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200"
                 style={{
-                  background: "rgba(249,115,22,0.15)",
-                  border: "1px solid rgba(249,115,22,0.35)",
-                  color: "#f97316",
+                  background: `${MOCHA}15`,
+                  border: `1px solid ${MOCHA}40`,
+                  color: MOCHA,
                 }}
                 title="Stop generation"
               >
@@ -97,9 +101,17 @@ export function ChatInput({
                 disabled={!canSend}
                 className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 disabled:cursor-not-allowed"
                 style={{
-                  background: canSend ? "#f2f2f2" : "rgba(242,242,242,0.08)",
-                  color: canSend ? "#050505" : "rgba(242,242,242,0.4)",
-                  boxShadow: canSend ? "0 2px 12px rgba(242,242,242,0.2)" : "none",
+                  background: canSend ? MOCHA : "rgba(0,0,0,0.06)",
+                  color: canSend ? "#fff" : TEXT_SOFT,
+                  boxShadow: canSend ? `0 2px 12px ${MOCHA}40` : "none",
+                }}
+                onMouseEnter={(e) => {
+                  if (canSend) {
+                    e.currentTarget.style.transform = "scale(1.05)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "scale(1)";
                 }}
                 title="Send message"
               >
@@ -110,7 +122,7 @@ export function ChatInput({
         </motion.div>
 
         {/* Hint */}
-        <p className="text-center text-[10px] mt-2 font-mono tracking-widest uppercase hidden sm:block" style={{ color: "rgba(242,242,242,0.18)" }}>
+        <p className="text-center text-[10px] mt-2 font-mono tracking-widest uppercase hidden sm:block" style={{ color: TEXT_SOFT }}>
           Enter to send · Shift+Enter for newline
         </p>
       </div>

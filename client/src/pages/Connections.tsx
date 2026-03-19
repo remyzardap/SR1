@@ -1,3 +1,4 @@
+import { PAGE_BG, NOISE_OVERLAY, CSS_ANIM } from '@/lib/design';
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useSearch } from "wouter";

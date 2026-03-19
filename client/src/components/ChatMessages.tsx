@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { ChatEmptyState } from "./ChatEmptyState";
+import { CSS_ANIM } from "@/lib/design";
 
 interface Message {
   id: string;
@@ -33,6 +34,7 @@ export function ChatMessages({
 
   return (
     <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-6 min-w-0">
+      <style>{CSS_ANIM}</style>
       <div className="max-w-2xl mx-auto w-full h-full">
         <AnimatePresence mode="wait">
           {isEmpty ? (
@@ -42,13 +44,24 @@ export function ChatMessages({
               onSuggestion={onSuggestion}
             />
           ) : (
-            <motion.div key="messages" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              {messages.map((msg) => (
-                <MessageBubble
+            <motion.div 
+              key="messages" 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-4"
+            >
+              {messages.map((msg, index) => (
+                <motion.div
                   key={msg.id}
-                  message={msg}
-                  onSave={!msg.streaming && msg.role === "assistant" ? onSaveMemory : undefined}
-                />
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.3 }}
+                >
+                  <MessageBubble
+                    message={msg}
+                    onSave={!msg.streaming && msg.role === "assistant" ? onSaveMemory : undefined}
+                  />
+                </motion.div>
               ))}
               {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
                 <TypingIndicator />

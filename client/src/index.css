@@ -1,4 +1,4 @@
-
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -43,35 +43,40 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* SUTAERU — Space Gradient Design System
-   Deep cosmic backgrounds with user-selectable gradient themes
-   Glassmorphism cards, Urbanist typography, ambient glow blobs
-   Themeable via CSS custom properties + JS applyTheme() */
+/* SUTAERU — Mocha Mousse Design System
+   Warm cream backgrounds with mocha accents
+   Glassmorphism cards, Inter + DM Serif typography
+   Themeable via CSS custom properties
+*/
 
 :root {
-  --radius: 20px;
-  /* ── New design system tokens (Obsidian) ── */
-  --font-d: 'Syne', sans-serif;
-  --font-b: 'DM Sans', sans-serif;
-  --bg:          #050505;
-  --bg-raise:    #0d0d0d;
-  --bg-raise2:   #141414;
-  --glass-1:     rgba(255,255,255,0.032);
-  --glass-2:     rgba(255,255,255,0.058);
-  --glass-3:     rgba(255,255,255,0.09);
-  --glass-hover: rgba(255,255,255,0.11);
-  --line-1:      rgba(255,255,255,0.055);
-  --line-2:      rgba(255,255,255,0.10);
-  --line-3:      rgba(255,255,255,0.18);
-  --t1:          #f2f2f2;
-  --t2:          rgba(242,242,242,0.50);
-  --t3:          rgba(242,242,242,0.22);
-  --btn-fill:    #f2f2f2;
-  --btn-ink:     #050505;
-  --glow:        rgba(255,255,255,0.04);
+  --radius: 22px;
+  /* ── Mocha Design System Tokens ── */
+  --font-d: 'DM Serif Display', serif;
+  --font-b: 'Inter', sans-serif;
+  --font-m: 'DM Mono', monospace;
+  --bg:          #f5efe7;
+  --bg-raise:    #fff;
+  --bg-raise2:   #f0e8e0;
+  --glass-1:     rgba(255,255,255,0.65);
+  --glass-2:     rgba(255,255,255,0.45);
+  --glass-3:     rgba(255,255,255,0.85);
+  --glass-hover: rgba(255,255,255,0.80);
+  --line-1:      rgba(30,21,13,0.08);
+  --line-2:      rgba(30,21,13,0.12);
+  --line-3:      rgba(30,21,13,0.18);
+  --t1:          #1e150d;
+  --t2:          rgba(30,21,13,0.65);
+  --t3:          rgba(30,21,13,0.35);
+  --btn-fill:    #A47764;
+  --btn-ink:     #fff;
+  --glow:        rgba(164,119,100,0.15);
+  --mocha:       #A47764;
+  --mocha-dark:  #8f6654;
+  --amber:       #e8913a;
   --r-sm: 12px;
   --r-md: 18px;
-  --r-lg: 24px;
+  --r-lg: 22px;
   --safe-b: env(safe-area-inset-bottom, 20px);
 
   /* ── Elevation System (Depth Hierarchy) ── */
@@ -177,26 +182,26 @@
 }
 
 html, body {
-  background-color: #050505;
-  color: #f2f2f2 !important;
-  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #f5efe7;
+  color: #1e150d !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-feature-settings: 'cv01', 'cv02', 'cv03', 'cv04';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
 }
 
-/* ── Pure obsidian background — no color gradients ── */
+/* ── Mocha cream background with animated gradient ── */
 body {
-  background: #050505;
+  background: linear-gradient(165deg, #f5efe7, #ecdfc9, #e2d4c0, #d9cbb8);
   transition: background 0.4s ease;
 }
 
-/* Light mode */
-[data-mode="light"] body,
-[data-mode="light"] html {
-  background: #f0f0f0 !important;
-  color: #0a0a0a !important;
+/* Dark mode override */
+[data-mode="dark"] body,
+[data-mode="dark"] html {
+  background: #1e1812 !important;
+  color: #f5efe7 !important;
 }
 
 body::before {
@@ -205,10 +210,10 @@ body::before {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  /* Very subtle white radial — no color, pure depth */
+  /* Subtle cream radial gradient */
   background:
-    radial-gradient(ellipse 60% 50% at 20% 10%, rgba(255,255,255,0.018) 0%, transparent 65%),
-    radial-gradient(ellipse 40% 40% at 85% 85%, rgba(255,255,255,0.010) 0%, transparent 65%);
+    radial-gradient(ellipse 60% 50% at 20% 10%, rgba(255,255,255,0.3) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 40% at 85% 85%, rgba(255,255,255,0.2) 0%, transparent 65%);
 }
 
 body::after {
@@ -217,22 +222,29 @@ body::after {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.025;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   background-repeat: repeat;
-  background-size: 128px 128px;
+  background-size: 256px 256px;
 }
 
 #root { position: relative; z-index: 1; }
 
 @layer base {
   * { @apply border-border outline-ring/50; }
-  body { @apply bg-background text-foreground antialiased; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
+  body { @apply bg-background text-foreground antialiased; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-weight: 700;
     letter-spacing: -0.025em;
-    color: #f5f2ed;
+    color: #1e150d;
+  }
+  h1.page-title, h1.main-title {
+    font-family: 'DM Serif Display', serif;
+    font-weight: 400;
+    font-size: 64px;
+    letter-spacing: -0.02em;
+    line-height: 1;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -437,8 +449,25 @@ body::after {
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+::-webkit-scrollbar-thumb { background: rgba(30,21,13,0.15); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(30,21,13,0.25); }
+
+/* ── Mocha Design System Animations ── */
+@keyframes bgShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes logoPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232,145,58,0); }
+  50% { box-shadow: 0 0 16px 4px rgba(232,145,58,0.35); }
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb),0.28); }
