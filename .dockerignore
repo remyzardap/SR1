@@ -1,0 +1,23 @@
+node_modules
+npm-debug.log
+.env
+.env.local
+.env.*.local
+.git
+.gitignore
+README.md
+CHANGELOG.md
+.replit
+replit.md
+open-browser.ts
+.vscode
+.idea
+*.log
+coverage
+.nyc_output
+dist
+# Keep source files for build
+!client
+!server
+!shared
+!drizzle
