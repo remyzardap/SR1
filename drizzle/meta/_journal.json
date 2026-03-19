@@ -1,0 +1,62 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1771958967213,
+      "tag": "0000_high_monster_badoon",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1771959096832,
+      "tag": "0001_nostalgic_captain_america",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1772036857880,
+      "tag": "0002_flimsy_ulik",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1772037054730,
+      "tag": "0003_eminent_mandrill",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1772122800000,
+      "tag": "0004_eyva_core_model",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1772200000000,
+      "tag": "0005_add_onboarded_column",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1772209200000,
+      "tag": "0006_identity_traits_language",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1772214000000,
+      "tag": "0006_add_chat_messages",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,327 @@
+/**
+ * EXPERIMENT #2: IMPLEMENTATION EXAMPLES
+ * ========================================
+ * How to use the Thermal Presence system in components
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   EXAMPLE 1: Thermal Block (shows AI state)
+   ═══════════════════════════════════════════════════════════════ */
+
+.block {
+  /* Base styling */
+  background: var(--thermal-mid);
+  border: 1px solid var(--elev-1-border);
+  border-radius: var(--radius-cell);
+  box-shadow: var(--elev-1-shadow);
+
+  /* Noise texture for tactile feel */
+  position: relative;
+}
+
+.block::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--surface-noise);
+  opacity: 0.03;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Thermal indicator strip (left edge) */
+.block::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--block-strip-idle);
+  border-radius: var(--radius-cell) 0 0 var(--radius-cell);
+  transition: all var(--flow-duration) var(--flow-easing);
+}
+
+/* AI State: Thinking */
+.block[data-state="thinking"] {
+  border-color: var(--state-thinking-border);
+  box-shadow: var(--state-thinking-glow), var(--elev-1-shadow);
+  animation: thermal-pulse var(--pulse-duration) ease-in-out infinite;
+}
+
+.block[data-state="thinking"]::after {
+  background: var(--block-strip-thinking);
+  box-shadow: 0 0 20px var(--emit-rose);
+}
+
+/* AI State: Complete */
+.block[data-state="complete"] {
+  border-color: var(--state-complete-border);
+  box-shadow: var(--state-complete-glow), var(--elev-1-shadow);
+}
+
+.block[data-state="complete"]::after {
+  background: var(--block-strip-complete);
+  box-shadow: 0 0 20px var(--emit-teal);
+}
+
+/* AI State: Listening */
+.block[data-state="listening"] {
+  border-color: var(--state-listening-border);
+  box-shadow: var(--state-listening-glow), var(--elev-1-shadow);
+}
+
+.block[data-state="listening"]::after {
+  background: var(--pulse-amber);
+  box-shadow: 0 0 15px var(--emit-amber);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXAMPLE 2: Breathing Container (living surface)
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.005);
+    opacity: 0.98;
+  }
+}
+
+.container-alive {
+  background: var(--thermal-base);
+  border-radius: var(--radius-breathe);
+  animation: breathe var(--breathe-duration) var(--breathe-easing) infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXAMPLE 3: Thermal Pulse (for active states)
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes thermal-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px var(--emit-rose);
+  }
+  50% {
+    box-shadow: 0 0 40px var(--emit-rose), 0 0 60px var(--emit-rose);
+  }
+}
+
+.button-primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border-radius: var(--radius-particle);
+  box-shadow: var(--btn-primary-glow);
+  transition: all var(--snap-duration) var(--snap-easing);
+}
+
+.button-primary:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 30px rgba(247,244,240,0.5);
+}
+
+.button-primary:active {
+  transform: scale(0.98);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXAMPLE 4: Flow Transition (nothing snaps)
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes flow-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.modal {
+  animation: flow-in var(--flow-duration) var(--flow-easing);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXAMPLE 5: Command Palette (focus level)
+   ═══════════════════════════════════════════════════════════════ */
+
+.command-palette {
+  background: var(--command-bg);
+  border: 1px solid var(--command-border);
+  border-radius: var(--radius-cell);
+  box-shadow: var(--command-glow), var(--elev-4-shadow);
+  backdrop-filter: blur(40px) saturate(180%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXAMPLE 6: Thermal Input (focus state)
+   ═══════════════════════════════════════════════════════════════ */
+
+.input-thermal {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-particle);
+  color: var(--text-primary);
+  transition: all var(--flow-duration) var(--flow-easing);
+}
+
+.input-thermal:focus {
+  outline: none;
+  border-color: var(--pulse-rose);
+  box-shadow: var(--input-focus-glow);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXAMPLE 7: Card with Ambient Surface
+   ═══════════════════════════════════════════════════════════════ */
+
+.card-thermal {
+  background:
+    var(--surface-idle),
+    var(--elev-1-bg);
+  border: 1px solid var(--elev-1-border);
+  border-radius: var(--radius-cell);
+  position: relative;
+}
+
+.card-thermal:hover {
+  background:
+    var(--surface-active),
+    var(--thermal-mid);
+  border-color: var(--pulse-rose);
+  box-shadow: var(--elev-1-glow), var(--elev-1-shadow);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXAMPLE 8: Text Gradient (for special text)
+   ═══════════════════════════════════════════════════════════════ */
+
+.text-thermal-gradient {
+  background: linear-gradient(135deg, var(--pulse-rose), var(--pulse-teal));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXAMPLE 9: Loading Spinner (thermal)
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes spin-thermal {
+  0% {
+    transform: rotate(0deg);
+    border-top-color: var(--pulse-rose);
+  }
+  50% {
+    border-top-color: var(--pulse-amber);
+  }
+  100% {
+    transform: rotate(360deg);
+    border-top-color: var(--pulse-rose);
+  }
+}
+
+.spinner-thermal {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--elev-0-border);
+  border-top-color: var(--pulse-rose);
+  border-radius: 50%;
+  animation: spin-thermal 1s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXAMPLE 10: Tag/Chip (particle scale)
+   ═══════════════════════════════════════════════════════════════ */
+
+.tag-thermal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--state-thinking-bg);
+  border: 1px solid var(--state-thinking-border);
+  border-radius: var(--radius-particle);
+  color: var(--state-thinking-text);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all var(--snap-duration) var(--snap-easing);
+}
+
+.tag-thermal:hover {
+  transform: scale(1.05);
+  box-shadow: var(--state-thinking-glow);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   USAGE IN React/tsx
+   ═══════════════════════════════════════════════════════════════ */
+
+/*
+<div className="block" data-state={aiState}>
+  <div className="block-content">
+    {content}
+  </div>
+</div>
+
+<button className="button-primary">
+  Generate
+</button>
+
+<input
+  type="text"
+  className="input-thermal"
+  placeholder="Ask Sutaeru..."
+/>
+*/
+
+/* ═══════════════════════════════════════════════════════════════
+   TIPS FOR BEST RESULTS
+   ═══════════════════════════════════════════════════════════════ */
+
+/*
+1. ALWAYS use thermal-state for AI-related components
+   - It tells users what's happening
+   - Makes the AI feel "present"
+
+2. Use flow transitions for everything entering/leaving
+   - Never use snap transitions
+   - Always include blur for depth
+
+3. Add breathe animation to major containers
+   - 4s cycle is subtle (don't make it faster)
+   - Skip on interactive elements (buttons, inputs)
+
+4. Use noise texture on large surfaces
+   - 3% opacity is enough
+   - Don't use on small elements
+
+5. Glow should be SUBTLE
+   - Emission overlays are 12-18% opacity
+   - Intense versions for focus only (25-30%)
+
+6. Border radius follows hierarchy
+   - breathe (28px) → major containers
+   - cell (20px) → cards, blocks
+   - particle (14px) → buttons, tags
+   - atom (8px) → tiny elements
+
+7. Color = State
+   - rose = thinking
+   - teal = complete
+   - amber = listening
+   - indigo = processing
+
+8. Text hierarchy
+   - primary = main content
+   - secondary (65%) = supporting
+   - tertiary (40%) = metadata
+   - dim (25%) = disabled/hints
+*/
