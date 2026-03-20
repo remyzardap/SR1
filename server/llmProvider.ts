@@ -4,7 +4,7 @@
  */
 
 export interface LLMConfig {
-  provider: "kimi" | "openai" | "gemini" | "anthropic" | "litellm";
+  provider: "kimi" | "openai" | "gemini" | "anthropic" | "litellm" | "nvidia";
   apiKey: string;
 }
 
@@ -37,6 +37,12 @@ function resolveEndpoint(llmConfig?: LLMConfig | null): { baseUrl: string; apiKe
           apiKey: llmConfig.apiKey,
           model: "openai/gpt-5.2",
         };
+      case "nvidia":
+        return {
+          baseUrl: "https://integrate.api.nvidia.com/v1",
+          apiKey: llmConfig.apiKey,
+          model: "meta/llama-3.1-405b-instruct",
+        };
     }
   }
 
@@ -46,14 +52,16 @@ function resolveEndpoint(llmConfig?: LLMConfig | null): { baseUrl: string; apiKe
   const ANTHROPIC = process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API;
   const KIMI     = process.env.KIMI_API_KEY || process.env.KIMI_API;
   const VERTEX   = process.env.VERTEX_API;
+  const NVIDIA   = process.env.NVIDIA_API_KEY;
 
   if (LITELLM)   return { baseUrl: LITELLM_BASE, apiKey: LITELLM, model: "openai/gpt-5.2" };
+  if (NVIDIA)    return { baseUrl: "https://integrate.api.nvidia.com/v1", apiKey: NVIDIA, model: "meta/llama-3.1-405b-instruct" };
   if (VERTEX)    return { baseUrl: "https://vertex-ai.googleapis.com/v1", apiKey: VERTEX, model: "gemini-1.5-pro" };
   if (OPENAI)    return { baseUrl: "https://api.openai.com/v1", apiKey: OPENAI, model: "gpt-4o-mini" };
   if (KIMI)      return { baseUrl: "https://api.moonshot.cn/v1", apiKey: KIMI, model: "moonshot-v1-128k" };
   if (ANTHROPIC) return { baseUrl: "https://api.anthropic.com/v1", apiKey: ANTHROPIC, model: "claude-haiku-4-5" };
 
-  throw new Error("No LLM provider configured. Set LITELLM_API_KEY, OPENAI_API_KEY, KIMI_API_KEY, or ANTHROPIC_API_KEY.");
+  throw new Error("No LLM provider configured. Set NVIDIA_API_KEY, LITELLM_API_KEY, OPENAI_API_KEY, KIMI_API_KEY, or ANTHROPIC_API_KEY.");
 }
 
 async function callLLM(

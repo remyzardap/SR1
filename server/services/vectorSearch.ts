@@ -1,133 +1,151 @@
 /**
- * Semantic vector search using Google Vertex AI
- * - Embeddings: text-embedding-004 (768 dimensions)
- * - Vector index: Vertex AI Vector Search (Matching Engine)
- * - Relational data: MySQL (unchanged)
+ * Semantic vector search using Gemini Embedding 2
+ * - Embeddings: text-embedding-004 (Gemini Embedding 2, 768 dimensions)
+ * - Vector store: In-memory with cosine similarity (can be upgraded to pgvector)
+ * - Relational data: PostgreSQL via Drizzle
  *
  * Required env vars:
- *   GOOGLE_PROJECT_ID         - GCP project ID
- *   GOOGLE_LOCATION           - Region (default: us-central1)
- *   VERTEX_INDEX_ENDPOINT_ID  - Vector Search endpoint ID
- *   VERTEX_DEPLOYED_INDEX_ID  - Deployed index ID within the endpoint
- *   GOOGLE_API_KEY            - Service account key JSON (stringified) OR use ADC
+ *   GEMINI_API_KEY  - Google AI Studio API key
  */
 
-import { GoogleAuth } from "google-auth-library";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getDb } from "../db";
+import { memories, identities } from "../../drizzle/schema";
+import { eq, sql } from "drizzle-orm";
 
-const PROJECT = process.env.GOOGLE_PROJECT_ID;
-const LOCATION = process.env.GOOGLE_LOCATION || "us-central1";
-const ENDPOINT = process.env.VERTEX_INDEX_ENDPOINT_ID;
-const DEPLOYED = process.env.VERTEX_DEPLOYED_INDEX_ID;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-const BASE = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT}/locations/${LOCATION}`;
+// In-memory vector cache (production: use pgvector or Redis)
+const vectorCache = new Map<string, { vector: number[]; timestamp: number }>();
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
-// Singleton auth client
-let _auth: GoogleAuth | null = null;
-
-function getAuth(): GoogleAuth {
-  if (!_auth) {
-    // Support JSON key passed as env var string
-    const keyJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-    if (keyJson) {
-      const credentials = JSON.parse(keyJson);
-      _auth = new GoogleAuth({
-        credentials,
-        scopes: "https://www.googleapis.com/auth/cloud-platform",
-      });
-    } else {
-      _auth = new GoogleAuth({
-        scopes: "https://www.googleapis.com/auth/cloud-platform",
-      });
-    }
-  }
-  return _auth;
-}
-
-async function getToken(): Promise<string> {
-  const auth = getAuth();
-  const client = await auth.getClient();
-  const tokenResponse = await client.getAccessToken();
-  return tokenResponse.token as string;
-}
+// ═══════════════════════════════════════════════════════════════════════════════
+// EMBEDDING GENERATION (Gemini Embedding 2)
+// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Generate a 768-dimensional embedding for the given text
- * using Google's text-embedding-004 model.
+ * using Google's Gemini Embedding 2 (text-embedding-004).
  */
 export async function embed(text: string): Promise<number[]> {
-  if (!PROJECT) throw new Error("GOOGLE_PROJECT_ID is not configured");
-  const token = await getToken();
-  const res = await fetch(
-    `${BASE}/publishers/google/models/text-embedding-004:predict`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ instances: [{ content: text }] }),
-    }
-  );
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Embedding failed (${res.status}): ${err}`);
+  if (!GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY is not configured");
   }
-  const data = await res.json();
-  return data.predictions[0].embeddings.values as number[];
+
+  // Check cache
+  const cacheKey = `embed_${hashText(text)}`;
+  const cached = vectorCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.vector;
+  }
+
+  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+
+  const result = await model.embedContent(text);
+  const embedding = result.embedding.values;
+
+  // Cache the result
+  vectorCache.set(cacheKey, { vector: embedding, timestamp: Date.now() });
+
+  return embedding;
 }
 
 /**
- * Upsert a memory vector into Vertex AI Vector Search.
- * Uses identityId as a namespace restriction so users only
- * retrieve their own memories.
+ * Batch embed multiple texts
+ */
+export async function embedBatch(texts: string[]): Promise<number[][]> {
+  return Promise.all(texts.map((t) => embed(t)));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VECTOR STORAGE (Memory-based with PostgreSQL fallback)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface VectorRecord {
+  memoryId: number;
+  identityId: number;
+  vector: number[];
+  content: string;
+  timestamp: number;
+}
+
+// In-memory vector store
+const vectorStore = new Map<number, VectorRecord>();
+
+/**
+ * Store a memory vector
  */
 export async function upsertVector(
   memoryId: number,
   vector: number[],
   identityId: number
 ): Promise<void> {
-  if (!PROJECT || !ENDPOINT) {
-    // Silently skip if Vertex AI is not configured (graceful degradation)
-    return;
-  }
-  const token = await getToken();
-  await fetch(`${BASE}/indexEndpoints/${ENDPOINT}:upsertDatapoints`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      datapoints: [
-        {
-          datapointId: String(memoryId),
-          featureVector: vector,
-          restricts: [
-            {
-              namespace: "identity",
-              allowList: [String(identityId)],
-            },
-          ],
-        },
-      ],
-    }),
+  const db = await getDb();
+  if (!db) return;
+
+  // Get memory content for context
+  const memory = await db
+    .select()
+    .from(memories)
+    .where(eq(memories.id, memoryId))
+    .limit(1);
+
+  if (memory.length === 0) return;
+
+  // Store in memory
+  vectorStore.set(memoryId, {
+    memoryId,
+    identityId,
+    vector,
+    content: memory[0].content,
+    timestamp: Date.now(),
   });
+
+  // Also store in database as JSONB for persistence
+  await db
+    .update(memories)
+    .set({
+      structuredData: sql`COALESCE(structured_data, '{}'::jsonb) || ${JSON.stringify({
+        embedding: vector,
+        embeddedAt: new Date().toISOString(),
+      })}::jsonb`,
+    })
+    .where(eq(memories.id, memoryId));
 }
 
 /**
- * Remove a memory vector from Vertex AI Vector Search.
+ * Remove a memory vector
  */
 export async function removeVector(memoryId: number): Promise<void> {
-  if (!PROJECT || !ENDPOINT) return;
-  const token = await getToken();
-  await fetch(`${BASE}/indexEndpoints/${ENDPOINT}:removeDatapoints`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ datapointIds: [String(memoryId)] }),
-  });
+  vectorStore.delete(memoryId);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SIMILARITY SEARCH
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Calculate cosine similarity between two vectors
+ */
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) {
+    throw new Error("Vectors must have same dimensions");
+  }
+
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+
+  if (normA === 0 || normB === 0) return 0;
+
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
 /**
@@ -139,46 +157,123 @@ export async function searchSimilar(
   identityId: number,
   k: number = 5
 ): Promise<Array<{ id: number; score: number }>> {
-  if (!PROJECT || !ENDPOINT || !DEPLOYED) {
-    // Vertex AI not configured — caller should fall back to recent memories
-    return [];
+  const db = await getDb();
+  if (!db) return [];
+
+  // First, try to get memories from database that have embeddings
+  const userMemories = await db
+    .select()
+    .from(memories)
+    .innerJoin(identities, eq(memories.identityId, identities.id))
+    .where(eq(identities.id, identityId));
+
+  const scored: Array<{ id: number; score: number }> = [];
+
+  for (const row of userMemories) {
+    const memory = row.memories;
+    
+    // Check if we have a cached vector
+    const cached = vectorStore.get(memory.id);
+    if (cached) {
+      const similarity = cosineSimilarity(vector, cached.vector);
+      scored.push({ id: memory.id, score: similarity });
+      continue;
+    }
+
+    // Check if embedding exists in database
+    const structured = memory.structuredData as { embedding?: number[] } | null;
+    if (structured?.embedding) {
+      const similarity = cosineSimilarity(vector, structured.embedding);
+      scored.push({ id: memory.id, score: similarity });
+      
+      // Cache it
+      vectorStore.set(memory.id, {
+        memoryId: memory.id,
+        identityId,
+        vector: structured.embedding,
+        content: memory.content,
+        timestamp: Date.now(),
+      });
+    }
   }
-  const token = await getToken();
-  const res = await fetch(`${BASE}/indexEndpoints/${ENDPOINT}:findNeighbors`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      deployedIndexId: DEPLOYED,
-      queries: [
-        {
-          neighborCount: k,
-          featureVector: vector,
-          restricts: [
-            {
-              namespace: "identity",
-              allowList: [String(identityId)],
-            },
-          ],
-        },
-      ],
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Vector search failed (${res.status}): ${err}`);
-  }
-  const data = await res.json();
-  const neighbors = data.nearestNeighbors?.[0]?.neighbors ?? [];
-  return neighbors.map((n: { datapointId: string; distance: number }) => ({
-    id: parseInt(n.datapointId),
-    score: Math.round((1 - n.distance) * 100) / 100,
-  }));
+
+  // Sort by score descending and return top k
+  return scored
+    .sort((a, b) => b.score - a.score)
+    .slice(0, k);
 }
 
-/** Returns true if Vertex AI Vector Search is fully configured */
+/**
+ * Search memories by text query (auto-embeds the query)
+ */
+export async function searchMemoriesByText(
+  identityId: number,
+  query: string,
+  k: number = 5
+): Promise<Array<{ id: number; score: number; content: string }>> {
+  const queryVector = await embed(query);
+  const similar = await searchSimilar(queryVector, identityId, k);
+
+  const db = await getDb();
+  if (!db) return [];
+
+  // Fetch full memory content
+  const results: Array<{ id: number; score: number; content: string }> = [];
+  for (const { id, score } of similar) {
+    const memory = await db
+      .select()
+      .from(memories)
+      .where(eq(memories.id, id))
+      .limit(1);
+    
+    if (memory.length > 0) {
+      results.push({
+        id,
+        score,
+        content: memory[0].content,
+      });
+    }
+  }
+
+  return results;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Returns true if Gemini Embedding is configured */
 export function isVectorSearchConfigured(): boolean {
-  return !!(PROJECT && ENDPOINT && DEPLOYED);
+  return !!GEMINI_API_KEY;
+}
+
+/**
+ * Simple hash function for text
+ */
+function hashText(text: string): string {
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    const char = text.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return hash.toString(16);
+}
+
+/**
+ * Clear the vector cache
+ */
+export function clearVectorCache(): void {
+  vectorCache.clear();
+  vectorStore.clear();
+}
+
+/**
+ * Get cache stats
+ */
+export function getCacheStats(): { cacheSize: number; storeSize: number } {
+  return {
+    cacheSize: vectorCache.size,
+    storeSize: vectorStore.size,
+  };
 }
