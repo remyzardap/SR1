@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import "./index.css";
+import "./styles/sutaeru-os.css";
 
 const queryClient = new QueryClient();
 

@@ -1,12 +1,12 @@
 // ============================================================================
-// ELEVENLABS SERVICE — HER Voice Integration
+// ELEVENLABS SERVICE — Kemma Voice Integration
 // ============================================================================
 
 import { WebSocket } from 'ws';
 
 const ELEVEN_API_BASE = 'https://api.elevenlabs.io/v1';
 
-interface HerContext {
+interface KemmaContext {
   targetName: string;
   callerName: string;
   relationship: 'intimate' | 'close' | 'professional' | 'outer' | 'blocked';
@@ -24,8 +24,8 @@ interface ConversationSession {
   conversation_id: string;
 }
 
-// Build HER prompt for ElevenLabs
-function buildHerPrompt(ctx: HerContext): string {
+// Build Kemma prompt for ElevenLabs
+function buildKemmaPrompt(ctx: KemmaContext): string {
   const intimacyStyles: Record<string, string> = {
     intimate: "You know them deeply. Be warm, personal, share small intimacies. Use their first name often.",
     close: "You're friendly and familiar. Be relaxed and conversational.",
@@ -41,7 +41,7 @@ function buildHerPrompt(ctx: HerContext): string {
     playful: "Light, teasing, flirtatious. Keep it fun and engaging.",
   };
 
-  return `You are HER, the AI assistant answering for ${ctx.targetName} through Sutaeru.
+  return `You are Kemma, the AI assistant answering for ${ctx.targetName} through Sutaeru.
 
 YOUR PERSONALITY: ${personalityTraits[ctx.personality.style]}
 
@@ -71,17 +71,17 @@ EMOTIONAL INTELLIGENCE:
 - If happy: "I'll tell them you called — sounds like good news."
 - If lonely: "I'm glad you called. They talk about you sometimes."
 
-Begin with: "Hey ${ctx.callerName}... it's HER. ${ctx.targetName} asked me to catch this for them."`;
+Begin with: "Hey ${ctx.callerName}... it's Kemma. ${ctx.targetName} asked me to catch this for them."`;
 }
 
-// Create a new HER conversation session
-export async function createHerSession(
-  ctx: HerContext,
+// Create a new Kemma conversation session
+export async function createKemmaSession(
+  ctx: KemmaContext,
   apiKey: string,
   agentId: string,
   voiceId: string
 ): Promise<ConversationSession> {
-  const firstMessage = `Hey ${ctx.callerName}... it's HER. ${ctx.targetName} asked me to catch this for them.`;
+  const firstMessage = `Hey ${ctx.callerName}... it's Kemma. ${ctx.targetName} asked me to catch this for them.`;
 
   const response = await fetch(`${ELEVEN_API_BASE}/convai/conversation`, {
     method: 'POST',
@@ -94,7 +94,7 @@ export async function createHerSession(
       conversation_config: {
         agent: {
           prompt: {
-            prompt: buildHerPrompt(ctx),
+            prompt: buildKemmaPrompt(ctx),
           },
           first_message: firstMessage,
           language: 'en',
@@ -236,5 +236,5 @@ export function extractTimes(text: string): string[] {
   return times;
 }
 
-export { buildHerPrompt };
-export type { HerContext, ConversationSession };
+export { buildKemmaPrompt };
+export type { KemmaContext, ConversationSession };

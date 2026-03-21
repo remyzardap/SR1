@@ -72,7 +72,7 @@ export default function Chat() {
     return id;
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [smart, setSmart] = useState(false);
+  const [max, setMax] = useState(false);
 
   // Save-memory dialog
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -208,6 +208,7 @@ export default function Chat() {
                 content: m.content,
               })),
               sessionId,
+              max,
             }),
           });
 
@@ -337,10 +338,10 @@ export default function Chat() {
           skillCount={agentCtx?.skillCount}
           isStreaming={isStreaming}
           sidebarOpen={sidebarOpen}
-          smart={smart}
+          max={max}
           onNewChat={handleNewChat}
           onToggleSidebar={() => setSidebarOpen((o) => !o)}
-          onToggleSmart={() => setSmart((s) => !s)}
+          onToggleMax={() => setMax((s) => !s)}
         />
 
         <ChatMessages

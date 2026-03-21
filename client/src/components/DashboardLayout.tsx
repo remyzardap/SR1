@@ -75,7 +75,7 @@ const DEFAULT_WIDTH = 280;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 480;
 
-// ─── Shared UI primitives (used by HerSettings, AgentHub, etc.) ─────────────
+// ─── Shared UI primitives (used by KemmaCalls, AgentHub, etc.) ─────────────
 const glassColors = {
   blue: '#5B8DEF',
   purple: '#8B5CF6',

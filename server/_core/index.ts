@@ -50,7 +50,7 @@ registerTelegramWebhookRoute(app);
 // Atelier — AI report builder routes
 registerAtelierRoutes(app);
 
-// Intelligence API routes (HER voice, blended agents)
+// Intelligence API routes (Kemma voice, blended agents)
 app.use('/api/intelligence', intelligenceRouter);
 
 // Kemma agent streaming route

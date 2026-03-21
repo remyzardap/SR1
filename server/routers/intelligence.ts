@@ -1,18 +1,18 @@
 // ============================================================================
-// INTELLIGENCE API ROUTES — Chat, HER Calls, Agents
+// INTELLIGENCE API ROUTES — Chat, Kemma Calls, Agents
 // ============================================================================
 
 import { Router } from 'express';
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'http';
-import { 
-  createHerSession, 
-  endConversation, 
+import {
+  createKemmaSession,
+  endConversation,
   getConversationHistory,
   detectSchedulingIntent,
   detectUrgency,
   extractTimes,
-  type HerContext 
+  type KemmaContext
 } from '../services/elevenlabs';
 import { 
   sendMessage, 
@@ -74,21 +74,21 @@ router.get('/agents', async (req, res) => {
 });
 
 // ============================================================================
-// HER VOICE CALLS
+// KEMMA VOICE CALLS
 // ============================================================================
 
-// POST /api/intelligence/her/call
-router.post('/her/call', async (req, res) => {
+// POST /api/intelligence/kemma/call
+router.post('/kemma/call', async (req, res) => {
   try {
     const { callerName, context } = req.body;
     const userId = (req as any).user?.id;
-    
+
     if (!callerName) {
       return res.status(400).json({ error: 'Caller name is required' });
     }
 
-    // Build HER context
-    const herContext: HerContext = {
+    // Build Kemma context
+    const kemmaContext: KemmaContext = {
       targetName: context?.targetName || 'me',
       callerName,
       relationship: context?.relationship || 'close',
@@ -102,8 +102,8 @@ router.post('/her/call', async (req, res) => {
     };
 
     // Create ElevenLabs session
-    const session = await createHerSession(
-      herContext,
+    const session = await createKemmaSession(
+      kemmaContext,
       ELEVEN_LABS_API_KEY,
       ELEVEN_LABS_AGENT_ID,
       ELEVEN_LABS_VOICE_ID
@@ -115,19 +115,19 @@ router.post('/her/call', async (req, res) => {
         conversationId: session.conversation_id,
         signedUrl: session.signed_url,
       },
-      message: `Hey ${callerName}... it's HER. ${herContext.targetName} asked me to catch this for them.`,
+      message: `Hey ${callerName}... it's Kemma. ${kemmaContext.targetName} asked me to catch this for them.`,
     });
   } catch (error) {
-    console.error('[Intelligence] HER call error:', error);
-    res.status(500).json({ 
-      error: 'Failed to initiate HER call',
+    console.error('[Intelligence] Kemma call error:', error);
+    res.status(500).json({
+      error: 'Failed to initiate Kemma call',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-// POST /api/intelligence/her/end
-router.post('/her/end', async (req, res) => {
+// POST /api/intelligence/kemma/end
+router.post('/kemma/end', async (req, res) => {
   try {
     const { conversationId } = req.body;
     
@@ -145,13 +145,13 @@ router.post('/her/end', async (req, res) => {
       history,
     });
   } catch (error) {
-    console.error('[Intelligence] HER end error:', error);
+    console.error('[Intelligence] Kemma end error:', error);
     res.status(500).json({ error: 'Failed to end conversation' });
   }
 });
 
-// POST /api/intelligence/her/analyze
-router.post('/her/analyze', async (req, res) => {
+// POST /api/intelligence/kemma/analyze
+router.post('/kemma/analyze', async (req, res) => {
   try {
     const { transcript } = req.body;
     
@@ -180,7 +180,7 @@ router.post('/her/analyze', async (req, res) => {
       analysis,
     });
   } catch (error) {
-    console.error('[Intelligence] HER analyze error:', error);
+    console.error('[Intelligence] Kemma analyze error:', error);
     res.status(500).json({ error: 'Failed to analyze transcript' });
   }
 });
@@ -210,7 +210,7 @@ export function setupIntelligenceWebSocket(server: Server) {
   wss.on('connection', (ws: WebSocket, req) => {
     const url = new URL(req.url!, `http://${req.headers.host}`);
     const connectionId = url.searchParams.get('id') || `conn-${Date.now()}`;
-    const type = url.searchParams.get('type'); // 'her' or 'chat'
+    const type = url.searchParams.get('type'); // 'kemma' or 'chat'
 
     console.log(`[WebSocket] New connection: ${connectionId} (${type})`);
 
@@ -224,14 +224,14 @@ export function setupIntelligenceWebSocket(server: Server) {
         if (!conn) return;
 
         switch (message.type) {
-          case 'her_init':
-            // Initialize HER connection to ElevenLabs
+          case 'kemma_init':
+            // Initialize Kemma connection to ElevenLabs
             if (message.signedUrl) {
               const elevenWs = new WebSocket(message.signedUrl);
               
               elevenWs.on('open', () => {
                 console.log('[WebSocket] ElevenLabs connected');
-                ws.send(JSON.stringify({ type: 'her_ready' }));
+                ws.send(JSON.stringify({ type: 'kemma_ready' }));
               });
 
               elevenWs.on('message', (elevenData) => {
@@ -240,7 +240,7 @@ export function setupIntelligenceWebSocket(server: Server) {
                   
                   // Forward to client
                   ws.send(JSON.stringify({
-                    type: 'her_message',
+                    type: 'kemma_message',
                     data: parsed,
                   }));
 
@@ -251,7 +251,7 @@ export function setupIntelligenceWebSocket(server: Server) {
                     
                     if (hasScheduling || isUrgent) {
                       ws.send(JSON.stringify({
-                        type: 'her_analysis',
+                        type: 'kemma_analysis',
                         data: {
                           hasSchedulingIntent: hasScheduling,
                           isUrgent,
@@ -267,13 +267,13 @@ export function setupIntelligenceWebSocket(server: Server) {
 
               elevenWs.on('close', () => {
                 console.log('[WebSocket] ElevenLabs disconnected');
-                ws.send(JSON.stringify({ type: 'her_ended' }));
+                ws.send(JSON.stringify({ type: 'kemma_ended' }));
                 connections.delete(connectionId);
               });
 
               elevenWs.on('error', (error) => {
                 console.error('[WebSocket] ElevenLabs error:', error);
-                ws.send(JSON.stringify({ type: 'her_error', error: 'Voice connection error' }));
+                ws.send(JSON.stringify({ type: 'kemma_error', error: 'Voice connection error' }));
               });
 
               conn.elevenLabsWs = elevenWs;
@@ -281,22 +281,22 @@ export function setupIntelligenceWebSocket(server: Server) {
             }
             break;
 
-          case 'her_audio':
+          case 'kemma_audio':
             // Forward audio data to ElevenLabs
             if (conn.elevenLabsWs && conn.elevenLabsWs.readyState === WebSocket.OPEN) {
               conn.elevenLabsWs.send(message.audio);
             }
             break;
 
-          case 'her_end':
-            // End HER call
+          case 'kemma_end':
+            // End Kemma call
             if (conn.elevenLabsWs) {
               conn.elevenLabsWs.close();
             }
             if (conn.conversationId) {
               await endConversation(conn.conversationId, ELEVEN_LABS_API_KEY);
             }
-            ws.send(JSON.stringify({ type: 'her_ended' }));
+            ws.send(JSON.stringify({ type: 'kemma_ended' }));
             connections.delete(connectionId);
             break;
 

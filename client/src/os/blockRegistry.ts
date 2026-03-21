@@ -3,6 +3,7 @@
 // Grid positions match MagicDraft/Debtrix layout from images
 // ============================================
 
+import React from 'react';
 import {
   MessageSquare, CheckSquare, Brain, FolderOpen,
   Compass, Terminal, Users,
@@ -17,7 +18,7 @@ export type BlockVariant = 'featured' | 'stat' | 'list' | 'terminal';
 export interface BlockConfig {
   id: BlockId;
   label: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   variant: BlockVariant;
   accentColor: string;
   statCardClass?: string;    // os-stat-card--color for tinted bg

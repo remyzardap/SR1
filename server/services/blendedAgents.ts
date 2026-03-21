@@ -82,7 +82,7 @@ export function detectQueryType(query: string): string {
   if (/\b(image|picture|photo|visual|draw|generate image|create image)\b/.test(lower)) {
     return 'multimodal';
   }
-  if (/\b(call|phone|voice|speak|talk|conversation|her)\b/.test(lower)) {
+  if (/\b(call|phone|voice|speak|talk|conversation|kemma)\b/.test(lower)) {
     return 'voice';
   }
   
@@ -98,7 +98,7 @@ export function selectBestAgent(queryType: string, activeAgents: AgentConfig[] =
   }
   
   // Default to fastest active agent
-  return activeAgents.sort((a, b) => a.latency - b.latency)[0] || AGENTS[0];
+  return [...activeAgents].sort((a, b) => a.latency - b.latency)[0] || AGENTS[0];
 }
 
 // Call Kimi API

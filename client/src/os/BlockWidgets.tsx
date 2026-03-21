@@ -7,7 +7,7 @@ import { trpc } from '../lib/trpc';
 import {
   MessageSquare, CheckSquare, Brain, FolderOpen,
   Compass, Terminal, Users, ArrowUpRight, TrendingUp,
-  TrendingDown, Clock, Zap,
+  Zap,
 } from 'lucide-react';
 
 // ==============================
@@ -66,9 +66,9 @@ export function ChatWidget() {
 // TASKS — Debtrix-style stat card with big number + delta
 // ==============================
 export function TasksWidget() {
-  const { data: allTasks = [] } = trpc.tasks.getAll.useQuery(undefined, { staleTime: 30_000 });
-  const open = allTasks.filter((t: any) => t.status === 'open' || t.status === 'in-progress');
-  const doneThisWeek = allTasks.filter((t: any) => {
+  const { data: allTasks = [] } = trpc.tasks.list.useQuery(undefined, { staleTime: 30_000 });
+  const open = allTasks.filter((t) => t.status === 'open' || t.status === 'in_progress');
+  const doneThisWeek = allTasks.filter((t) => {
     if (t.status !== 'done') return false;
     return new Date(t.updatedAt) > new Date(Date.now() - 7 * 86400000);
   });
@@ -114,8 +114,8 @@ export function TasksWidget() {
 // MEMORY — Stat card with fragment count + mini graph dots
 // ==============================
 export function MemoryWidget() {
-  const { data: memories = [] } = trpc.memories.search.useQuery(
-    { query: '', limit: 10 },
+  const { data: memories = [] } = trpc.memories.list.useQuery(
+    undefined,
     { staleTime: 60_000 }
   );
 
@@ -158,7 +158,7 @@ export function MemoryWidget() {
 // ==============================
 export function FilesWidget() {
   const { data: files = [] } = trpc.files.list.useQuery(undefined, { staleTime: 30_000 });
-  const recentFiles = (files as any[]).slice(0, 4);
+  const recentFiles = files.slice(0, 4);
 
   return (
     <div className="relative z-10 p-5 h-full flex flex-col">
@@ -170,12 +170,12 @@ export function FilesWidget() {
           <span className="text-sm font-semibold" style={{ color: 'var(--os-text)' }}>Files</span>
         </div>
         <span className="os-badge" style={{ background: 'var(--os-green-dim)', color: 'var(--os-green)' }}>
-          {(files as any[]).length}
+          {files.length}
         </span>
       </div>
 
       <div className="space-y-2 mt-auto">
-        {recentFiles.map((f: any, i: number) => (
+        {recentFiles.map((f, i) => (
           <div key={i} className="flex items-center gap-3 py-1.5 px-3 rounded-lg"
             style={{ background: 'var(--os-bg-card-alt)' }}>
             <div className="w-6 h-6 rounded-md flex items-center justify-center text-xs"

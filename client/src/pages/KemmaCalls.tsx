@@ -12,13 +12,13 @@ const colors = {
   glassBorder: 'rgba(91, 141, 239, 0.2)',
 };
 
-export default function HerSettings() {
-  const { her, updateHerSettings, callHistory, isInHerHours } = useIntelligence();
-  const [localSettings, setLocalSettings] = useState(her);
+export default function KemmaCalls() {
+  const { kemma, updateKemmaSettings, callHistory, isInKemmaHours } = useIntelligence();
+  const [localSettings, setLocalSettings] = useState(kemma);
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
-    updateHerSettings(localSettings);
+    updateKemmaSettings(localSettings);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -65,7 +65,7 @@ export default function HerSettings() {
             </h3>
             <p style={{ fontSize: '14px', color: colors.textGray }}>
               {localSettings.enabled 
-                ? `Personality: ${localSettings.style} • ${isInHerHours ? 'In Kemma Calls hours' : 'Outside Kemma Calls hours'}`
+                ? `Personality: ${localSettings.style} • ${isInKemmaHours ? 'In Kemma Calls hours' : 'Outside Kemma Calls hours'}`
                 : 'Enable Kemma Calls to have an AI assistant answer calls for you'
               }
             </p>
@@ -149,7 +149,7 @@ export default function HerSettings() {
                 Enable Voice
               </div>
               <div style={{ fontSize: '12px', color: colors.textGray }}>
-                HER will speak using AI-generated voice
+                Kemma will speak using AI-generated voice
               </div>
             </div>
             <div
@@ -184,7 +184,7 @@ export default function HerSettings() {
                 Auto-Answer Calls
               </div>
               <div style={{ fontSize: '12px', color: colors.textGray }}>
-                HER answers immediately instead of ringing
+                Kemma answers immediately instead of ringing
               </div>
             </div>
             <div
@@ -215,13 +215,13 @@ export default function HerSettings() {
         </div>
       </GlassCard>
 
-      {/* HER Hours */}
+      {/* Kemma Hours */}
       <GlassCard style={{ marginBottom: '24px' }}>
         <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px', color: colors.textWhite }}>
-          HER Hours
+          Kemma Hours
         </h3>
         <p style={{ fontSize: '13px', color: colors.textGray, marginBottom: '16px' }}>
-          HER will automatically answer calls during these hours (outside hours, calls will ring normally)
+          Kemma will automatically answer calls during these hours (outside hours, calls will ring normally)
         </p>
         
         <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
@@ -230,8 +230,8 @@ export default function HerSettings() {
               Start Time
             </label>
             <select
-              value={localSettings.herHoursStart}
-              onChange={(e) => setLocalSettings(prev => ({ ...prev, herHoursStart: parseInt(e.target.value) }))}
+              value={localSettings.kemmaHoursStart}
+              onChange={(e) => setLocalSettings(prev => ({ ...prev, kemmaHoursStart: parseInt(e.target.value) }))}
               style={{
                 padding: '12px 16px',
                 background: 'rgba(255, 255, 255, 0.05)',
@@ -257,8 +257,8 @@ export default function HerSettings() {
               End Time
             </label>
             <select
-              value={localSettings.herHoursEnd}
-              onChange={(e) => setLocalSettings(prev => ({ ...prev, herHoursEnd: parseInt(e.target.value) }))}
+              value={localSettings.kemmaHoursEnd}
+              onChange={(e) => setLocalSettings(prev => ({ ...prev, kemmaHoursEnd: parseInt(e.target.value) }))}
               style={{
                 padding: '12px 16px',
                 background: 'rgba(255, 255, 255, 0.05)',
@@ -285,12 +285,12 @@ export default function HerSettings() {
           Custom Instructions
         </h3>
         <p style={{ fontSize: '13px', color: colors.textGray, marginBottom: '16px' }}>
-          Add specific instructions for how HER should handle calls (e.g., "Never interrupt me during meetings", "Always offer to schedule a callback")
+          Add specific instructions for how Kemma should handle calls (e.g., "Never interrupt me during meetings", "Always offer to schedule a callback")
         </p>
         <textarea
           value={localSettings.customInstructions || ''}
           onChange={(e) => setLocalSettings(prev => ({ ...prev, customInstructions: e.target.value }))}
-          placeholder="Enter custom instructions for HER..."
+          placeholder="Enter custom instructions for Kemma..."
           rows={4}
           style={{
             width: '100%',

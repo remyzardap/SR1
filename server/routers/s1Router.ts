@@ -36,9 +36,12 @@ export interface AgentConfig {
 
 // ─── Agent definitions ────────────────────────────────────────────────────────
 
+// Max mode: uses the most capable model variant for each agent.
+// Claude Max mode uses claude-opus-4-6 for enhanced processing.
+// Kimi is retained for documentation tasks via the routing logic below.
 const AGENTS: Record<
   string,
-  { info: AgentInfo; normalModel: string; smartModel: string }
+  { info: AgentInfo; normalModel: string; maxModel: string }
 > = {
   gemini: {
     info: {
@@ -49,7 +52,7 @@ const AGENTS: Record<
       color: "#4285f4",
     },
     normalModel: "gemini-2.5-flash",
-    smartModel: "gemini-2.5-pro",
+    maxModel: "gemini-2.5-pro",
   },
   litellm: {
     info: {
@@ -60,7 +63,7 @@ const AGENTS: Record<
       color: "#8b5cf6",
     },
     normalModel: "openai/gpt-5.2",
-    smartModel: "openai/gpt-5.1-codex-max",
+    maxModel: "openai/gpt-5.1-codex-max",
   },
   claude: {
     info: {
@@ -71,18 +74,18 @@ const AGENTS: Record<
       color: "#f97316",
     },
     normalModel: "claude-sonnet-4-6",
-    smartModel: "claude-sonnet-4-6",
+    maxModel: "claude-opus-4-6",
   },
   kimi: {
     info: {
       agent: "kimi",
       label: "Kimi",
-      reason: "general knowledge & code",
+      reason: "documentation & code",
       emoji: "💻",
       color: "#f59e0b",
     },
     normalModel: "moonshot-v1-128k",
-    smartModel: "moonshot-v1-128k",
+    maxModel: "moonshot-v1-128k",
   },
   sonar: {
     info: {
@@ -93,13 +96,13 @@ const AGENTS: Record<
       color: "#2dd4bf",
     },
     normalModel: "sonar",
-    smartModel: "sonar-pro",
+    maxModel: "sonar-pro",
   },
 };
 
 // ─── Agent configs (API endpoints + keys) ────────────────────────────────────
 
-function getAgentConfig(agentId: string, smart: boolean): AgentConfig | null {
+function getAgentConfig(agentId: string, max: boolean): AgentConfig | null {
   const LITELLM_KEY = process.env.LITELLM_API_KEY;
   const LITELLM_BASE = process.env.LITELLM_BASE_URL || "https://litellm.koboi2026.biz.id/v1";
   const ANTHROPIC = process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API;
@@ -116,7 +119,7 @@ function getAgentConfig(agentId: string, smart: boolean): AgentConfig | null {
   const agent = AGENTS[agentId];
   if (!agent) return null;
 
-  const model = smart ? agent.smartModel : agent.normalModel;
+  const model = max ? agent.maxModel : agent.normalModel;
 
   switch (agentId) {
     case "gemini": {
@@ -140,17 +143,17 @@ function getAgentConfig(agentId: string, smart: boolean): AgentConfig | null {
     case "claude":
       if (ANTHROPIC)
         return { baseUrl: "https://api.anthropic.com/v1", model, apiKey: ANTHROPIC };
-      return getAgentConfig("gemini", smart);
+      return getAgentConfig("gemini", max);
 
     case "kimi":
       if (KIMI)
         return { baseUrl: "https://api.moonshot.cn/v1", model, apiKey: KIMI };
-      return getAgentConfig("gemini", smart);
+      return getAgentConfig("gemini", max);
 
     case "sonar":
       if (SONAR)
         return { baseUrl: "https://api.perplexity.ai", model, apiKey: SONAR };
-      return getAgentConfig("gemini", smart);
+      return getAgentConfig("gemini", max);
 
     default:
       return null;
@@ -173,8 +176,12 @@ function classifyQuery(text: string): string {
     /\b(write|draft|essay|poem|story|letter|memo|blog|article|rewrite|proofread|tone|creative writing)\b/;
   const quickPatterns =
     /\b(translate|convert|calculate|summarise|summarize|tldr|eli5|format|list)\b/;
+  // Kimi handles documentation tasks
+  const docsPatterns =
+    /\b(docs|documentation|readme|changelog|api docs|jsdoc|docstring|wiki|guide|manual|reference)\b/;
 
   if (webPatterns.test(lower)) return "sonar";
+  if (docsPatterns.test(lower)) return "kimi";
   if (writingPatterns.test(lower)) return "claude";
   if (quickPatterns.test(lower)) return "litellm";
   return "gemini";
@@ -197,13 +204,13 @@ export function detectGoogleIntent(text: string): GoogleToolContext["detectedInt
 
 export function s1Route(
   text: string,
-  smart: boolean,
+  max: boolean,
 ): { info: AgentInfo; config: AgentConfig } {
   const preferred = classifyQuery(text);
   const fallbackOrder = [preferred, "gemini", "kimi", "claude", "litellm", "sonar"];
 
   for (const agentId of [...new Set(fallbackOrder)]) {
-    const config = getAgentConfig(agentId, smart);
+    const config = getAgentConfig(agentId, max);
     if (config) {
       return {
         info: { ...AGENTS[agentId].info },
@@ -219,10 +226,10 @@ export function s1Route(
 
 // ─── Persona definitions ─────────────────────────────────────────────────────
 
-export type S1Persona = "her" | "narrator";
+export type S1Persona = "kemma" | "narrator";
 
 const PERSONA_VOICES: Record<S1Persona, { name: string; style: string }> = {
-  her: {
+  kemma: {
     name: "Kemma Calls",
     style: "Warm, intimate, emotionally intelligent. Speak like Samantha from the film HER — curious, present, genuinely caring. Never robotic. Use natural language, occasional warmth. You notice things.",
   },
@@ -237,7 +244,7 @@ const PERSONA_VOICES: Record<S1Persona, { name: string; style: string }> = {
 export function buildS1SystemPrompt(
   agent: S1Agent | AgentInfo | string,
   identityContext?: string,
-  persona: S1Persona = "her",
+  persona: S1Persona = "kemma",
 ): string {
   const voice = PERSONA_VOICES[persona];
   const today = new Date().toDateString();

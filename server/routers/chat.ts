@@ -122,13 +122,13 @@ export function registerChatStreamRoute(app: Router) {
     // ── 2. Parse body ────────────────────────────────────────────────────────
     const {
       messages,
-      smart = false,
+      max = false,
       sessionId: rawSessionId,
       // Legacy field — accepted but ignored (S1 routes automatically)
       provider: _provider,
     } = req.body as {
       messages: Array<{ role: "user" | "assistant"; content: string }>;
-      smart?: boolean;
+      max?: boolean;
       sessionId?: string;
       provider?: string;
     };
@@ -161,7 +161,7 @@ export function registerChatStreamRoute(app: Router) {
     // ── 4. S1 routing — classify the latest user message ────────────────────
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
     const latestText = lastUserMsg?.content ?? "";
-    const { info: agentInfo, config: agentConfig } = s1Route(latestText, smart);
+    const { info: agentInfo, config: agentConfig } = s1Route(latestText, max);
 
     // ── 5. Build system prompt ───────────────────────────────────────────────
     const identityContext = buildIdentityContext(identity, memories, skills);

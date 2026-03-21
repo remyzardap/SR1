@@ -10,10 +10,10 @@ interface ChatHeaderProps {
   skillCount?: number;
   isStreaming: boolean;
   sidebarOpen: boolean;
-  smart?: boolean;
+  max?: boolean;
   onNewChat: () => void;
   onToggleSidebar: () => void;
-  onToggleSmart?: () => void;
+  onToggleMax?: () => void;
 }
 
 export function ChatHeader({
@@ -23,10 +23,10 @@ export function ChatHeader({
   skillCount,
   isStreaming,
   sidebarOpen,
-  smart = false,
+  max = false,
   onNewChat,
   onToggleSidebar,
-  onToggleSmart,
+  onToggleMax,
 }: ChatHeaderProps) {
   return (
     <>
@@ -117,21 +117,21 @@ export function ChatHeader({
             </AnimatePresence>
           )}
 
-          {!agentHandle && onToggleSmart && (
+          {!agentHandle && onToggleMax && (
             <button
-              onClick={onToggleSmart}
-              title={smart ? "Smart Mode on — click to disable" : "Enable Smart Mode"}
+              onClick={onToggleMax}
+              title={max ? "Max Mode on — click to disable" : "Enable Max Mode"}
               className="flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium transition-all duration-200"
-              style={smart
-                ? { 
-                    background: `${MOCHA}15`, 
-                    border: `1px solid ${MOCHA}40`, 
-                    color: MOCHA, 
+              style={max
+                ? {
+                    background: `${MOCHA}15`,
+                    border: `1px solid ${MOCHA}40`,
+                    color: MOCHA,
                     boxShadow: `0 0 10px ${MOCHA}25`,
                   }
-                : { 
-                    background: "rgba(255,255,255,0.5)", 
-                    border: "1px solid rgba(0,0,0,0.06)", 
+                : {
+                    background: "rgba(255,255,255,0.5)",
+                    border: "1px solid rgba(0,0,0,0.06)",
                     color: TEXT_SOFT,
                     backdropFilter: "blur(8px)",
                   }
@@ -143,8 +143,8 @@ export function ChatHeader({
                 e.currentTarget.style.transform = "scale(1)";
               }}
             >
-              <Zap className={cn("h-3 w-3", smart ? "fill-current" : "")} />
-              <span className="hidden sm:inline">Smart</span>
+              <Zap className={cn("h-3 w-3", max ? "fill-current" : "")} />
+              <span className="hidden sm:inline">Max</span>
             </button>
           )}
 

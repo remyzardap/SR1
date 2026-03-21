@@ -28,21 +28,21 @@ export interface BlendedResponse {
   blended: boolean;
 }
 
-export interface HerPersonality {
+export interface KemmaPersonality {
   enabled: boolean;
   style: 'warm' | 'professional' | 'mysterious' | 'playful';
   voiceEnabled: boolean;
   autoAnswerCalls: boolean;
-  herHoursStart: number;
-  herHoursEnd: number;
+  kemmaHoursStart: number;
+  kemmaHoursEnd: number;
   customInstructions?: string;
 }
 
 export interface CallSession {
   id: string;
   callerId: string;
-  status: 'ringing' | 'her_active' | 'connected' | 'ended' | 'scheduled';
-  transcript: Array<{ speaker: 'caller' | 'her' | 'target'; text: string; timestamp: string }>;
+  status: 'ringing' | 'kemma_active' | 'connected' | 'ended' | 'scheduled';
+  transcript: Array<{ speaker: 'caller' | 'kemma' | 'target'; text: string; timestamp: string }>;
   messageLeft?: string;
   callbackScheduled?: { suggestedTimes: string[]; callerAccepted: boolean; scheduledAt: string };
   startedAt: Date;
@@ -65,13 +65,13 @@ interface Agent {
 
 export function useSutaeruIntelligence() {
   // State
-  const [her, setHer] = useState<HerPersonality>({
+  const [kemma, setKemma] = useState<KemmaPersonality>({
     enabled: true,
     style: 'warm',
     voiceEnabled: true,
     autoAnswerCalls: false,
-    herHoursStart: 22,
-    herHoursEnd: 8,
+    kemmaHoursStart: 22,
+    kemmaHoursEnd: 8,
   });
   
   const [agents, setAgents] = useState<Agent[]>([
@@ -138,13 +138,13 @@ export function useSutaeruIntelligence() {
   }, [blendMode, agents]);
 
   // ==========================================================================
-  // HER VOICE CALLS
+  // KEMMA VOICE CALLS
   // ==========================================================================
   
   const initiateCall = useCallback(async (callerId: string, callerName: string): Promise<CallSession> => {
     try {
-      // Create HER session via API
-      const response = await fetch(`${API_BASE}/intelligence/her/call`, {
+      // Create Kemma session via API
+      const response = await fetch(`${API_BASE}/intelligence/kemma/call`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,8 +156,8 @@ export function useSutaeruIntelligence() {
             relationship: 'close',
             targetStatus: 'unavailable',
             personality: {
-              style: her.style,
-              customInstructions: her.customInstructions,
+              style: kemma.style,
+              customInstructions: kemma.customInstructions,
             },
           },
         }),
@@ -174,7 +174,7 @@ export function useSutaeruIntelligence() {
       const callSession: CallSession = {
         id: `call-${Date.now()}`,
         callerId,
-        status: 'her_active',
+        status: 'kemma_active',
         transcript: [],
         startedAt: new Date(),
         conversationId: data.session.conversationId,
@@ -183,13 +183,13 @@ export function useSutaeruIntelligence() {
       setActiveCall(callSession);
 
       // Connect WebSocket for real-time audio
-      const ws = new WebSocket(`${WS_BASE}/ws/intelligence?id=${callSession.id}&type=her`);
-      
+      const ws = new WebSocket(`${WS_BASE}/ws/intelligence?id=${callSession.id}&type=kemma`);
+
       ws.onopen = () => {
-        console.log('[HER] WebSocket connected');
-        // Initialize HER with signed URL
+        console.log('[Kemma] WebSocket connected');
+        // Initialize Kemma with signed URL
         ws.send(JSON.stringify({
-          type: 'her_init',
+          type: 'kemma_init',
           signedUrl: data.session.signedUrl,
           conversationId: data.session.conversationId,
         }));
@@ -197,21 +197,21 @@ export function useSutaeruIntelligence() {
 
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
-        
+
         switch (message.type) {
-          case 'her_ready':
-            console.log('[HER] Ready for audio');
+          case 'kemma_ready':
+            console.log('[Kemma] Ready for audio');
             break;
-            
-          case 'her_message':
-            // Handle HER transcript/audio
+
+          case 'kemma_message':
+            // Handle Kemma transcript/audio
             if (message.data.type === 'transcript') {
               setActiveCall(prev => {
                 if (!prev) return null;
                 return {
                   ...prev,
                   transcript: [...prev.transcript, {
-                    speaker: message.data.role === 'agent' ? 'her' : 'caller',
+                    speaker: message.data.role === 'agent' ? 'kemma' : 'caller',
                     text: message.data.content,
                     timestamp: new Date().toISOString(),
                   }],
@@ -219,29 +219,29 @@ export function useSutaeruIntelligence() {
               });
             }
             break;
-            
-          case 'her_analysis':
+
+          case 'kemma_analysis':
             // Handle analysis (scheduling intent, urgency)
-            console.log('[HER] Analysis:', message.data);
+            console.log('[Kemma] Analysis:', message.data);
             break;
-            
-          case 'her_ended':
-            console.log('[HER] Call ended');
+
+          case 'kemma_ended':
+            console.log('[Kemma] Call ended');
             endCall(callSession.id);
             break;
-            
-          case 'her_error':
-            console.error('[HER] Error:', message.error);
+
+          case 'kemma_error':
+            console.error('[Kemma] Error:', message.error);
             break;
         }
       };
 
       ws.onerror = (error) => {
-        console.error('[HER] WebSocket error:', error);
+        console.error('[Kemma] WebSocket error:', error);
       };
 
       ws.onclose = () => {
-        console.log('[HER] WebSocket closed');
+        console.log('[Kemma] WebSocket closed');
         endCall(callSession.id);
       };
 
@@ -252,7 +252,7 @@ export function useSutaeruIntelligence() {
       console.error('[Sutaeru] Initiate call error:', error);
       throw error;
     }
-  }, [her]);
+  }, [kemma]);
 
   const endCall = useCallback(async (callId: string) => {
     const call = activeCall;
@@ -261,14 +261,14 @@ export function useSutaeruIntelligence() {
     try {
       // Close WebSocket
       if (wsRef.current) {
-        wsRef.current.send(JSON.stringify({ type: 'her_end' }));
+        wsRef.current.send(JSON.stringify({ type: 'kemma_end' }));
         wsRef.current.close();
         wsRef.current = null;
       }
 
       // End via API if we have a conversation ID
       if (call.conversationId) {
-        await fetch(`${API_BASE}/intelligence/her/end`, {
+        await fetch(`${API_BASE}/intelligence/kemma/end`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -293,11 +293,11 @@ export function useSutaeruIntelligence() {
     }
   }, [activeCall]);
 
-  // Send audio to HER
+  // Send audio to Kemma
   const sendAudio = useCallback((audioData: ArrayBuffer) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
-        type: 'her_audio',
+        type: 'kemma_audio',
         audio: audioData,
       }));
     }
@@ -307,8 +307,8 @@ export function useSutaeruIntelligence() {
   // SETTINGS
   // ==========================================================================
   
-  const updateHerSettings = useCallback((settings: Partial<HerPersonality>) => {
-    setHer(prev => ({ ...prev, ...settings }));
+  const updateKemmaSettings = useCallback((settings: Partial<KemmaPersonality>) => {
+    setKemma(prev => ({ ...prev, ...settings }));
   }, []);
 
   const toggleAgent = useCallback((agentId: string) => {
@@ -324,10 +324,10 @@ export function useSutaeruIntelligence() {
   // ==========================================================================
   
   const activeAgentCount = agents.filter(a => a.status === 'active').length;
-  const isHerAvailable = her.enabled;
-  const isInHerHours = (() => {
+  const isKemmaAvailable = kemma.enabled;
+  const isInKemmaHours = (() => {
     const hour = new Date().getHours();
-    return hour >= her.herHoursStart || hour < her.herHoursEnd;
+    return hour >= kemma.kemmaHoursStart || hour < kemma.kemmaHoursEnd;
   })();
 
   // Cleanup on unmount
@@ -352,8 +352,8 @@ export function useSutaeruIntelligence() {
     callHistory,
     
     // Settings
-    her,
-    updateHerSettings,
+    kemma,
+    updateKemmaSettings,
     
     // Agents
     agents,
@@ -363,8 +363,8 @@ export function useSutaeruIntelligence() {
     activeAgentCount,
     
     // Status
-    isHerAvailable,
-    isInHerHours,
+    isKemmaAvailable,
+    isInKemmaHours,
   };
 }
 

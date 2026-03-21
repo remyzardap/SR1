@@ -23,7 +23,7 @@ export const ENV = {
   geminiApiKey: process.env.GEMINI_API_KEY ?? process.env.GEMINI ?? "",
   sonarApiKey: process.env.SONAR_API_KEY ?? process.env.SONAR_PERPLEXITY ?? "",
   vertexApiKey: process.env.VERTEX_API ?? "",
-  // ElevenLabs (HER Voice)
+  // ElevenLabs (Kemma Voice)
   elevenLabsApiKey: process.env.ELEVEN_LABS_API_KEY ?? "",
   elevenLabsAgentId: process.env.ELEVEN_LABS_AGENT_ID ?? "",
   elevenLabsVoiceId: process.env.ELEVEN_LABS_VOICE_ID ?? "",

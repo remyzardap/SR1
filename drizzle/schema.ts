@@ -422,8 +422,10 @@ export type InsertSkillRating = typeof skillRatings.$inferInsert;
 export const blockTypeEnum = pgEnum("block_type", [
   "chat", "atelier", "memory", "task", "media", "transcript", "widget", "note"
 ]);
+// NOTE: DB enum changed from "her" to "kemma". Existing rows with "her" value
+// will need a data migration: UPDATE blocks SET source = 'kemma' WHERE source = 'her';
 export const blockSourceEnum = pgEnum("block_source", [
-  "s1", "atelier", "her", "user", "feed", "system"
+  "s1", "atelier", "kemma", "user", "feed", "system"
 ]);
 
 export const blocks = pgTable("blocks", {

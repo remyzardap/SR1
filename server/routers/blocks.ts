@@ -13,7 +13,7 @@ import { eq, and, desc, asc, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 const BlockTypeEnum = z.enum(["chat", "atelier", "memory", "task", "media", "transcript", "widget", "note"]);
-const BlockSourceEnum = z.enum(["s1", "atelier", "her", "user", "feed", "system"]);
+const BlockSourceEnum = z.enum(["s1", "atelier", "kemma", "user", "feed", "system"]);
 
 export const blocksRouter = router({
 

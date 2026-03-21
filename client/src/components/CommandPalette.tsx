@@ -40,7 +40,7 @@ const PAGES = [
   { label: "Procurement", path: "/procurement", icon: ShoppingCart, category: "Pages" },
   { label: "KPIs", path: "/kpis", icon: TrendingUp, category: "Pages" },
   { label: "Image Gen", path: "/image-gen", icon: Image, category: "Pages" },
-  { label: "HER Settings", path: "/her-settings", icon: Phone, category: "Pages" },
+  { label: "Kemma Calls", path: "/kemma-calls", icon: Phone, category: "Pages" },
 ];
 
 const QUICK_ACTIONS = [

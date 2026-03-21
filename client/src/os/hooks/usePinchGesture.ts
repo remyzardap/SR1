@@ -24,6 +24,12 @@ export function usePinchGesture(
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didFire = useRef(false);
 
+  // Store callbacks in refs to avoid re-running the effect on every render
+  const onPinchRef = useRef(onPinch);
+  onPinchRef.current = onPinch;
+  const onLongPressRef = useRef(onLongPress);
+  onLongPressRef.current = onLongPress;
+
   const getDistance = useCallback((t1: Touch, t2: Touch) => {
     const dx = t1.clientX - t2.clientX;
     const dy = t1.clientY - t2.clientY;
@@ -50,7 +56,7 @@ export function usePinchGesture(
           if (!didFire.current) {
             didFire.current = true;
             if (navigator.vibrate) navigator.vibrate(10);
-            onLongPress?.();
+            onLongPressRef.current?.();
           }
         }, longPressMs);
       }
@@ -67,7 +73,7 @@ export function usePinchGesture(
         if (ratio < pinchThreshold && !didFire.current) {
           didFire.current = true;
           if (navigator.vibrate) navigator.vibrate(10);
-          onPinch?.();
+          onPinchRef.current?.();
           initialDistance.current = null;
         }
       }
@@ -90,5 +96,5 @@ export function usePinchGesture(
       el.removeEventListener('touchcancel', onTouchEnd);
       clearTimeout(longPressTimer.current!);
     };
-  }, [ref, enabled, onPinch, onLongPress, pinchThreshold, longPressMs, getDistance]);
+  }, [ref, enabled, pinchThreshold, longPressMs, getDistance]);
 }
