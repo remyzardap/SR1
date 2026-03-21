@@ -42,7 +42,7 @@ const AGENTS: AgentConfig[] = [
     name: 'Claude',
     apiKey: process.env.CLAUDE_API_KEY || '',
     baseUrl: 'https://api.anthropic.com/v1',
-    model: 'claude-3-sonnet-20240229',
+    model: 'claude-sonnet-4-6',
     specialties: ['long-context', 'nuanced-understanding', 'safety', 'instruction-following', 'creative-writing'],
     latency: 800,
   },

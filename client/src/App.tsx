@@ -40,7 +40,7 @@ import ComponentShowcase from "./pages/ComponentShowcase";
 import ImageGen from "./pages/ImageGen";
 import KpisDashboard from "./pages/KpisDashboard";
 import HealthDashboard from "./pages/HealthDashboard";
-import HerSettings from "./pages/HerSettings";
+import KemmaCalls from "./pages/KemmaCalls";
 import Feed from "./pages/Feed";
 import DashboardLayout from "./components/DashboardLayout";
 import { useAuth } from "./_core/hooks/useAuth";
@@ -124,13 +124,13 @@ function AppRoutes() {
           <ProtectedRoute component={Feed} />
         )}
       </Route>
-      <Route path="/her-settings">
+      <Route path="/kemma-calls">
         {isAuthenticated ? (
           <DashboardLayout>
-            <HerSettings />
+            <KemmaCalls />
           </DashboardLayout>
         ) : (
-          <ProtectedRoute component={HerSettings} />
+          <ProtectedRoute component={KemmaCalls} />
         )}
       </Route>
       <Route path="/dashboard">

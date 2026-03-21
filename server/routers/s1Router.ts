@@ -70,8 +70,8 @@ const AGENTS: Record<
       emoji: "✍️",
       color: "#f97316",
     },
-    normalModel: "claude-haiku-4-5",
-    smartModel: "claude-sonnet-4-5",
+    normalModel: "claude-sonnet-4-6",
+    smartModel: "claude-sonnet-4-6",
   },
   kimi: {
     info: {

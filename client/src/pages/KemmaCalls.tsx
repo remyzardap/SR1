@@ -34,7 +34,7 @@ export default function HerSettings() {
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div style={{ marginBottom: '32px' }}>
         <h1 style={{ fontSize: '32px', fontWeight: 700, marginBottom: '8px' }}>
-          <GradientText>HER Settings</GradientText>
+          <GradientText>Kemma Calls</GradientText>
         </h1>
         <p style={{ color: colors.textGray }}>
           Configure your AI assistant's personality and behavior.
@@ -61,12 +61,12 @@ export default function HerSettings() {
           </div>
           <div style={{ flex: 1 }}>
             <h3 style={{ fontSize: '20px', fontWeight: 600, color: colors.textWhite, marginBottom: '4px' }}>
-              HER is {localSettings.enabled ? 'Active' : 'Disabled'}
+              Kemma Calls is {localSettings.enabled ? 'Active' : 'Disabled'}
             </h3>
             <p style={{ fontSize: '14px', color: colors.textGray }}>
               {localSettings.enabled 
-                ? `Personality: ${localSettings.style} • ${isInHerHours ? 'In HER hours' : 'Outside HER hours'}`
-                : 'Enable HER to have an AI assistant answer calls for you'
+                ? `Personality: ${localSettings.style} • ${isInHerHours ? 'In Kemma Calls hours' : 'Outside Kemma Calls hours'}`
+                : 'Enable Kemma Calls to have an AI assistant answer calls for you'
               }
             </p>
           </div>
