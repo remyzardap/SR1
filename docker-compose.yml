@@ -5,14 +5,11 @@ services:
       dockerfile: Dockerfile
     ports:
       - "127.0.0.1:5000:5000"
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
       - PORT=5000
-      - DATABASE_URL=${DATABASE_URL}
-      - SESSION_SECRET=${SESSION_SECRET}
-      - APP_URL=${APP_URL:-http://localhost:5000}
-      - VITE_APP_ID=sutaeru
-      # Add other env vars as needed
     volumes:
       - ./secrets:/run/secrets:ro
       - ./sutaeru-data/files:/root/sr1-data/files
