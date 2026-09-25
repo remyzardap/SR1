@@ -21,7 +21,7 @@ export async function generateAndSaveFile(
 
   const adapter = getStorageAdapter();
   const fileKey = `users/${userId}/files/${name}.${extension}`;
-  const stored = await adapter.put(fileKey, buffer, mimeType);
+  const stored = await adapter.put(fileKey, buffer, mimeType, { userId, spaceId: options?.spaceId });
 
   const db = await getDb();
   if (!db) throw new Error("Database not available");

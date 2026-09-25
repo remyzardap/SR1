@@ -2,6 +2,44 @@ import { google } from "googleapis";
 import { eq } from "drizzle-orm";
 import { getDb } from "../db";
 import { googleTokens } from "../../drizzle/schema";
+import crypto from "crypto";
+
+const ENCRYPTION_KEY = process.env.GOOGLE_TOKEN_ENCRYPTION_KEY;
+
+type DbClient = NonNullable<Awaited<ReturnType<typeof getDb>>>;
+
+async function requireDb(): Promise<DbClient> {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db;
+}
+
+function deriveKey(): Buffer | null {
+  if (!ENCRYPTION_KEY) return null;
+  return crypto.scryptSync(ENCRYPTION_KEY, "sutaeru-google-tokens", 32);
+}
+
+function encryptToken(plaintext: string): string {
+  const key = deriveKey();
+  if (!key) return plaintext;
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext, "utf-8"), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return ["enc", iv.toString("base64"), authTag.toString("base64"), encrypted.toString("base64")].join(":");
+}
+
+function decryptToken(ciphertext: string): string {
+  if (!ciphertext.startsWith("enc:")) return ciphertext;
+  const key = deriveKey();
+  if (!key) return ciphertext;
+  const parts = ciphertext.split(":");
+  if (parts.length !== 4) return ciphertext;
+  const [, ivB64, authTagB64, dataB64] = parts;
+  const decipher = crypto.createDecipheriv("aes-256-gcm", key, Buffer.from(ivB64, "base64"));
+  decipher.setAuthTag(Buffer.from(authTagB64, "base64"));
+  return Buffer.concat([decipher.update(Buffer.from(dataB64, "base64")), decipher.final()]).toString("utf-8");
+}
 
 const SCOPES = [
   "https://www.googleapis.com/auth/gmail.readonly",
@@ -9,6 +47,7 @@ const SCOPES = [
   "https://www.googleapis.com/auth/calendar",
   "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/drive.readonly",
+  "https://www.googleapis.com/auth/drive.file",
   "https://www.googleapis.com/auth/userinfo.email",
 ];
 
@@ -29,8 +68,6 @@ function getDefaultRedirectUri(): string {
   if (domain) return `https://${domain}/api/google/callback`;
   return "http://localhost:5000/api/google/callback";
 }
-
-import crypto from "crypto";
 
 const oauthStateStore = new Map<string, { userId: number; expiresAt: number }>();
 
@@ -74,14 +111,14 @@ export async function exchangeCodeForTokens(code: string, userId: number) {
   const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
   const { data: profile } = await oauth2.userinfo.get();
 
-  const db = await getDb();
+  const db = await requireDb();
   const existing = await db.select().from(googleTokens).where(eq(googleTokens.userId, userId)).limit(1);
 
   const tokenData = {
     userId,
     email: profile.email || null,
-    accessToken: tokens.access_token,
-    refreshToken: tokens.refresh_token,
+    accessToken: encryptToken(tokens.access_token),
+    refreshToken: encryptToken(tokens.refresh_token),
     expiresAt: new Date(tokens.expiry_date || Date.now() + 3600000),
     scopes: SCOPES.join(" "),
   };
@@ -96,15 +133,15 @@ export async function exchangeCodeForTokens(code: string, userId: number) {
 }
 
 async function getAuthenticatedClient(userId: number) {
-  const db = await getDb();
+  const db = await requireDb();
   const [token] = await db.select().from(googleTokens).where(eq(googleTokens.userId, userId)).limit(1);
 
   if (!token) throw new Error("Google account not connected");
 
   const oauth2Client = getOAuth2Client();
   oauth2Client.setCredentials({
-    access_token: token.accessToken,
-    refresh_token: token.refreshToken,
+    access_token: decryptToken(token.accessToken),
+    refresh_token: decryptToken(token.refreshToken),
     expiry_date: token.expiresAt.getTime(),
   });
 
@@ -134,14 +171,14 @@ async function getAuthenticatedClient(userId: number) {
 }
 
 export async function getConnectionStatus(userId: number) {
-  const db = await getDb();
+  const db = await requireDb();
   const [token] = await db.select().from(googleTokens).where(eq(googleTokens.userId, userId)).limit(1);
   if (!token) return { connected: false, email: null };
   return { connected: true, email: token.email };
 }
 
 export async function disconnect(userId: number) {
-  const db = await getDb();
+  const db = await requireDb();
   try {
     const auth = await getAuthenticatedClient(userId);
     await auth.revokeCredentials();
@@ -312,7 +349,7 @@ export async function listDriveFiles(userId: number, maxResults = 10, query?: st
   const drive = google.drive({ version: "v3", auth });
 
   const q = query
-    ? `name contains '${query.replace(/'/g, "\\'")}'`
+    ? `name contains '${query.replace(/'/g, "\\'")}' and trashed = false`
     : "trashed = false";
 
   const { data } = await drive.files.list({
@@ -332,6 +369,62 @@ export async function listDriveFiles(userId: number, maxResults = 10, query?: st
     iconLink: file.iconLink,
     owner: file.owners?.[0]?.emailAddress,
   }));
+}
+
+export async function createDriveFolder(userId: number, name: string, parentId?: string) {
+  const auth = await getAuthenticatedClient(userId);
+  const drive = google.drive({ version: "v3", auth });
+  const metadata: any = { name, mimeType: "application/vnd.google-apps.folder" };
+  if (parentId) metadata.parents = [parentId];
+  const { data } = await drive.files.create({ requestBody: metadata, fields: "id, name, webViewLink" });
+  return { id: data.id, name: data.name, webViewLink: data.webViewLink };
+}
+
+export async function uploadDriveFile(userId: number, name: string, mimeType: string, buffer: Buffer, parentId?: string) {
+  const auth = await getAuthenticatedClient(userId);
+  const drive = google.drive({ version: "v3", auth });
+  const metadata: any = { name };
+  if (parentId) metadata.parents = [parentId];
+  const { data } = await drive.files.create({
+    requestBody: metadata,
+    media: { mimeType, body: buffer },
+    fields: "id, name, mimeType, size, webViewLink",
+  });
+  return { id: data.id, name: data.name, mimeType: data.mimeType, size: data.size, webViewLink: data.webViewLink };
+}
+
+export async function moveDriveFile(userId: number, fileId: string, newParentId: string, previousParentId?: string) {
+  const auth = await getAuthenticatedClient(userId);
+  const drive = google.drive({ version: "v3", auth });
+  if (previousParentId) {
+    await drive.files.update({ fileId, removeParents: previousParentId });
+  }
+  await drive.files.update({ fileId, addParents: newParentId });
+  return { success: true };
+}
+
+export async function readDriveFile(userId: number, fileId: string): Promise<{ name?: string; mimeType?: string; text: string }> {
+  const auth = await getAuthenticatedClient(userId);
+  const drive = google.drive({ version: "v3", auth });
+  const { data: meta } = await drive.files.get({ fileId, fields: "name, mimeType" });
+  const isGoogleDoc = meta.mimeType?.startsWith("application/vnd.google-apps.");
+  if (isGoogleDoc) {
+    const { data } = await drive.files.export({ fileId, mimeType: "text/plain" }, { responseType: "text" });
+    return { name: meta.name ?? undefined, mimeType: meta.mimeType ?? undefined, text: String(data) };
+  }
+  const { data } = await drive.files.get({ fileId, alt: "media" }, { responseType: "text" });
+  return { name: meta.name ?? undefined, mimeType: meta.mimeType ?? undefined, text: String(data) };
+}
+
+export async function updateDriveFile(userId: number, fileId: string, buffer: Buffer, mimeType: string) {
+  const auth = await getAuthenticatedClient(userId);
+  const drive = google.drive({ version: "v3", auth });
+  const { data } = await drive.files.update({
+    fileId,
+    media: { mimeType, body: buffer },
+    fields: "id, name, mimeType, size, modifiedTime",
+  });
+  return { id: data.id, name: data.name, modifiedTime: data.modifiedTime };
 }
 
 export function isGoogleConfigured(): boolean {

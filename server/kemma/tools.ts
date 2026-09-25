@@ -286,6 +286,129 @@ const phoneScanTool: ToolDefinition = {
 };
 
 /**
+ * Tool 7: drive_search
+ * Search the user's Google Drive.
+ */
+const driveSearchTool: ToolDefinition = {
+  name: "drive_search",
+  description: "Search the user's Google Drive by name or query. Returns file id, name, mimeType and webViewLink.",
+  parameters: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description: "Search term to match against file names"
+      },
+      maxResults: {
+        type: "number",
+        description: "Maximum results to return (default 10)"
+      }
+    },
+    required: ["query"]
+  }
+};
+
+/**
+ * Tool 8: drive_read
+ * Read content from a Google Drive file.
+ */
+const driveReadTool: ToolDefinition = {
+  name: "drive_read",
+  description: "Read the text content of a Google Drive file by its id. Works for Google Docs (exported as text) and plain text/binary files.",
+  parameters: {
+    type: "object",
+    properties: {
+      fileId: {
+        type: "string",
+        description: "The Google Drive file id"
+      }
+    },
+    required: ["fileId"]
+  }
+};
+
+/**
+ * Tool 9: drive_create
+ * Create a new file in Google Drive.
+ */
+const driveCreateTool: ToolDefinition = {
+  name: "drive_create",
+  description: "Create a new file in the user's Google Drive under the Sutaeru root folder. Returns the file id and link.",
+  parameters: {
+    type: "object",
+    properties: {
+      name: {
+        type: "string",
+        description: "File name including extension"
+      },
+      content: {
+        type: "string",
+        description: "File content"
+      },
+      mimeType: {
+        type: "string",
+        description: "MIME type (default text/plain)"
+      },
+      folderPath: {
+        type: "string",
+        description: "Optional subfolder path inside Sutaeru root, e.g. 'SpaceName/documents'"
+      }
+    },
+    required: ["name", "content"]
+  }
+};
+
+/**
+ * Tool 10: drive_edit
+ * Edit an existing Drive file (creates a pending revision; user confirmation required before applying).
+ */
+const driveEditTool: ToolDefinition = {
+  name: "drive_edit",
+  description: "Propose an edit to an existing Google Drive file. The change is staged as a pending revision and must be confirmed in the UI before it is applied. Does not modify the file immediately.",
+  parameters: {
+    type: "object",
+    properties: {
+      fileId: {
+        type: "string",
+        description: "The Google Drive file id"
+      },
+      newContent: {
+        type: "string",
+        description: "The proposed new file content"
+      },
+      reason: {
+        type: "string",
+        description: "Explanation of the change"
+      }
+    },
+    required: ["fileId", "newContent", "reason"]
+  }
+};
+
+/**
+ * Tool 11: drive_move
+ * Move a Google Drive file to a different folder.
+ */
+const driveMoveTool: ToolDefinition = {
+  name: "drive_move",
+  description: "Move a Google Drive file to a different folder within the Sutaeru root. Returns success.",
+  parameters: {
+    type: "object",
+    properties: {
+      fileId: {
+        type: "string",
+        description: "The Google Drive file id"
+      },
+      folderPath: {
+        type: "string",
+        description: "Target subfolder path inside Sutaeru root"
+      }
+    },
+    required: ["fileId", "folderPath"]
+  }
+};
+
+/**
  * Exported array containing all Kemma tool definitions
  * @type {ToolDefinition[]}
  */
@@ -295,7 +418,20 @@ export const KEMMA_TOOLS: ToolDefinition[] = [
   browseTool,
   runCodeTool,
   generateFileTool,
-  phoneScanTool
+  phoneScanTool,
+  driveSearchTool,
+  driveReadTool,
+  driveCreateTool,
+  driveEditTool,
+  driveMoveTool,
+];
+
+export const DRIVE_TOOLS = [
+  "drive_search",
+  "drive_read",
+  "drive_create",
+  "drive_edit",
+  "drive_move",
 ];
 
 /**

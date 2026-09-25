@@ -18,8 +18,14 @@ export interface StoragePutResult {
   provider: string;
 }
 
+export interface StoragePutMeta {
+  userId?: number;
+  spaceId?: string;
+  name?: string;
+}
+
 export interface StorageAdapter {
-  put(key: string, data: Buffer, mimeType: string): Promise<StoragePutResult>;
+  put(key: string, data: Buffer, mimeType: string, meta?: StoragePutMeta): Promise<StoragePutResult>;
   get(key: string): Promise<Buffer>;
   getUrl(key: string): Promise<string>;
 }
@@ -30,7 +36,7 @@ const LOCAL_ROOT = process.env.STORAGE_LOCAL_ROOT || "/root/sr1-data/files";
 const LOCAL_PUBLIC_URL = process.env.STORAGE_LOCAL_URL || "/files";
 
 export class LocalAdapter implements StorageAdapter {
-  async put(key: string, data: Buffer, _mimeType: string): Promise<StoragePutResult> {
+  async put(key: string, data: Buffer, _mimeType: string, _meta?: StoragePutMeta): Promise<StoragePutResult> {
     const safeKey = key.replace(/^\/+/, "").replace(/\.\./g, "");
     const fullPath = path.join(LOCAL_ROOT, safeKey);
     await mkdir(path.dirname(fullPath), { recursive: true });
@@ -60,7 +66,7 @@ export class LocalAdapter implements StorageAdapter {
 import { storagePut as forgePut, storageGet as forgeGet } from "./storage";
 
 class ForgeAdapter implements StorageAdapter {
-  async put(key: string, data: Buffer, mimeType: string): Promise<StoragePutResult> {
+  async put(key: string, data: Buffer, mimeType: string, _meta?: StoragePutMeta): Promise<StoragePutResult> {
     const result = await forgePut(key, data, mimeType);
     return {
       key: result.key,
@@ -80,6 +86,95 @@ class ForgeAdapter implements StorageAdapter {
   }
 }
 
+// ─── Google Drive driver ─────────────────────────────────────────────────────
+
+import {
+  createDriveFolder,
+  uploadDriveFile,
+  getConnectionStatus,
+} from "./services/google";
+
+class DriveAdapter implements StorageAdapter {
+  private folderCache = new Map<string, Promise<string | undefined>>();
+
+  private async rootFolderId(userId: number): Promise<string | undefined> {
+    const cached = this.folderCache.get(`root:${userId}`);
+    if (cached) return cached;
+
+    const promised = (async () => {
+      const status = await getConnectionStatus(userId);
+      if (!status.connected) return undefined;
+
+      const envRoot = process.env.DRIVE_ROOT_FOLDER_ID?.trim();
+      if (envRoot) return envRoot;
+
+      try {
+        const folder = await createDriveFolder(userId, "Sutaeru");
+        return folder.id ?? undefined;
+      } catch {
+        return undefined;
+      }
+    })();
+
+    this.folderCache.set(`root:${userId}`, promised);
+    return promised;
+  }
+
+  private async ensureFolder(userId: number, pathSegments: string[]): Promise<string | undefined> {
+    const rootId = await this.rootFolderId(userId);
+    if (!rootId) return undefined;
+
+    let parentId = rootId;
+    for (const segment of pathSegments) {
+      const cacheKey = `${userId}:${parentId}/${segment}`;
+      const cached = this.folderCache.get(cacheKey);
+      if (cached) {
+        parentId = (await cached) ?? parentId;
+        continue;
+      }
+
+      const promised = (async () => {
+        try {
+          const folder = await createDriveFolder(userId, segment, parentId);
+          return folder.id ?? parentId;
+        } catch {
+          return parentId;
+        }
+      })();
+
+      this.folderCache.set(cacheKey, promised);
+      parentId = (await promised) ?? parentId;
+    }
+    return parentId;
+  }
+
+  async put(key: string, data: Buffer, mimeType: string, meta?: StoragePutMeta): Promise<StoragePutResult> {
+    const userId = meta?.userId;
+    if (!userId) throw new Error("Drive adapter requires userId");
+
+    const segments = key.replace(/^\/+/, "").split("/");
+    const fileName = meta?.name || segments.pop() || "untitled";
+    const parentId = await this.ensureFolder(userId, segments);
+    if (!parentId) throw new Error("Google Drive not connected or root folder unavailable");
+
+    const uploaded = await uploadDriveFile(userId, fileName, mimeType, data, parentId);
+    return {
+      key: uploaded.id || key,
+      url: uploaded.webViewLink || `https://drive.google.com/file/d/${uploaded.id}/view`,
+      sizeBytes: data.length,
+      provider: "drive",
+    };
+  }
+
+  async get(_key: string): Promise<Buffer> {
+    throw new Error("Drive adapter get() not implemented; use the webViewLink");
+  }
+
+  async getUrl(key: string): Promise<string> {
+    return `https://drive.google.com/file/d/${key}/view`;
+  }
+}
+
 // ─── Adapter factory ─────────────────────────────────────────────────────────
 
 export function getStorageAdapter(): StorageAdapter {
@@ -87,6 +182,8 @@ export function getStorageAdapter(): StorageAdapter {
   switch (driver) {
     case "forge":
       return new ForgeAdapter();
+    case "drive":
+      return new DriveAdapter();
     case "local":
     default:
       return new LocalAdapter();

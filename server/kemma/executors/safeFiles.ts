@@ -128,7 +128,7 @@ export async function createFile(
 
   try {
     const adapter = getStorageAdapter();
-    const stored = await adapter.put(fileKey, content, mimeType);
+    const stored = await adapter.put(fileKey, content, mimeType, { userId });
 
     const name = path.split('/').pop() || path;
     const [result] = await db
@@ -236,13 +236,14 @@ export async function editFile(
     // Archive old version
     const timestamp = getTimestamp();
     const archiveKey = buildArchivePath(userId, fileId, timestamp);
-    await adapter.put(archiveKey, currentContent, fileRecord.mimeType ?? "application/octet-stream");
+    await adapter.put(archiveKey, currentContent, fileRecord.mimeType ?? "application/octet-stream", { userId });
 
     // Upload new content to original path
     const stored = await adapter.put(
       fileRecord.fileKey,
       newContent,
-      fileRecord.mimeType ?? "application/octet-stream"
+      fileRecord.mimeType ?? "application/octet-stream",
+      { userId }
     );
 
     // Update database record
@@ -325,7 +326,7 @@ export async function trashFile(userId: number, fileId: number): Promise<void> {
 
     // Copy to trash location
     const trashKey = buildTrashPath(userId, fileRecord.fileKey.replace(`users/${userId}/files/`, ''));
-    await adapter.put(trashKey, content, fileRecord.mimeType ?? "application/octet-stream");
+    await adapter.put(trashKey, content, fileRecord.mimeType ?? "application/octet-stream", { userId });
 
     // Mark as trashed in database
     await db
@@ -380,7 +381,7 @@ export async function restoreFile(userId: number, fileId: number): Promise<void>
     const content = await adapter.get(trashKey);
 
     // Copy back to original location
-    await adapter.put(fileRecord.fileKey, content, fileRecord.mimeType ?? "application/octet-stream");
+    await adapter.put(fileRecord.fileKey, content, fileRecord.mimeType ?? "application/octet-stream", { userId });
 
     // Clear trashed flag
     await db

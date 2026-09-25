@@ -432,7 +432,7 @@ export const appRouter = router({
         const fileKey = `user-${ctx.user.id}/files/${safeName}-${suffix}.${generated.extension}`;
         const { getStorageAdapter } = await import("./storageAdapter");
         const adapter = getStorageAdapter();
-        const stored = await adapter.put(fileKey, generated.buffer, generated.mimeType);
+        const stored = await adapter.put(fileKey, generated.buffer, generated.mimeType, { userId: ctx.user.id });
 
         // Save metadata to DB
         await createFile({
@@ -579,7 +579,7 @@ export const appRouter = router({
         const fileKey = `user-${ctx.user.id}/avatars/avatar-${nanoid(8)}.${ext}`;
         const { getStorageAdapter } = await import("./storageAdapter");
         const adapter = getStorageAdapter();
-        const stored = await adapter.put(fileKey, buffer, input.mimeType);
+        const stored = await adapter.put(fileKey, buffer, input.mimeType, { userId: ctx.user.id });
         await upsertIdentity(ctx.user.id, { avatarUrl: stored.url });
         return { url: stored.url };
       }),
@@ -647,7 +647,7 @@ export const appRouter = router({
         const fileKey = `avatars/${ctx.user.id}/${Date.now()}.${ext}`;
         const { getStorageAdapter } = await import("./storageAdapter");
         const adapter = getStorageAdapter();
-        const stored = await adapter.put(fileKey, buffer, input.mimeType);
+        const stored = await adapter.put(fileKey, buffer, input.mimeType, { userId: ctx.user.id });
         await upsertIdentity(ctx.user.id, { avatarUrl: stored.url });
         return { url: stored.url };
       }),

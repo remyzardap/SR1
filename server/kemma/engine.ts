@@ -20,7 +20,7 @@ import {
 } from "../core/kemmaRouter";
 import { checkQuota, incrementQuota } from "../core/quotaCheck";
 import { logUsage, checkSpendCap } from "../core/usage";
-import { KEMMA_TOOLS } from "./tools";
+import { KEMMA_TOOLS, type ToolDefinition } from "./tools";
 import { getMemoriesContext } from "./memory";
 import { type Source, extractSources, dedupeSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
 
@@ -239,9 +239,25 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     ? (Number(process.env.KEMMA_TOOL_BUDGET) || 60)
     : MAX_TOOL_CALLS[tier];
   const maxToolCalls = input.toolBudget ?? defaultBudget;
-  const baseTools = input.allowedTools
+  let baseTools = input.allowedTools
     ? KEMMA_TOOLS.filter((t) => input.allowedTools!.includes(t.name))
     : KEMMA_TOOLS;
+
+  // Auto-register Google Drive tools when Drive is connected and no explicit allowlist is set.
+  if (!input.allowedTools) {
+    try {
+      const { getConnectionStatus } = await import("../services/google");
+      const driveStatus = await getConnectionStatus(userId);
+      if (driveStatus.connected) {
+        const { DRIVE_TOOLS } = await import("./tools");
+        const driveToolDefs = DRIVE_TOOLS.map((name) => KEMMA_TOOLS.find((t) => t.name === name)).filter((t): t is ToolDefinition => !!t);
+        baseTools = [...baseTools, ...driveToolDefs];
+      }
+    } catch {
+      // Ignore Drive status errors.
+    }
+  }
+
   const toolExecutions: ToolExecution[] = [];
   const modelsUsed: string[] = [];
   const collectedSources: Source[] = [];

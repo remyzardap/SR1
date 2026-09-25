@@ -51,7 +51,7 @@ export function registerFileRoutes(app: Express) {
       await ensureLocalStorageRoot();
       const adapter = getStorageAdapter();
       const key = `users/${user.id}/videos/video-${Date.now()}.${file.originalname.split(".").pop() || "mp4"}`;
-      const stored = await adapter.put(key, file.buffer, file.mimetype || "video/mp4");
+      const stored = await adapter.put(key, file.buffer, file.mimetype || "video/mp4", { userId: user.id });
 
       const db = await getDb();
       if (db) {

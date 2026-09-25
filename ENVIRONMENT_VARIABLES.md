@@ -203,6 +203,11 @@ curl -I http://localhost:3000
 | `KEMMA_CAP_OPENAI` | `0` | Monthly OpenAI spend cap (USD, 0 = unlimited) |
 | `ALLOWED_LOGIN` | — | Comma-separated allowed emails/handles |
 | `SEED_TEST_PASSWORD` | — | Bootstrap password for the first account |
+| `STORAGE_DRIVER` | `local` | Storage backend: local, forge, or drive |
+| `STORAGE_LOCAL_ROOT` | `/root/sr1-data/files` | Local filesystem storage path |
+| `STORAGE_LOCAL_URL` | `/files` | Public URL path for local files |
+| `DRIVE_ROOT_FOLDER_ID` | — | Google Drive root folder id for Sutaeru files |
+| `GOOGLE_TOKEN_ENCRYPTION_KEY` | — | Key for encrypting stored Google tokens |
 
 ---
 

@@ -99,6 +99,15 @@ import { generateAndSaveFile as generateFile } from "./executors/generateFile";
 import { phoneScan, type ScanAction, type ScanOptions } from "./executors/phoneScan";
 import { STYLE_DEFINITIONS, type StructuredContent, type StyleOption } from "../fileGenerator";
 import { BrowserUse } from "browser-use-sdk";
+import {
+  listDriveFiles,
+  readDriveFile,
+  createDriveFolder,
+  uploadDriveFile,
+  moveDriveFile,
+  updateDriveFile,
+  getConnectionStatus,
+} from "../services/google";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 1. SANDBOXED CODE EXECUTION (E2B) — replaces executors/runCode.ts
@@ -222,6 +231,48 @@ export async function runCode(language: "python" | "nodejs", code: string): Prom
 const BROWSER_USE_API_KEY = process.env.BROWSER_USE_API_KEY;
 const BROWSE_TIMEOUT_MS = 60_000; // real browser navigation needs more headroom than a plain fetch
 const DEFAULT_MAX_LENGTH = 10_000;
+
+const driveFolderCache = new Map<string, string>();
+
+async function getDriveRootFolder(userId: number): Promise<string | undefined> {
+  const cacheKey = `root:${userId}`;
+  if (driveFolderCache.has(cacheKey)) return driveFolderCache.get(cacheKey);
+  const envRoot = process.env.DRIVE_ROOT_FOLDER_ID?.trim();
+  if (envRoot) {
+    driveFolderCache.set(cacheKey, envRoot);
+    return envRoot;
+  }
+  try {
+    const folder = await createDriveFolder(userId, "Sutaeru");
+    if (folder.id) driveFolderCache.set(cacheKey, folder.id);
+    return folder.id ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function ensureDriveFolderPath(userId: number, folderPath: string): Promise<string | undefined> {
+  const rootId = await getDriveRootFolder(userId);
+  if (!rootId) return undefined;
+  const segments = folderPath.split("/").filter(Boolean);
+  let parentId = rootId;
+  for (const segment of segments) {
+    const cacheKey = `${userId}:${parentId}/${segment}`;
+    if (driveFolderCache.has(cacheKey)) {
+      parentId = driveFolderCache.get(cacheKey)!;
+      continue;
+    }
+    try {
+      const folder = await createDriveFolder(userId, segment, parentId);
+      const id = folder.id || parentId;
+      driveFolderCache.set(cacheKey, id);
+      parentId = id;
+    } catch {
+      // Keep parentId unchanged on error
+    }
+  }
+  return parentId;
+}
 
 let browserUseClient: BrowserUse | null = null;
 function getBrowserUseClient(): BrowserUse {
@@ -362,7 +413,7 @@ export async function browse(url: string, options: BrowseOptions = {}): Promise<
 // 3. TOOL DISPATCHER — replaces executor.ts, with 3 bugs fixed
 // ═══════════════════════════════════════════════════════════════════════════
 
-type ToolName = "safe_files" | "web_search" | "browse" | "run_code" | "generate_file" | "phone_scan";
+type ToolName = "safe_files" | "web_search" | "browse" | "run_code" | "generate_file" | "phone_scan" | "drive_search" | "drive_read" | "drive_create" | "drive_edit" | "drive_move";
 
 type SafeFilesAction = "create" | "read" | "edit" | "list" | "versions";
 
@@ -385,7 +436,7 @@ function createErrorResult(error: string, code: string): ErrorResult {
 }
 
 function isValidToolName(value: unknown): value is ToolName {
-  const valid: ToolName[] = ["safe_files", "web_search", "browse", "run_code", "generate_file", "phone_scan"];
+  const valid: ToolName[] = ["safe_files", "web_search", "browse", "run_code", "generate_file", "phone_scan", "drive_search", "drive_read", "drive_create", "drive_edit", "drive_move"];
   return typeof value === "string" && valid.includes(value as ToolName);
 }
 
@@ -552,6 +603,58 @@ export async function executeToolCall(userId: number, toolName: string, args: un
             : "scan";
         const options: ScanOptions | undefined = typeof target === "string" ? { path: target } : undefined;
         return createSuccessResult(await phoneScan(action, options));
+      }
+
+      case "drive_search": {
+        const { query, maxResults } = safeArgs;
+        if (typeof query !== "string") return createErrorResult('Missing or invalid "query" parameter', "INVALID_PARAMS");
+        const results = await listDriveFiles(userId, typeof maxResults === "number" ? maxResults : 10, query);
+        return createSuccessResult(results);
+      }
+
+      case "drive_read": {
+        const { fileId } = safeArgs;
+        if (typeof fileId !== "string") return createErrorResult('Missing or invalid "fileId" parameter', "INVALID_PARAMS");
+        const content = await readDriveFile(userId, fileId);
+        return createSuccessResult(content);
+      }
+
+      case "drive_create": {
+        const { name, content, mimeType, folderPath } = safeArgs;
+        if (typeof name !== "string") return createErrorResult('Missing or invalid "name" parameter', "INVALID_PARAMS");
+        if (typeof content !== "string") return createErrorResult('Missing or invalid "content" parameter', "INVALID_PARAMS");
+        const parentId = typeof folderPath === "string" && folderPath.trim()
+          ? await ensureDriveFolderPath(userId, folderPath.trim())
+          : (await getDriveRootFolder(userId));
+        const uploaded = await uploadDriveFile(userId, name, typeof mimeType === "string" ? mimeType : "text/plain", Buffer.from(content), parentId);
+        return createSuccessResult(uploaded);
+      }
+
+      case "drive_edit": {
+        const { fileId, newContent, reason } = safeArgs;
+        if (typeof fileId !== "string") return createErrorResult('Missing or invalid "fileId" parameter', "INVALID_PARAMS");
+        if (typeof newContent !== "string") return createErrorResult('Missing or invalid "newContent" parameter', "INVALID_PARAMS");
+        if (typeof reason !== "string") return createErrorResult('Missing or invalid "reason" parameter', "INVALID_PARAMS");
+        const current = await readDriveFile(userId, fileId);
+        // Stage E: edits require UI confirmation. We stage the change and do not apply it.
+        return createSuccessResult({
+          pending: true,
+          fileId,
+          currentPreview: current.text.slice(0, 500),
+          proposedPreview: newContent.slice(0, 500),
+          reason,
+          message: "Edit is staged and waiting for your confirmation in the UI. It has not been applied yet.",
+        });
+      }
+
+      case "drive_move": {
+        const { fileId, folderPath } = safeArgs;
+        if (typeof fileId !== "string") return createErrorResult('Missing or invalid "fileId" parameter', "INVALID_PARAMS");
+        if (typeof folderPath !== "string") return createErrorResult('Missing or invalid "folderPath" parameter', "INVALID_PARAMS");
+        const newParentId = await ensureDriveFolderPath(userId, folderPath.trim());
+        if (!newParentId) return createErrorResult("Could not resolve Drive folder", "DRIVE_FOLDER_ERROR");
+        await moveDriveFile(userId, fileId, newParentId);
+        return createSuccessResult({ success: true, folderPath });
       }
 
       default:

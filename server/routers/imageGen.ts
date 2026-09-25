@@ -33,7 +33,7 @@ export const imageGenRouter = router({
         const fileName = `generated-image-${Date.now()}`;
         const ext = result.mimeType === "image/jpeg" ? "jpg" : "png";
         const key = `users/${ctx.user.id}/images/${fileName}.${ext}`;
-        const stored = await adapter.put(key, result.buffer, result.mimeType);
+        const stored = await adapter.put(key, result.buffer, result.mimeType, { userId: ctx.user.id });
 
         const db = await getDb();
         if (db) {
