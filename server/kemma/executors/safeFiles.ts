@@ -3,7 +3,7 @@
  * Handles CRUD operations, versioning, trash, and purge functionality
  */
 
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { eq, and, isNull } from 'drizzle-orm';
 import { storagePut, storageGet } from '../../storage';
 import { getDb } from '../../db';
@@ -22,12 +22,17 @@ export interface FileRecord {
   id: number;
   userId: number;
   name: string;
+  originalPrompt: string;
+  format: "pdf" | "docx" | "xlsx" | "pptx" | "md";
+  styleLabel: string | null;
   fileKey: string;
   fileUrl: string;
-  mimeType: string;
-  fileSizeBytes: number;
+  mimeType: string | null;
+  fileSizeBytes: number | null;
   trashed: boolean | null;
   trashedAt: Date | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
 }
 
 export interface FileVersion {
@@ -118,6 +123,7 @@ export async function createFile(
   mimeType: string
 ): Promise<CreateFileResult> {
   const db = await getDb();
+  if (!db) throw new FileOperationError('Database not available');
   const fileKey = buildFilePath(userId, path);
 
   try {
@@ -125,11 +131,15 @@ export async function createFile(
     const { url } = await storagePut(fileKey, content, mimeType);
 
     // Insert record into database
-    const result = await db
+    const name = path.split('/').pop() || path;
+    const [result] = await db
       .insert(files)
       .values({
         userId,
-        name: path.split('/').pop() || path,
+        name,
+        originalPrompt: name,
+        format: "md",
+        styleLabel: null,
         fileKey,
         fileUrl: url,
         mimeType,
@@ -137,9 +147,10 @@ export async function createFile(
         trashed: false,
         trashedAt: null,
       })
-      .$returningId();
+      .returning({ id: files.id });
 
-    const fileId = result[0].id;
+    if (!result) throw new FileOperationError('Failed to insert file record');
+    const fileId = result.id;
 
     return { fileId, url };
   } catch (error) {
@@ -157,6 +168,7 @@ export async function createFile(
  */
 export async function readFile(userId: number, fileId: number): Promise<Buffer> {
   const db = await getDb();
+  if (!db) throw new FileOperationError('Database not available');
 
   try {
     // Get file record from database
@@ -198,6 +210,7 @@ export async function editFile(
   newContent: Buffer
 ): Promise<void> {
   const db = await getDb();
+  if (!db) throw new FileOperationError('Database not available');
 
   try {
     // Get current file record
@@ -219,13 +232,13 @@ export async function editFile(
     // Archive old version
     const timestamp = getTimestamp();
     const archiveKey = buildArchivePath(userId, fileId, timestamp);
-    await storagePut(archiveKey, currentContent, fileRecord.mimeType);
+    await storagePut(archiveKey, currentContent, fileRecord.mimeType ?? undefined);
 
     // Upload new content to original path
     const { url: newUrl } = await storagePut(
       fileRecord.fileKey,
       newContent,
-      fileRecord.mimeType
+      fileRecord.mimeType ?? undefined
     );
 
     // Update database record
@@ -253,6 +266,7 @@ export async function editFile(
  */
 export async function listFiles(userId: number): Promise<FileRecord[]> {
   const db = await getDb();
+  if (!db) throw new FileOperationError('Database not available');
 
   try {
     const fileRecords = await db
@@ -268,8 +282,8 @@ export async function listFiles(userId: number): Promise<FileRecord[]> {
 
     // Filter out trashed files (trashed = true)
     return fileRecords.filter(
-      (file): file is FileRecord => file.trashed !== true
-    );
+      (file) => file.trashed !== true
+    ) as FileRecord[];
   } catch (error) {
     throw new FileOperationError(
       `Failed to list files: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -284,6 +298,7 @@ export async function listFiles(userId: number): Promise<FileRecord[]> {
  */
 export async function trashFile(userId: number, fileId: number): Promise<void> {
   const db = await getDb();
+  if (!db) throw new FileOperationError('Database not available');
 
   try {
     // Get file record
@@ -304,7 +319,7 @@ export async function trashFile(userId: number, fileId: number): Promise<void> {
 
     // Copy to trash location
     const trashKey = buildTrashPath(userId, fileRecord.fileKey.replace(`users/${userId}/files/`, ''));
-    await storagePut(trashKey, content, fileRecord.mimeType);
+    await storagePut(trashKey, content, fileRecord.mimeType ?? undefined);
 
     // Mark as trashed in database
     await db
@@ -331,6 +346,7 @@ export async function trashFile(userId: number, fileId: number): Promise<void> {
  */
 export async function restoreFile(userId: number, fileId: number): Promise<void> {
   const db = await getDb();
+  if (!db) throw new FileOperationError('Database not available');
 
   try {
     // Get file record
@@ -356,7 +372,7 @@ export async function restoreFile(userId: number, fileId: number): Promise<void>
     const content = await storageGet(trashKey);
 
     // Copy back to original location
-    await storagePut(fileRecord.fileKey, content, fileRecord.mimeType);
+    await storagePut(fileRecord.fileKey, content, fileRecord.mimeType ?? undefined);
 
     // Clear trashed flag
     await db
@@ -388,6 +404,7 @@ export async function purgeFile(
   password: string
 ): Promise<void> {
   const db = await getDb();
+  if (!db) throw new FileOperationError('Database not available');
 
   try {
     // Get purge password hash from userQuotas
@@ -450,6 +467,7 @@ export async function purgeFile(
  */
 export async function listTrashedFiles(userId: number): Promise<FileRecord[]> {
   const db = await getDb();
+  if (!db) throw new FileOperationError('Database not available');
 
   try {
     const fileRecords = await db
@@ -476,6 +494,7 @@ export async function listFileVersions(
   fileId: number
 ): Promise<FileVersion[]> {
   const db = await getDb();
+  if (!db) throw new FileOperationError('Database not available');
 
   try {
     // Verify file exists and belongs to user

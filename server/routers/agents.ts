@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import { agents, agentSessions } from "../../drizzle/schema";
 import { eq, and, isNull, desc } from "drizzle-orm";
@@ -13,12 +13,12 @@ async function requireDb() {
 }
 
 export const agentsRouter = router({
-  listAgents: publicProcedure.query(async () => {
+  listAgents: protectedProcedure.query(async () => {
     const db = await requireDb();
     return db.select().from(agents).where(eq(agents.isActive, true));
   }),
 
-  getActiveAgent: publicProcedure
+  getActiveAgent: protectedProcedure
     .input(z.object({ sessionId: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -49,7 +49,7 @@ export const agentsRouter = router({
       return result[0] ?? null;
     }),
 
-  getAgentHistory: publicProcedure
+  getAgentHistory: protectedProcedure
     .input(z.object({ sessionId: z.string() }))
     .query(async ({ input }) => {
       const db = await requireDb();
@@ -69,7 +69,7 @@ export const agentsRouter = router({
         .orderBy(desc(agentSessions.startedAt));
     }),
 
-  switchAgent: publicProcedure
+  switchAgent: protectedProcedure
     .input(z.object({ sessionId: z.string(), newAgentId: z.string() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();
@@ -98,7 +98,7 @@ export const agentsRouter = router({
       return { agentSessionId: newAgentSessionId };
     }),
 
-  initAgentForSession: publicProcedure
+  initAgentForSession: protectedProcedure
     .input(
       z.object({
         sessionId: z.string(),
@@ -119,7 +119,7 @@ export const agentsRouter = router({
       return { agentSessionId };
     }),
 
-  incrementMessageCount: publicProcedure
+  incrementMessageCount: protectedProcedure
     .input(z.object({ sessionId: z.string() }))
     .mutation(async ({ input }) => {
       const db = await requireDb();

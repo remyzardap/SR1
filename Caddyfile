@@ -1,0 +1,3 @@
+sutaeru.com {
+    reverse_proxy sutaeru:5000
+}

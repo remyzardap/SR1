@@ -29,19 +29,20 @@ interface ToolDefinition {
 
 /**
  * Tool 1: safe_files
- * Secure file operations with versioning and trash management
- * CRITICAL: No direct delete - only trash/purge with password verification
+ * Secure file operations. The agent may create, read, edit, list, and view
+ * versions. Trash, restore, purge, delete and sharing are UI-only actions;
+ * they are never exposed as agent tools.
  */
 const safeFilesTool: ToolDefinition = {
   name: "safe_files",
-  description: "Secure file operations with versioning and trash management. Actions: create, read, edit, list, trash, restore, purge, bin, versions. NOTE: No direct delete - files are moved to trash. Purge requires password verification.",
+  description: "Secure file operations. Actions: create, read, edit, list, versions. The agent cannot delete, trash, restore, purge or share files.",
   parameters: {
     type: "object",
     properties: {
       action: {
         type: "string",
         description: "The file operation to perform",
-        enum: ["create", "read", "edit", "list", "trash", "restore", "purge", "bin", "versions"]
+        enum: ["create", "read", "edit", "list", "versions"]
       },
       path: {
         type: "string",
@@ -57,15 +58,11 @@ const safeFilesTool: ToolDefinition = {
       },
       fileId: {
         type: "string",
-        description: "Unique file identifier for read, edit, trash, restore, purge, or versions actions"
+        description: "Unique file identifier for read, edit, or versions actions"
       },
       newContent: {
         type: "string",
         description: "New content for edit action (archives old version before overwriting)"
-      },
-      password: {
-        type: "string",
-        description: "Required password for purge action to permanently delete files"
       }
     },
     required: ["action"]

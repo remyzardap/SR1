@@ -2,7 +2,7 @@ import { generateFile } from "../../fileGenerator";
 import { storagePut } from "../../storage";
 import { getDb } from "../../db";
 import { files } from "../../../drizzle/schema";
-import type { DocumentContent, StyleDef } from "../../fileGenerator";
+import type { StructuredContent, StyleOption } from "../../fileGenerator";
 
 /**
  * Generates a file, uploads it to S3, and persists metadata to the database.
@@ -18,12 +18,13 @@ import type { DocumentContent, StyleDef } from "../../fileGenerator";
 export async function generateAndSaveFile(
   userId: number,
   name: string,
-  content: DocumentContent,
+  content: StructuredContent,
   format: string,
-  style: StyleDef
+  style: StyleOption
 ): Promise<{ url: string; fileId: number; name: string }> {
   // Step 1: Generate the file content
-  const { buffer, extension, mimeType } = await generateFile(content, format, style);
+  const fmt = format as "pdf" | "docx" | "xlsx" | "pptx" | "md";
+  const { buffer, extension, mimeType } = await generateFile(content, fmt, style);
 
   // Step 2: Construct the S3 file key path
   const fileKey = `users/${userId}/files/${name}.${extension}`;
@@ -33,11 +34,15 @@ export async function generateAndSaveFile(
 
   // Step 4: Insert record into the database
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   const [insertedFile] = await db
     .insert(files)
     .values({
       userId,
       name,
+      originalPrompt: content.title || name,
+      format: fmt,
+      styleLabel: style.label ?? null,
       fileKey,
       fileUrl: url,
       mimeType,

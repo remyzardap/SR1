@@ -92,6 +92,62 @@ const FORMAT_MIME: Record<string, string> = {
   md: "text/markdown",
 };
 
+// ─── Auth allowlist helpers ───────────────────────────────────────────────────
+
+function getAllowedLogins(): string[] {
+  const raw = process.env.ALLOWED_LOGIN || "";
+  return raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function isAllowedLogin(emailOrHandle: string): boolean {
+  const allowlist = getAllowedLogins();
+  if (allowlist.length === 0) return false;
+  const normalized = emailOrHandle.trim().toLowerCase();
+  return allowlist.includes(normalized);
+}
+
+function authDisabledMessage(): string {
+  return "Sign-up and handle login are disabled. Contact the owner to be added to ALLOWED_LOGIN.";
+}
+
+// ─── Simple in-memory rate limiter for auth endpoints ─────────────────────────
+
+interface RateLimitBucket { count: number; resetAt: number; }
+const authLimitBuckets = new Map<string, RateLimitBucket>();
+
+function checkAuthRateLimit(key: string, max: number, windowMs: number): { allowed: true } | { allowed: false; retryAfter: number } {
+  const now = Date.now();
+  const bucket = authLimitBuckets.get(key);
+  if (!bucket || now >= bucket.resetAt) {
+    authLimitBuckets.set(key, { count: 1, resetAt: now + windowMs });
+    return { allowed: true };
+  }
+  if (bucket.count >= max) {
+    return { allowed: false, retryAfter: Math.ceil((bucket.resetAt - now) / 1000) };
+  }
+  bucket.count++;
+  return { allowed: true };
+}
+
+function rateLimitAuth(key: string) {
+  const limit = checkAuthRateLimit(key, 10, 15 * 60 * 1000);
+  if (!limit.allowed) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: `Too many attempts. Please wait ${limit.retryAfter} seconds.`,
+    });
+  }
+}
+
+function getClientIp(req: any): string {
+  const forwarded = req.headers?.["x-forwarded-for"] as string | undefined;
+  if (forwarded) return forwarded.split(",")[0].trim();
+  return req.ip || req.socket?.remoteAddress || "unknown";
+}
+
 // Helper: get user's API key config or null
 async function getUserLLMConfig(userId: number) {
   const keyRecord = await getApiKeyByUser(userId);
@@ -122,43 +178,8 @@ export const appRouter = router({
         password: z.string().min(8).max(128),
         inviteCode: z.string().optional(),
       }))
-      .mutation(async ({ input, ctx }) => {
-        const betaMode = process.env.BETA_MODE === "true";
-        if (betaMode && !input.inviteCode) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "This is a closed beta. Please provide an invite code to register." });
-        }
-        const existing = await getUserByEmail(input.email);
-        if (existing) {
-          throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists." });
-        }
-        const openId = `email:${nanoid(21)}`;
-        const passwordHash = await bcrypt.hash(input.password, 12);
-        await upsertUser({ openId, name: input.name, email: input.email, loginMethod: "email", lastSignedIn: new Date() });
-        await setUserPasswordHash(openId, passwordHash);
-        const user = await getUserByEmail(input.email);
-        if (user?.id) {
-          await getOrCreateIdentity(user.id).catch(() => {});
-          if (input.inviteCode) {
-            const { useBetaInviteCode } = await import("./db/betaInvites");
-            const result = await useBetaInviteCode(input.inviteCode, user.id);
-            if (!result.valid) {
-              throw new TRPCError({ code: "BAD_REQUEST", message: result.reason || "Invalid invite code" });
-            }
-          }
-          // Send email verification (non-blocking — failure must not break registration)
-          try {
-            const verifyToken = crypto.randomBytes(32).toString("hex");
-            const ONE_DAY = 24 * 60 * 60 * 1000;
-            await createEmailVerificationToken(user.id, verifyToken, new Date(Date.now() + ONE_DAY));
-            await sendEmailVerification(input.email, verifyToken);
-          } catch (emailErr) {
-            console.warn("[Auth] Failed to send verification email:", emailErr);
-          }
-        }
-        const sessionToken = await sdk.createSessionToken(openId, { name: input.name, expiresInMs: ONE_YEAR_MS });
-        const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-        return { success: true } as const;
+      .mutation(async () => {
+        throw new TRPCError({ code: "FORBIDDEN", message: authDisabledMessage() });
       }),
 
     verifyEmail: publicProcedure
@@ -192,9 +213,14 @@ export const appRouter = router({
         password: z.string().min(1),
       }))
       .mutation(async ({ input, ctx }) => {
-        // Resolve user by email or by handle (for founders who have no email)
+        rateLimitAuth(getClientIp(ctx.req));
         const isEmail = input.email.includes("@") && input.email.includes(".");
         const handle = input.email.startsWith("@") ? input.email.slice(1) : input.email;
+
+        if (!isAllowedLogin(input.email)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "This account is not on the allowed-login list." });
+        }
+
         const user = isEmail
           ? await getUserByEmail(input.email)
           : await getUserByHandle(handle);
@@ -212,7 +238,12 @@ export const appRouter = router({
       }),
     requestPasswordReset: publicProcedure
       .input(z.object({ email: z.string().email() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        rateLimitAuth(getClientIp(ctx.req));
+        if (!isAllowedLogin(input.email)) {
+          // Always return success to prevent email enumeration, but do nothing.
+          return { success: true };
+        }
         const user = await getUserByEmail(input.email);
         if (user) {
           const token = crypto.randomBytes(32).toString("hex");
@@ -221,7 +252,6 @@ export const appRouter = router({
           await createPasswordResetToken(user.id, token, expiresAt);
           await sendPasswordResetEmail(user.email!, token);
         }
-        // Always return success to prevent email enumeration
         return { success: true };
       }),
 
@@ -288,6 +318,10 @@ export const appRouter = router({
     login2fa: publicProcedure
       .input(z.object({ email: z.string().email(), password: z.string().min(1), token: z.string().length(6) }))
       .mutation(async ({ input, ctx }) => {
+        rateLimitAuth(getClientIp(ctx.req));
+        if (!isAllowedLogin(input.email)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "This account is not on the allowed-login list." });
+        }
         const user = await getUserByEmail(input.email);
         if (!user || !user.passwordHash) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password." });
@@ -311,7 +345,11 @@ export const appRouter = router({
 
     check2faRequired: publicProcedure
       .input(z.object({ email: z.string().min(1) }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        rateLimitAuth(getClientIp(ctx.req));
+        if (!isAllowedLogin(input.email)) {
+          return { required: false };
+        }
         const isEmail = input.email.includes("@") && input.email.includes(".");
         const handle = input.email.startsWith("@") ? input.email.slice(1) : input.email;
         const user = isEmail ? await getUserByEmail(input.email) : await getUserByHandle(handle);
@@ -323,31 +361,14 @@ export const appRouter = router({
       return { enabled: !!(user?.totpEnabled) };
     }),
 
-    // ─── Founder handle-based login (exclusive) ────────────────────────────────
+    // ─── Founder handle-based login (disabled) ─────────────────────────────────
     founderLogin: publicProcedure
       .input(z.object({
         handle: z.string().min(1).max(64),
         password: z.string().min(1),
       }))
-      .mutation(async ({ input, ctx }) => {
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable." });
-        const identity = await db.select().from(identities).where(eq(identities.handle, input.handle.toLowerCase())).limit(1);
-        if (!identity[0]) {
-          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid handle or password." });
-        }
-        const user = await getUserById(identity[0].userId);
-        if (!user || user.loginMethod !== "founder" || !user.passwordHash) {
-          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid handle or password." });
-        }
-        const valid = await bcrypt.compare(input.password, user.passwordHash);
-        if (!valid) {
-          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid handle or password." });
-        }
-        const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name || "", expiresInMs: ONE_YEAR_MS });
-        const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-        return { success: true, token: sessionToken };
+      .mutation(async () => {
+        throw new TRPCError({ code: "FORBIDDEN", message: authDisabledMessage() });
       }),
   }),
 
@@ -475,7 +496,6 @@ export const appRouter = router({
   telegram: telegramRouter,
   openclaw: openclawRouter,
   payments: paymentsRouter,
-  agent: agentRouter,
   imageGen: imageGenRouter,
   health: healthRouter,
   kpis: kpisRouter,
@@ -678,7 +698,7 @@ export const appRouter = router({
         // TODO: implement with skill_ratings table (Kimi Agent 2 Task 5)
         return { success: true };
       }),
-    getReviews: publicProcedure
+    getReviews: protectedProcedure
       .input(z.object({ skillId: z.string() }))
       .query(async () => {
         // TODO: implement with skill_reviews table (Kimi Agent 2 Task 5)
@@ -823,7 +843,7 @@ export const appRouter = router({
 
   // ─── Sutaeru: Public profile router ──────────────────────────────────────────────────
   profile: router({
-    getByHandle: publicProcedure
+    getByHandle: protectedProcedure
       .input(z.object({ handle: z.string().min(1).max(64) }))
       .query(async ({ input }) => {
         const identity = await getIdentityByHandle(input.handle);

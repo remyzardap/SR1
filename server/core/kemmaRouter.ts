@@ -1,272 +1,264 @@
 /**
  * kemmaRouter.ts
- * Kemma's tier-based model routing - Full Stack Configuration
- * 
- * Model Routing Strategy:
- * - Text/Agent Tasks → Kimi K2.5 via NVIDIA API (default, free tier)
- * - Web Search → Perplexity Sonar → Kimi synthesizes
- * - Refinement/Polish → Claude Sonnet (Pro/Max tier only)
- * 
- * Voice (Kemma Calls):
- * - STT: OpenAI Whisper
- * - Live S2S: Gemini Live (ultra low latency)
- * - TTS: ElevenLabs
- * 
- * Memory:
- * - Embeddings: Gemini Embedding 2
- * - Semantic Search: Gemini Embedding 2
- * 
- * Vision/Multimodal:
- * - Image understanding: Gemini Flash
- * - Document scanning: Gemini Flash
+ * Env-driven model routing for the Kemma agent.
+ *
+ * Routing slots (all configurable via KEMMA_MODEL_* env vars):
+ *   chat/tools/code/file generation -> KEMMA_MODEL_CHAT (default qwen3.8-max)
+ *   web search                      -> KEMMA_MODEL_SEARCH (default sonar-pro)
+ *   vision/documents                -> KEMMA_MODEL_VISION (default gemini-2.0-flash)
+ *   embeddings                      -> KEMMA_MODEL_EMBEDDING (default text-embedding-004)
+ *   image generation                -> KEMMA_MODEL_IMAGE (default gemini-2.0-flash)
+ *   report writing                  -> KEMMA_MODEL_REPORT (default qwen3.8-max)
+ *   long docs/heavy browsing        -> KEMMA_MODEL_LONG_DOC (default kimi-k3)
+ *   deep-research planner           -> KEMMA_MODEL_PLANNER (default claude-sonnet-5)
+ *   citation verification           -> KEMMA_MODEL_VERIFY (default claude-sonnet-5)
+ *   optional final polish           -> KEMMA_MODEL_POLISH via LiteLLM
+ *   optional nemotron               -> KEMMA_MODEL_NEMOTRON via NVIDIA
+ *
+ * Fallback chain (used by the engine when a primary call fails):
+ *   qwen3.8-max -> kimi-k3 -> gemini-2.0-flash -> LiteLLM/OpenAI (last resort)
  */
 
 export type Tier = "free" | "trial" | "pro" | "max";
 export type TaskComplexity = "simple" | "medium" | "complex";
-export type ModelProvider = "nvidia" | "kimi" | "anthropic" | "perplexity" | "gemini" | "openai" | "elevenlabs";
+export type ModelProvider = "qwen" | "kimi" | "anthropic" | "perplexity" | "gemini" | "openai" | "litellm" | "nvidia";
 
 export interface RouteInput {
-  tier:            Tier;
-  isThinking:      boolean;
-  isAgentic:       boolean;
-  taskComplexity:  TaskComplexity;
-  step?:           number;
-  maxSteps?:       number;
+  tier: Tier;
+  isThinking: boolean;
+  isAgentic: boolean;
+  taskComplexity: TaskComplexity;
+  step?: number;
+  maxSteps?: number;
 }
 
 export interface RouteConfig {
-  model:    string;
-  baseUrl:  string;
-  apiKey:   string;
-  label:    string;
+  model: string;
+  baseUrl: string;
+  apiKey: string;
+  label: string;
   provider: ModelProvider;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MODEL CONFIGURATION
+// ENV-DRIVEN DEFAULTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const MODELS = {
-  // Text/Agent Models
-  KIMI_K2_5_NVIDIA: "meta/llama-3.1-405b-instruct",  // Via NVIDIA (free tier default)
-  KIMI_K2_5:        "kimi-k2.5",                      // Direct Kimi API
-  SONNET:           "claude-sonnet-4-6",              // Anthropic refinement
-  OPUS:             "claude-opus-4-6",                // Anthropic thinking
-  
-  // Search
-  PERPLEXITY_SONAR: "sonar-pro",                      // Web search
-  
-  // Voice
-  WHISPER:          "whisper-1",                      // OpenAI STT
-  GEMINI_LIVE:      "gemini-2.0-flash-live-001",      // Live S2S
-  ELEVENLABS_TTS:   "eleven_multilingual_v2",         // TTS
-  
-  // Vision/Multimodal
-  GEMINI_FLASH:     "gemini-2.0-flash",               // Vision & docs
-  
-  // Embeddings
-  GEMINI_EMBEDDING: "text-embedding-004",             // Gemini Embedding 2
-} as const;
+const DEFAULTS = {
+  KEMMA_MODEL_CHAT: "qwen3.8-max",
+  KEMMA_MODEL_SEARCH: "sonar-pro",
+  KEMMA_MODEL_VISION: "gemini-2.0-flash",
+  KEMMA_MODEL_EMBEDDING: "text-embedding-004",
+  KEMMA_MODEL_IMAGE: "gemini-2.0-flash",
+  KEMMA_MODEL_REPORT: "qwen3.8-max",
+  KEMMA_MODEL_LONG_DOC: "kimi-k3",
+  KEMMA_MODEL_PLANNER: "claude-sonnet-5",
+  KEMMA_MODEL_VERIFY: "claude-sonnet-5",
+  KEMMA_MODEL_POLISH: "",
+  KEMMA_MODEL_NEMOTRON: "",
+  KEMMA_SEARCH_RPM: "40",
+  QWEN_BASE_URL: "https://token-plan.maas.qwencloudapi.com/compatible-mode/v1",
+  LITELLM_BASE_URL: "https://litellm.koboi2026.biz.id/v1",
+};
 
-const ENDPOINTS = {
-  NVIDIA:      "https://integrate.api.nvidia.com/v1",
-  KIMI:        "https://api.moonshot.cn/v1",
-  ANTHROPIC:   "https://api.anthropic.com/v1",
-  PERPLEXITY:  "https://api.perplexity.ai",
-  GEMINI:      "https://generativelanguage.googleapis.com/v1beta",
-  OPENAI:      "https://api.openai.com/v1",
-  ELEVENLABS:  "https://api.elevenlabs.io/v1",
-} as const;
+const ENDPOINTS: Record<ModelProvider, string> = {
+  qwen: process.env.QWEN_BASE_URL || DEFAULTS.QWEN_BASE_URL,
+  kimi: "https://api.moonshot.cn/v1",
+  anthropic: "https://api.anthropic.com/v1",
+  perplexity: "https://api.perplexity.ai",
+  gemini: "https://generativelanguage.googleapis.com/v1beta",
+  openai: "https://api.openai.com/v1",
+  litellm: process.env.LITELLM_BASE_URL || DEFAULTS.LITELLM_BASE_URL,
+  nvidia: "https://integrate.api.nvidia.com/v1",
+};
+
+// Very rough per-million-token prices for cost estimation only.
+export const ROUGH_PRICES_USD_PER_1M: Record<string, { input: number; output: number }> = {
+  "qwen3.8-max": { input: 0.5, output: 1.5 },
+  "kimi-k3": { input: 2, output: 8 },
+  "claude-sonnet-5": { input: 3, output: 15 },
+  "claude-opus-5": { input: 15, output: 75 },
+  "gemini-2.0-flash": { input: 0.1, output: 0.4 },
+  "gemini-2.0-flash-thinking": { input: 0.1, output: 0.4 },
+  "text-embedding-004": { input: 0, output: 0 },
+  "sonar-pro": { input: 3, output: 15 },
+  "sonar": { input: 1, output: 1 },
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MAIN ROUTER
+// PROVIDER / KEY RESOLUTION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function detectProvider(model: string): ModelProvider {
+  const lower = model.toLowerCase();
+  if (lower.includes("qwen") || lower.includes("qwq")) return "qwen";
+  if (lower.includes("kimi")) return "kimi";
+  if (lower.includes("claude")) return "anthropic";
+  if (lower.includes("sonar")) return "perplexity";
+  if (lower.includes("gemini") || lower.includes("embedding")) return "gemini";
+  if (lower.includes("gpt") || lower.includes("o1") || lower.includes("o3") || lower.includes("whisper") || lower.includes("dall")) return "openai";
+  if (lower.includes("nemotron")) return "nvidia";
+  return "litellm";
+}
+
+export function apiKeyFor(provider: ModelProvider): string {
+  switch (provider) {
+    case "qwen": return process.env.QWEN_API_KEY || "";
+    case "kimi": return process.env.KIMI_API_KEY || "";
+    case "anthropic": return process.env.ANTHROPIC_API_KEY || "";
+    case "perplexity": return process.env.SONAR_API_KEY || process.env.PERPLEXITY_API_KEY || "";
+    case "gemini": return process.env.GEMINI_API_KEY || "";
+    case "openai": return process.env.OPENAI_API_KEY || "";
+    case "litellm": return process.env.LITELLM_API_KEY || "";
+    case "nvidia": return process.env.NVIDIA_API_KEY || "";
+  }
+}
+
+export function routeFor(model: string): RouteConfig {
+  const provider = detectProvider(model);
+  return {
+    model,
+    baseUrl: ENDPOINTS[provider],
+    apiKey: apiKeyFor(provider),
+    label: `${model} (${provider})`,
+    provider,
+  };
+}
+
+function getEnvModel(name: keyof typeof DEFAULTS): string {
+  return (process.env[name] || DEFAULTS[name]).trim();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SLOT ROUTERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function chatRoute(): RouteConfig {
+  return routeFor(getEnvModel("KEMMA_MODEL_CHAT"));
+}
+
+export function searchRoute(): RouteConfig {
+  return routeFor(getEnvModel("KEMMA_MODEL_SEARCH"));
+}
+
+export function visionRoute(): RouteConfig {
+  return routeFor(getEnvModel("KEMMA_MODEL_VISION"));
+}
+
+export function embeddingRoute(): { model: string; apiKey: string } {
+  const route = routeFor(getEnvModel("KEMMA_MODEL_EMBEDDING"));
+  return { model: route.model, apiKey: route.apiKey };
+}
+
+export function imageRoute(): RouteConfig {
+  return routeFor(getEnvModel("KEMMA_MODEL_IMAGE"));
+}
+
+export function reportRoute(): RouteConfig {
+  return routeFor(getEnvModel("KEMMA_MODEL_REPORT"));
+}
+
+export function longDocRoute(): RouteConfig {
+  return routeFor(getEnvModel("KEMMA_MODEL_LONG_DOC"));
+}
+
+export function plannerRoute(): RouteConfig {
+  return routeFor(getEnvModel("KEMMA_MODEL_PLANNER"));
+}
+
+export function verifyRoute(): RouteConfig {
+  return routeFor(getEnvModel("KEMMA_MODEL_VERIFY"));
+}
+
+export function polishRoute(): RouteConfig | null {
+  const model = process.env.KEMMA_MODEL_POLISH?.trim();
+  if (!model) return null;
+  // Polish always goes through LiteLLM so one key gates all optional polish routes.
+  return { model, baseUrl: ENDPOINTS.litellm, apiKey: apiKeyFor("litellm"), label: `${model} (LiteLLM polish)`, provider: "litellm" };
+}
+
+export function nemotronRoute(): RouteConfig | null {
+  const model = process.env.KEMMA_MODEL_NEMOTRON?.trim();
+  if (!model) return null;
+  return { model, baseUrl: ENDPOINTS.nvidia, apiKey: apiKeyFor("nvidia"), label: `${model} (NVIDIA Nemotron)`, provider: "nvidia" };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FALLBACK CHAIN
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function fallbackRoutes(): RouteConfig[] {
+  const chain = [
+    getEnvModel("KEMMA_MODEL_CHAT"),
+    getEnvModel("KEMMA_MODEL_LONG_DOC"),
+    getEnvModel("KEMMA_MODEL_VISION"),
+    "gpt-4o-mini", // LiteLLM last resort
+  ];
+  return chain.map(routeFor);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SPEND CAPS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function monthlySpendCapUsd(provider: ModelProvider): number {
+  const key = provider === "anthropic" ? "KEMMA_CAP_ANTHROPIC" : provider === "openai" || provider === "litellm" ? "KEMMA_CAP_OPENAI" : null;
+  if (!key) return 0;
+  const raw = process.env[key]?.trim();
+  if (!raw) return 0;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+}
+
+export function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number {
+  const price = ROUGH_PRICES_USD_PER_1M[model] || { input: 2, output: 6 };
+  return (inputTokens * price.input + outputTokens * price.output) / 1_000_000;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LEGACY COMPATIBILITY
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function kemmaRoute(input: RouteInput): RouteConfig {
-  const { tier, isThinking, isAgentic, taskComplexity, step = 1, maxSteps = 5 } = input;
-  
-  // API Keys from environment
-  const nvidiaKey     = process.env.NVIDIA_API_KEY!;
-  const kimiKey       = process.env.KIMI_API_KEY!;
-  const anthropicKey  = process.env.ANTHROPIC_API_KEY!;
-  
-  // ═════════════════════════════════════════════════════════════════════════════
-  // THINKING MODE → Claude Opus (all tiers that support it)
-  // ═════════════════════════════════════════════════════════════════════════════
+  const { tier, isThinking, isAgentic, taskComplexity } = input;
+
   if (isThinking) {
-    return { 
-      model: MODELS.OPUS, 
-      baseUrl: ENDPOINTS.ANTHROPIC, 
-      apiKey: anthropicKey, 
-      label: "🧠 Opus", 
-      provider: "anthropic" 
-    };
+    return routeFor(process.env.KEMMA_MODEL_PLANNER || DEFAULTS.KEMMA_MODEL_PLANNER);
   }
-  
-  // ═════════════════════════════════════════════════════════════════════════════
-  // FREE TIER → NVIDIA/Kimi K2.5 (free)
-  // ═════════════════════════════════════════════════════════════════════════════
-  if (tier === "free") {
-    // Use NVIDIA API for free tier (most cost effective)
-    return { 
-      model: MODELS.KIMI_K2_5_NVIDIA, 
-      baseUrl: ENDPOINTS.NVIDIA, 
-      apiKey: nvidiaKey, 
-      label: "Kimi K2.5 (NVIDIA)", 
-      provider: "nvidia" 
-    };
+
+  if (isAgentic && taskComplexity === "complex") {
+    return routeFor(process.env.KEMMA_MODEL_REPORT || DEFAULTS.KEMMA_MODEL_REPORT);
   }
-  
-  // ═════════════════════════════════════════════════════════════════════════════
-  // FINAL STEP REFINEMENT → Claude Sonnet (Pro/Max only)
-  // ═════════════════════════════════════════════════════════════════════════════
-  if (isAgentic && step === maxSteps && (tier === "pro" || tier === "max")) {
-    return { 
-      model: MODELS.SONNET, 
-      baseUrl: ENDPOINTS.ANTHROPIC, 
-      apiKey: anthropicKey, 
-      label: "Sonnet (Polish)", 
-      provider: "anthropic" 
-    };
+
+  if (taskComplexity === "complex") {
+    return routeFor(process.env.KEMMA_MODEL_LONG_DOC || DEFAULTS.KEMMA_MODEL_LONG_DOC);
   }
-  
-  // ═════════════════════════════════════════════════════════════════════════════
-  // COMPLEX TASKS → Claude Sonnet (Pro/Max only, non-agentic)
-  // ═════════════════════════════════════════════════════════════════════════════
-  if ((tier === "pro" || tier === "max") && taskComplexity === "complex" && !isAgentic) {
-    return { 
-      model: MODELS.SONNET, 
-      baseUrl: ENDPOINTS.ANTHROPIC, 
-      apiKey: anthropicKey, 
-      label: "Sonnet", 
-      provider: "anthropic" 
-    };
-  }
-  
-  // ═════════════════════════════════════════════════════════════════════════════
-  // AGENTIC TASKS → Kimi K2.5 (all tiers)
-  // ═════════════════════════════════════════════════════════════════════════════
-  if (isAgentic) {
-    return { 
-      model: MODELS.KIMI_K2_5_NVIDIA, 
-      baseUrl: ENDPOINTS.NVIDIA, 
-      apiKey: nvidiaKey, 
-      label: "Kimi K2.5 (NVIDIA)", 
-      provider: "nvidia" 
-    };
-  }
-  
-  // ═════════════════════════════════════════════════════════════════════════════
-  // TRIAL TIER
-  // ═════════════════════════════════════════════════════════════════════════════
-  if (tier === "trial") {
-    if (taskComplexity === "complex") {
-      return { 
-        model: MODELS.SONNET, 
-        baseUrl: ENDPOINTS.ANTHROPIC, 
-        apiKey: anthropicKey, 
-        label: "Sonnet", 
-        provider: "anthropic" 
-      };
-    }
-    return { 
-      model: MODELS.KIMI_K2_5_NVIDIA, 
-      baseUrl: ENDPOINTS.NVIDIA, 
-      apiKey: nvidiaKey, 
-      label: "Kimi K2.5 (NVIDIA)", 
-      provider: "nvidia" 
-    };
-  }
-  
-  // ═════════════════════════════════════════════════════════════════════════════
-  // DEFAULT → NVIDIA/Kimi K2.5
-  // ═════════════════════════════════════════════════════════════════════════════
-  return { 
-    model: MODELS.KIMI_K2_5_NVIDIA, 
-    baseUrl: ENDPOINTS.NVIDIA, 
-    apiKey: nvidiaKey, 
-    label: "Kimi K2.5 (NVIDIA)", 
-    provider: "nvidia" 
-  };
+
+  return chatRoute();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// SPECIALIZED ROUTERS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * Web Search Router
- * Route: Perplexity Sonar → returns search results for Kimi to synthesize
- */
 export function perplexityRoute(): RouteConfig {
-  return {
-    model: MODELS.PERPLEXITY_SONAR,
-    baseUrl: ENDPOINTS.PERPLEXITY,
-    apiKey: process.env.PERPLEXITY_API_KEY!,
-    label: "Perplexity Sonar",
-    provider: "perplexity",
-  };
+  return searchRoute();
 }
 
-/**
- * Voice Router (Kemma Calls)
- * STT: OpenAI Whisper
- * Live S2S: Gemini Live
- * TTS: ElevenLabs
- */
+export function geminiVisionRoute(): RouteConfig {
+  return visionRoute();
+}
+
+export function geminiEmbeddingRoute(): { model: string; apiKey: string } {
+  return embeddingRoute();
+}
+
 export function whisperRoute(): RouteConfig {
-  return {
-    model: MODELS.WHISPER,
-    baseUrl: ENDPOINTS.OPENAI,
-    apiKey: process.env.OPENAI_API_KEY!,
-    label: "Whisper",
-    provider: "openai",
-  };
+  return routeFor("whisper-1");
 }
 
 export function geminiLiveRoute(): RouteConfig {
-  return {
-    model: MODELS.GEMINI_LIVE,
-    baseUrl: ENDPOINTS.GEMINI,
-    apiKey: process.env.GEMINI_API_KEY!,
-    label: "Gemini Live",
-    provider: "gemini",
-  };
+  return routeFor("gemini-2.0-flash-live-001");
 }
 
 export function elevenLabsRoute(): RouteConfig {
-  return {
-    model: MODELS.ELEVENLABS_TTS,
-    baseUrl: ENDPOINTS.ELEVENLABS,
-    apiKey: process.env.ELEVEN_LABS_API_KEY!,
-    label: "ElevenLabs",
-    provider: "elevenlabs",
-  };
-}
-
-/**
- * Vision/Multimodal Router
- * Uses Gemini Flash for image understanding and document scanning
- */
-export function geminiVisionRoute(): RouteConfig {
-  return {
-    model: MODELS.GEMINI_FLASH,
-    baseUrl: ENDPOINTS.GEMINI,
-    apiKey: process.env.GEMINI_API_KEY!,
-    label: "Gemini Flash",
-    provider: "gemini",
-  };
-}
-
-/**
- * Embeddings Router (Memory)
- * Uses Gemini Embedding 2 for semantic search
- */
-export function geminiEmbeddingRoute(): { model: string; apiKey: string } {
-  return {
-    model: MODELS.GEMINI_EMBEDDING,
-    apiKey: process.env.GEMINI_API_KEY!,
-  };
+  return { model: "eleven_multilingual_v2", baseUrl: "https://api.elevenlabs.io/v1", apiKey: process.env.ELEVEN_LABS_API_KEY || "", label: "ElevenLabs", provider: "openai" };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -306,32 +298,3 @@ export const QUOTA_LIMITS: Record<Tier, {
   pro:   { msgsPerDay: 200,  tasksPerMonth: 30,  thinkPerDay: 3,  tokensPerDay: 500000,   voiceMinsPerMonth: 60  },
   max:   { msgsPerDay: 1000, tasksPerMonth: 100, thinkPerDay: 10, tokensPerDay: 2000000,  voiceMinsPerMonth: 300 },
 };
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// MODEL LIST FETCHER (for verification)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export async function fetchNvidiaModels(): Promise<string[]> {
-  const apiKey = process.env.NVIDIA_API_KEY;
-  if (!apiKey) return [];
-  
-  try {
-    const res = await fetch(`${ENDPOINTS.NVIDIA}/models`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
-    if (!res.ok) return [];
-    const data = await res.json() as { data?: Array<{ id: string }> };
-    return data.data?.map((m) => m.id) || [];
-  } catch {
-    return [];
-  }
-}
-
-export async function checkModelAvailability(): Promise<Record<string, boolean>> {
-  const models = await fetchNvidiaModels();
-  return {
-    kimiAvailable: models.some((m) => m.toLowerCase().includes("kimi")),
-    llamaAvailable: models.some((m) => m.toLowerCase().includes("llama")),
-    totalModels: models.length,
-  };
-}

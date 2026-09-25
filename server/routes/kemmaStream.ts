@@ -50,6 +50,7 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
       onStepStart: (step, model) => { if (!aborted) { finalModels.push(model); sendEvent(res, "model", { step, label: model }); } },
       onStepEnd: (_step) => {},
       onQuotaWarn: (message) => { if (!aborted) sendEvent(res, "quota_warn", { message }); },
+      onNotice: (message) => { if (!aborted) sendEvent(res, "notice", { message }); },
     });
 
     if (!aborted) sendEvent(res, "done", finalModels[finalModels.length - 1] ?? "Kimi K2");

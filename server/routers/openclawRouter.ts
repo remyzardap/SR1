@@ -1,6 +1,6 @@
-import { router, publicProcedure } from "../_core/trpc";
+import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
-import { createChatSession, saveChatMessage } from "../db";
+import { createChatSession } from "../db";
 import { s1Route, buildS1SystemPrompt } from "./s1Router";
 
 export const openclawRouter = router({
@@ -16,7 +16,7 @@ export const openclawRouter = router({
    *   }
    * }
    */
-  chat: publicProcedure
+  chat: protectedProcedure
     .input(
       z.object({
         userId: z.string().default("openclaw_agent"),

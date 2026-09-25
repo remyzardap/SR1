@@ -1,12 +1,10 @@
-version: '3.8'
-
 services:
   sutaeru:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     environment:
       - NODE_ENV=production
       - PORT=5000
@@ -19,7 +17,7 @@ services:
       - ./secrets:/run/secrets:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5000/health"]
       interval: 30s
       timeout: 3s
       retries: 3
@@ -33,9 +31,22 @@ services:
       POSTGRES_DB: sutaeru
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # host port mapping intentionally removed: DB stays on the internal
+    # compose network; re-add "5432:5432" here only if external DB access needed
     restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
 
 volumes:
   postgres_data:
+  caddy_data:
+  caddy_config:

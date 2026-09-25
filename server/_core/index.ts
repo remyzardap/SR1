@@ -14,11 +14,31 @@ import { kemmaStreamRoute } from '../routes/kemmaStream';
 import { startTrialExpiryJob } from '../core/trialManager';
 import { setupVite, serveStatic } from './vite';
 import { loadSecretsFromSecretManager } from './secretManager';
+import { sdk } from './sdk';
+import { generalApiRateLimiter } from './rateLimiter';
 
 // Load secrets from Secret Manager before starting
 await loadSecretsFromSecretManager();
 
 const app = express();
+
+// Session gate for non-tRPC Express routes (atelier, intelligence, kemma stream).
+// Webhooks and OAuth callbacks are registered before this middleware so they stay public.
+async function requireSession(req: express.Request, res: express.Response, next: express.NextFunction) {
+  try {
+    (req as any).user = await sdk.authenticateRequest(req);
+    next();
+  } catch {
+    res.status(401).json({ error: "Unauthorized" });
+  }
+}
+
+app.use(generalApiRateLimiter);
+
+// Public health check
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
 
 app.use(cors({
   origin: process.env.NODE_ENV === "production"
@@ -38,23 +58,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// Streaming chat route (SSE, not tRPC)
-registerChatStreamRoute(app as any);
-
-// Google OAuth callback (Express route, not tRPC)
+// Public / webhook routes (must stay reachable without a session)
 registerGoogleCallbackRoute(app);
-
-// Telegram webhook (Express route, not tRPC)
 registerTelegramWebhookRoute(app);
 
-// Atelier — AI report builder routes
+// Protected Express routes
+registerChatStreamRoute(app as any); // already has its own auth
+app.use('/api/atelier', requireSession);
 registerAtelierRoutes(app);
-
-// Intelligence API routes (Kemma voice, blended agents)
-app.use('/api/intelligence', intelligenceRouter);
-
-// Kemma agent streaming route
-app.post('/api/kemma/stream', kemmaStreamRoute);
+app.use('/api/intelligence', requireSession, intelligenceRouter);
+app.post('/api/kemma/stream', requireSession, kemmaStreamRoute);
 
 // tRPC API routes
 app.use('/api/trpc', createExpressMiddleware({

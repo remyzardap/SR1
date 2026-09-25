@@ -1,9 +1,22 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { buildKemmaSystemPrompt, buildKemmaVoicePrompt } from "./personality";
-import { executeToolCall } from "./executor";
-import { kemmaRoute, detectComplexity, MAX_STEPS, type Tier, geminiVisionRoute } from "../core/kemmaRouter";
+import { executeToolCall } from "./kemmaMax";
+import {
+  chatRoute,
+  reportRoute,
+  longDocRoute,
+  visionRoute,
+  detectComplexity,
+  MAX_STEPS,
+  type Tier,
+  type RouteConfig,
+  type ModelProvider,
+  fallbackRoutes,
+  detectProvider,
+} from "../core/kemmaRouter";
 import { checkQuota, incrementQuota } from "../core/quotaCheck";
+import { logUsage, checkSpendCap } from "../core/usage";
 import { KEMMA_TOOLS } from "./tools";
 import { getMemoriesContext } from "./memory";
 
@@ -28,17 +41,20 @@ export interface ToolExecution {
 export interface EngineInput {
   userId: number; userName?: string; messages: KemmaMessage[];
   tier: Tier; isThinking: boolean; isVoice?: boolean; hasByos?: boolean; sessionId?: string;
+  reportId?: string;
+  polish?: boolean;
   onStream?: (chunk: string) => void;
   onToolStart?: (tool: string, input: unknown) => void;
   onToolEnd?: (tool: string, result: unknown, durationMs: number) => void;
   onStepStart?: (step: number, model: string) => void;
   onStepEnd?: (step: number) => void;
   onQuotaWarn?: (message: string) => void;
+  onNotice?: (message: string) => void;
 }
 
 export interface VisionEngineInput extends EngineInput {
-  imageData: string;  // Base64 encoded image
-  mimeType: string;   // e.g., "image/jpeg", "image/png"
+  imageData: string;
+  mimeType: string;
 }
 
 export interface EngineOutput {
@@ -47,15 +63,26 @@ export interface EngineOutput {
   modelsUsed: string[]; stepsUsed: number; durationMs: number;
 }
 
-const MAX_TOOL_CALLS: Record<Tier, number> = { free: 2, trial: 20, pro: 20, max: 50 };
+import { MAX_TOOL_CALLS } from "./kemmaMax";
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// MAIN TEXT ENGINE
-// ═══════════════════════════════════════════════════════════════════════════════
+function selectRoute(input: EngineInput, currentMessages: KemmaMessage[], step: number, maxSteps: number): RouteConfig {
+  const { isThinking, tier } = input;
+  const complexity = detectComplexity(currentMessages.map((m) => ({ role: m.role, content: m.content ?? "" })));
+
+  if (isThinking && step === 1) {
+    return longDocRoute(); // planning slot
+  }
+
+  if (complexity === "complex") {
+    return reportRoute();
+  }
+
+  return chatRoute();
+}
 
 export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   const startTime = Date.now();
-  const { userId, userName, messages, tier, isThinking, isVoice = false, onStream, onToolStart, onToolEnd, onStepStart, onStepEnd, onQuotaWarn } = input;
+  const { userId, userName, messages, tier, isThinking, isVoice = false, sessionId, reportId, polish, onStream, onToolStart, onToolEnd, onStepStart, onStepEnd, onQuotaWarn, onNotice } = input;
 
   const msgQuota = await checkQuota(userId, "message");
   if (!msgQuota.allowed) return makeErrorResponse(msgQuota.reason ?? "Daily message limit reached", startTime);
@@ -87,18 +114,30 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
 
   while (step < maxSteps) {
     step++;
-    const complexity = detectComplexity(currentMessages.map((m) => ({ role: m.role, content: m.content ?? "" })));
-    const route = kemmaRoute({ tier, isThinking: isThinking && step === 1, isAgentic: toolExecutions.length >= 2, taskComplexity: complexity, step, maxSteps });
+    const route = selectRoute(input, currentMessages, step, maxSteps);
     modelsUsed.push(route.label);
     onStepStart?.(step, route.label);
 
     const offerTools = totalToolCallCount < maxToolCalls && step < maxSteps;
 
-    let llmResponse: any;
+    let llmResponse: Awaited<ReturnType<typeof callLLM>>;
     try {
-      llmResponse = await callLLM({ route, systemPrompt, messages: currentMessages, tools: offerTools ? KEMMA_TOOLS : undefined, stream: !!onStream && !offerTools, onStream });
+      llmResponse = await callLLM({
+        route,
+        systemPrompt,
+        messages: currentMessages,
+        tools: offerTools ? KEMMA_TOOLS : undefined,
+        stream: !!onStream && !offerTools,
+        onStream,
+        onNotice,
+        userId,
+        sessionId,
+        reportId,
+        purpose: step === 1 ? "initial" : "follow-up",
+      });
     } catch (err) {
-      return makeErrorResponse("Kemma hit an error — please try again", startTime);
+      const message = err instanceof Error ? err.message : "Kemma hit an error";
+      return makeErrorResponse(message, startTime);
     }
 
     totalTokens.input  += llmResponse.usage?.input  ?? 0;
@@ -137,7 +176,37 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     if (isThinking) await incrementQuota(userId, "think");
     if (totalTokens.total > 0) await incrementQuota(userId, "token", totalTokens.total);
 
-    return { response: llmResponse.content ?? "Done.", toolCalls: toolExecutions, isAgentic, tokensUsed: totalTokens, modelsUsed: Array.from(new Set(modelsUsed)), stepsUsed: step, durationMs: Date.now() - startTime };
+    let finalContent = llmResponse.content ?? "Done.";
+
+    if (polish) {
+      // Optional final polish via LiteLLM-only route.
+      try {
+        const { polishRoute } = await import("../core/kemmaRouter");
+        const polishCfg = polishRoute();
+        if (polishCfg) {
+          const polishResponse = await callLLM({
+            route: polishCfg,
+            systemPrompt: "Polish the following answer for clarity, grammar, and concision. Do not change facts or remove citations.",
+            messages: [{ role: "user", content: finalContent }],
+            stream: !!onStream,
+            onStream,
+            onNotice,
+            userId,
+            sessionId,
+            reportId,
+            purpose: "polish",
+          });
+          finalContent = polishResponse.content ?? finalContent;
+          totalTokens.input += polishResponse.usage?.input ?? 0;
+          totalTokens.output += polishResponse.usage?.output ?? 0;
+          totalTokens.total += polishResponse.usage?.total ?? 0;
+        }
+      } catch (err) {
+        onNotice?.("Final polish step was skipped.");
+      }
+    }
+
+    return { response: finalContent, toolCalls: toolExecutions, isAgentic, tokensUsed: totalTokens, modelsUsed: Array.from(new Set(modelsUsed)), stepsUsed: step, durationMs: Date.now() - startTime };
   }
 
   await incrementQuota(userId, "message");
@@ -145,13 +214,9 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   return { response: "I have completed the available steps. Let me know if you need anything else.", toolCalls: toolExecutions, isAgentic: true, tokensUsed: totalTokens, modelsUsed: Array.from(new Set(modelsUsed)), stepsUsed: maxSteps, durationMs: Date.now() - startTime };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// VISION/MULTIMODAL ENGINE (Gemini Flash)
-// ═══════════════════════════════════════════════════════════════════════════════
-
 export async function kemmaVisionExecute(input: VisionEngineInput): Promise<EngineOutput> {
   const startTime = Date.now();
-  const { userId, userName, messages, tier, imageData, mimeType, onStream } = input;
+  const { userId, userName, messages, tier, imageData, mimeType, onStream, sessionId, reportId, onNotice } = input;
 
   const msgQuota = await checkQuota(userId, "message");
   if (!msgQuota.allowed) return makeErrorResponse(msgQuota.reason ?? "Daily message limit reached", startTime);
@@ -163,36 +228,29 @@ export async function kemmaVisionExecute(input: VisionEngineInput): Promise<Engi
   } catch { /* non-fatal */ }
 
   const systemPrompt = buildKemmaSystemPrompt({ userId, tier, memories, userName });
-  
-  // Use Gemini Flash for vision
-  const route = geminiVisionRoute();
-  
+  const route = visionRoute();
+
+  const cap = await checkSpendCap(route.provider);
+  if (!cap.allowed) return makeErrorResponse(cap.reason, startTime);
+
   try {
     const genAI = new GoogleGenerativeAI(route.apiKey);
     const model = genAI.getGenerativeModel({ model: route.model });
-
-    // Prepare the prompt
     const userText = lastUserMessage?.content || "Describe this image.";
-    
-    // Create the content parts
-    const imagePart = {
-      inlineData: {
-        data: imageData,
-        mimeType: mimeType,
-      },
-    };
+    const imagePart = { inlineData: { data: imageData, mimeType } };
 
     const result = await model.generateContent([systemPrompt, userText, imagePart]);
     const response = await result.response;
     const text = response.text();
 
     await incrementQuota(userId, "message");
+    await logUsage({ userId, sessionId, reportId, provider: route.provider, model: route.model, inputTokens: 0, outputTokens: 0, purpose: "vision" });
 
     return {
       response: text,
       toolCalls: [],
       isAgentic: false,
-      tokensUsed: { input: 0, output: 0, total: 0 }, // Gemini doesn't return token counts in same format
+      tokensUsed: { input: 0, output: 0, total: 0 },
       modelsUsed: [route.label],
       stepsUsed: 1,
       durationMs: Date.now() - startTime,
@@ -203,17 +261,13 @@ export async function kemmaVisionExecute(input: VisionEngineInput): Promise<Engi
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// DOCUMENT SCAN ENGINE (Gemini Flash)
-// ═══════════════════════════════════════════════════════════════════════════════
-
 export interface DocumentScanInput {
   userId: number;
   userName?: string;
   tier: Tier;
-  imageData: string;     // Base64 encoded document image
-  mimeType: string;      // e.g., "image/jpeg", "application/pdf"
-  prompt?: string;       // Optional custom prompt
+  imageData: string;
+  mimeType: string;
+  prompt?: string;
 }
 
 export interface DocumentScanOutput {
@@ -230,8 +284,10 @@ export async function kemmaDocumentScan(input: DocumentScanInput): Promise<Docum
   const startTime = Date.now();
   const { userId, tier, imageData, mimeType, prompt } = input;
 
-  const route = geminiVisionRoute();
-  
+  const route = visionRoute();
+  const cap = await checkSpendCap(route.provider);
+  if (!cap.allowed) throw new Error(cap.reason);
+
   try {
     const genAI = new GoogleGenerativeAI(route.apiKey);
     const model = genAI.getGenerativeModel({ model: route.model });
@@ -245,24 +301,15 @@ export async function kemmaDocumentScan(input: DocumentScanInput): Promise<Docum
 
 Return the extracted text in a structured format.`;
 
-    const imagePart = {
-      inlineData: {
-        data: imageData,
-        mimeType: mimeType,
-      },
-    };
-
+    const imagePart = { inlineData: { data: imageData, mimeType } };
     const result = await model.generateContent([prompt || defaultPrompt, imagePart]);
     const response = await result.response;
     const text = response.text();
 
     await incrementQuota(userId, "message");
+    await logUsage({ userId, provider: route.provider, model: route.model, inputTokens: 0, outputTokens: 0, purpose: "document_scan" });
 
-    return {
-      text,
-      modelsUsed: [route.label],
-      durationMs: Date.now() - startTime,
-    };
+    return { text, modelsUsed: [route.label], durationMs: Date.now() - startTime };
   } catch (err) {
     console.error("[kemmaDocumentScan] Error:", err);
     throw new Error("Failed to scan document. Please try again.");
@@ -270,20 +317,96 @@ Return the extracted text in a structured format.`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LLM CALLERS
+// LLM CALLERS (with fallback chain, spend caps, and usage logging)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-async function callLLM(input: any): Promise<any> {
+interface CallLLMOptions {
+  route: RouteConfig;
+  systemPrompt: string;
+  messages: KemmaMessage[];
+  tools?: any[];
+  stream: boolean;
+  onStream?: (chunk: string) => void;
+  onNotice?: (message: string) => void;
+  userId: number;
+  sessionId?: string;
+  reportId?: string;
+  purpose?: string;
+}
+
+async function callLLM(input: CallLLMOptions): Promise<{ content: string | null; toolCalls?: ToolCall[]; usage?: { input: number; output: number; total: number } }> {
+  const { route, systemPrompt, messages, tools, stream, onStream, onNotice, userId, sessionId, reportId, purpose } = input;
+
+  const cap = await checkSpendCap(route.provider);
+  if (!cap.allowed) {
+    throw new Error(cap.reason);
+  }
+
+  const errors: string[] = [];
+  const routesToTry = [route, ...fallbackRoutes().filter((r) => r.model !== route.model)];
+
+  for (let i = 0; i < routesToTry.length; i++) {
+    const tryRoute = routesToTry[i];
+
+    if (i > 0) {
+      onNotice?.(`Primary model unavailable; trying ${tryRoute.label}...`);
+    }
+
+    try {
+      const result = await callSingleLLM({ route: tryRoute, systemPrompt, messages, tools, stream, onStream });
+
+      await logUsage({
+        userId,
+        sessionId,
+        reportId,
+        provider: tryRoute.provider,
+        model: tryRoute.model,
+        inputTokens: result.usage?.input ?? 0,
+        outputTokens: result.usage?.output ?? 0,
+        purpose: purpose ?? "chat",
+      });
+
+      if (i > 0) {
+        onNotice?.(`Answer produced by fallback model ${tryRoute.label}.`);
+      }
+
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      errors.push(`${tryRoute.label}: ${message}`);
+      if (i === routesToTry.length - 1) {
+        throw new Error(`All models failed. ${errors.join("; ")}`);
+      }
+    }
+  }
+
+  throw new Error("All models failed.");
+}
+
+interface SingleLLMOptions {
+  route: RouteConfig;
+  systemPrompt: string;
+  messages: KemmaMessage[];
+  tools?: any[];
+  stream: boolean;
+  onStream?: (chunk: string) => void;
+}
+
+async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string | null; toolCalls?: ToolCall[]; usage?: { input: number; output: number; total: number } }> {
   const { route, systemPrompt, messages, tools, stream, onStream } = input;
+
+  if (!route.apiKey) {
+    throw new Error(`${route.provider} API key is not configured.`);
+  }
 
   if (route.provider === "anthropic") {
     const client = new Anthropic({ apiKey: route.apiKey });
-    const anthropicMessages = messages.filter((m: any) => m.role !== "system").map((m: any) => {
+    const anthropicMessages = messages.filter((m) => m.role !== "system").map((m) => {
       if (m.role === "tool") return { role: "user" as const, content: [{ type: "tool_result" as const, tool_use_id: m.tool_call_id!, content: m.content ?? "" }] };
-      if (m.role === "assistant" && m.tool_calls) return { role: "assistant" as const, content: [...(m.content ? [{ type: "text" as const, text: m.content }] : []), ...m.tool_calls.map((tc: any) => ({ type: "tool_use" as const, id: tc.id, name: tc.function.name, input: JSON.parse(tc.function.arguments || "{}") }))] };
+      if (m.role === "assistant" && m.tool_calls) return { role: "assistant" as const, content: [...(m.content ? [{ type: "text" as const, text: m.content }] : []), ...m.tool_calls.map((tc) => ({ type: "tool_use" as const, id: tc.id, name: tc.function.name, input: JSON.parse(tc.function.arguments || "{}") }))] };
       return { role: m.role as "user" | "assistant", content: m.content ?? "" };
     });
-    const anthropicTools = tools ? tools.map((t: any) => ({ name: t.function.name, description: t.function.description, input_schema: t.function.parameters })) : undefined;
+    const anthropicTools = tools ? tools.map((t) => ({ name: t.function.name, description: t.function.description, input_schema: t.function.parameters })) : undefined;
 
     if (stream && onStream) {
       let fullContent = "";
@@ -301,10 +424,26 @@ async function callLLM(input: any): Promise<any> {
     return { content: textContent || null, toolCalls: toolCalls.length > 0 ? toolCalls : undefined, usage: { input: response.usage.input_tokens, output: response.usage.output_tokens, total: response.usage.input_tokens + response.usage.output_tokens } };
   }
 
-  // Default: OpenAI-compatible API (NVIDIA, Kimi, etc.)
-  const body = { model: route.model, messages: [{ role: "system", content: systemPrompt }, ...messages.filter((m: any) => m.role !== "system")], tools, tool_choice: tools ? "auto" : undefined, stream: stream && !!onStream, max_tokens: 4096 };
-  const res = await fetch(`${route.baseUrl}/chat/completions`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${route.apiKey}` }, body: JSON.stringify(body) });
-  if (!res.ok) { const err = await res.text(); throw new Error(`API error ${res.status}: ${err}`); }
+  // OpenAI-compatible path (Qwen, Kimi, Perplexity, Gemini via OpenAI, LiteLLM, NVIDIA, OpenAI)
+  const body = {
+    model: route.model,
+    messages: [{ role: "system", content: systemPrompt }, ...messages.filter((m) => m.role !== "system")],
+    tools,
+    tool_choice: tools ? "auto" : undefined,
+    stream: stream && !!onStream,
+    max_tokens: 4096,
+  };
+
+  const res = await fetch(`${route.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${route.apiKey}` },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`API error ${res.status}: ${err}`);
+  }
 
   if (stream && onStream) {
     let fullContent = "";
@@ -328,7 +467,15 @@ async function callLLM(input: any): Promise<any> {
   const data = await res.json();
   const choice = data.choices?.[0];
   const toolCalls = (choice?.message?.tool_calls ?? []).map((tc: any) => ({ id: tc.id, type: "function" as const, function: { name: tc.function.name, arguments: tc.function.arguments } }));
-  return { content: choice?.message?.content ?? null, toolCalls: toolCalls.length > 0 ? toolCalls : undefined, usage: { input: data.usage?.prompt_tokens ?? 0, output: data.usage?.completion_tokens ?? 0, total: data.usage?.total_tokens ?? 0 } };
+  return {
+    content: choice?.message?.content ?? null,
+    toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+    usage: {
+      input: data.usage?.prompt_tokens ?? 0,
+      output: data.usage?.completion_tokens ?? 0,
+      total: data.usage?.total_tokens ?? 0,
+    },
+  };
 }
 
 function makeErrorResponse(message: string, startTime: number): EngineOutput {

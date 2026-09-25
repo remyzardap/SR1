@@ -63,6 +63,8 @@ export const files = pgTable("files", {
   fileUrl: text("fileUrl").notNull(),
   fileSizeBytes: bigint("fileSizeBytes", { mode: "number" }).default(0),
   mimeType: varchar("mimeType", { length: 128 }),
+  trashed: boolean("trashed").notNull().default(false),
+  trashedAt: timestamp("trashedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
@@ -486,3 +488,21 @@ export const userQuotas = pgTable("user_quotas", {
 });
 export type UserQuota = typeof userQuotas.$inferSelect;
 export type InsertUserQuota = typeof userQuotas.$inferInsert;
+
+// ─── Kemma Usage Logs (per-provider, per-report) ─────────────────────────────
+export const usageLogs = pgTable("usage_logs", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  sessionId: varchar("session_id", { length: 128 }),
+  reportId: varchar("report_id", { length: 128 }),
+  provider: varchar("provider", { length: 64 }).notNull(),
+  model: varchar("model", { length: 128 }).notNull(),
+  inputTokens: integer("input_tokens").notNull().default(0),
+  outputTokens: integer("output_tokens").notNull().default(0),
+  totalTokens: integer("total_tokens").notNull().default(0),
+  estimatedCostUsd: numeric("estimated_cost_usd", { precision: 12, scale: 6 }).default("0"),
+  purpose: varchar("purpose", { length: 64 }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export type UsageLog = typeof usageLogs.$inferSelect;
+export type InsertUsageLog = typeof usageLogs.$inferInsert;
