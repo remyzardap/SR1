@@ -1,4 +1,4 @@
-import { VertexAI } from "@google-cloud/vertexai";
+import { GoogleGenAI } from "@google/genai";
 
 interface GenerateImageInput {
   prompt: string;
@@ -21,13 +21,19 @@ export async function generateImage(input: GenerateImageInput): Promise<Generate
   const modelName = process.env.KEMMA_MODEL_IMAGE || "gemini-2.0-flash-001";
 
   try {
-    const vertexAI = new VertexAI({ project, location });
-    const model = vertexAI.preview.getGenerativeModel({ model: modelName });
+    const ai = new GoogleGenAI({
+      vertexai: true,
+      project,
+      location,
+    });
 
-    const result = await model.generateContent(input.prompt);
-    const response = await result.response;
+    const result = await ai.models.generateContent({
+      model: modelName,
+      contents: input.prompt,
+      config: { responseModalities: ["IMAGE", "TEXT"] },
+    });
 
-    const parts = (response as any).candidates?.[0]?.content?.parts || [];
+    const parts = (result as any).candidates?.[0]?.content?.parts || [];
     for (const part of parts) {
       if (part.inlineData?.data) {
         const mimeType = part.inlineData.mimeType || "image/png";
