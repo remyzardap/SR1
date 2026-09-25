@@ -13,7 +13,7 @@ import {
   F, FD, PAGE_BG, NOISE_OVERLAY, CSS_ANIM,
   innerGlowStrong, MOCHA, MOCHA_DARK,
 } from "@/lib/design";
-import { Settings, X, Cpu, Wrench, Sparkles } from "lucide-react";
+import { Settings, X, Cpu, Wrench, Sparkles, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -356,6 +356,19 @@ export default function Chat() {
 
   const retry = () => void handleSend(lastInput);
 
+  const exportThread = useCallback(() => {
+    const md = messages
+      .map((m) => `**${m.role === "user" ? "You" : "Kemma"}:** ${m.content}`)
+      .join("\n\n");
+    const blob = new Blob([md], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `chat-${sessionId}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [messages, sessionId]);
+
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div style={{ ...PAGE_BG, display: "flex", minHeight: "100vh" }}>
@@ -515,6 +528,16 @@ export default function Chat() {
               className={cn("shrink-0", settingsOpen && "bg-accent")}
             >
               <Settings className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={exportThread}
+              disabled={messages.length === 0}
+              className="shrink-0"
+              title="Export thread to Markdown"
+            >
+              <Download className="h-4 w-4" />
             </Button>
             <div className="flex-1">
               <ChatInput

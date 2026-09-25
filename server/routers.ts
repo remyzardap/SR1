@@ -23,6 +23,8 @@ import {
   getFileById,
   renameFile,
   deleteFile,
+  setFileTrashed,
+  moveFileToSpace,
   upsertApiKey,
   getApiKeyByUser,
   getAllUsersWithStats,
@@ -82,6 +84,7 @@ import { blocksRouter } from "./routers/blocks";
 import { googleRouter } from "./routers/google";
 import { telegramRouter } from "./routers/telegramRouter";
 import { openclawRouter } from "./routers/openclawRouter";
+import { spacesRouter } from "./routers/spaces";
 
 const FORMAT_MIME: Record<string, string> = {
   pdf: "application/pdf",
@@ -477,6 +480,22 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    // Trash / restore a file
+    setTrashed: protectedProcedure
+      .input(z.object({ id: z.number(), trashed: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        await setFileTrashed(input.id, ctx.user.id, input.trashed);
+        return { success: true };
+      }),
+
+    // Move a file to a Space
+    move: protectedProcedure
+      .input(z.object({ id: z.number(), spaceId: z.string().uuid().nullable() }))
+      .mutation(async ({ ctx, input }) => {
+        await moveFileToSpace(input.id, ctx.user.id, input.spaceId);
+        return { success: true };
+      }),
+
     // Get a single file record (for preview/download)
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
@@ -504,6 +523,7 @@ export const appRouter = router({
   health: healthRouter,
   kpis: kpisRouter,
   kemma: kemmaRouter,
+  spaces: spacesRouter,
   // ─── Settings router ────────────────────────────────────────────────────────
   settings: router({
     saveApiKey: protectedProcedure

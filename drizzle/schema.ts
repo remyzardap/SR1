@@ -297,9 +297,22 @@ export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
 
 // ─── Sutaeru: Chat Sessions ────────────────────────────────────────────────────
+export const spaces = pgTable("spaces", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: integer("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  settings: json("settings").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+export type Space = typeof spaces.$inferSelect;
+export type InsertSpace = typeof spaces.$inferInsert;
+
 export const chatSessions = pgTable("chat_sessions", {
   id: varchar("id", { length: 36 }).primaryKey(),
   userId: integer("userId").notNull(),
+  spaceId: varchar("spaceId", { length: 36 }),
   title: varchar("title", { length: 255 }),
   settings: json("settings").$type<Record<string, unknown>>().default({}),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

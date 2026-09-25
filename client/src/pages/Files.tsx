@@ -32,6 +32,8 @@ import {
   FolderOpen,
   MessageSquare,
   Eye,
+  RotateCcw,
+  Folder,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
@@ -82,10 +84,26 @@ export default function Files() {
     file: null,
   });
   const [previewFile, setPreviewFile] = useState<FileRecord | null>(null);
+  const [view, setView] = useState<"active" | "trashed">("active");
+  const [moveDialog, setMoveDialog] = useState<{ open: boolean; file: FileRecord | null }>({
+    open: false,
+    file: null,
+  });
 
   const utils = trpc.useUtils();
 
   const { data: files = [], isLoading } = trpc.files.list.useQuery();
+  const { data: spaces = [] } = trpc.spaces.list.useQuery();
+  const [newSpaceName, setNewSpaceName] = useState("");
+
+  const createSpaceMutation = trpc.spaces.create.useMutation({
+    onSuccess: () => {
+      toast.success("Space created");
+      utils.spaces.list.invalidate();
+      setNewSpaceName("");
+    },
+    onError: (err) => toast.error("Create space failed: " + err.message),
+  });
 
   const renameMutation = trpc.files.rename.useMutation({
     onSuccess: () => {
@@ -105,8 +123,26 @@ export default function Files() {
     onError: (err) => toast.error("Delete failed: " + err.message),
   });
 
+  const trashMutation = trpc.files.setTrashed.useMutation({
+    onSuccess: () => {
+      toast.success(view === "active" ? "File moved to trash" : "File restored");
+      utils.files.list.invalidate();
+    },
+    onError: (err) => toast.error("Trash action failed: " + err.message),
+  });
+
+  const moveMutation = trpc.files.move.useMutation({
+    onSuccess: () => {
+      toast.success("File moved");
+      utils.files.list.invalidate();
+      setMoveDialog({ open: false, file: null });
+    },
+    onError: (err) => toast.error("Move failed: " + err.message),
+  });
+
   const filtered = files.filter(
     (f) =>
+      (view === "active" ? !f.trashed : f.trashed) &&
       (filterKind === "all" || f.kind === filterKind) &&
       (f.name.toLowerCase().includes(search.toLowerCase()) ||
         f.originalPrompt.toLowerCase().includes(search.toLowerCase()))
@@ -158,7 +194,7 @@ export default function Files() {
       </div>
 
       {/* Type filter */}
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap gap-2">
         {Object.entries(KIND_LABELS).map(([kind, label]) => (
           <Button
             key={kind}
@@ -169,6 +205,16 @@ export default function Files() {
             {label}
           </Button>
         ))}
+      </div>
+
+      {/* View tabs */}
+      <div className="mb-6 flex gap-2">
+        <Button size="sm" variant={view === "active" ? "default" : "outline"} onClick={() => setView("active")}>
+          Active
+        </Button>
+        <Button size="sm" variant={view === "trashed" ? "default" : "outline"} onClick={() => setView("trashed")}>
+          Trash
+        </Button>
       </div>
 
       {/* File list */}
@@ -259,17 +305,40 @@ export default function Files() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => openRename(file)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Rename
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => openDelete(file)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
+                      {view === "active" && (
+                        <>
+                          <DropdownMenuItem onClick={() => openRename(file)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setMoveDialog({ open: true, file })}>
+                            <Folder className="mr-2 h-4 w-4" />
+                            Move to Space
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => trashMutation.mutate({ id: file.id, trashed: true })}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Move to trash
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {view === "trashed" && (
+                        <>
+                          <DropdownMenuItem onClick={() => trashMutation.mutate({ id: file.id, trashed: false })}>
+                            <RotateCcw className="mr-2 h-4 w-4" />
+                            Restore
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => openDelete(file)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete forever
+                          </DropdownMenuItem>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -382,6 +451,52 @@ export default function Files() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setPreviewFile(null)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Move to Space Dialog */}
+      <Dialog open={moveDialog.open} onOpenChange={(open) => setMoveDialog((d) => ({ ...d, open }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Move to Space</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => moveDialog.file && moveMutation.mutate({ id: moveDialog.file.id, spaceId: null })}
+            >
+              No Space
+            </Button>
+            {spaces.map((space) => (
+              <Button
+                key={space.id}
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => moveDialog.file && moveMutation.mutate({ id: moveDialog.file.id, spaceId: space.id })}
+              >
+                {space.name}
+              </Button>
+            ))}
+            <div className="flex gap-2 pt-2">
+              <Input
+                value={newSpaceName}
+                onChange={(e) => setNewSpaceName(e.target.value)}
+                placeholder="New space name"
+              />
+              <Button
+                disabled={!newSpaceName.trim() || createSpaceMutation.isPending}
+                onClick={() => createSpaceMutation.mutate({ name: newSpaceName })}
+              >
+                Create
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMoveDialog({ open: false, file: null })}>
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>

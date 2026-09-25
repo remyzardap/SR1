@@ -1,5 +1,5 @@
 import {
-  and, desc, eq, gte, lte, sql
+  and, desc, eq, gte, inArray, lte, sql
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import {
@@ -157,6 +157,22 @@ export async function deleteFile(id: number, userId: number) {
   if (!file) throw new Error("File not found or access denied");
   await db.delete(files).where(eq(files.id, id));
   return file;
+}
+
+export async function moveFileToSpace(id: number, userId: number, spaceId: string | null) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { files } = await import("../drizzle/schema");
+  await db.update(files).set({ spaceId }).where(and(eq(files.id, id), eq(files.userId, userId)));
+}
+
+export async function setFileTrashed(id: number, userId: number, trashed: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { files } = await import("../drizzle/schema");
+  await db.update(files)
+    .set({ trashed, trashedAt: trashed ? new Date() : null })
+    .where(and(eq(files.id, id), eq(files.userId, userId)));
 }
 
 export async function getFilesCountByUser(userId: number) {
@@ -738,13 +754,68 @@ export async function deleteBusiness(id: number, userId: number): Promise<void> 
 
 
 // ─── Chat Sessions ─────────────────────────────────────────────────────────────
-export async function listChatSessions(userId: number) {
+export async function listChatSessions(userId: number, spaceId?: string) {
   const db = await getDb();
   if (!db) return [];
   const { chatSessions } = await import("../drizzle/schema");
+  const where = spaceId
+    ? and(eq(chatSessions.userId, userId), eq(chatSessions.spaceId, spaceId))
+    : eq(chatSessions.userId, userId);
   return db.select().from(chatSessions)
-    .where(eq(chatSessions.userId, userId))
+    .where(where)
     .orderBy(desc(chatSessions.lastMessageAt));
+}
+
+export async function updateChatSessionSpace(sessionId: string, userId: number, spaceId: string | null) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { chatSessions } = await import("../drizzle/schema");
+  await db.update(chatSessions)
+    .set({ spaceId })
+    .where(and(eq(chatSessions.id, sessionId), eq(chatSessions.userId, userId)));
+}
+
+export async function createSpace(userId: number, name: string, description?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { spaces } = await import("../drizzle/schema");
+  const id = crypto.randomUUID();
+  await db.insert(spaces).values({ id, userId, name: name.slice(0, 255), description: description || null });
+  return id;
+}
+
+export async function listSpaces(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const { spaces } = await import("../drizzle/schema");
+  return db.select().from(spaces).where(eq(spaces.userId, userId)).orderBy(spaces.name);
+}
+
+export async function getSpace(id: string, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const { spaces } = await import("../drizzle/schema");
+  const rows = await db.select().from(spaces).where(eq(spaces.id, id)).limit(1);
+  const row = rows[0];
+  if (!row || row.userId !== userId) return undefined;
+  return row;
+}
+
+export async function updateSpace(id: string, userId: number, updates: { name?: string; description?: string | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { spaces } = await import("../drizzle/schema");
+  await db.update(spaces)
+    .set({ ...updates, updatedAt: new Date() })
+    .where(and(eq(spaces.id, id), eq(spaces.userId, userId)));
+}
+
+export async function deleteSpace(id: string, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { spaces, chatSessions } = await import("../drizzle/schema");
+  await db.update(chatSessions).set({ spaceId: null }).where(eq(chatSessions.spaceId, id));
+  await db.delete(spaces).where(and(eq(spaces.id, id), eq(spaces.userId, userId)));
 }
 
 export async function getChatSessionMessages(sessionId: string) {
@@ -787,6 +858,26 @@ export async function deleteChatSession(sessionId: string, userId: number) {
   const { chatSessions, chatMessages } = await import("../drizzle/schema");
   await db.delete(chatMessages).where(eq(chatMessages.sessionId, sessionId));
   await db.delete(chatSessions).where(and(eq(chatSessions.id, sessionId), eq(chatSessions.userId, userId)));
+}
+
+export async function searchChatMessages(userId: number, query: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const { chatMessages, chatSessions } = await import("../drizzle/schema");
+  const { like, or, and, asc } = await import("drizzle-orm");
+  const sessions = await db.select({ id: chatSessions.id }).from(chatSessions).where(eq(chatSessions.userId, userId));
+  const sessionIds = sessions.map((s) => s.id);
+  if (sessionIds.length === 0) return [];
+  const q = `%${query}%`;
+  return db.select().from(chatMessages)
+    .where(
+      and(
+        inArray(chatMessages.sessionId, sessionIds),
+        or(like(chatMessages.content, q))
+      )
+    )
+    .orderBy(asc(chatMessages.createdAt))
+    .limit(50);
 }
 
 export async function updateChatSessionLastMessageAt(sessionId: string) {

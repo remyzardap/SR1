@@ -96,6 +96,13 @@ export const kemmaRouter = router({
       .orderBy(skills.name);
   }),
 
+  searchChats: protectedProcedure
+    .input(z.object({ query: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const { searchChatMessages } = await import("../db");
+      return searchChatMessages(ctx.user.id, input.query);
+    }),
+
   getSessionSettings: protectedProcedure
     .input(z.object({ sessionId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
