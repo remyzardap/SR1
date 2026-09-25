@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { VertexAI } from "@google-cloud/vertexai";
 
 interface GenerateImageInput {
   prompt: string;
@@ -12,16 +12,17 @@ interface GenerateImageResult {
 }
 
 export async function generateImage(input: GenerateImageInput): Promise<GenerateImageResult> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured");
+  const project = process.env.VERTEX_PROJECT;
+  const location = process.env.VERTEX_LOCATION;
+  if (!project || !location) {
+    throw new Error("VERTEX_PROJECT and VERTEX_LOCATION must be set for image generation");
   }
 
-  const modelName = process.env.KEMMA_MODEL_IMAGE || "gemini-2.0-flash-exp-image-generation";
+  const modelName = process.env.KEMMA_MODEL_IMAGE || "gemini-2.0-flash-001";
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: modelName });
+    const vertexAI = new VertexAI({ project, location });
+    const model = vertexAI.preview.getGenerativeModel({ model: modelName });
 
     const result = await model.generateContent(input.prompt);
     const response = await result.response;
@@ -38,9 +39,9 @@ export async function generateImage(input: GenerateImageInput): Promise<Generate
       }
     }
 
-    throw new Error("Gemini returned no image data");
+    throw new Error("Vertex AI returned no image data");
   } catch (err: any) {
-    console.warn("[imageGeneration] Gemini image generation failed:", err);
-    throw new Error(`Gemini image generation failed: ${err?.message ?? "unknown error"}`);
+    console.warn("[imageGeneration] Vertex AI image generation failed:", err);
+    throw new Error(`Vertex AI image generation failed: ${err?.message ?? "unknown error"}`);
   }
 }
