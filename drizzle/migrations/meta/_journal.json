@@ -15,6 +15,13 @@
       "when": 1790322776665,
       "tag": "0016_files_storage_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790322776666,
+      "tag": "0017_settings_columns",
+      "breakpoints": true
     }
   ]
 }

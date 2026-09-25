@@ -59,7 +59,7 @@ export function ChatInput({
             onKeyDown={onKeyDown}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
-            placeholder="Message S1…"
+            placeholder="Message Kemma…"
             rows={1}
             disabled={false}
             className="flex-1 min-w-0 resize-none bg-transparent text-[14px] outline-none leading-relaxed min-h-[24px] max-h-[180px]"

@@ -232,6 +232,7 @@ export const skills = pgTable("skills", {
   content: json("content").notNull(),
   sourceModel: varchar("sourceModel", { length: 128 }),
   isPublic: boolean("isPublic").default(false).notNull(),
+  approved: boolean("approved").default(false).notNull(),
   usageCount: integer("usageCount").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
@@ -300,6 +301,7 @@ export const chatSessions = pgTable("chat_sessions", {
   id: varchar("id", { length: 36 }).primaryKey(),
   userId: integer("userId").notNull(),
   title: varchar("title", { length: 255 }),
+  settings: json("settings").$type<Record<string, unknown>>().default({}),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   lastMessageAt: bigint("lastMessageAt", { mode: "number" }),
@@ -315,6 +317,7 @@ export const chatMessages = pgTable("chat_messages", {
   role: varchar("role", { length: 16 }).notNull(),
   content: text("content").notNull(),
   model: varchar("model", { length: 128 }),
+  settings: json("settings").$type<Record<string, unknown>>().default({}),
   createdAt: timestamp("created_at").notNull(),
 });
 export type ChatMessage = typeof chatMessages.$inferSelect;

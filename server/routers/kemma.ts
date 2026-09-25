@@ -4,16 +4,44 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { kemmaExecute, type KemmaMessage } from "../kemma/engine";
 import { checkQuota, getQuotaSummary, activateTrial } from "../core/quotaCheck";
 import { getDb } from "../db";
-import { userQuotas } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { userQuotas, skills } from "../../drizzle/schema";
+import { eq, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { listChatSessions, getChatSessionMessages, createChatSession, deleteChatSession, updateChatSessionTitle } from "../db";
+import {
+  listChatSessions,
+  getChatSessionMessages,
+  createChatSession,
+  deleteChatSession,
+  updateChatSessionTitle,
+  addChatMessage,
+  getChatSessionSettings,
+  updateChatSessionSettings,
+} from "../db";
+import { resolveSettings, listAvailableModels, type ThreadSettings, type MessageSettings, type ChatMode } from "../kemma/settings";
 
 const messageSchema = z.object({ role: z.enum(["user", "assistant", "system", "tool"]), content: z.string().nullable() });
 
+const threadSettingsSchema = z.object({
+  model: z.string().optional(),
+  mode: z.enum(["fast", "deep", "document", "image"]).optional(),
+  allowedTools: z.array(z.string()).optional(),
+  pinnedSkills: z.array(z.number()).optional(),
+}).passthrough();
+
+const messageSettingsSchema = z.object({
+  model: z.string().optional(),
+  taggedSkills: z.array(z.number()).optional(),
+}).passthrough();
+
 export const kemmaRouter = router({
   execute: protectedProcedure
-    .input(z.object({ messages: z.array(messageSchema), isThinking: z.boolean().default(false), isVoice: z.boolean().default(false), sessionId: z.string().optional() }))
+    .input(z.object({
+      messages: z.array(messageSchema),
+      isThinking: z.boolean().default(false),
+      isVoice: z.boolean().default(false),
+      sessionId: z.string().optional(),
+      settings: messageSettingsSchema.default({}),
+    }))
     .mutation(async ({ ctx, input }) => {
       const msgCheck = await checkQuota(ctx.user.id, "message");
       if (!msgCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: msgCheck.reason ?? "Daily message limit reached" });
@@ -22,11 +50,65 @@ export const kemmaRouter = router({
         if (!thinkCheck.allowed) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: thinkCheck.reason ?? "Daily Think limit reached" });
       }
       const quota = await getQuotaSummary(ctx.user.id);
+
+      const threadSettings: ThreadSettings = input.sessionId
+        ? (await getChatSessionSettings(input.sessionId, ctx.user.id) as ThreadSettings)
+        : {};
+      const resolved = resolveSettings(threadSettings, input.settings as MessageSettings);
+
+      const skillIds = resolved.skills;
+      const db = await getDb();
+      let skillRecords: Array<{ id: number; name: string; description: string | null; content: unknown }> = [];
+      if (db && skillIds.length > 0) {
+        skillRecords = await db.select({ id: skills.id, name: skills.name, description: skills.description, content: skills.content, approved: skills.approved })
+          .from(skills)
+          .where(inArray(skills.id, skillIds))
+          .then((rows) => rows.filter((r) => r.approved));
+      }
+
       try {
-        return await kemmaExecute({ userId: ctx.user.id, userName: ctx.user.name ?? undefined, messages: input.messages as KemmaMessage[], tier: quota.tier, isThinking: input.isThinking, isVoice: input.isVoice });
+        const result = await kemmaExecute({
+          userId: ctx.user.id,
+          userName: ctx.user.name ?? undefined,
+          messages: input.messages as KemmaMessage[],
+          tier: quota.tier,
+          isThinking: input.isThinking,
+          isVoice: input.isVoice,
+          sessionId: input.sessionId,
+          modelOverride: resolved.model === "auto" ? undefined : resolved.model,
+          allowedTools: resolved.allowedTools,
+          skills: skillRecords,
+        });
+        return result;
       } catch (e) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Kemma error: ${(e as Error).message}` });
       }
+    }),
+
+  availableModels: protectedProcedure.query(() => listAvailableModels()),
+
+  approvedSkills: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) return [];
+    return db.select({ id: skills.id, name: skills.name, description: skills.description })
+      .from(skills)
+      .where(eq(skills.approved, true))
+      .orderBy(skills.name);
+  }),
+
+  getSessionSettings: protectedProcedure
+    .input(z.object({ sessionId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const sessions = await listChatSessions(ctx.user.id);
+      if (!sessions.some((s: any) => s.id === input.sessionId)) throw new TRPCError({ code: "FORBIDDEN" });
+      return getChatSessionSettings(input.sessionId, ctx.user.id);
+    }),
+
+  updateSessionSettings: protectedProcedure
+    .input(z.object({ sessionId: z.string().uuid(), settings: threadSettingsSchema }))
+    .mutation(async ({ ctx, input }) => {
+      await updateChatSessionSettings(input.sessionId, ctx.user.id, input.settings as unknown as Record<string, unknown>);
+      return { success: true };
     }),
 
   quota: protectedProcedure.query(async ({ ctx }) => getQuotaSummary(ctx.user.id)),

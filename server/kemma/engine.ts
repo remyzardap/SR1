@@ -9,6 +9,7 @@ import {
   visionRoute,
   verifyRoute,
   plannerRoute,
+  routeFor,
   detectComplexity,
   MAX_STEPS,
   type Tier,
@@ -49,6 +50,8 @@ export interface EngineInput {
   toolBudget?: number;
   allowedTools?: string[];
   isSubAgent?: boolean;
+  modelOverride?: string;
+  skills?: Array<{ id: number; name: string; description?: string | null; content?: unknown }>;
   onStream?: (chunk: string) => void;
   onToolStart?: (tool: string, input: unknown) => void;
   onToolEnd?: (tool: string, result: unknown, durationMs: number) => void;
@@ -56,6 +59,7 @@ export interface EngineInput {
   onStepEnd?: (step: number) => void;
   onQuotaWarn?: (message: string) => void;
   onNotice?: (message: string) => void;
+  onSkillUsed?: (skill: { id: number; name: string }) => void;
 }
 
 export interface VisionEngineInput extends EngineInput {
@@ -73,7 +77,16 @@ export interface EngineOutput {
 import { MAX_TOOL_CALLS } from "./kemmaMax";
 
 function selectRoute(input: EngineInput, currentMessages: KemmaMessage[], step: number, maxSteps: number): RouteConfig {
-  const { isThinking } = input;
+  const { isThinking, modelOverride } = input;
+
+  if (modelOverride) {
+    try {
+      return routeFor(modelOverride);
+    } catch {
+      // Fall through to router logic if the override model is unknown.
+    }
+  }
+
   const complexity = detectComplexity(currentMessages.map((m) => ({ role: m.role, content: m.content ?? "" })));
 
   if (isThinking && step === 1) {
@@ -193,7 +206,7 @@ async function runParallelSubAgents(
 
 export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   const startTime = Date.now();
-  const { userId, userName, messages, tier, isThinking, isVoice = false, sessionId, reportId, polish, onStream, onToolStart, onToolEnd, onStepStart, onStepEnd, onQuotaWarn, onNotice } = input;
+  const { userId, userName, messages, tier, isThinking, isVoice = false, sessionId, reportId, polish, onStream, onToolStart, onToolEnd, onStepStart, onStepEnd, onQuotaWarn, onNotice, onSkillUsed } = input;
 
   const msgQuota = await checkQuota(userId, "message");
   if (!msgQuota.allowed) return makeErrorResponse(msgQuota.reason ?? "Daily message limit reached", startTime);
@@ -209,9 +222,15 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     if (lastUserMessage?.content) memories = await getMemoriesContext(userId, lastUserMessage.content as string);
   } catch { /* non-fatal */ }
 
-  const systemPrompt = isVoice
+  let systemPrompt = isVoice
     ? buildKemmaVoicePrompt({ userId, tier, memories, userName })
     : buildKemmaSystemPrompt({ userId, tier, memories, userName });
+
+  if (input.skills && input.skills.length > 0) {
+    const skillText = input.skills.map((s) => `### ${s.name}\n${s.description ?? ""}\n${typeof s.content === "string" ? s.content : JSON.stringify(s.content ?? {})}`).join("\n\n");
+    systemPrompt += `\n\nAPPROVED SKILLS TO FOLLOW:\n${skillText}`;
+    input.skills.forEach((s) => onSkillUsed?.({ id: s.id, name: s.name }));
+  }
 
   let currentMessages: KemmaMessage[] = messages.filter((m) => m.role !== "system");
 

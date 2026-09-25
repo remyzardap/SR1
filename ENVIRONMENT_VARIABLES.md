@@ -187,9 +187,9 @@ curl -I http://localhost:3000
 | `NVIDIA_API_KEY` | — | NVIDIA API key (used only for Nemotron) |
 | `KEMMA_MODEL_CHAT` | `qwen3.8-max` | Everyday chat, tools, code, file generation |
 | `KEMMA_MODEL_SEARCH` | `sonar-pro` | Web search model |
-| `KEMMA_MODEL_VISION` | `gemini-2.0-flash` | Vision and documents |
+| `KEMMA_MODEL_VISION` | `gemini-3.8-flash` | Vision and documents |
 | `KEMMA_MODEL_EMBEDDING` | `text-embedding-004` | Embeddings |
-| `KEMMA_MODEL_IMAGE` | `gemini-2.0-flash` | Image generation |
+| `KEMMA_MODEL_IMAGE` | `gemini-3.8-flash` | Image generation |
 | `KEMMA_MODEL_REPORT` | `qwen3.8-max` | Report writing |
 | `KEMMA_MODEL_LONG_DOC` | `kimi-k3` | Long documents and heavy browsing |
 | `KEMMA_MODEL_PLANNER` | `claude-sonnet-5` | Deep-research planner |

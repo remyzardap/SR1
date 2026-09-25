@@ -798,7 +798,7 @@ export async function updateChatSessionLastMessageAt(sessionId: string) {
     .where(eq(chatSessions.id, sessionId));
 }
 
-export async function addChatMessage(sessionId: string, userId: number, content: string, role: string, model?: string) {
+export async function addChatMessage(sessionId: string, userId: number, content: string, role: string, model?: string, settings?: Record<string, unknown>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const { chatMessages } = await import("../drizzle/schema");
@@ -810,10 +810,30 @@ export async function addChatMessage(sessionId: string, userId: number, content:
     content,
     role,
     model: model || null,
+    settings: settings ?? {},
     createdAt: new Date(),
   });
   await updateChatSessionLastMessageAt(sessionId);
   return id;
+}
+
+export async function getChatSessionSettings(sessionId: string, userId: number): Promise<Record<string, unknown>> {
+  const db = await getDb();
+  if (!db) return {};
+  const { chatSessions } = await import("../drizzle/schema");
+  const rows = await db.select({ settings: chatSessions.settings, userId: chatSessions.userId }).from(chatSessions).where(eq(chatSessions.id, sessionId)).limit(1);
+  const row = rows[0];
+  if (!row || row.userId !== userId) return {};
+  return (row.settings as Record<string, unknown>) ?? {};
+}
+
+export async function updateChatSessionSettings(sessionId: string, userId: number, settings: Record<string, unknown>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { chatSessions } = await import("../drizzle/schema");
+  await db.update(chatSessions)
+    .set({ settings })
+    .where(and(eq(chatSessions.id, sessionId), eq(chatSessions.userId, userId)));
 }
 
 // ─── Memory Full-Text Search ──────────────────────────────────────────────────

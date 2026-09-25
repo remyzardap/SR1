@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { F, FM, glassCard, MOCHA, TEXT_PRIMARY, TEXT_MUTED, TEXT_SOFT } from "@/lib/design";
 
 interface ChatHeaderProps {
-  agentHandle: string | null;
+  agentHandle?: string | null;
   agentName?: string;
   memoryCount?: number;
   skillCount?: number;
@@ -17,7 +17,7 @@ interface ChatHeaderProps {
 }
 
 export function ChatHeader({
-  agentHandle,
+  agentHandle = null,
   agentName,
   memoryCount,
   skillCount,
