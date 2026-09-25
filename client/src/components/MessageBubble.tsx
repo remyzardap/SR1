@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { BookmarkPlus, Copy, Check, Pin, GitFork } from "lucide-react";
+import { BookmarkPlus, Copy, Check, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { NEON, NEON_FD, NEON_FM } from "@/lib/design";
 
 interface Message {
   id: string;
@@ -56,25 +57,25 @@ function CodeBlock({ code, lang }: { code: string; lang?: string }) {
     });
   };
   return (
-    <div className="my-3 rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.09)" }}>
+    <div className="my-3 rounded-xl overflow-hidden" style={{ border: "1px solid rgba(10,10,10,0.06)" }}>
       <div
         className="flex items-center justify-between px-4 py-2"
-        style={{ background: "rgba(255,255,255,0.04)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+        style={{ background: "rgba(10,10,10,0.03)", borderBottom: "1px solid rgba(10,10,10,0.05)" }}
       >
-        <span className="text-[10px] tracking-widest uppercase font-mono" style={{ color: "rgba(242,242,242,0.3)" }}>
+        <span className="text-[10px] tracking-widest uppercase font-mono" style={{ color: NEON.muted }}>
           {lang || "code"}
         </span>
         <button
           onClick={copy}
           className="flex items-center gap-1 text-[10px] tracking-widest uppercase font-mono transition-colors"
-          style={{ color: copied ? "#2dd4bf" : "rgba(242,242,242,0.3)" }}
+          style={{ color: copied ? NEON.orange : NEON.muted }}
         >
           {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
           {copied ? "copied" : "copy"}
         </button>
       </div>
-      <pre className="p-4 overflow-x-auto" style={{ background: "rgba(0,0,0,0.35)" }}>
-        <code className="font-mono text-[13px] leading-relaxed" style={{ color: "rgba(242,242,242,0.82)" }}>
+      <pre className="p-4 overflow-x-auto" style={{ background: "#f7f4ed" }}>
+        <code className="font-mono text-[13px] leading-relaxed" style={{ color: NEON.ink }}>
           {code}
         </code>
       </pre>
@@ -82,9 +83,20 @@ function CodeBlock({ code, lang }: { code: string; lang?: string }) {
   );
 }
 
+function renderTextWithCitations(text: string) {
+  const parts = text.split(/(\[\d+\])/g);
+  return parts.map((part, i) => {
+    const match = part.match(/^\[(\d+)\]$/);
+    if (match) {
+      return <span key={i} className="neon-citation">{match[1]}</span>;
+    }
+    return <span key={i} className="whitespace-pre-wrap">{part}</span>;
+  });
+}
+
 function getModelMeta(model?: string) {
   if (!model) return null;
-  return { label: "Kemma", color: "rgba(232,68,42,0.6)" };
+  return { label: model, color: NEON.orange };
 }
 
 export function MessageBubble({ message, onSave }: MessageBubbleProps) {
@@ -126,11 +138,11 @@ export function MessageBubble({ message, onSave }: MessageBubbleProps) {
     >
       {/* Avatar */}
       <div
-        className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 mb-1"
+        className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mb-1"
         style={
           isUser
-            ? { background: "rgba(242,242,242,0.08)", border: "1px solid rgba(242,242,242,0.12)", color: "rgba(242,242,242,0.6)" }
-            : { background: "rgba(232,68,42,0.08)", border: "1px solid rgba(232,68,42,0.18)", color: "#E8442A" }
+            ? { background: "rgba(10,10,10,0.08)", border: "1px solid rgba(10,10,10,0.10)", color: NEON.ink }
+            : { background: NEON.orangeDim, border: `1px solid ${NEON.orange}25`, color: NEON.orange }
         }
       >
         {isUser ? "Y" : "S"}
@@ -139,7 +151,13 @@ export function MessageBubble({ message, onSave }: MessageBubbleProps) {
       {/* Bubble */}
       <div className={cn("max-w-[84%] sm:max-w-[72%] flex flex-col gap-1.5", isUser ? "items-end" : "items-start")}>
         <div
-          className={cn("px-4 py-3 text-[14px] leading-relaxed", isUser ? "chat-bubble-user text-[#f0ede8]" : "chat-bubble-ai text-[#f0ede8]")}
+          className={cn("px-4 py-3 text-[14px] leading-relaxed", isUser ? "rounded-[22px] rounded-br-md" : "rounded-[22px] rounded-bl-md")}
+          style={{
+            background: isUser ? NEON.black : "#ffffff",
+            color: isUser ? NEON.cream : NEON.ink,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+            border: isUser ? "none" : "1px solid rgba(10,10,10,0.05)",
+          }}
         >
           {message.streaming && !message.content ? (
             <div className="flex gap-1.5 items-center py-1">
@@ -147,7 +165,7 @@ export function MessageBubble({ message, onSave }: MessageBubbleProps) {
                 <motion.span
                   key={i}
                   className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: "rgba(242,242,242,0.4)" }}
+                  style={{ background: NEON.orange }}
                   animate={{ opacity: [0.3, 1, 0.3], scale: [1, 1.2, 1] }}
                   transition={{ duration: 1.1, repeat: Infinity, delay: i * 0.18 }}
                 />
@@ -159,11 +177,11 @@ export function MessageBubble({ message, onSave }: MessageBubbleProps) {
                 seg.type === "code" ? (
                   <CodeBlock key={i} code={seg.value} lang={seg.lang} />
                 ) : (
-                  <span key={i} className="whitespace-pre-wrap">{seg.value}</span>
+                  <span key={i}>{renderTextWithCitations(seg.value)}</span>
                 )
               )}
               {message.streaming && (
-                <span className="inline-block w-[2px] h-[1em] ml-0.5 align-middle animate-pulse" style={{ backgroundColor: "rgba(242,242,242,0.5)" }} />
+                <span className="inline-block w-[2px] h-[1em] ml-0.5 align-middle animate-pulse" style={{ backgroundColor: NEON.orange }} />
               )}
             </>
           )}
@@ -171,29 +189,29 @@ export function MessageBubble({ message, onSave }: MessageBubbleProps) {
 
         {/* Footer row */}
         <div className={cn("flex items-center gap-2 px-1", isUser ? "flex-row-reverse" : "")}>
-          <span className="text-[10px] font-mono" style={{ color: "rgba(242,242,242,0.22)" }}>
+          <span className="text-[10px] font-mono" style={{ color: NEON.muted }}>
             {formatTime(message.createdAt)}
           </span>
           {!message.streaming && modelMeta && (
-            <span className="text-[10px] font-mono tracking-wide" style={{ color: modelMeta.color, opacity: 0.65 }}>
+            <span className="text-[10px] font-mono tracking-wide" style={{ color: modelMeta.color, opacity: 0.85 }}>
               {modelMeta.label}
             </span>
           )}
         </div>
 
-        {/* Block action bar — assistant messages only */}
+        {/* Action bar */}
         {!isUser && !message.streaming && (
           <div className="flex items-center gap-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {[
-              { icon: copied ? Check : Copy, label: "Copy", onClick: handleCopy, color: copied ? "#2dd4bf" : undefined },
+              { icon: copied ? Check : Copy, label: "Copy", onClick: handleCopy, color: copied ? NEON.orange : undefined },
               { icon: Pin, label: "Pin to Board", onClick: handlePin, color: undefined },
               { icon: BookmarkPlus, label: "Save to memory", onClick: () => onSave?.(message.content), color: undefined },
             ].map(({ icon: Icon, label, onClick, color }) => (
               <button key={label} onClick={onClick} title={label}
                 className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] transition-all"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: color ?? "rgba(242,242,242,0.4)" }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f2f2f2"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.16)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = color ?? "rgba(242,242,242,0.4)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.08)"; }}
+                style={{ background: "rgba(10,10,10,0.04)", border: "1px solid rgba(10,10,10,0.06)", color: color ?? NEON.muted }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = NEON.ink; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(10,10,10,0.12)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = color ?? NEON.muted; (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(10,10,10,0.06)"; }}
               >
                 <Icon className="h-3 w-3" />
                 <span>{label}</span>

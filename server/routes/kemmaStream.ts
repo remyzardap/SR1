@@ -80,6 +80,14 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
       sendEvent(res, "sources", output.sources);
     }
 
+    if (!aborted) {
+      sendEvent(res, "usage", {
+        inputTokens: output.tokensUsed.input,
+        outputTokens: output.tokensUsed.output,
+        totalTokens: output.tokensUsed.total,
+      });
+    }
+
     if (!aborted) sendEvent(res, "done", finalModels[finalModels.length - 1] ?? "Kemma");
   } catch (err) {
     if (!aborted) sendEvent(res, "error", (err as Error).message ?? "Unknown error");

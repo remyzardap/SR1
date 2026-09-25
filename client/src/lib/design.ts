@@ -5,6 +5,11 @@ export const F  = "'Inter', system-ui, -apple-system, sans-serif";
 export const FD = "'DM Serif Display', 'Georgia', 'Times New Roman', serif";
 export const FM = "'SF Mono', 'Menlo', 'Consolas', monospace";
 
+// Opera Neon design language fonts (used by the login page)
+export const NEON_FD = "'Syne', sans-serif";
+export const NEON_FB = "'Inter', system-ui, -apple-system, sans-serif";
+export const NEON_FM = "'DM Mono', 'Menlo', 'Consolas', monospace";
+
 // ── Colors ─────────────────────────────────────────────────────────────────
 export const MOCHA        = "#A47764";
 export const MOCHA_DARK   = "#8f6654";
@@ -24,6 +29,34 @@ export const GREEN        = "#5a8a5a";
 export const GREEN_LIGHT  = "#7abe8e";
 export const BLUE         = "#8a9cc7";
 export const SALMON       = "#d4917a";
+
+// ── Opera Neon palette ─────────────────────────────────────────────────────
+export const NEON = {
+  cream:       "#f5f0e8",
+  creamWarm:   "#f0e6d6",
+  creamCool:   "#e8e2d6",
+  black:       "#0a0a0a",
+  ink:         "#111111",
+  charcoal:    "#1a1a1a",
+  muted:       "#7a7368",
+  soft:        "#a39b8e",
+  orange:      "#e8442a",
+  orangePale:  "#ffefea",
+  orangeDim:   "rgba(232,68,42,0.12)",
+  white:       "#f5f0e8",
+  panelBg:     "#0a0a0a",
+  panelText:   "#f5f0e8",
+  gridLine:    "rgba(10,10,10,0.08)",
+};
+
+export const NEON_TAGS = [
+  { bg: "#f4e7e7", text: "#8a3a3a" },
+  { bg: "#e7f0e7", text: "#2f5a2f" },
+  { bg: "#e7edf4", text: "#2f4a6a" },
+  { bg: "#f0edf4", text: "#5a2f6a" },
+  { bg: "#f4f0e7", text: "#6a542f" },
+  { bg: "#e7f4f2", text: "#2f6a5e" },
+];
 
 // ── Base card ──────────────────────────────────────────────────────────────
 export const card: CSSProperties = {
@@ -94,6 +127,22 @@ export const PAGE_BG: CSSProperties = {
   animation: "bgShift 20s ease-in-out infinite",
   fontFamily: F,
   position: "relative",
+};
+
+export const NEON_PAGE_BG: CSSProperties = {
+  minHeight: "100vh",
+  background: NEON.cream,
+  fontFamily: NEON_FB,
+  position: "relative",
+};
+
+export const NEON_GRID: CSSProperties = {
+  position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0,
+  backgroundImage: `
+    linear-gradient(to right, ${NEON.gridLine} 1px, transparent 1px),
+    linear-gradient(to bottom, ${NEON.gridLine} 1px, transparent 1px)
+  `,
+  backgroundSize: "64px 64px",
 };
 
 export const NOISE_OVERLAY: CSSProperties = {

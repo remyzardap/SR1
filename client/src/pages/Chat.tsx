@@ -9,11 +9,8 @@ import { ChatInput } from "@/components/ChatInput";
 import { ChatErrorBanner } from "@/components/ChatErrorBanner";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
-import {
-  F, FD, PAGE_BG, NOISE_OVERLAY, CSS_ANIM,
-  innerGlowStrong, MOCHA, MOCHA_DARK,
-} from "@/lib/design";
-import { Settings, X, Cpu, Wrench, Sparkles, Download } from "lucide-react";
+import { NEON_PAGE_BG, NEON_GRID, NOISE_OVERLAY, NEON, NEON_FD, NEON_FM } from "@/lib/design";
+import { Settings, X, Cpu, Wrench, Sparkles, Download, PanelRightOpen, PanelRightClose, Zap, Search, FileText, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -40,6 +37,18 @@ interface StreamSettings {
   taggedSkills?: number[];
 }
 
+interface AgentStep {
+  id: string;
+  label: string;
+  detail?: string;
+  active?: boolean;
+}
+
+interface Source {
+  title: string;
+  url: string;
+}
+
 const ALL_TOOLS = [
   { id: "web_search", label: "Search" },
   { id: "browse", label: "Browse" },
@@ -53,6 +62,13 @@ const MODE_DEFAULTS: Record<string, string[]> = {
   deep: ["web_search", "browse", "run_code"],
   document: ["safe_files", "generate_file"],
   image: ["generate_file"],
+};
+
+const MODE_META: Record<string, { icon: React.ElementType; label: string; desc: string }> = {
+  fast: { icon: Zap, label: "Fast", desc: "Quick answers with search" },
+  deep: { icon: Search, label: "Deep Research", desc: "Browse, code, verify" },
+  document: { icon: FileText, label: "Document", desc: "Files and generation" },
+  image: { icon: ImageIcon, label: "Image", desc: "Image generation" },
 };
 
 // ─── SSE parser ───────────────────────────────────────────────────────────
@@ -94,6 +110,7 @@ export default function Chat() {
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [agentPanelOpen, setAgentPanelOpen] = useState(true);
 
   // Thread-level settings
   const [mode, setMode] = useState<string>("fast");
@@ -102,6 +119,13 @@ export default function Chat() {
   // Message-level settings
   const [messageModel, setMessageModel] = useState<string>("auto");
   const [taggedSkills, setTaggedSkills] = useState<number[]>([]);
+
+  // Agent run state
+  const [agentSteps, setAgentSteps] = useState<AgentStep[]>([]);
+  const [currentStep, setCurrentStep] = useState<string>("");
+  const [usedSkills, setUsedSkills] = useState<Array<{ id: number; name: string }>>([]);
+  const [usage, setUsage] = useState<{ inputTokens: number; outputTokens: number; totalTokens: number } | null>(null);
+  const [sources, setSources] = useState<Source[]>([]);
 
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -166,6 +190,10 @@ export default function Chat() {
       setAllowedTools(MODE_DEFAULTS.fast);
       setMessageModel("auto");
       setTaggedSkills([]);
+      setAgentSteps([]);
+      setUsedSkills([]);
+      setUsage(null);
+      setSources([]);
     },
     [isStreaming]
   );
@@ -183,6 +211,10 @@ export default function Chat() {
     setAllowedTools(MODE_DEFAULTS.fast);
     setMessageModel("auto");
     setTaggedSkills([]);
+    setAgentSteps([]);
+    setUsedSkills([]);
+    setUsage(null);
+    setSources([]);
   }, [isStreaming]);
 
   // ─── Load persisted history on mount ───────────────────────────────────────
@@ -202,9 +234,7 @@ export default function Chat() {
           );
         }
       })
-      .catch(() => {
-        /* non-fatal */
-      });
+      .catch(() => { /* non-fatal */ });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
@@ -232,6 +262,10 @@ export default function Chat() {
       setError(null);
       setIsStreaming(true);
       setIsAgentActive(false);
+      setAgentSteps([]);
+      setUsedSkills([]);
+      setUsage(null);
+      setSources([]);
 
       const assistantId = crypto.randomUUID();
       setMessages((prev) => [
@@ -280,7 +314,8 @@ export default function Chat() {
         const decoder = new TextDecoder();
         let sseBuffer = "";
         let finalModel: string | undefined;
-        const usedSkills: Array<{ id: number; name: string }> = [];
+        const assistantSkills: Array<{ id: number; name: string }> = [];
+        const assistantSteps: AgentStep[] = [];
 
         while (true) {
           const { done, value } = await reader.read();
@@ -292,37 +327,50 @@ export default function Chat() {
           for (const { event, data } of events) {
             if (event === "token") {
               let token: string;
-              try {
-                token = JSON.parse(data) as string;
-              } catch {
-                token = data;
-              }
+              try { token = JSON.parse(data) as string; } catch { token = data; }
               setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === assistantId ? { ...m, content: m.content + token } : m
-                )
+                prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + token } : m))
               );
             } else if (event === "agent") {
               setIsAgentActive(true);
             } else if (event === "model") {
-              const parsed = JSON.parse(data) as { label?: string };
+              const parsed = JSON.parse(data) as { step?: number; label?: string };
               finalModel = parsed.label ?? finalModel;
+              const label = parsed.label ?? "Kemma";
+              assistantSteps.push({ id: crypto.randomUUID(), label });
+              setAgentSteps([...assistantSteps]);
+              setCurrentStep(label);
+            } else if (event === "tool_start") {
+              const parsed = JSON.parse(data) as { tool?: string };
+              const label = parsed.tool ?? "tool";
+              assistantSteps.push({ id: crypto.randomUUID(), label: `Run ${label}`, detail: label });
+              setAgentSteps([...assistantSteps]);
+              setCurrentStep(`Run ${label}`);
             } else if (event === "skill") {
               const parsed = JSON.parse(data) as { id: number; name: string };
-              usedSkills.push(parsed);
-            } else if (event === "done") {
-              try {
-                finalModel = JSON.parse(data) as string;
-              } catch {
-                finalModel = data;
+              assistantSkills.push(parsed);
+              setUsedSkills([...assistantSkills]);
+            } else if (event === "notice") {
+              const parsed = JSON.parse(data) as { message?: string };
+              if (parsed.message) {
+                assistantSteps.push({ id: crypto.randomUUID(), label: parsed.message });
+                setAgentSteps([...assistantSteps]);
               }
+            } else if (event === "sources") {
+              const parsed = JSON.parse(data) as Source[];
+              setSources(Array.isArray(parsed) ? parsed : []);
+            } else if (event === "usage") {
+              const parsed = JSON.parse(data) as { inputTokens?: number; outputTokens?: number; totalTokens?: number };
+              setUsage({
+                inputTokens: parsed.inputTokens ?? 0,
+                outputTokens: parsed.outputTokens ?? 0,
+                totalTokens: parsed.totalTokens ?? 0,
+              });
+            } else if (event === "done") {
+              try { finalModel = JSON.parse(data) as string; } catch { finalModel = data; }
             } else if (event === "error") {
               let errMsg: string;
-              try {
-                errMsg = JSON.parse(data) as string;
-              } catch {
-                errMsg = data;
-              }
+              try { errMsg = JSON.parse(data) as string; } catch { errMsg = data; }
               throw new Error(errMsg);
             }
           }
@@ -331,7 +379,7 @@ export default function Chat() {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
-              ? { ...m, streaming: false, model: finalModel, skills: usedSkills }
+              ? { ...m, streaming: false, model: finalModel, skills: assistantSkills }
               : m
           )
         );
@@ -342,6 +390,7 @@ export default function Chat() {
         setMessages((prev) => prev.filter((m) => m.id !== assistantId));
       } finally {
         setIsStreaming(false);
+        setCurrentStep("");
       }
     },
     [input, isStreaming, messages, sessionId, mode, messageModel, taggedSkills]
@@ -369,11 +418,13 @@ export default function Chat() {
     URL.revokeObjectURL(url);
   }, [messages, sessionId]);
 
+  const meta = MODE_META[mode] ?? MODE_META.fast;
+  const ModeIcon = meta.icon;
+
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ ...PAGE_BG, display: "flex", minHeight: "100vh" }}>
-      <style>{CSS_ANIM}</style>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap" rel="stylesheet" />
+    <div style={{ ...NEON_PAGE_BG, display: "flex", minHeight: "100vh" }}>
+      <div style={NEON_GRID} />
       <div style={NOISE_OVERLAY} />
 
       {/* Session sidebar */}
@@ -383,12 +434,11 @@ export default function Chat() {
           sidebarOpen ? "w-64" : "w-0"
         )}
         style={{
-          background: `linear-gradient(180deg, ${MOCHA} 0%, ${MOCHA_DARK} 100%)`,
+          background: NEON.black,
           position: "relative",
           zIndex: 10,
         }}
       >
-        <div style={innerGlowStrong} />
         {sidebarOpen && (
           <div style={{ position: "relative", height: "100%" }}>
             <ChatSessionList
@@ -404,154 +454,299 @@ export default function Chat() {
         <ChatHeader
           isStreaming={isStreaming}
           sidebarOpen={sidebarOpen}
+          mode={mode}
           max={mode === "deep"}
           onNewChat={handleNewChat}
           onToggleSidebar={() => setSidebarOpen((o) => !o)}
+          onSetMode={handleSetMode}
           onToggleMax={() => handleSetMode(mode === "deep" ? "fast" : "deep")}
         />
 
-        <ChatMessages
-          messages={messages}
-          isStreaming={isStreaming}
-          messagesEndRef={messagesEndRef as RefObject<HTMLDivElement>}
-          onSuggestion={(s) => void handleSend(s)}
-        />
+        <div className="flex flex-1 min-h-0">
+          <div className="flex flex-col flex-1 min-w-0">
+            <ChatMessages
+              messages={messages}
+              isStreaming={isStreaming}
+              messagesEndRef={messagesEndRef as RefObject<HTMLDivElement>}
+              onSuggestion={(s) => void handleSend(s)}
+            />
 
-        <ChatErrorBanner error={error} onRetry={retry} />
+            <ChatErrorBanner error={error} onRetry={retry} />
 
-        {/* Settings panel */}
-        {settingsOpen && (
-          <div className="flex-none px-4 pb-2">
-            <div className="mx-auto max-w-2xl rounded-xl border border-border bg-card p-4 shadow-sm">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="flex items-center gap-2 text-sm font-semibold">
-                  <Settings className="h-4 w-4" /> Message & thread settings
-                </h3>
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setSettingsOpen(false)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                {/* Model picker */}
-                <div>
-                  <label className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                    <Cpu className="h-3 w-3" /> Model
-                  </label>
-                  <Select value={messageModel} onValueChange={setMessageModel}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Auto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="auto">Auto (router picks)</SelectItem>
-                      {availableModels
-                        .filter((m) => m.id !== "auto" && m.hasKey)
-                        .map((m) => (
-                          <SelectItem key={m.id} value={m.id}>
-                            {m.label} · {m.tier}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Mode picker */}
-                <div>
-                  <label className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                    <Sparkles className="h-3 w-3" /> Mode
-                  </label>
-                  <Select value={mode} onValueChange={handleSetMode}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fast">Fast</SelectItem>
-                      <SelectItem value="deep">Deep Research</SelectItem>
-                      <SelectItem value="document">Document</SelectItem>
-                      <SelectItem value="image">Image</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Tool toggles */}
-              <div className="mt-4">
-                <label className="mb-2 flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                  <Wrench className="h-3 w-3" /> Tools for this thread
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {ALL_TOOLS.map((tool) => (
-                    <Button
-                      key={tool.id}
-                      size="sm"
-                      variant={allowedTools.includes(tool.id) ? "default" : "outline"}
-                      onClick={() => toggleTool(tool.id)}
-                    >
-                      {tool.label}
+            {/* Settings panel */}
+            {settingsOpen && (
+              <div className="flex-none px-4 pb-2">
+                <div className="neon-card mx-auto max-w-2xl p-4 relative">
+                  <span className="neon-crosshair neon-crosshair-tl" />
+                  <span className="neon-crosshair neon-crosshair-tr" />
+                  <span className="neon-crosshair neon-crosshair-bl" />
+                  <span className="neon-crosshair neon-crosshair-br" />
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold" style={{ color: NEON.ink, fontFamily: NEON_FD }}>
+                      <Settings className="h-4 w-4" /> Message & thread settings
+                    </h3>
+                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setSettingsOpen(false)}>
+                      <X className="h-4 w-4" />
                     </Button>
-                  ))}
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="neon-label mb-1 flex items-center gap-1">
+                        <Cpu className="h-3 w-3" /> Model
+                      </label>
+                      <Select value={messageModel} onValueChange={setMessageModel}>
+                        <SelectTrigger className="w-full rounded-xl border-black/10 bg-white">
+                          <SelectValue placeholder="Auto" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">Auto (router picks)</SelectItem>
+                          {availableModels
+                            .filter((m) => m.id !== "auto" && m.hasKey)
+                            .map((m) => (
+                              <SelectItem key={m.id} value={m.id}>
+                                {m.label} · {m.tier}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="neon-label mb-1 flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" /> Mode
+                      </label>
+                      <Select value={mode} onValueChange={handleSetMode}>
+                        <SelectTrigger className="w-full rounded-xl border-black/10 bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fast">Fast</SelectItem>
+                          <SelectItem value="deep">Deep Research</SelectItem>
+                          <SelectItem value="document">Document</SelectItem>
+                          <SelectItem value="image">Image</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <label className="neon-label mb-2 flex items-center gap-1">
+                      <Wrench className="h-3 w-3" /> Tools for this thread
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {ALL_TOOLS.map((tool) => (
+                        <button
+                          key={tool.id}
+                          onClick={() => toggleTool(tool.id)}
+                          className={cn(
+                            "neon-pill text-[11px]",
+                            allowedTools.includes(tool.id) ? "neon-pill-active" : ""
+                          )}
+                        >
+                          {tool.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {approvedSkills.length > 0 && (
+                    <div className="mt-4">
+                      <label className="neon-label mb-2">Tag skills for this message</label>
+                      <div className="flex flex-wrap gap-2">
+                        {approvedSkills.map((skill) => (
+                          <Badge
+                            key={skill.id}
+                            variant={taggedSkills.includes(skill.id) ? "default" : "outline"}
+                            className={cn(
+                              "cursor-pointer rounded-full text-[10px]",
+                              taggedSkills.includes(skill.id) ? "bg-black text-cream border-black" : "border-black/10 text-ink"
+                            )}
+                            onClick={() =>
+                              setTaggedSkills((prev) =>
+                                prev.includes(skill.id) ? prev.filter((id) => id !== skill.id) : [...prev, skill.id]
+                              )
+                            }
+                          >
+                            {skill.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
+            )}
 
-              {/* Skill tags */}
-              {approvedSkills.length > 0 && (
-                <div className="mt-4">
-                  <label className="mb-2 text-xs font-medium text-muted-foreground">Tag skills for this message</label>
-                  <div className="flex flex-wrap gap-2">
-                    {approvedSkills.map((skill) => (
-                      <Badge
-                        key={skill.id}
-                        variant={taggedSkills.includes(skill.id) ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() =>
-                          setTaggedSkills((prev) =>
-                            prev.includes(skill.id) ? prev.filter((id) => id !== skill.id) : [...prev, skill.id]
-                          )
-                        }
-                      >
-                        {skill.name}
-                      </Badge>
-                    ))}
-                  </div>
+            <div className="flex-none px-3 sm:px-4 pb-4 pt-2">
+              <div className="mx-auto flex max-w-2xl items-center gap-2">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setSettingsOpen((o) => !o)}
+                  className={cn("shrink-0 rounded-full", settingsOpen && "bg-black/10")}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={exportThread}
+                  disabled={messages.length === 0}
+                  className="shrink-0 rounded-full"
+                  title="Export thread to Markdown"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+                <div className="flex-1">
+                  <ChatInput
+                    value={input}
+                    isStreaming={isStreaming}
+                    onChange={setInput}
+                    onKeyDown={handleKeyDown}
+                    onSend={() => void handleSend()}
+                    onStop={() => { abortRef.current?.abort(); setIsStreaming(false); }}
+                  />
                 </div>
-              )}
+              </div>
             </div>
           </div>
-        )}
 
-        <div className="flex-none px-3 sm:px-4 pb-4 pt-2">
-          <div className="mx-auto flex max-w-2xl items-center gap-2">
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => setSettingsOpen((o) => !o)}
-              className={cn("shrink-0", settingsOpen && "bg-accent")}
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={exportThread}
-              disabled={messages.length === 0}
-              className="shrink-0"
-              title="Export thread to Markdown"
-            >
-              <Download className="h-4 w-4" />
-            </Button>
-            <div className="flex-1">
-              <ChatInput
-                value={input}
-                isStreaming={isStreaming}
-                onChange={setInput}
-                onKeyDown={handleKeyDown}
-                onSend={() => void handleSend()}
-                onStop={() => { abortRef.current?.abort(); setIsStreaming(false); }}
-              />
-            </div>
+          {/* Agent steps / status panel */}
+          <div
+            className={cn(
+              "hidden xl:flex flex-col transition-all duration-200 overflow-hidden",
+              agentPanelOpen ? "w-72" : "w-0"
+            )}
+            style={{ borderLeft: agentPanelOpen ? "1px solid rgba(10,10,10,0.06)" : "none", background: "rgba(255,255,255,0.35)" }}
+          >
+            {agentPanelOpen && (
+              <div className="flex flex-col h-full p-4 gap-4">
+                <div className="flex items-center justify-between">
+                  <span className="neon-label">Agent status</span>
+                  <button
+                    onClick={() => setAgentPanelOpen(false)}
+                    className="p-1 rounded-full hover:bg-black/5"
+                  >
+                    <PanelRightClose className="h-4 w-4" style={{ color: NEON.muted }} />
+                  </button>
+                </div>
+
+                {/* Current mode card */}
+                <div className="neon-panel p-4 relative">
+                  <span className="neon-crosshair neon-crosshair-tl" />
+                  <span className="neon-crosshair neon-crosshair-tr" />
+                  <span className="neon-crosshair neon-crosshair-bl" />
+                  <span className="neon-crosshair neon-crosshair-br" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: NEON.orange }}>
+                      <ModeIcon className="h-5 w-5" style={{ color: "#fff" }} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold" style={{ fontFamily: NEON_FD }}>{meta.label}</p>
+                      <p className="text-[10px]" style={{ color: "rgba(245,240,232,0.55)", fontFamily: NEON_FM }}>{meta.desc}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active step */}
+                <div className="neon-card p-4">
+                  <span className="neon-label mb-2 block">Active step</span>
+                  <div className="flex items-center gap-2">
+                    {isStreaming && <span className="neon-dot neon-dot-pulse" />}
+                    <span className="text-sm font-medium" style={{ color: NEON.ink, fontFamily: NEON_FD }}>
+                      {isStreaming ? (currentStep || "Thinking…") : "Idle"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Steps list */}
+                {agentSteps.length > 0 && (
+                  <div className="flex-1 overflow-y-auto">
+                    <span className="neon-label mb-2 block">Steps</span>
+                    <div className="space-y-2">
+                      {agentSteps.map((step, idx) => (
+                        <div key={step.id} className="flex items-start gap-2 text-[12px]">
+                          <span className="neon-citation mt-0.5">{idx + 1}</span>
+                          <span style={{ color: NEON.ink, fontFamily: NEON_FD }}>{step.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Skills used */}
+                {usedSkills.length > 0 && (
+                  <div>
+                    <span className="neon-label mb-2 block">Skills used</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {usedSkills.map((s) => (
+                        <span key={`${s.id}-${s.name}`} className="neon-tag neon-tag-blue">
+                          {s.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sources */}
+                {sources.length > 0 && (
+                  <div className="flex-1 overflow-y-auto">
+                    <span className="neon-label mb-2 block">Sources</span>
+                    <div className="space-y-2">
+                      {sources.map((s, idx) => (
+                        <a
+                          key={idx}
+                          href={s.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="neon-source-card block text-[11px] hover:shadow-md transition-shadow"
+                        >
+                          <span className="neon-citation mr-1">{idx + 1}</span>
+                          <span className="font-medium" style={{ fontFamily: NEON_FD }}>{s.title}</span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Usage */}
+                {usage && (
+                  <div className="neon-card p-3">
+                    <span className="neon-label mb-2 block">Usage</span>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <div className="text-xs font-semibold" style={{ fontFamily: NEON_FD }}>{usage.inputTokens.toLocaleString()}</div>
+                        <div className="text-[9px] uppercase tracking-wide" style={{ color: NEON.muted, fontFamily: NEON_FM }}>in</div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold" style={{ fontFamily: NEON_FD }}>{usage.outputTokens.toLocaleString()}</div>
+                        <div className="text-[9px] uppercase tracking-wide" style={{ color: NEON.muted, fontFamily: NEON_FM }}>out</div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold" style={{ fontFamily: NEON_FD }}>{usage.totalTokens.toLocaleString()}</div>
+                        <div className="text-[9px] uppercase tracking-wide" style={{ color: NEON.muted, fontFamily: NEON_FM }}>total</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Floating toggle for agent panel when collapsed */}
+      {!agentPanelOpen && (
+        <button
+          onClick={() => setAgentPanelOpen(true)}
+          className="hidden xl:flex fixed right-4 top-20 z-20 items-center gap-1.5 px-3 py-1.5 rounded-full shadow-sm"
+          style={{ background: "#ffffff", border: "1px solid rgba(10,10,10,0.06)", color: NEON.ink }}
+        >
+          <PanelRightOpen className="h-4 w-4" />
+          <span className="text-[11px] font-semibold" style={{ fontFamily: NEON_FD }}>Status</span>
+        </button>
+      )}
     </div>
   );
 }

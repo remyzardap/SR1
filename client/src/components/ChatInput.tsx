@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { ArrowUp, Square } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { glassCard, MOCHA, TEXT_PRIMARY, TEXT_SOFT } from "@/lib/design";
+import { NEON } from "@/lib/design";
 
 interface ChatInputProps {
   value: string;
@@ -33,23 +33,18 @@ export function ChatInput({
   const canSend = value.trim().length > 0 && !isStreaming;
 
   return (
-    <div
-      className="flex-none px-3 sm:px-4 pb-4 pt-2"
-      style={{ background: "transparent" }}
-    >
+    <div className="flex-none px-3 sm:px-4 pb-4 pt-2" style={{ background: "transparent" }}>
       <div className="w-full max-w-2xl mx-auto">
-        {/* Floating input container */}
         <motion.div
-          animate={focused 
-            ? { boxShadow: "0 0 0 1.5px rgba(164,119,100,0.3), 0 8px 40px rgba(0,0,0,0.1)" } 
-            : { boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }
+          animate={focused
+            ? { boxShadow: "0 0 0 1.5px rgba(10,10,10,0.12), 0 8px 40px rgba(0,0,0,0.08)" }
+            : { boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }
           }
           transition={{ duration: 0.2 }}
-          className="relative flex items-end gap-2 px-4 py-3 rounded-2xl"
+          className="relative flex items-end gap-2 px-4 py-3 rounded-[28px]"
           style={{
-            ...glassCard,
-            borderRadius: 20,
-            border: focused ? `1px solid ${MOCHA}40` : "1px solid rgba(255,255,255,0.6)",
+            background: "#ffffff",
+            border: focused ? "1px solid rgba(10,10,10,0.14)" : "1px solid rgba(10,10,10,0.06)",
           }}
         >
           <textarea
@@ -64,13 +59,12 @@ export function ChatInput({
             disabled={false}
             className="flex-1 min-w-0 resize-none bg-transparent text-[14px] outline-none leading-relaxed min-h-[24px] max-h-[180px]"
             style={{
-              color: TEXT_PRIMARY,
+              color: NEON.ink,
               fontFamily: "'Inter', sans-serif",
-              caretColor: MOCHA,
+              caretColor: NEON.orange,
             }}
           />
 
-          {/* Send / Stop button */}
           <AnimatePresence mode="wait">
             {isStreaming ? (
               <motion.button
@@ -80,15 +74,15 @@ export function ChatInput({
                 exit={{ scale: 0.8, opacity: 0 }}
                 transition={{ duration: 0.15 }}
                 onClick={onStop}
-                className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200"
+                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200"
                 style={{
-                  background: `${MOCHA}15`,
-                  border: `1px solid ${MOCHA}40`,
-                  color: MOCHA,
+                  background: NEON.orangeDim,
+                  border: `1px solid ${NEON.orange}40`,
+                  color: NEON.orange,
                 }}
                 title="Stop generation"
               >
-                <Square className="h-3 w-3 fill-current" />
+                <Square className="h-3.5 w-3.5 fill-current" />
               </motion.button>
             ) : (
               <motion.button
@@ -99,30 +93,21 @@ export function ChatInput({
                 transition={{ duration: 0.15 }}
                 onClick={onSend}
                 disabled={!canSend}
-                className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 disabled:cursor-not-allowed"
+                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 disabled:cursor-not-allowed"
                 style={{
-                  background: canSend ? MOCHA : "rgba(0,0,0,0.06)",
-                  color: canSend ? "#fff" : TEXT_SOFT,
-                  boxShadow: canSend ? `0 2px 12px ${MOCHA}40` : "none",
-                }}
-                onMouseEnter={(e) => {
-                  if (canSend) {
-                    e.currentTarget.style.transform = "scale(1.05)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "scale(1)";
+                  background: canSend ? NEON.black : "rgba(10,10,10,0.08)",
+                  color: canSend ? NEON.cream : NEON.muted,
+                  boxShadow: canSend ? "0 2px 12px rgba(0,0,0,0.18)" : "none",
                 }}
                 title="Send message"
               >
-                <ArrowUp className="h-3.5 w-3.5" strokeWidth={2.5} />
+                <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
               </motion.button>
             )}
           </AnimatePresence>
         </motion.div>
 
-        {/* Hint */}
-        <p className="text-center text-[10px] mt-2 font-mono tracking-widest uppercase hidden sm:block" style={{ color: TEXT_SOFT }}>
+        <p className="text-center text-[10px] mt-2 font-mono tracking-widest uppercase hidden sm:block" style={{ color: NEON.muted }}>
           Enter to send · Shift+Enter for newline
         </p>
       </div>

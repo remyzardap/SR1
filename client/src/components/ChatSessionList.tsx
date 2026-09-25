@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { MessageSquare, Plus, Trash2, Pencil, Check, X, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { F, FM, AMBER } from "@/lib/design";
+import { NEON, NEON_FD, NEON_FM } from "@/lib/design";
 
 interface ChatSessionListProps {
   activeSessionId: string | null;
@@ -52,7 +52,7 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
     <div className="flex flex-col h-full" style={{ background: "transparent", position: "relative" }}>
       {/* Logo area */}
       <div className="p-4 flex items-center justify-center">
-        <div 
+        <div
           style={{
             width: 44,
             height: 44,
@@ -60,33 +60,26 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "rgba(255,255,255,0.18)",
-            animation: "logoPulse 3s ease-in-out infinite",
+            background: "#ffffff",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
           }}
         >
-          <span style={{ color: "#fff", fontSize: 20, fontWeight: 800, letterSpacing: "-0.02em" }}>S</span>
+          <span style={{ color: NEON.ink, fontSize: 20, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: NEON_FD }}>S</span>
         </div>
       </div>
 
       {/* Header */}
-      <div className="p-3 pb-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+      <div className="p-3 pb-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.10)" }}>
         <button
           onClick={onNewSession}
-          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-full text-sm font-semibold transition-all duration-200"
           style={{
-            background: `${AMBER}20`,
-            border: `1px solid ${AMBER}40`,
+            background: NEON.orange,
             color: "#fff",
-            fontFamily: F,
+            fontFamily: NEON_FD,
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = `${AMBER}35`;
-            e.currentTarget.style.transform = "scale(1.02)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = `${AMBER}20`;
-            e.currentTarget.style.transform = "scale(1)";
-          }}
+          onMouseEnter={(e) => { e.currentTarget.style.filter = "brightness(1.08)"; e.currentTarget.style.transform = "scale(1.02)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.filter = "brightness(1)"; e.currentTarget.style.transform = "scale(1)"; }}
         >
           <Plus className="h-4 w-4" />
           New chat
@@ -97,12 +90,12 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
       <div className="flex-1 overflow-y-auto py-2 px-2">
         {isLoading ? (
           <div className="flex justify-center py-10">
-            <Loader2 className="h-4 w-4 animate-spin" style={{ color: "rgba(255,255,255,0.45)" }} />
+            <Loader2 className="h-4 w-4 animate-spin" style={{ color: "rgba(255,255,255,0.55)" }} />
           </div>
         ) : sessions.length === 0 ? (
           <div className="px-3 py-10 text-center">
-            <MessageSquare className="h-7 w-7 mx-auto mb-3" style={{ color: "rgba(255,255,255,0.3)" }} />
-            <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)", fontFamily: F }}>
+            <MessageSquare className="h-7 w-7 mx-auto mb-3" style={{ color: "rgba(255,255,255,0.4)" }} />
+            <p className="text-xs" style={{ color: "rgba(255,255,255,0.55)", fontFamily: NEON_FD }}>
               No chat history yet
             </p>
           </div>
@@ -114,36 +107,23 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
                 initial={{ opacity: 0, x: -6 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.03 }}
-                className={cn(
-                  "group flex items-start gap-2 px-2.5 py-2.5 mb-0.5 rounded-xl cursor-pointer transition-all duration-150"
-                )}
+                className="group flex items-start gap-2 px-2.5 py-2.5 mb-0.5 rounded-xl cursor-pointer transition-all duration-150"
                 style={{
-                  background: activeSessionId === session.id ? "rgba(255,255,255,0.2)" : "transparent",
-                  border: activeSessionId === session.id ? "1px solid rgba(255,255,255,0.15)" : "1px solid transparent",
+                  background: activeSessionId === session.id ? "rgba(255,255,255,0.14)" : "transparent",
+                  border: activeSessionId === session.id ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
                 }}
                 onClick={() => onSelectSession(session.id)}
-                onMouseEnter={(e) => {
-                  if (activeSessionId !== session.id) {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.1)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (activeSessionId !== session.id) {
-                    e.currentTarget.style.background = "transparent";
-                  }
-                }}
+                onMouseEnter={(e) => { if (activeSessionId !== session.id) e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
+                onMouseLeave={(e) => { if (activeSessionId !== session.id) e.currentTarget.style.background = "transparent"; }}
               >
-                <MessageSquare className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: "rgba(255,255,255,0.45)" }} />
+                <MessageSquare className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: "rgba(255,255,255,0.55)" }} />
 
                 {editingId === session.id ? (
                   <div className="flex-1 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     <input
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") confirmEdit(session.id);
-                        if (e.key === "Escape") cancelEdit();
-                      }}
+                      onKeyDown={(e) => { if (e.key === "Enter") confirmEdit(session.id); if (e.key === "Escape") cancelEdit(); }}
                       className="flex-1 min-w-0 bg-transparent text-xs outline-none border-b"
                       style={{ color: "#fff", borderColor: "rgba(255,255,255,0.3)" }}
                       autoFocus
@@ -157,42 +137,32 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
                   </div>
                 ) : (
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] truncate leading-snug" style={{ 
-                      color: activeSessionId === session.id ? "#fff" : "rgba(255,255,255,0.85)", 
-                      fontFamily: F,
-                      fontWeight: activeSessionId === session.id ? 600 : 500,
-                    }}>
+                    <p className="text-[13px] truncate leading-snug" style={{ color: activeSessionId === session.id ? "#fff" : "rgba(255,255,255,0.88)", fontFamily: NEON_FD, fontWeight: activeSessionId === session.id ? 700 : 500 }}>
                       {session.title || "Untitled"}
                     </p>
-                    <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.45)", fontFamily: FM }}>
+                    <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.45)", fontFamily: NEON_FM }}>
                       {formatDate(session.lastMessageAt)}
                     </p>
                   </div>
                 )}
 
-                {/* Actions - only on hover */}
                 {editingId !== session.id && (
                   <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
                     <button
                       className="p-1 rounded-md transition-colors"
-                      style={{ color: "rgba(255,255,255,0.4)" }}
+                      style={{ color: "rgba(255,255,255,0.45)" }}
                       onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "#fff")}
-                      onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.4)")}
+                      onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.45)")}
                       onClick={(e) => { e.stopPropagation(); startEdit(session.id, session.title || ""); }}
                     >
                       <Pencil className="h-3 w-3" />
                     </button>
                     <button
                       className="p-1 rounded-md transition-colors"
-                      style={{ color: "rgba(255,255,255,0.4)" }}
-                      onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "#e8913a")}
-                      onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.4)")}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm("Delete this chat session?")) {
-                          deleteSession.mutate({ sessionId: session.id });
-                        }
-                      }}
+                      style={{ color: "rgba(255,255,255,0.45)" }}
+                      onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = NEON.orange)}
+                      onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.45)")}
+                      onClick={(e) => { e.stopPropagation(); if (confirm("Delete this chat session?")) deleteSession.mutate({ sessionId: session.id }); }}
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>

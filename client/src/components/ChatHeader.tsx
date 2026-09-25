@@ -1,7 +1,14 @@
 import { cn } from "@/lib/utils";
-import { SquarePen, PanelLeftOpen, PanelLeftClose, MessageSquare, Zap } from "lucide-react";
+import { SquarePen, PanelLeftOpen, PanelLeftClose, MessageSquare, Zap, Flame } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { F, FM, glassCard, MOCHA, TEXT_PRIMARY, TEXT_MUTED, TEXT_SOFT } from "@/lib/design";
+import { NEON, NEON_FD, NEON_FM } from "@/lib/design";
+
+const MODES = [
+  { key: "fast", label: "Fast" },
+  { key: "deep", label: "Deep Research" },
+  { key: "image", label: "Image" },
+  { key: "document", label: "Document" },
+] as const;
 
 interface ChatHeaderProps {
   agentHandle?: string | null;
@@ -10,9 +17,11 @@ interface ChatHeaderProps {
   skillCount?: number;
   isStreaming: boolean;
   sidebarOpen: boolean;
+  mode?: string;
   max?: boolean;
   onNewChat: () => void;
   onToggleSidebar: () => void;
+  onSetMode?: (mode: string) => void;
   onToggleMax?: () => void;
 }
 
@@ -23,19 +32,21 @@ export function ChatHeader({
   skillCount,
   isStreaming,
   sidebarOpen,
+  mode = "fast",
   max = false,
   onNewChat,
   onToggleSidebar,
+  onSetMode,
   onToggleMax,
 }: ChatHeaderProps) {
   return (
     <>
       <div
-        className="flex-none px-3 sm:px-5 py-3 flex items-center justify-between gap-2 min-w-0"
+        className="flex-none px-3 sm:px-5 py-3 flex items-center justify-between gap-3 min-w-0"
         style={{
-          background: "rgba(255,255,255,0.5)",
+          background: "rgba(255,255,255,0.55)",
           backdropFilter: "blur(28px)",
-          borderBottom: "1px solid rgba(0,0,0,0.06)",
+          borderBottom: "1px solid rgba(10,10,10,0.06)",
         }}
       >
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -43,40 +54,55 @@ export function ChatHeader({
             <button
               onClick={onToggleSidebar}
               title={sidebarOpen ? "Hide history" : "Show history"}
-              className="flex items-center rounded-lg p-1.5 transition-all"
-              style={{ color: TEXT_SOFT }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = TEXT_PRIMARY;
-                e.currentTarget.style.transform = "scale(1.05)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = TEXT_SOFT;
-                e.currentTarget.style.transform = "scale(1)";
-              }}
+              className="flex items-center rounded-full p-2 transition-all"
+              style={{ background: "rgba(10,10,10,0.05)", color: NEON.ink }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(10,10,10,0.10)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(10,10,10,0.05)"; }}
             >
               {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
             </button>
           )}
+
           <motion.div
-            className={cn("w-2 h-2 rounded-full shrink-0 transition-all duration-500", isStreaming ? "animate-pulse scale-125" : "")}
+            className={cn("w-2 h-2 rounded-full shrink-0 transition-all duration-500", isStreaming ? "scale-125" : "")}
             style={{
-              background: isStreaming ? MOCHA : "#5a8a5a",
-              boxShadow: isStreaming ? `0 0 8px ${MOCHA}80` : "none",
+              background: isStreaming ? NEON.orange : NEON.muted,
+              boxShadow: isStreaming ? `0 0 10px ${NEON.orange}80` : "none",
             }}
           />
+
           <div className="min-w-0">
-            <span className="text-sm font-semibold truncate block" style={{ color: TEXT_PRIMARY, fontFamily: F, fontWeight: 700 }}>
-              {agentHandle ? `@${agentHandle}'s Agent` : agentName ? `${agentName} · S1` : "Kemma"}
+            <span className="text-sm font-semibold truncate block" style={{ color: NEON.ink, fontFamily: NEON_FD, fontWeight: 700 }}>
+              {agentHandle ? `@${agentHandle}'s Agent` : agentName ? `${agentName} · Sutaeru` : "Kemma"}
             </span>
             {agentHandle ? (
-              <p className="text-[11px] truncate" style={{ color: TEXT_SOFT }}>Public agent</p>
+              <p className="text-[11px] truncate" style={{ color: NEON.muted, fontFamily: NEON_FM }}>Public agent</p>
             ) : memoryCount !== undefined && skillCount !== undefined ? (
-              <p className="text-[11px] truncate" style={{ color: TEXT_SOFT }}>
+              <p className="text-[11px] truncate" style={{ color: NEON.muted, fontFamily: NEON_FM }}>
                 {memoryCount} memories · {skillCount} skills
               </p>
             ) : null}
           </div>
         </div>
+
+        {/* Mode pills */}
+        {!agentHandle && onSetMode && (
+          <div className="hidden md:flex items-center gap-1 p-1 rounded-full" style={{ background: "rgba(10,10,10,0.05)" }}>
+            {MODES.map((m) => (
+              <button
+                key={m.key}
+                onClick={() => onSetMode(m.key)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all",
+                  mode === m.key ? "neon-pill-active" : "neon-pill"
+                )}
+                style={{ fontFamily: NEON_FD }}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center gap-2 shrink-0">
           {!agentHandle && (
@@ -87,31 +113,20 @@ export function ChatHeader({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.85 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full"
                 style={isStreaming
-                  ? { 
-                      background: `${MOCHA}15`, 
-                      border: `1px solid ${MOCHA}40`, 
-                      boxShadow: `0 0 12px ${MOCHA}30`,
-                    }
-                  : { 
-                      background: "rgba(255,255,255,0.5)", 
-                      border: "1px solid rgba(0,0,0,0.06)",
-                      backdropFilter: "blur(8px)",
-                    }
+                  ? { background: NEON.orangeDim, border: `1px solid ${NEON.orange}40` }
+                  : { background: "rgba(10,10,10,0.05)", border: "1px solid rgba(10,10,10,0.06)" }
                 }
               >
                 <motion.div
                   className="w-1.5 h-1.5 rounded-full"
                   animate={isStreaming ? { opacity: [1, 0.3, 1] } : { opacity: 1 }}
                   transition={{ duration: 0.9, repeat: isStreaming ? Infinity : 0 }}
-                  style={{ background: isStreaming ? MOCHA : TEXT_SOFT }}
+                  style={{ background: isStreaming ? NEON.orange : NEON.muted }}
                 />
-                <span
-                  className="text-[11px] font-semibold tracking-wide"
-                  style={{ color: isStreaming ? MOCHA : TEXT_SOFT, fontFamily: F }}
-                >
-                  S1
+                <span className="text-[11px] font-semibold tracking-wide" style={{ color: isStreaming ? NEON.orange : NEON.muted, fontFamily: NEON_FD }}>
+                  {isStreaming ? "Working" : "Idle"}
                 </span>
               </motion.div>
             </AnimatePresence>
@@ -121,27 +136,11 @@ export function ChatHeader({
             <button
               onClick={onToggleMax}
               title={max ? "Max Mode on — click to disable" : "Enable Max Mode"}
-              className="flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium transition-all duration-200"
+              className="flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition-all duration-200"
               style={max
-                ? {
-                    background: `${MOCHA}15`,
-                    border: `1px solid ${MOCHA}40`,
-                    color: MOCHA,
-                    boxShadow: `0 0 10px ${MOCHA}25`,
-                  }
-                : {
-                    background: "rgba(255,255,255,0.5)",
-                    border: "1px solid rgba(0,0,0,0.06)",
-                    color: TEXT_SOFT,
-                    backdropFilter: "blur(8px)",
-                  }
+                ? { background: NEON.orangeDim, border: `1px solid ${NEON.orange}40`, color: NEON.orange }
+                : { background: "rgba(10,10,10,0.05)", border: "1px solid rgba(10,10,10,0.06)", color: NEON.muted }
               }
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "scale(1.05)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "scale(1)";
-              }}
             >
               <Zap className={cn("h-3 w-3", max ? "fill-current" : "")} />
               <span className="hidden sm:inline">Max</span>
@@ -152,16 +151,8 @@ export function ChatHeader({
             onClick={onNewChat}
             title="New chat"
             disabled={isStreaming}
-            className="flex items-center gap-1.5 rounded-lg px-2 sm:px-3 py-1.5 text-xs font-medium transition-all disabled:opacity-30"
-            style={{ color: TEXT_SOFT }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = TEXT_PRIMARY;
-              e.currentTarget.style.transform = "scale(1.05)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = TEXT_SOFT;
-              e.currentTarget.style.transform = "scale(1)";
-            }}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-30"
+            style={{ background: NEON.black, color: NEON.cream }}
           >
             <SquarePen className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">New</span>
@@ -172,11 +163,7 @@ export function ChatHeader({
       {agentHandle && (
         <div
           className="flex-none px-4 py-2.5 flex items-center gap-2.5 text-sm"
-          style={{ 
-            background: `${MOCHA}10`, 
-            borderBottom: `1px solid ${MOCHA}20`, 
-            color: MOCHA,
-          }}
+          style={{ background: NEON.orangeDim, borderBottom: `1px solid ${NEON.orange}25`, color: NEON.orange }}
         >
           <MessageSquare className="h-3.5 w-3.5 shrink-0" />
           <span>Chatting with <span className="font-semibold">@{agentHandle}</span>'s agent</span>

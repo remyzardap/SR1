@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600;700;800&family=Syne:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -515,3 +515,76 @@ button, a { touch-action: manipulation; }
 
 /* Prevent pull-to-refresh on mobile browsers */
 body { overscroll-behavior-y: none; }
+/* ── Opera Neon Design Language ───────────────────────────────────────────────
+   Cream and black panels, pill buttons, monospace caps labels, flat pastel
+   tags, and orange accent reserved for active steps / status dots.
+─────────────────────────────────────────────────────────────────────────────*/
+.neon-page { background: #f5f0e8; color: #111111; font-family: 'Inter', system-ui, sans-serif; }
+.neon-panel {
+  background: #0a0a0a; color: #f5f0e8; border-radius: 24px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.neon-card {
+  background: #ffffff; color: #111111; border-radius: 22px;
+  border: 1px solid rgba(10,10,10,0.06); box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+}
+.neon-glass {
+  background: rgba(255,255,255,0.72); backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(10,10,10,0.06); border-radius: 22px;
+}
+.neon-label {
+  font-family: 'DM Mono', monospace; font-size: 0.65rem; font-weight: 500;
+  letter-spacing: 0.14em; text-transform: uppercase; color: #7a7368;
+}
+.neon-pill {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.5rem 1rem; border-radius: 999px;
+  background: rgba(10,10,10,0.06); color: #111111;
+  font-family: 'Syne', sans-serif; font-size: 0.75rem; font-weight: 600;
+  letter-spacing: 0.02em; border: 1px solid transparent; cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+}
+.neon-pill:hover { background: rgba(10,10,10,0.10); }
+.neon-pill-active { background: #0a0a0a; color: #f5f0e8; }
+.neon-pill-active:hover { background: #1a1a1a; }
+.neon-tag {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  padding: 0.25rem 0.65rem; border-radius: 999px;
+  font-family: 'DM Mono', monospace; font-size: 0.62rem; font-weight: 500;
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.neon-tag-pink  { background: #f4e7e7; color: #8a3a3a; }
+.neon-tag-green { background: #e7f0e7; color: #2f5a2f; }
+.neon-tag-blue  { background: #e7edf4; color: #2f4a6a; }
+.neon-tag-amber { background: #f4f0e7; color: #6a542f; }
+.neon-dot { width: 7px; height: 7px; border-radius: 50%; background: #e8442a; box-shadow: 0 0 0 0 rgba(232,68,42,0.4); }
+.neon-dot-pulse { animation: neonDotPulse 1.6s ease-in-out infinite; }
+@keyframes neonDotPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232,68,42,0.35); }
+  50% { box-shadow: 0 0 0 6px rgba(232,68,42,0); }
+}
+.neon-crosshair {
+  position: absolute; width: 10px; height: 10px; pointer-events: none;
+  border-color: rgba(10,10,10,0.14); border-style: solid; border-width: 0;
+}
+.neon-crosshair-tl { top: 12px; left: 12px; border-top-width: 1px; border-left-width: 1px; }
+.neon-crosshair-tr { top: 12px; right: 12px; border-top-width: 1px; border-right-width: 1px; }
+.neon-crosshair-bl { bottom: 12px; left: 12px; border-bottom-width: 1px; border-left-width: 1px; }
+.neon-crosshair-br { bottom: 12px; right: 12px; border-bottom-width: 1px; border-right-width: 1px; }
+.neon-bottom-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+  background: rgba(245,240,232,0.92); backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(10,10,10,0.06); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.neon-citation {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.1rem; height: 1.1rem; padding: 0 0.25rem; border-radius: 999px;
+  background: #ffefea; color: #e8442a; font-size: 0.65rem; font-weight: 700;
+  vertical-align: super; margin-left: 0.15rem; line-height: 1;
+}
+.neon-source-card {
+  background: #ffffff; color: #111111; border-radius: 16px;
+  border: 1px solid rgba(10,10,10,0.06); padding: 0.85rem 1rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+}
