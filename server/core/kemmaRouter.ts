@@ -2,26 +2,27 @@
  * kemmaRouter.ts
  * Env-driven model routing for the Kemma agent.
  *
+ * Supported providers: qwen, gemini, perplexity (search only).
+ * Dropped providers: kimi, anthropic, openai, litellm, nvidia.
+ *
  * Routing slots (all configurable via KEMMA_MODEL_* env vars):
  *   chat/tools/code/file generation -> KEMMA_MODEL_CHAT (default qwen3.8-max)
  *   web search                      -> KEMMA_MODEL_SEARCH (default sonar-pro)
- *   vision/documents                -> KEMMA_MODEL_VISION (default gemini-2.0-flash)
+ *   vision/documents                -> KEMMA_MODEL_VISION (default gemini-3.8-flash)
  *   embeddings                      -> KEMMA_MODEL_EMBEDDING (default text-embedding-004)
- *   image generation                -> KEMMA_MODEL_IMAGE (default gemini-2.0-flash)
+ *   image generation                -> KEMMA_MODEL_IMAGE (default gemini-3.8-flash)
  *   report writing                  -> KEMMA_MODEL_REPORT (default qwen3.8-max)
- *   long docs/heavy browsing        -> KEMMA_MODEL_LONG_DOC (default kimi-k3)
- *   deep-research planner           -> KEMMA_MODEL_PLANNER (default claude-sonnet-5)
- *   citation verification           -> KEMMA_MODEL_VERIFY (default claude-sonnet-5)
- *   optional final polish           -> KEMMA_MODEL_POLISH via LiteLLM
- *   optional nemotron               -> KEMMA_MODEL_NEMOTRON via NVIDIA
+ *   long docs/heavy browsing        -> KEMMA_MODEL_LONG_DOC (default qwen3.8-max)
+ *   deep-research planner           -> KEMMA_MODEL_PLANNER (default gemini-3.8-flash)
+ *   citation verification           -> KEMMA_MODEL_VERIFY (default gemini-3.8-flash)
  *
  * Fallback chain (used by the engine when a primary call fails):
- *   qwen3.8-max -> kimi-k3 -> gemini-2.0-flash -> LiteLLM/OpenAI (last resort)
+ *   KEMMA_MODEL_CHAT -> KEMMA_MODEL_VISION
  */
 
 export type Tier = "free" | "trial" | "pro" | "max";
 export type TaskComplexity = "simple" | "medium" | "complex";
-export type ModelProvider = "qwen" | "kimi" | "anthropic" | "perplexity" | "gemini" | "openai" | "litellm" | "nvidia";
+export type ModelProvider = "qwen" | "perplexity" | "gemini";
 
 export interface RouteInput {
   tier: Tier;
@@ -51,33 +52,22 @@ const DEFAULTS = {
   KEMMA_MODEL_EMBEDDING: "text-embedding-004",
   KEMMA_MODEL_IMAGE: "gemini-3.8-flash",
   KEMMA_MODEL_REPORT: "qwen3.8-max",
-  KEMMA_MODEL_LONG_DOC: "kimi-k3",
-  KEMMA_MODEL_PLANNER: "claude-sonnet-5",
-  KEMMA_MODEL_VERIFY: "claude-sonnet-5",
-  KEMMA_MODEL_POLISH: "",
-  KEMMA_MODEL_NEMOTRON: "",
+  KEMMA_MODEL_LONG_DOC: "qwen3.8-max",
+  KEMMA_MODEL_PLANNER: "gemini-3.8-flash",
+  KEMMA_MODEL_VERIFY: "gemini-3.8-flash",
   KEMMA_SEARCH_RPM: "40",
   QWEN_BASE_URL: "https://token-plan.maas.qwencloudapi.com/compatible-mode/v1",
-  LITELLM_BASE_URL: "https://litellm.koboi2026.biz.id/v1",
 };
 
 const ENDPOINTS: Record<ModelProvider, string> = {
   qwen: process.env.QWEN_BASE_URL || DEFAULTS.QWEN_BASE_URL,
-  kimi: "https://api.moonshot.cn/v1",
-  anthropic: "https://api.anthropic.com/v1",
   perplexity: "https://api.perplexity.ai",
   gemini: "https://generativelanguage.googleapis.com/v1beta/openai",
-  openai: "https://api.openai.com/v1",
-  litellm: process.env.LITELLM_BASE_URL || DEFAULTS.LITELLM_BASE_URL,
-  nvidia: "https://integrate.api.nvidia.com/v1",
 };
 
 // Very rough per-million-token prices for cost estimation only.
 export const ROUGH_PRICES_USD_PER_1M: Record<string, { input: number; output: number }> = {
   "qwen3.8-max": { input: 0.5, output: 1.5 },
-  "kimi-k3": { input: 2, output: 8 },
-  "claude-sonnet-5": { input: 3, output: 15 },
-  "claude-opus-5": { input: 15, output: 75 },
   "gemini-3.8-flash": { input: 0.1, output: 0.4 },
   "gemini-2.0-flash": { input: 0.1, output: 0.4 },
   "gemini-2.0-flash-thinking": { input: 0.1, output: 0.4 },
@@ -93,25 +83,16 @@ export const ROUGH_PRICES_USD_PER_1M: Record<string, { input: number; output: nu
 export function detectProvider(model: string): ModelProvider {
   const lower = model.toLowerCase();
   if (lower.includes("qwen") || lower.includes("qwq")) return "qwen";
-  if (lower.includes("kimi")) return "kimi";
-  if (lower.includes("claude")) return "anthropic";
   if (lower.includes("sonar")) return "perplexity";
   if (lower.includes("gemini") || lower.includes("embedding")) return "gemini";
-  if (lower.includes("gpt") || lower.includes("o1") || lower.includes("o3") || lower.includes("whisper") || lower.includes("dall")) return "openai";
-  if (lower.includes("nemotron")) return "nvidia";
-  return "litellm";
+  return "qwen";
 }
 
 export function apiKeyFor(provider: ModelProvider): string {
   switch (provider) {
     case "qwen": return process.env.QWEN_API_KEY || "";
-    case "kimi": return process.env.KIMI_API_KEY || "";
-    case "anthropic": return process.env.ANTHROPIC_API_KEY || "";
     case "perplexity": return process.env.SONAR_API_KEY || process.env.PERPLEXITY_API_KEY || "";
     case "gemini": return process.env.GEMINI_API_KEY || "";
-    case "openai": return process.env.OPENAI_API_KEY || "";
-    case "litellm": return process.env.LITELLM_API_KEY || "";
-    case "nvidia": return process.env.NVIDIA_API_KEY || "";
   }
 }
 
@@ -171,17 +152,13 @@ export function verifyRoute(): RouteConfig {
   return routeFor(getEnvModel("KEMMA_MODEL_VERIFY"));
 }
 
+// Polish and Nemotron are no longer supported.
 export function polishRoute(): RouteConfig | null {
-  const model = process.env.KEMMA_MODEL_POLISH?.trim();
-  if (!model) return null;
-  // Polish always goes through LiteLLM so one key gates all optional polish routes.
-  return { model, baseUrl: ENDPOINTS.litellm, apiKey: apiKeyFor("litellm"), label: `${model} (LiteLLM polish)`, provider: "litellm" };
+  return null;
 }
 
 export function nemotronRoute(): RouteConfig | null {
-  const model = process.env.KEMMA_MODEL_NEMOTRON?.trim();
-  if (!model) return null;
-  return { model, baseUrl: ENDPOINTS.nvidia, apiKey: apiKeyFor("nvidia"), label: `${model} (NVIDIA Nemotron)`, provider: "nvidia" };
+  return null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -191,9 +168,7 @@ export function nemotronRoute(): RouteConfig | null {
 export function fallbackRoutes(): RouteConfig[] {
   const chain = [
     getEnvModel("KEMMA_MODEL_CHAT"),
-    getEnvModel("KEMMA_MODEL_LONG_DOC"),
     getEnvModel("KEMMA_MODEL_VISION"),
-    "gpt-4o-mini", // LiteLLM last resort
   ];
   return chain.map(routeFor);
 }
@@ -202,13 +177,10 @@ export function fallbackRoutes(): RouteConfig[] {
 // SPEND CAPS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function monthlySpendCapUsd(provider: ModelProvider): number {
-  const key = provider === "anthropic" ? "KEMMA_CAP_ANTHROPIC" : provider === "openai" || provider === "litellm" ? "KEMMA_CAP_OPENAI" : null;
-  if (!key) return 0;
-  const raw = process.env[key]?.trim();
-  if (!raw) return 0;
-  const parsed = Number(raw);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+export function monthlySpendCapUsd(_provider: ModelProvider): number {
+  // Spend caps are currently disabled for qwen/gemini/perplexity.
+  // Re-enable per-provider by reading a KEMMA_CAP_<PROVIDER> env var here.
+  return 0;
 }
 
 export function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number {
@@ -221,14 +193,10 @@ export function estimateCostUsd(model: string, inputTokens: number, outputTokens
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function kemmaRoute(input: RouteInput): RouteConfig {
-  const { tier, isThinking, isAgentic, taskComplexity } = input;
+  const { isThinking, taskComplexity } = input;
 
   if (isThinking) {
     return routeFor(process.env.KEMMA_MODEL_PLANNER || DEFAULTS.KEMMA_MODEL_PLANNER);
-  }
-
-  if (isAgentic && taskComplexity === "complex") {
-    return routeFor(process.env.KEMMA_MODEL_REPORT || DEFAULTS.KEMMA_MODEL_REPORT);
   }
 
   if (taskComplexity === "complex") {
@@ -248,18 +216,6 @@ export function geminiVisionRoute(): RouteConfig {
 
 export function geminiEmbeddingRoute(): { model: string; apiKey: string } {
   return embeddingRoute();
-}
-
-export function whisperRoute(): RouteConfig {
-  return routeFor("whisper-1");
-}
-
-export function geminiLiveRoute(): RouteConfig {
-  return routeFor("gemini-2.0-flash-live-001");
-}
-
-export function elevenLabsRoute(): RouteConfig {
-  return { model: "eleven_multilingual_v2", baseUrl: "https://api.elevenlabs.io/v1", apiKey: process.env.ELEVEN_LABS_API_KEY || "", label: "ElevenLabs", provider: "openai" };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

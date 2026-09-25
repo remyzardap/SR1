@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { buildKemmaSystemPrompt, buildKemmaVoicePrompt } from "./personality";
 import { executeToolCall } from "./kemmaMax";
@@ -649,32 +648,7 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
     throw new Error(`${route.provider} API key is not configured.`);
   }
 
-  if (route.provider === "anthropic") {
-    const client = new Anthropic({ apiKey: route.apiKey });
-    const anthropicMessages = messages.filter((m) => m.role !== "system").map((m) => {
-      if (m.role === "tool") return { role: "user" as const, content: [{ type: "tool_result" as const, tool_use_id: m.tool_call_id!, content: m.content ?? "" }] };
-      if (m.role === "assistant" && m.tool_calls) return { role: "assistant" as const, content: [...(m.content ? [{ type: "text" as const, text: m.content }] : []), ...m.tool_calls.map((tc) => ({ type: "tool_use" as const, id: tc.id, name: tc.function.name, input: JSON.parse(tc.function.arguments || "{}") }))] };
-      return { role: m.role as "user" | "assistant", content: m.content ?? "" };
-    });
-    const anthropicTools = tools ? tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.parameters })) : undefined;
-
-    if (stream && onStream) {
-      let fullContent = "";
-      const streamResponse = await client.messages.stream({ model: route.model, max_tokens: 4096, system: systemPrompt, messages: anthropicMessages, tools: anthropicTools });
-      for await (const chunk of streamResponse) {
-        if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") { fullContent += chunk.delta.text; onStream(chunk.delta.text); }
-      }
-      const final = await streamResponse.finalMessage();
-      return { content: fullContent, toolCalls: undefined, usage: { input: final.usage.input_tokens, output: final.usage.output_tokens, total: final.usage.input_tokens + final.usage.output_tokens } };
-    }
-
-    const response = await client.messages.create({ model: route.model, max_tokens: 4096, system: systemPrompt, messages: anthropicMessages, tools: anthropicTools });
-    const toolCalls = response.content.filter((b) => b.type === "tool_use").map((b: any) => ({ id: b.id, type: "function" as const, function: { name: b.name, arguments: JSON.stringify(b.input) } }));
-    const textContent = response.content.filter((b) => b.type === "text").map((b: any) => b.text).join("");
-    return { content: textContent || null, toolCalls: toolCalls.length > 0 ? toolCalls : undefined, usage: { input: response.usage.input_tokens, output: response.usage.output_tokens, total: response.usage.input_tokens + response.usage.output_tokens } };
-  }
-
-  // OpenAI-compatible path (Qwen, Kimi, Perplexity, Gemini via OpenAI, LiteLLM, NVIDIA, OpenAI)
+  // OpenAI-compatible path (Qwen, Perplexity, Gemini)
   const body = {
     model: route.model,
     messages: [{ role: "system", content: systemPrompt }, ...messages.filter((m) => m.role !== "system")],

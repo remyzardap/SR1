@@ -56,16 +56,14 @@ export function listAvailableModels(): AvailableModel[] {
     { id: "auto", label: "Auto (router picks)", provider: "router", tier: "cheap" as const },
     { env: "KEMMA_MODEL_CHAT", label: "Chat", provider: process.env.KEMMA_MODEL_CHAT ? deriveProvider(process.env.KEMMA_MODEL_CHAT) : "qwen", tier: "cheap" as const },
     { env: "KEMMA_MODEL_REPORT", label: "Report", provider: process.env.KEMMA_MODEL_REPORT ? deriveProvider(process.env.KEMMA_MODEL_REPORT) : "qwen", tier: "cheap" as const },
-    { env: "KEMMA_MODEL_LONG_DOC", label: "Long doc", provider: process.env.KEMMA_MODEL_LONG_DOC ? deriveProvider(process.env.KEMMA_MODEL_LONG_DOC) : "kimi", tier: "medium" as const },
-    { env: "KEMMA_MODEL_PLANNER", label: "Planner", provider: process.env.KEMMA_MODEL_PLANNER ? deriveProvider(process.env.KEMMA_MODEL_PLANNER) : "anthropic", tier: "premium" as const },
-    { env: "KEMMA_MODEL_VERIFY", label: "Verify", provider: process.env.KEMMA_MODEL_VERIFY ? deriveProvider(process.env.KEMMA_MODEL_VERIFY) : "anthropic", tier: "premium" as const },
+    { env: "KEMMA_MODEL_LONG_DOC", label: "Long doc", provider: process.env.KEMMA_MODEL_LONG_DOC ? deriveProvider(process.env.KEMMA_MODEL_LONG_DOC) : "qwen", tier: "cheap" as const },
+    { env: "KEMMA_MODEL_PLANNER", label: "Planner", provider: process.env.KEMMA_MODEL_PLANNER ? deriveProvider(process.env.KEMMA_MODEL_PLANNER) : "gemini", tier: "cheap" as const },
+    { env: "KEMMA_MODEL_VERIFY", label: "Verify", provider: process.env.KEMMA_MODEL_VERIFY ? deriveProvider(process.env.KEMMA_MODEL_VERIFY) : "gemini", tier: "cheap" as const },
     { env: "KEMMA_MODEL_VISION", label: "Vision", provider: process.env.KEMMA_MODEL_VISION ? deriveProvider(process.env.KEMMA_MODEL_VISION) : "gemini", tier: "cheap" as const },
     { env: "KEMMA_MODEL_IMAGE", label: "Image", provider: process.env.KEMMA_MODEL_IMAGE ? deriveProvider(process.env.KEMMA_MODEL_IMAGE) : "gemini", tier: "cheap" as const },
-    { id: "claude-sonnet-5", label: "Claude Sonnet 5", provider: "anthropic", tier: "premium" as const },
+    { id: "qwen3.8-max", label: "Qwen 3.8 Max", provider: "qwen", tier: "cheap" as const },
     { id: "gemini-3.8-flash", label: "Gemini Flash", provider: "gemini", tier: "cheap" as const },
     { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", provider: "gemini", tier: "cheap" as const },
-    { id: "kimi-k3", label: "Kimi K3", provider: "kimi", tier: "medium" as const },
-    { id: "sonar-pro", label: "Sonar Pro", provider: "perplexity", tier: "premium" as const },
   ];
 
   const seen = new Set<string>();
@@ -92,13 +90,8 @@ function deriveProvider(model: string): string {
 function hasProviderKey(provider: string): boolean {
   switch (provider) {
     case "qwen": return !!process.env.QWEN_API_KEY;
-    case "kimi": return !!process.env.KIMI_API_KEY;
-    case "anthropic": return !!process.env.ANTHROPIC_API_KEY;
     case "perplexity": return !!(process.env.SONAR_API_KEY || process.env.PERPLEXITY_API_KEY);
     case "gemini": return !!process.env.GEMINI_API_KEY;
-    case "openai": return !!process.env.OPENAI_API_KEY;
-    case "litellm": return !!process.env.LITELLM_API_KEY;
-    case "nvidia": return !!process.env.NVIDIA_API_KEY;
     default: return false;
   }
 }
