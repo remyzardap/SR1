@@ -75,6 +75,7 @@ export interface EngineOutput {
 }
 
 import { MAX_TOOL_CALLS } from "./kemmaMax";
+import { loadFileSkills, selectSkillsForQuery, reviewSkills, type FileSkill } from "./fileSkills";
 
 function selectRoute(input: EngineInput, currentMessages: KemmaMessage[], step: number, maxSteps: number): RouteConfig {
   const { isThinking, modelOverride } = input;
@@ -222,14 +223,48 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     if (lastUserMessage?.content) memories = await getMemoriesContext(userId, lastUserMessage.content as string);
   } catch { /* non-fatal */ }
 
+  // Load file-based skills and run an automatic review gate.
+  const fileSkills: FileSkill[] = [];
+  const approvedFileSkills: FileSkill[] = [];
+  if (!input.isSubAgent) {
+    try {
+      const loaded = await loadFileSkills();
+      const queryText = lastUserMessage?.content ?? "";
+      const selected = selectSkillsForQuery(loaded, queryText);
+      if (selected.length > 0) {
+        const reviews = await reviewSkills(selected, queryText);
+        const approvedNames = new Set(
+          reviews.filter((r) => r.verdict === "approve").map((r) => r.skillName)
+        );
+        for (const s of selected) {
+          if (approvedNames.has(s.name)) approvedFileSkills.push(s);
+        }
+        const report = reviews
+          .map((r) => `${r.skillName}=${r.verdict} (${r.summary})`)
+          .join("; ");
+        onNotice?.(`Skill review: ${report}`);
+      }
+      fileSkills.push(...loaded);
+    } catch {
+      // Non-fatal: skills directory may be missing in some deployments.
+    }
+  }
+
+  const activeSkills = [
+    ...(input.skills ?? []),
+    ...approvedFileSkills.map((s) => ({ id: 0, name: s.name, description: s.description, content: s.content })),
+  ];
+
   let systemPrompt = isVoice
     ? buildKemmaVoicePrompt({ userId, tier, memories, userName })
     : buildKemmaSystemPrompt({ userId, tier, memories, userName });
 
-  if (input.skills && input.skills.length > 0) {
-    const skillText = input.skills.map((s) => `### ${s.name}\n${s.description ?? ""}\n${typeof s.content === "string" ? s.content : JSON.stringify(s.content ?? {})}`).join("\n\n");
+  if (activeSkills.length > 0) {
+    const skillText = activeSkills
+      .map((s) => `### ${s.name}\n${s.description ?? ""}\n${typeof s.content === "string" ? s.content : JSON.stringify(s.content ?? {})}`)
+      .join("\n\n");
     systemPrompt += `\n\nAPPROVED SKILLS TO FOLLOW:\n${skillText}`;
-    input.skills.forEach((s) => onSkillUsed?.({ id: s.id, name: s.name }));
+    activeSkills.forEach((s) => onSkillUsed?.({ id: s.id, name: s.name }));
   }
 
   let currentMessages: KemmaMessage[] = messages.filter((m) => m.role !== "system");
