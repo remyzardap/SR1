@@ -43,6 +43,13 @@
       "when": 1790322776669,
       "tag": "0020_fix_spaces_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790322776670,
+      "tag": "0021_chat_messages_embedding",
+      "breakpoints": true
     }
   ]
 }

@@ -14,6 +14,7 @@ import { memories, identities } from "../../drizzle/schema";
 import { eq, sql } from "drizzle-orm";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const EMBEDDING_MODEL = process.env.KEMMA_MODEL_EMBEDDING || "gemini-embedding-2";
 
 // In-memory vector cache (production: use pgvector or Redis)
 const vectorCache = new Map<string, { vector: number[]; timestamp: number }>();
@@ -24,8 +25,8 @@ const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Generate a 768-dimensional embedding for the given text
- * using Google's Gemini Embedding 2 (text-embedding-004).
+ * Generate an embedding for the given text using Google's Gemini Embedding API.
+ * Model configurable via KEMMA_MODEL_EMBEDDING (default gemini-embedding-2).
  */
 export async function embed(text: string): Promise<number[]> {
   if (!GEMINI_API_KEY) {
@@ -40,7 +41,7 @@ export async function embed(text: string): Promise<number[]> {
   }
 
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+  const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
 
   const result = await model.embedContent(text);
   const embedding = result.embedding.values;

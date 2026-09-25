@@ -331,6 +331,7 @@ export const chatMessages = pgTable("chat_messages", {
   content: text("content").notNull(),
   model: varchar("model", { length: 128 }),
   settings: json("settings").$type<Record<string, unknown>>().default({}),
+  embedding: json("embedding").$type<number[]>(),
   createdAt: timestamp("created_at").notNull(),
 });
 export type ChatMessage = typeof chatMessages.$inferSelect;

@@ -864,10 +864,42 @@ export async function searchChatMessages(userId: number, query: string) {
   const db = await getDb();
   if (!db) return [];
   const { chatMessages, chatSessions } = await import("../drizzle/schema");
-  const { like, or, and, asc } = await import("drizzle-orm");
+  const { like, or, and, asc, isNotNull, desc } = await import("drizzle-orm");
   const sessions = await db.select({ id: chatSessions.id }).from(chatSessions).where(eq(chatSessions.userId, userId));
   const sessionIds = sessions.map((s) => s.id);
   if (sessionIds.length === 0) return [];
+
+  // Try semantic search via embeddings if Gemini is configured
+  const { isVectorSearchConfigured, embed } = await import("./services/vectorSearch");
+  if (isVectorSearchConfigured()) {
+    try {
+      const queryVector = await embed(query);
+      const candidates = await db
+        .select()
+        .from(chatMessages)
+        .where(and(inArray(chatMessages.sessionId, sessionIds), isNotNull(chatMessages.embedding)))
+        .orderBy(desc(chatMessages.createdAt))
+        .limit(200);
+
+      const scored = candidates
+        .map((m) => {
+          const vector = (m.embedding ?? []) as number[];
+          if (!vector.length) return null;
+          return { message: m, score: cosineSimilarity(queryVector, vector) };
+        })
+        .filter((x): x is { message: typeof candidates[0]; score: number } => x !== null && x.score > 0.6)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10);
+
+      if (scored.length > 0) {
+        return scored.map((s) => ({ ...s.message, similarity: s.score }));
+      }
+    } catch (err) {
+      console.warn("[searchChatMessages] embedding search failed, falling back to LIKE:", err);
+    }
+  }
+
+  // Fallback to substring search
   const q = `%${query}%`;
   return db.select().from(chatMessages)
     .where(
@@ -878,6 +910,20 @@ export async function searchChatMessages(userId: number, query: string) {
     )
     .orderBy(asc(chatMessages.createdAt))
     .limit(50);
+}
+
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) return 0;
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
 export async function updateChatSessionLastMessageAt(sessionId: string) {
@@ -894,6 +940,18 @@ export async function addChatMessage(sessionId: string, userId: number, content:
   if (!db) throw new Error("Database not available");
   const { chatMessages } = await import("../drizzle/schema");
   const id = crypto.randomUUID();
+
+  // Generate embedding for semantic search (best-effort; don't block chat on failure)
+  let embedding: number[] | undefined;
+  try {
+    const { isVectorSearchConfigured, embed } = await import("./services/vectorSearch");
+    if (isVectorSearchConfigured() && content.trim()) {
+      embedding = await embed(content);
+    }
+  } catch (err) {
+    console.warn("[addChatMessage] failed to generate embedding:", err);
+  }
+
   await db.insert(chatMessages).values({
     id,
     sessionId,
@@ -902,6 +960,7 @@ export async function addChatMessage(sessionId: string, userId: number, content:
     role,
     model: model || null,
     settings: settings ?? {},
+    embedding,
     createdAt: new Date(),
   });
   await updateChatSessionLastMessageAt(sessionId);
