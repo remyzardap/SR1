@@ -16,6 +16,7 @@ import { setupVite, serveStatic } from './vite';
 import { loadSecretsFromSecretManager } from './secretManager';
 import { sdk } from './sdk';
 import { generalApiRateLimiter } from './rateLimiter';
+import { registerFileRoutes } from '../routes/files';
 
 // Load secrets from Secret Manager before starting
 await loadSecretsFromSecretManager();
@@ -68,6 +69,7 @@ app.use('/api/atelier', requireSession);
 registerAtelierRoutes(app);
 app.use('/api/intelligence', requireSession, intelligenceRouter);
 app.post('/api/kemma/stream', requireSession, kemmaStreamRoute);
+registerFileRoutes(app);
 
 // tRPC API routes
 app.use('/api/trpc', createExpressMiddleware({

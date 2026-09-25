@@ -4,8 +4,8 @@
  */
 
 import bcrypt from 'bcryptjs';
-import { eq, and, isNull } from 'drizzle-orm';
-import { storagePut, storageGet } from '../../storage';
+import { eq, and } from 'drizzle-orm';
+import { getStorageAdapter } from '../../storageAdapter';
 import { getDb } from '../../db';
 import { files, userQuotas } from '../../../drizzle/schema';
 
@@ -127,10 +127,9 @@ export async function createFile(
   const fileKey = buildFilePath(userId, path);
 
   try {
-    // Upload to S3
-    const { url } = await storagePut(fileKey, content, mimeType);
+    const adapter = getStorageAdapter();
+    const stored = await adapter.put(fileKey, content, mimeType);
 
-    // Insert record into database
     const name = path.split('/').pop() || path;
     const [result] = await db
       .insert(files)
@@ -140,10 +139,13 @@ export async function createFile(
         originalPrompt: name,
         format: "md",
         styleLabel: null,
-        fileKey,
-        fileUrl: url,
+        kind: "document",
+        storageProvider: stored.provider,
+        storageRef: stored.key,
+        fileKey: stored.key,
+        fileUrl: stored.url,
         mimeType,
-        fileSizeBytes: content.length,
+        fileSizeBytes: stored.sizeBytes,
         trashed: false,
         trashedAt: null,
       })
@@ -152,7 +154,7 @@ export async function createFile(
     if (!result) throw new FileOperationError('Failed to insert file record');
     const fileId = result.id;
 
-    return { fileId, url };
+    return { fileId, url: stored.url };
   } catch (error) {
     throw new FileOperationError(
       `Failed to create file: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -184,8 +186,8 @@ export async function readFile(userId: number, fileId: number): Promise<Buffer> 
 
     const fileRecord = fileRecords[0];
 
-    // Fetch content from S3
-    const content = await storageGet(fileRecord.fileKey);
+    const adapter = getStorageAdapter();
+    const content = await adapter.get(fileRecord.fileKey);
 
     return content;
   } catch (error) {
@@ -226,27 +228,30 @@ export async function editFile(
 
     const fileRecord = fileRecords[0];
 
+    const adapter = getStorageAdapter();
+
     // Get current content for archiving
-    const currentContent = await storageGet(fileRecord.fileKey);
+    const currentContent = await adapter.get(fileRecord.fileKey);
 
     // Archive old version
     const timestamp = getTimestamp();
     const archiveKey = buildArchivePath(userId, fileId, timestamp);
-    await storagePut(archiveKey, currentContent, fileRecord.mimeType ?? undefined);
+    await adapter.put(archiveKey, currentContent, fileRecord.mimeType ?? "application/octet-stream");
 
     // Upload new content to original path
-    const { url: newUrl } = await storagePut(
+    const stored = await adapter.put(
       fileRecord.fileKey,
       newContent,
-      fileRecord.mimeType ?? undefined
+      fileRecord.mimeType ?? "application/octet-stream"
     );
 
     // Update database record
     await db
       .update(files)
       .set({
-        fileUrl: newUrl,
-        fileSizeBytes: newContent.length,
+        fileUrl: stored.url,
+        fileSizeBytes: stored.sizeBytes,
+        storageRef: stored.key,
       })
       .where(eq(files.id, fileId));
   } catch (error) {
@@ -314,12 +319,13 @@ export async function trashFile(userId: number, fileId: number): Promise<void> {
 
     const fileRecord = fileRecords[0];
 
+    const adapter = getStorageAdapter();
     // Get current content
-    const content = await storageGet(fileRecord.fileKey);
+    const content = await adapter.get(fileRecord.fileKey);
 
     // Copy to trash location
     const trashKey = buildTrashPath(userId, fileRecord.fileKey.replace(`users/${userId}/files/`, ''));
-    await storagePut(trashKey, content, fileRecord.mimeType ?? undefined);
+    await adapter.put(trashKey, content, fileRecord.mimeType ?? "application/octet-stream");
 
     // Mark as trashed in database
     await db
@@ -362,6 +368,8 @@ export async function restoreFile(userId: number, fileId: number): Promise<void>
 
     const fileRecord = fileRecords[0];
 
+    const adapter = getStorageAdapter();
+
     // Check if file is actually trashed
     if (!fileRecord.trashed) {
       throw new FileOperationError('File is not in trash');
@@ -369,10 +377,10 @@ export async function restoreFile(userId: number, fileId: number): Promise<void>
 
     // Get content from trash
     const trashKey = buildTrashPath(userId, fileRecord.fileKey.replace(`users/${userId}/files/`, ''));
-    const content = await storageGet(trashKey);
+    const content = await adapter.get(trashKey);
 
     // Copy back to original location
-    await storagePut(fileRecord.fileKey, content, fileRecord.mimeType ?? undefined);
+    await adapter.put(fileRecord.fileKey, content, fileRecord.mimeType ?? "application/octet-stream");
 
     // Clear trashed flag
     await db

@@ -15,6 +15,7 @@ import {
 // ─── Enums ────────────────────────────────────────────────────────────────────
 export const roleEnum = pgEnum("role", ["user", "admin"]);
 export const fileFormatEnum = pgEnum("file_format", ["pdf", "docx", "xlsx", "pptx", "md"]);
+export const fileKindEnum = pgEnum("file_kind", ["document", "image", "video", "audio", "other"]);
 export const apiKeyProviderEnum = pgEnum("api_key_provider", ["kimi", "openai", "gemini", "anthropic"]);
 export const receiptStatusEnum = pgEnum("receipt_status", ["auto", "needs_review", "approved", "rejected"]);
 export const sourceEnum = pgEnum("source", ["whatsapp", "web"]);
@@ -59,6 +60,11 @@ export const files = pgTable("files", {
   originalPrompt: text("originalPrompt").notNull(),
   format: fileFormatEnum("format").notNull(),
   styleLabel: varchar("styleLabel", { length: 128 }),
+  kind: fileKindEnum("kind").default("document").notNull(),
+  storageProvider: varchar("storageProvider", { length: 64 }).default("local").notNull(),
+  storageRef: varchar("storageRef", { length: 512 }).default("").notNull(),
+  threadId: varchar("threadId", { length: 64 }),
+  spaceId: varchar("spaceId", { length: 64 }),
   fileKey: varchar("fileKey", { length: 512 }).notNull(),
   fileUrl: text("fileUrl").notNull(),
   fileSizeBytes: bigint("fileSizeBytes", { mode: "number" }).default(0),

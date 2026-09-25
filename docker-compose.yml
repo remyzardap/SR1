@@ -15,6 +15,7 @@ services:
       # Add other env vars as needed
     volumes:
       - ./secrets:/run/secrets:ro
+      - ./sutaeru-data/files:/root/sr1-data/files
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5000/health"]

@@ -8,6 +8,13 @@
       "when": 1790322776664,
       "tag": "0015_add_usage_logs",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790322776665,
+      "tag": "0016_files_storage_columns",
+      "breakpoints": true
     }
   ]
 }

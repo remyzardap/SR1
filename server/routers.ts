@@ -64,7 +64,6 @@ import {
 } from "./db";
 import { generateStyleOptions, generateDocumentContent } from "./llmProvider";
 import { generateFile, STYLE_DEFINITIONS } from "./fileGenerator";
-import { storagePut } from "./storage";
 import { TRPCError } from "@trpc/server";
 import { sdk } from "./_core/sdk";
 import { receiptsRouter } from "./routers/receipts";
@@ -424,11 +423,13 @@ export const appRouter = router({
         // Generate file bytes
         const generated = await generateFile(content, input.format, style);
 
-        // Upload to S3
+        // Store bytes
         const suffix = nanoid(8);
         const safeName = content.title.replace(/[^a-z0-9]/gi, "_").substring(0, 40);
         const fileKey = `user-${ctx.user.id}/files/${safeName}-${suffix}.${generated.extension}`;
-        const { url } = await storagePut(fileKey, generated.buffer, generated.mimeType);
+        const { getStorageAdapter } = await import("./storageAdapter");
+        const adapter = getStorageAdapter();
+        const stored = await adapter.put(fileKey, generated.buffer, generated.mimeType);
 
         // Save metadata to DB
         await createFile({
@@ -437,9 +438,12 @@ export const appRouter = router({
           originalPrompt: input.prompt,
           format: input.format,
           styleLabel: style.label,
-          fileKey,
-          fileUrl: url,
-          fileSizeBytes: generated.buffer.length,
+          kind: "document",
+          storageProvider: stored.provider,
+          storageRef: stored.key,
+          fileKey: stored.key,
+          fileUrl: stored.url,
+          fileSizeBytes: stored.sizeBytes,
           mimeType: generated.mimeType,
         });
 
@@ -447,7 +451,7 @@ export const appRouter = router({
         const userFiles = await getFilesByUser(ctx.user.id);
         const newFile = userFiles[userFiles.length - 1];
 
-        return { file: newFile, downloadUrl: url };
+        return { file: newFile, downloadUrl: stored.url };
       }),
 
     // List all files for the current user
@@ -553,10 +557,11 @@ export const appRouter = router({
         const buffer = Buffer.from(input.base64, "base64");
         const ext = input.mimeType.split("/")[1] ?? "jpg";
         const fileKey = `user-${ctx.user.id}/avatars/avatar-${nanoid(8)}.${ext}`;
-        const { url } = await storagePut(fileKey, buffer, input.mimeType);
-        // Persist the avatar URL on the identity
-        await upsertIdentity(ctx.user.id, { avatarUrl: url });
-        return { url };
+        const { getStorageAdapter } = await import("./storageAdapter");
+        const adapter = getStorageAdapter();
+        const stored = await adapter.put(fileKey, buffer, input.mimeType);
+        await upsertIdentity(ctx.user.id, { avatarUrl: stored.url });
+        return { url: stored.url };
       }),
   }),
   // ─── Sutaeru: Identity router ─────────────────────────────────────────────────────────
@@ -620,9 +625,11 @@ export const appRouter = router({
         const buffer = Buffer.from(input.fileBase64, "base64");
         const ext = input.fileName.split(".").pop() ?? "jpg";
         const fileKey = `avatars/${ctx.user.id}/${Date.now()}.${ext}`;
-        const { url } = await storagePut(fileKey, buffer, input.mimeType);
-        await upsertIdentity(ctx.user.id, { avatarUrl: url });
-        return { url };
+        const { getStorageAdapter } = await import("./storageAdapter");
+        const adapter = getStorageAdapter();
+        const stored = await adapter.put(fileKey, buffer, input.mimeType);
+        await upsertIdentity(ctx.user.id, { avatarUrl: stored.url });
+        return { url: stored.url };
       }),
     saveNotificationPrefs: protectedProcedure
       .input(

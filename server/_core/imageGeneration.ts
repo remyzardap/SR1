@@ -1,4 +1,4 @@
-const LITELLM_BASE = process.env.LITELLM_BASE_URL || "https://litellm.koboi2026.biz.id/v1";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 interface GenerateImageInput {
   prompt: string;
@@ -8,11 +8,47 @@ interface GenerateImageInput {
 }
 
 interface GenerateImageResult {
-  url: string;
+  buffer: Buffer;
+  mimeType: string;
   revisedPrompt?: string;
 }
 
-export async function generateImage(input: GenerateImageInput): Promise<GenerateImageResult> {
+const LITELLM_BASE = process.env.LITELLM_BASE_URL || "https://litellm.koboi2026.biz.id/v1";
+
+async function generateWithGemini(prompt: string): Promise<GenerateImageResult | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: process.env.KEMMA_MODEL_IMAGE || "gemini-2.0-flash-exp-image-generation",
+    });
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+
+    // Try to extract inline image data
+    const parts = (response as any).candidates?.[0]?.content?.parts || [];
+    for (const part of parts) {
+      if (part.inlineData?.data) {
+        const mimeType = part.inlineData.mimeType || "image/png";
+        return {
+          buffer: Buffer.from(part.inlineData.data, "base64"),
+          mimeType,
+          revisedPrompt: prompt,
+        };
+      }
+    }
+
+    return null;
+  } catch (err) {
+    console.warn("[imageGeneration] Gemini image generation failed:", err);
+    return null;
+  }
+}
+
+async function generateWithDallE(input: GenerateImageInput): Promise<GenerateImageResult> {
   const apiKey = process.env.LITELLM_API_KEY;
   if (!apiKey) {
     throw new Error("LITELLM_API_KEY is not configured");
@@ -48,8 +84,22 @@ export async function generateImage(input: GenerateImageInput): Promise<Generate
     throw new Error("No image URL returned from DALL-E");
   }
 
+  const imageResponse = await fetch(imageData.url);
+  if (!imageResponse.ok) {
+    throw new Error(`Failed to fetch generated image: ${imageResponse.status}`);
+  }
+  const arrayBuffer = await imageResponse.arrayBuffer();
+
   return {
-    url: imageData.url,
+    buffer: Buffer.from(arrayBuffer),
+    mimeType: "image/png",
     revisedPrompt: imageData.revised_prompt,
   };
+}
+
+export async function generateImage(input: GenerateImageInput): Promise<GenerateImageResult> {
+  const gemini = await generateWithGemini(input.prompt);
+  if (gemini) return gemini;
+
+  return generateWithDallE(input);
 }
