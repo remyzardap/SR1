@@ -30,6 +30,8 @@ import {
   Trash2,
   Plus,
   FolderOpen,
+  MessageSquare,
+  Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
@@ -69,6 +71,7 @@ function formatDate(date: Date | string): string {
 export default function Files() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
+  const [filterKind, setFilterKind] = useState<string>("all");
   const [renameDialog, setRenameDialog] = useState<{ open: boolean; file: FileRecord | null }>({
     open: false,
     file: null,
@@ -78,6 +81,7 @@ export default function Files() {
     open: false,
     file: null,
   });
+  const [previewFile, setPreviewFile] = useState<FileRecord | null>(null);
 
   const utils = trpc.useUtils();
 
@@ -103,9 +107,19 @@ export default function Files() {
 
   const filtered = files.filter(
     (f) =>
-      f.name.toLowerCase().includes(search.toLowerCase()) ||
-      f.originalPrompt.toLowerCase().includes(search.toLowerCase())
+      (filterKind === "all" || f.kind === filterKind) &&
+      (f.name.toLowerCase().includes(search.toLowerCase()) ||
+        f.originalPrompt.toLowerCase().includes(search.toLowerCase()))
   );
+
+  const KIND_LABELS: Record<string, string> = {
+    all: "All",
+    document: "Documents",
+    image: "Images",
+    video: "Videos",
+    audio: "Audio",
+    other: "Other",
+  };
 
   const openRename = (file: FileRecord) => {
     setNewName(file.name);
@@ -133,7 +147,7 @@ export default function Files() {
       </div>
 
       {/* Search */}
-      <div className="relative mb-6">
+      <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={search}
@@ -141,6 +155,20 @@ export default function Files() {
           placeholder="Search files by name or prompt..."
           className="pl-9"
         />
+      </div>
+
+      {/* Type filter */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {Object.entries(KIND_LABELS).map(([kind, label]) => (
+          <Button
+            key={kind}
+            size="sm"
+            variant={filterKind === kind ? "default" : "outline"}
+            onClick={() => setFilterKind(kind)}
+          >
+            {label}
+          </Button>
+        ))}
       </div>
 
       {/* File list */}
@@ -211,6 +239,14 @@ export default function Files() {
 
                 {/* Actions */}
                 <div className="flex shrink-0 items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Button size="sm" variant="ghost" onClick={() => setPreviewFile(file)}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  {file.threadId && (
+                    <Button size="sm" variant="ghost" onClick={() => navigate(`/chat/${file.threadId}`)}>
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button asChild size="sm" variant="ghost">
                     <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" download>
                       <Download className="h-4 w-4" />
@@ -314,6 +350,38 @@ export default function Files() {
               disabled={deleteMutation.isPending}
             >
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{previewFile?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto rounded-lg border bg-muted p-4">
+            {previewFile?.kind === "image" ? (
+              <img src={previewFile.fileUrl} alt={previewFile.name} className="mx-auto max-h-full rounded" />
+            ) : previewFile?.kind === "video" ? (
+              <video src={previewFile.fileUrl} controls className="w-full rounded" />
+            ) : previewFile?.kind === "audio" ? (
+              <audio src={previewFile.fileUrl} controls className="w-full" />
+            ) : (
+              <div className="text-center text-sm text-muted-foreground">
+                <p>Preview not available for this file type.</p>
+                <Button asChild className="mt-4" size="sm">
+                  <a href={previewFile?.fileUrl} target="_blank" rel="noopener noreferrer">
+                    Open file
+                  </a>
+                </Button>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewFile(null)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

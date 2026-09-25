@@ -36,7 +36,7 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
   try {
     let finalModels: string[] = [];
 
-    await kemmaExecute({
+    const output = await kemmaExecute({
       userId: user.id,
       userName: user.name ?? undefined,
       messages: messages as KemmaMessage[],
@@ -53,7 +53,11 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
       onNotice: (message) => { if (!aborted) sendEvent(res, "notice", { message }); },
     });
 
-    if (!aborted) sendEvent(res, "done", finalModels[finalModels.length - 1] ?? "Kimi K2");
+    if (!aborted && output.sources.length > 0) {
+      sendEvent(res, "sources", output.sources);
+    }
+
+    if (!aborted) sendEvent(res, "done", finalModels[finalModels.length - 1] ?? "Kemma");
   } catch (err) {
     if (!aborted) sendEvent(res, "error", (err as Error).message ?? "Unknown error");
   } finally {

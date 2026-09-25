@@ -209,7 +209,7 @@ export function s1Route(
   const preferred = classifyQuery(text);
   const fallbackOrder = [preferred, "gemini", "kimi", "claude", "litellm", "sonar"];
 
-  for (const agentId of [...new Set(fallbackOrder)]) {
+  for (const agentId of Array.from(new Set(fallbackOrder))) {
     const config = getAgentConfig(agentId, max);
     if (config) {
       return {

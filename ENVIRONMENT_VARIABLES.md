@@ -197,6 +197,8 @@ curl -I http://localhost:3000
 | `KEMMA_MODEL_POLISH` | — | Optional final polish via LiteLLM |
 | `KEMMA_MODEL_NEMOTRON` | — | Optional Nemotron model |
 | `KEMMA_SEARCH_RPM` | `40` | Perplexity Sonar rate limit |
+| `KEMMA_MAX_SUBAGENTS` | `1` | Parallel research sub-agents (max 5) |
+| `KEMMA_TOOL_BUDGET` | `60` | Tool-call budget for Deep Research |
 | `KEMMA_CAP_ANTHROPIC` | `0` | Monthly Anthropic spend cap (USD, 0 = unlimited) |
 | `KEMMA_CAP_OPENAI` | `0` | Monthly OpenAI spend cap (USD, 0 = unlimited) |
 | `ALLOWED_LOGIN` | — | Comma-separated allowed emails/handles |

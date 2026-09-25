@@ -7,6 +7,8 @@ import {
   reportRoute,
   longDocRoute,
   visionRoute,
+  verifyRoute,
+  plannerRoute,
   detectComplexity,
   MAX_STEPS,
   type Tier,
@@ -19,6 +21,7 @@ import { checkQuota, incrementQuota } from "../core/quotaCheck";
 import { logUsage, checkSpendCap } from "../core/usage";
 import { KEMMA_TOOLS } from "./tools";
 import { getMemoriesContext } from "./memory";
+import { type Source, extractSources, dedupeSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
 
 export interface KemmaMessage {
   role: "user" | "assistant" | "system" | "tool";
@@ -43,6 +46,9 @@ export interface EngineInput {
   tier: Tier; isThinking: boolean; isVoice?: boolean; hasByos?: boolean; sessionId?: string;
   reportId?: string;
   polish?: boolean;
+  toolBudget?: number;
+  allowedTools?: string[];
+  isSubAgent?: boolean;
   onStream?: (chunk: string) => void;
   onToolStart?: (tool: string, input: unknown) => void;
   onToolEnd?: (tool: string, result: unknown, durationMs: number) => void;
@@ -61,12 +67,13 @@ export interface EngineOutput {
   response: string; toolCalls: ToolExecution[]; isAgentic: boolean;
   tokensUsed: { input: number; output: number; total: number };
   modelsUsed: string[]; stepsUsed: number; durationMs: number;
+  sources: Source[];
 }
 
 import { MAX_TOOL_CALLS } from "./kemmaMax";
 
 function selectRoute(input: EngineInput, currentMessages: KemmaMessage[], step: number, maxSteps: number): RouteConfig {
-  const { isThinking, tier } = input;
+  const { isThinking } = input;
   const complexity = detectComplexity(currentMessages.map((m) => ({ role: m.role, content: m.content ?? "" })));
 
   if (isThinking && step === 1) {
@@ -78,6 +85,110 @@ function selectRoute(input: EngineInput, currentMessages: KemmaMessage[], step: 
   }
 
   return chatRoute();
+}
+
+interface SubAgentResult {
+  query: string;
+  output: EngineOutput;
+}
+
+async function runParallelSubAgents(
+  input: EngineInput,
+  originalQuery: string,
+  toolBudget: number,
+  onNotice?: (message: string) => void,
+  onStepStart?: (step: number, model: string) => void,
+  onStepEnd?: (step: number) => void,
+): Promise<{ content: string; sources: Source[]; durationMs: number } | null> {
+  const rawMax = Number(process.env.KEMMA_MAX_SUBAGENTS ?? "1");
+  const maxSubAgents = Math.min(Math.max(Number.isFinite(rawMax) ? rawMax : 1, 1), 5);
+  if (maxSubAgents <= 1) return null;
+
+  const planCfg = plannerRoute();
+  if (!planCfg.apiKey) {
+    onNotice?.("Planner model not configured; skipping parallel sub-agents.");
+    return null;
+  }
+
+  onStepStart?.(1, planCfg.label);
+  const planStart = Date.now();
+  let subQueries: string[] = [];
+  try {
+    const planResponse = await callLLM({
+      route: planCfg,
+      systemPrompt: "You are a research planner. Break the user's question into focused sub-questions. Reply with a JSON array of strings only.",
+      messages: [{ role: "user", content: originalQuery }],
+      stream: false,
+      userId: input.userId,
+      sessionId: input.sessionId,
+      reportId: input.reportId,
+      purpose: "planner",
+    });
+    const cleaned = (planResponse.content ?? "").replace(/```json\n?|```\n?/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) {
+      subQueries = parsed.filter((q) => typeof q === "string" && q.length > 0).slice(0, maxSubAgents);
+    }
+  } catch {
+    onNotice?.("Could not plan sub-questions; falling back to single-agent research.");
+    return null;
+  }
+  onStepEnd?.(1);
+
+  if (subQueries.length === 0) return null;
+
+  onNotice?.(`Running ${subQueries.length} parallel research sub-agent${subQueries.length === 1 ? "" : "s"}...`);
+  const perAgentBudget = Math.max(2, Math.floor(toolBudget / subQueries.length));
+  const restrictedTools = ["web_search", "browse"];
+
+  const startTime = Date.now();
+  const results = await Promise.all(
+    subQueries.map(async (query): Promise<SubAgentResult> => {
+      const output = await kemmaExecute({
+        ...input,
+        messages: [{ role: "user", content: query }],
+        isThinking: false,
+        toolBudget: perAgentBudget,
+        allowedTools: restrictedTools,
+        isSubAgent: true,
+        onStream: undefined,
+        onNotice: undefined,
+      });
+      return { query, output };
+    })
+  );
+
+  const collectedSources = dedupeSources(results.flatMap((r) => r.output.sources));
+  const synthesisPrompt = [
+    "Synthesize the following sub-research results into one coherent answer.",
+    "Preserve factual claims and cite sources using [n] markers matching the source list.",
+    "Original question:", originalQuery,
+    "",
+    results.map((r, i) => `--- Sub-question ${i + 1}: ${r.query} ---\n${r.output.response}`).join("\n\n"),
+    "",
+    "Sources:",
+    collectedSources.map((s, i) => `[${i + 1}] ${s.title} — ${s.url}`).join("\n"),
+  ].join("\n");
+
+  const reportCfg = reportRoute();
+  onStepStart?.(2, reportCfg.label);
+  const synthesisResponse = await callLLM({
+    route: reportCfg,
+    systemPrompt: "You synthesize research into a well-cited final answer. Use [n] citations for every factual claim.",
+    messages: [{ role: "user", content: synthesisPrompt }],
+    stream: false,
+    userId: input.userId,
+    sessionId: input.sessionId,
+    reportId: input.reportId,
+    purpose: "synthesis",
+  });
+  onStepEnd?.(2);
+
+  return {
+    content: synthesisResponse.content ?? "",
+    sources: collectedSources,
+    durationMs: Date.now() - startTime,
+  };
 }
 
 export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
@@ -105,12 +216,41 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   let currentMessages: KemmaMessage[] = messages.filter((m) => m.role !== "system");
 
   const maxSteps = MAX_STEPS[tier];
-  const maxToolCalls = MAX_TOOL_CALLS[tier];
+  const defaultBudget = isThinking
+    ? (Number(process.env.KEMMA_TOOL_BUDGET) || 60)
+    : MAX_TOOL_CALLS[tier];
+  const maxToolCalls = input.toolBudget ?? defaultBudget;
+  const baseTools = input.allowedTools
+    ? KEMMA_TOOLS.filter((t) => input.allowedTools!.includes(t.name))
+    : KEMMA_TOOLS;
   const toolExecutions: ToolExecution[] = [];
   const modelsUsed: string[] = [];
+  const collectedSources: Source[] = [];
   let totalTokens = { input: 0, output: 0, total: 0 };
   let step = 0;
   let totalToolCallCount = 0;
+
+  const complexity = detectComplexity(currentMessages.map((m) => ({ role: m.role, content: m.content ?? "" })));
+  if (!input.isSubAgent && !onStream && complexity === "complex") {
+    const subResult = await runParallelSubAgents(input, lastUserMessage?.content ?? "", maxToolCalls, onNotice, onStepStart, onStepEnd);
+    if (subResult) {
+      await incrementQuota(userId, "message");
+      await incrementQuota(userId, "agentic_task");
+      if (isThinking) await incrementQuota(userId, "think");
+      const sources = subResult.sources;
+      const cited = sources.length > 0 ? appendCitations(subResult.content, sources) : { text: subResult.content };
+      return {
+        response: cited.text,
+        toolCalls: [],
+        isAgentic: true,
+        tokensUsed: { input: 0, output: 0, total: 0 },
+        modelsUsed: ["sub-agent synthesis"],
+        stepsUsed: 1,
+        durationMs: subResult.durationMs,
+        sources,
+      };
+    }
+  }
 
   while (step < maxSteps) {
     step++;
@@ -126,7 +266,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         route,
         systemPrompt,
         messages: currentMessages,
-        tools: offerTools ? KEMMA_TOOLS : undefined,
+        tools: offerTools ? baseTools : undefined,
         stream: !!onStream && !offerTools,
         onStream,
         onNotice,
@@ -160,6 +300,8 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         const toolDuration = Date.now() - toolStart;
         onToolEnd?.(tc.function.name, toolResult, toolDuration);
         toolExecutions.push({ tool: tc.function.name, input: parsedArgs, output: toolResult, step, durationMs: toolDuration });
+        const newSources = extractSources(tc.function.name, toolResult);
+        if (newSources.length > 0) collectedSources.push(...newSources);
         currentMessages.push({ role: "tool", content: JSON.stringify(toolResult), tool_call_id: tc.id, name: tc.function.name });
       }
 
@@ -177,6 +319,43 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     if (totalTokens.total > 0) await incrementQuota(userId, "token", totalTokens.total);
 
     let finalContent = llmResponse.content ?? "Done.";
+
+    // Deduplicate sources collected during tool use
+    let sources = dedupeSources(collectedSources);
+
+    // Optional citation verification pass (only for research-style runs with sources)
+    if (sources.length > 0 && isAgentic) {
+      try {
+        const verifyRouteConfig = verifyRoute();
+        if (verifyRouteConfig.apiKey) {
+          const claims = finalContent
+            .split(/\n\n+/)
+            .map((p) => p.trim())
+            .filter((p) => p.length > 20 && (p.includes("$") || /\d{4}|percent|growth|rate|score/i.test(p)));
+          sources = await verifyClaimsAgainstSources(claims.slice(0, 10), sources, async (prompt) => {
+            const res = await callLLM({
+              route: verifyRouteConfig,
+              systemPrompt: "You verify citations. Reply with JSON only.",
+              messages: [{ role: "user", content: prompt }],
+              stream: false,
+              userId,
+              sessionId,
+              reportId,
+              purpose: "verify",
+            });
+            return res.content ?? "[]";
+          });
+        }
+      } catch {
+        // Verification is best-effort; don't fail the answer.
+      }
+    }
+
+    // Append numbered source cards
+    if (sources.length > 0) {
+      const cited = appendCitations(finalContent, sources);
+      finalContent = cited.text;
+    }
 
     if (polish) {
       // Optional final polish via LiteLLM-only route.
@@ -206,12 +385,12 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
       }
     }
 
-    return { response: finalContent, toolCalls: toolExecutions, isAgentic, tokensUsed: totalTokens, modelsUsed: Array.from(new Set(modelsUsed)), stepsUsed: step, durationMs: Date.now() - startTime };
+    return { response: finalContent, toolCalls: toolExecutions, isAgentic, tokensUsed: totalTokens, modelsUsed: Array.from(new Set(modelsUsed)), stepsUsed: step, durationMs: Date.now() - startTime, sources };
   }
 
   await incrementQuota(userId, "message");
   if (toolExecutions.length >= 2) await incrementQuota(userId, "agentic_task");
-  return { response: "I have completed the available steps. Let me know if you need anything else.", toolCalls: toolExecutions, isAgentic: true, tokensUsed: totalTokens, modelsUsed: Array.from(new Set(modelsUsed)), stepsUsed: maxSteps, durationMs: Date.now() - startTime };
+  return { response: "I have completed the available steps. Let me know if you need anything else.", toolCalls: toolExecutions, isAgentic: true, tokensUsed: totalTokens, modelsUsed: Array.from(new Set(modelsUsed)), stepsUsed: maxSteps, durationMs: Date.now() - startTime, sources: dedupeSources(collectedSources) };
 }
 
 export async function kemmaVisionExecute(input: VisionEngineInput): Promise<EngineOutput> {
@@ -254,6 +433,7 @@ export async function kemmaVisionExecute(input: VisionEngineInput): Promise<Engi
       modelsUsed: [route.label],
       stepsUsed: 1,
       durationMs: Date.now() - startTime,
+      sources: [],
     };
   } catch (err) {
     console.error("[kemmaVisionExecute] Error:", err);
@@ -406,7 +586,7 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
       if (m.role === "assistant" && m.tool_calls) return { role: "assistant" as const, content: [...(m.content ? [{ type: "text" as const, text: m.content }] : []), ...m.tool_calls.map((tc) => ({ type: "tool_use" as const, id: tc.id, name: tc.function.name, input: JSON.parse(tc.function.arguments || "{}") }))] };
       return { role: m.role as "user" | "assistant", content: m.content ?? "" };
     });
-    const anthropicTools = tools ? tools.map((t) => ({ name: t.function.name, description: t.function.description, input_schema: t.function.parameters })) : undefined;
+    const anthropicTools = tools ? tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.parameters })) : undefined;
 
     if (stream && onStream) {
       let fullContent = "";
@@ -428,7 +608,7 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
   const body = {
     model: route.model,
     messages: [{ role: "system", content: systemPrompt }, ...messages.filter((m) => m.role !== "system")],
-    tools,
+    tools: tools ? tools.map((t) => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.parameters } })) : undefined,
     tool_choice: tools ? "auto" : undefined,
     stream: stream && !!onStream,
     max_tokens: 4096,
@@ -479,5 +659,5 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
 }
 
 function makeErrorResponse(message: string, startTime: number): EngineOutput {
-  return { response: message, toolCalls: [], isAgentic: false, tokensUsed: { input: 0, output: 0, total: 0 }, modelsUsed: [], stepsUsed: 0, durationMs: Date.now() - startTime };
+  return { response: message, toolCalls: [], isAgentic: false, tokensUsed: { input: 0, output: 0, total: 0 }, modelsUsed: [], stepsUsed: 0, durationMs: Date.now() - startTime, sources: [] };
 }

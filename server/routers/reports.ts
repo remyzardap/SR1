@@ -265,7 +265,7 @@ Include: executive summary, itemized expense table with vendor/date/amount/categ
       const apiKeyRecord = await getApiKeyByUser(ctx.user.id);
       const style = STYLE_DEFINITIONS.find((s) => s.id === input.styleId) ?? STYLE_DEFINITIONS[1];
       const llmConfig = apiKeyRecord ? { provider: apiKeyRecord.provider as any, apiKey: apiKeyRecord.encryptedKey } : null;
-      const content = await generateDocumentContent(prompt, input.format, style.label, llmConfig, "complex");
+      const content = await generateDocumentContent(prompt, input.format, style.label, llmConfig);
       const generated = await generateFile(content, input.format, style as any);
 
       const fileKey = `user-${ctx.user.id}/tax-reports/tax-${monthLabel}-${Date.now()}.${generated.extension}`;
