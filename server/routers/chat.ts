@@ -6,11 +6,11 @@
  *
  * S1 patch: replaced manual provider dropdown with intelligent S1 routing.
  * The client no longer needs to specify a provider — S1 classifies the query
- * and picks the best agent (Qwen / Gemini / Sonar) automatically.
+ * and blends Qwen + Gemini (+ Sonar for web questions) into one answer.
  *
  * New SSE event emitted before streaming:
  *   event: agent
- *   data: { "agent": "qwen", "label": "Qwen", "reason": "writing, documentation & quick tasks", "emoji": "✍", "color": "#7c3aed" }
+ *   data: { "agent": "blend", "label": "S1 Blend", "reason": "Qwen + Gemini (+ Sonar for web) combined", "emoji": "🧬", "color": "#f2f2f2" }
  */
 
 import type { Router } from "express";
@@ -25,7 +25,7 @@ import {
 } from "../db";
 import type { Skill, Memory } from "../../drizzle/schema";
 import { chatMessages } from "../../drizzle/schema";
-import { s1Route, buildS1SystemPrompt, buildGoogleToolPrompt, detectGoogleIntent } from "./s1Router";
+import { s1Blend, S1_BLEND_INFO, buildS1SystemPrompt, buildGoogleToolPrompt, detectGoogleIntent } from "./s1Router";
 import { getConnectionStatus, listEmails, listCalendarEvents, listDriveFiles } from "../services/google";
 import { openclaw } from "../lib/openclaw";
 
@@ -161,7 +161,7 @@ export function registerChatStreamRoute(app: Router) {
     // ── 4. S1 routing — classify the latest user message ────────────────────
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
     const latestText = lastUserMsg?.content ?? "";
-    const { info: agentInfo, config: agentConfig } = s1Route(latestText, max);
+    const agentInfo = S1_BLEND_INFO;
 
     // ── 5. Build system prompt ───────────────────────────────────────────────
     const identityContext = buildIdentityContext(identity, memories, skills);
@@ -234,6 +234,19 @@ export function registerChatStreamRoute(app: Router) {
     // ── 7. Emit agent selection event (before streaming) ────────────────────
     sseWriteJson(res, "agent", agentInfo);
 
+    // ── 7b. Blend Qwen + Gemini (+ Sonar) into one synthesis request ─────────
+    let agentConfig: Awaited<ReturnType<typeof s1Blend>>["config"];
+    let blendedMessages: typeof fullMessages;
+    try {
+      const plan = await s1Blend(latestText, fullMessages, { max });
+      agentConfig = plan.config;
+      blendedMessages = plan.messages as typeof fullMessages;
+    } catch (err) {
+      sseWrite(res, "error", String((err as Error).message ?? err));
+      res.end();
+      return;
+    }
+
     // ── 8. Call LLM with streaming ───────────────────────────────────────────
     // For Vertex AI, exchange service account credentials for a Bearer token
     let bearerToken = agentConfig.apiKey;
@@ -263,7 +276,7 @@ export function registerChatStreamRoute(app: Router) {
         headers,
         body: JSON.stringify({
           model: agentConfig.model,
-          messages: fullMessages,
+          messages: blendedMessages,
           stream: true,
           max_tokens: 4096,
         }),

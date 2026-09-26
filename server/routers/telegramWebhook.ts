@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { getOrCreateTelegramUser } from "../services/telegram";
-import { s1Route, buildS1SystemPrompt } from "./s1Router";
+import { s1Blend, buildS1SystemPrompt, resolveBearer } from "./s1Router";
 
 export function registerTelegramWebhookRoute(app: Express) {
   const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -57,19 +57,22 @@ export function registerTelegramWebhookRoute(app: Express) {
       } else {
         // Direct S1 routing (fallback)
         console.log("[Telegram] No OpenClaw configured. Using direct S1 routing.");
-        const { config: agentConfig } = s1Route(messageText, false);
         const systemPrompt = buildS1SystemPrompt({ agent: "s1", label: "Kemma", reason: "chat", emoji: "🧠", color: "#E8442A" });
 
-        const fullMessages = [
-          { role: "system" as const, content: systemPrompt },
-          { role: "user" as const, content: messageText },
-        ];
+        const { config: agentConfig, messages: fullMessages } = await s1Blend(
+          messageText,
+          [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: messageText },
+          ],
+          { draftMaxTokens: 500 },
+        );
 
         const llmResponse = await globalThis.fetch(`${agentConfig.baseUrl}/chat/completions`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${agentConfig.apiKey}`,
+            Authorization: `Bearer ${await resolveBearer(agentConfig)}`,
           },
           body: JSON.stringify({
             model: agentConfig.model,

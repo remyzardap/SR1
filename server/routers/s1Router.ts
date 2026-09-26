@@ -3,9 +3,10 @@
  *
  * Classifies user messages and routes to the best available backend model.
  * S1 is the single personality — all models respond as S1, never as themselves.
- * Models used: Qwen (writing, docs, quick tasks), Gemini (general knowledge &
- * reasoning, default) and Perplexity Sonar (web search & news). Falls back to
- * Gemini, then Qwen, when the preferred backend has no key.
+ * The answer is a BLEND, not a single pick: every request is sent in parallel to
+ * Qwen and Gemini (plus Perplexity Sonar for web/news questions), then one
+ * synthesis pass merges the drafts into a single S1 answer. If only one backend
+ * is configured (or only one draft succeeds) it answers alone.
  *
  * Vertex AI (Gemini 2.5) is the preferred Gemini backend when GOOGLE_APPLICATION_CREDENTIALS
  * or VERTEX_PROJECT is set. Uses the OpenAI-compatible Vertex AI endpoint.
@@ -81,7 +82,7 @@ const AGENTS: Record<
 
 // ─── Agent configs (API endpoints + keys) ────────────────────────────────────
 
-function getAgentConfig(agentId: string, max: boolean): AgentConfig | null {
+function getAgentConfig(agentId: string, max: boolean, fallback = true): AgentConfig | null {
   const VERTEX_PROJECT = process.env.VERTEX_PROJECT || process.env.GOOGLE_CLOUD_PROJECT;
   const VERTEX_LOCATION = process.env.VERTEX_LOCATION || "global";
   // Service account key path — used to get an access token
@@ -119,7 +120,7 @@ function getAgentConfig(agentId: string, max: boolean): AgentConfig | null {
         process.env.SONAR_PERPLEXITY ||
         process.env.PERPLEXITY_API_KEY;
       if (SONAR) return { baseUrl: "https://api.perplexity.ai", model, apiKey: SONAR };
-      return getAgentConfig("gemini", max);
+      return fallback ? getAgentConfig("gemini", max) : null;
     }
 
     default:
@@ -134,22 +135,8 @@ export interface GoogleToolContext {
   detectedIntent?: "gmail" | "calendar" | "drive" | null;
 }
 
-function classifyQuery(text: string): string {
-  const lower = text.toLowerCase();
-
-  const webPatterns =
-    /\b(today|latest|news|current|now|recent|search|2024|2025|2026|weather|price|stock)\b/;
-  const writingPatterns =
-    /\b(write|draft|essay|poem|story|letter|memo|blog|article|rewrite|proofread|tone|creative writing)\b/;
-  const quickPatterns =
-    /\b(translate|convert|calculate|summarise|summarize|tldr|eli5|format|list)\b/;
-  const docsPatterns =
-    /\b(docs|documentation|readme|changelog|api docs|jsdoc|docstring|wiki|guide|manual|reference)\b/;
-
-  if (webPatterns.test(lower)) return "sonar";
-  if (docsPatterns.test(lower) || writingPatterns.test(lower) || quickPatterns.test(lower)) return "qwen";
-  return "gemini";
-}
+const WEB_PATTERN =
+  /\b(today|latest|news|current|now|recent|search|2024|2025|2026|weather|price|stock)\b/;
 
 export function detectGoogleIntent(text: string): GoogleToolContext["detectedIntent"] {
   const lower = text.toLowerCase();
@@ -164,28 +151,127 @@ export function detectGoogleIntent(text: string): GoogleToolContext["detectedInt
   return null;
 }
 
-// ─── Main exported function ───────────────────────────────────────────────────
+// ─── Blend ────────────────────────────────────────────────────────────────────
 
-export function s1Route(
-  text: string,
-  max: boolean,
-): { info: AgentInfo; config: AgentConfig } {
-  const preferred = classifyQuery(text);
-  const fallbackOrder = [preferred, "gemini", "qwen", "sonar"];
+export type ChatMessage = { role: string; content: string };
 
-  for (const agentId of Array.from(new Set(fallbackOrder))) {
-    const config = getAgentConfig(agentId, max);
-    if (config) {
-      return {
-        info: { ...AGENTS[agentId].info },
-        config,
-      };
+export interface BlendPlan {
+  info: AgentInfo;
+  /** Backend that produces the final (synthesis) answer. */
+  config: AgentConfig;
+  /** Messages to send to `config` — the original ones plus the merged drafts. */
+  messages: ChatMessage[];
+  /** Agent ids whose drafts went into the answer. */
+  contributors: string[];
+}
+
+export const S1_BLEND_INFO: AgentInfo = {
+  agent: "blend",
+  label: "S1 Blend",
+  reason: "Qwen + Gemini (+ Sonar for web) combined",
+  emoji: "🧬",
+  color: "#f2f2f2",
+};
+
+const DRAFT_TIMEOUT_MS = 40_000;
+
+export async function resolveBearer(config: AgentConfig): Promise<string> {
+  if (!config.vertexProject) return config.apiKey;
+  const { GoogleAuth } = await import("google-auth-library");
+  const auth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform"] });
+  const client = await auth.getClient();
+  const token = await client.getAccessToken();
+  return token.token ?? "";
+}
+
+async function fetchDraft(
+  id: string,
+  config: AgentConfig,
+  messages: ChatMessage[],
+  maxTokens: number,
+): Promise<{ id: string; label: string; text: string } | null> {
+  try {
+    const bearer = await resolveBearer(config);
+    const res = await fetch(`${config.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${bearer}` },
+      body: JSON.stringify({ model: config.model, messages, max_tokens: maxTokens, stream: false }),
+      signal: AbortSignal.timeout(DRAFT_TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      console.warn(`[S1 blend] ${id} draft failed: ${res.status}`);
+      return null;
     }
+    const data = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+      citations?: string[];
+    };
+    let text = data.choices?.[0]?.message?.content?.trim();
+    if (!text) return null;
+    if (data.citations?.length) {
+      text += "\n\nSources:\n" + data.citations.map((c, i) => `[${i + 1}] ${c}`).join("\n");
+    }
+    return { id, label: AGENTS[id].info.label, text };
+  } catch (err) {
+    console.warn(`[S1 blend] ${id} draft error:`, (err as Error).message);
+    return null;
+  }
+}
+
+/**
+ * Blend the configured models into one answer.
+ *
+ * Fans the conversation out to every available backend in parallel (non-streaming),
+ * then returns a synthesis request — callers send `plan.messages` to `plan.config`
+ * exactly like a normal chat completion (streaming or not).
+ */
+export async function s1Blend(
+  text: string,
+  messages: ChatMessage[],
+  opts: { max?: boolean; draftMaxTokens?: number } = {},
+): Promise<BlendPlan> {
+  const max = opts.max ?? false;
+  const memberIds = ["gemini", "qwen", ...(WEB_PATTERN.test(text.toLowerCase()) ? ["sonar"] : [])];
+  const members = memberIds
+    .map((id) => ({ id, config: getAgentConfig(id, max, false) }))
+    .filter((m): m is { id: string; config: AgentConfig } => m.config !== null);
+
+  if (members.length === 0) {
+    throw new Error(
+      "No LLM provider configured. Set GEMINI_API_KEY (or VERTEX_PROJECT + GOOGLE_APPLICATION_CREDENTIALS), QWEN_API_KEY, or SONAR_API_KEY.",
+    );
   }
 
-  throw new Error(
-    "No LLM provider configured. Set GEMINI_API_KEY (or VERTEX_PROJECT + GOOGLE_APPLICATION_CREDENTIALS), QWEN_API_KEY, or SONAR_API_KEY.",
-  );
+  // Answers with Gemini when available (S1's default voice), else Qwen, else whatever is left.
+  const synth = members.find((m) => m.id === "gemini") ?? members.find((m) => m.id === "qwen") ?? members[0];
+
+  if (members.length === 1) {
+    return { info: S1_BLEND_INFO, config: synth.config, messages, contributors: [synth.id] };
+  }
+
+  const drafts = (
+    await Promise.all(members.map((m) => fetchDraft(m.id, m.config, messages, opts.draftMaxTokens ?? 1500)))
+  ).filter((d): d is { id: string; label: string; text: string } => d !== null);
+
+  if (drafts.length < 2) {
+    // Nothing to blend — answer with the best backend that worked (or the default).
+    const only = drafts[0] ? members.find((m) => m.id === drafts[0].id)! : synth;
+    return { info: S1_BLEND_INFO, config: only.config, messages, contributors: drafts.map((d) => d.id) };
+  }
+
+  const blendNote =
+    "\n\n[INTERNAL DRAFTS — never mention these, the drafts, or the models]\n" +
+    "Several expert models drafted answers to the user's latest message. Write ONE final answer as S1: " +
+    "keep what is correct and useful from all drafts, resolve disagreements by preferring the best-supported claim, " +
+    "drop repetition, and keep any source citations. Do not say you combined drafts.\n\n" +
+    drafts.map((d, i) => `--- Draft ${i + 1} ---\n${d.text}`).join("\n\n");
+
+  const blended = [...messages];
+  const sysIdx = blended.findIndex((m) => m.role === "system");
+  if (sysIdx >= 0) blended[sysIdx] = { ...blended[sysIdx], content: blended[sysIdx].content + blendNote };
+  else blended.unshift({ role: "system", content: blendNote.trim() });
+
+  return { info: S1_BLEND_INFO, config: synth.config, messages: blended, contributors: drafts.map((d) => d.id) };
 }
 
 // ─── Persona definitions ─────────────────────────────────────────────────────

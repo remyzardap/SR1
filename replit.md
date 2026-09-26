@@ -9,7 +9,7 @@ Sutaeru is a **personal AI identity and memory platform** ("soul-cloud"). Users 
 - **Skills**: Reusable AI capabilities (prompts, behaviors, workflows) that can be public or private
 - **Memories**: Structured long-term knowledge storage (5 types) injected into chat context
 - **Connections**: Secure links to OAuth services and third-party API keys (the LLM is chosen by the platform, never by the customer)
-- **Chat (S1)**: Streaming SSE chat with automatic intelligent agent routing across Qwen, Gemini and Sonar. Google Workspace integration (Gmail/Calendar/Drive) connected to S1 — when user asks about emails, calendar, or files, S1 detects the intent and injects live Google data into context
+- **Chat (S1)**: Streaming SSE chat with a blended answer from Qwen and Gemini (plus Sonar for web questions). Google Workspace integration (Gmail/Calendar/Drive) connected to S1 — when user asks about emails, calendar, or files, S1 detects the intent and injects live Google data into context
 - **FileForge**: Prompt-to-document generation (PDF, DOCX, XLSX, PPTX, Markdown)
 - **Image Generation**: Gemini image model via Vertex AI
 - **HER Voice**: ElevenLabs conversational AI assistant with personality styles
@@ -53,12 +53,11 @@ The frontend is a single-page application. Protected routes redirect unauthentic
 - **File serving**: In dev, Vite middleware; in prod, `express.static` from `dist/public` with SPA fallback
 
 #### S1 Intelligent Routing Layer
-S1 is the single user-facing AI entity with one consistent personality. The underlying models are invisible — the user always sees "S1", never individual model names. Internally, `server/routers/s1Router.ts` classifies messages and routes to the best backend model:
-- Gemini — **default**, general knowledge and reasoning
-- Qwen — writing, documentation, quick tasks (translation, formatting)
-- Sonar (Perplexity) — web/real-time search queries
+S1 is the single user-facing AI entity with one consistent personality. The underlying models are invisible — the user always sees "S1", never individual model names. Internally, `server/routers/s1Router.ts` does not pick one model — `s1Blend()` sends each request in parallel to every configured backend and merges the drafts into one answer:
+- Gemini and Qwen — always
+- Sonar (Perplexity) — added for web/real-time queries (its citations are kept)
 
-Fallback order: `preferred → gemini → qwen → sonar`. The system prompt enforces a strong unified personality — S1 never acknowledges which model is running underneath.
+A synthesis pass (Gemini, else Qwen) writes the single S1 reply, which callers stream as usual. If only one backend is configured or only one draft succeeds, it answers alone. Covered by `server/s1Blend.test.ts`. The system prompt enforces a strong unified personality — S1 never acknowledges which model is running underneath.
 
 #### Google Workspace Integration
 `server/services/google.ts` provides OAuth2 flow + Gmail, Calendar, and Drive API wrappers. `server/routers/google.ts` exposes tRPC endpoints for connect/disconnect/list/send. `server/routers/googleCallback.ts` handles the OAuth callback via Express. When a user asks S1 about emails, calendar events, or files, the chat router detects the intent via `detectGoogleIntent()` and injects live Google data into the system prompt. Requires `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` env vars. Token storage: `google_tokens` table.
