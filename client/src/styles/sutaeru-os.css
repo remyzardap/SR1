@@ -10,67 +10,67 @@
     /* === DARK MODE (default) === */
 
     /* Surfaces — Debtrix navy-charcoal + MagicDraft deep black */
-    --os-bg:          #0c0c10;
-    --os-bg-raised:   #111116;
-    --os-bg-card:     #16161c;
-    --os-bg-card-alt: #1c1c24;
-    --os-bg-input:    #1e1e26;
-    --os-bg-overlay:  rgba(12, 12, 16, 0.88);
+    --os-bg:          #F7F6F2;
+    --os-bg-raised:   #FFFFFF;
+    --os-bg-card:     #FFFFFF;
+    --os-bg-card-alt: #EFEDE7;
+    --os-bg-input:    #FFFFFF;
+    --os-bg-overlay:  rgba(247, 246, 242, 0.92);
 
     /* Borders — AKIRA style: subtle with blue glow on focus */
-    --os-border:        rgba(255, 255, 255, 0.06);
-    --os-border-subtle: rgba(255, 255, 255, 0.04);
-    --os-border-hover:  rgba(255, 255, 255, 0.10);
-    --os-border-focus:  rgba(78, 130, 238, 0.40);
+    --os-border:        rgba(36, 35, 32, 0.10);
+    --os-border-subtle: rgba(36, 35, 32, 0.06);
+    --os-border-hover:  rgba(36, 35, 32, 0.18);
+    --os-border-focus:  rgba(36, 35, 32, 0.35);
 
     /* Text */
-    --os-text:         #eaeaea;
-    --os-text-sub:     rgba(234, 234, 234, 0.55);
-    --os-text-muted:   rgba(234, 234, 234, 0.30);
-    --os-text-inverse: #0c0c10;
+    --os-text:         #242320;
+    --os-text-sub:     rgba(36, 35, 32, 0.58);
+    --os-text-muted:   #8B8B8B;
+    --os-text-inverse: #F7F6F2;
 
     /* Accent: Amber/Gold — Debtrix primary */
-    --os-amber:        #F5A623;
-    --os-amber-dim:    rgba(245, 166, 35, 0.10);
-    --os-amber-glow:   0 0 20px rgba(245, 166, 35, 0.15);
+    --os-amber:        #242320;
+    --os-amber-dim:    rgba(36, 35, 32, 0.07);
+    --os-amber-glow:   0 0 20px rgba(36, 35, 32, 0.08);
 
     /* Accent: Electric Blue — AKIRA buttons & glow */
-    --os-blue:         #4E82EE;
-    --os-blue-dim:     rgba(78, 130, 238, 0.10);
-    --os-blue-glow:    0 0 24px rgba(78, 130, 238, 0.20);
-    --os-blue-solid:   #3B82F6;
+    --os-blue:         #242320;
+    --os-blue-dim:     rgba(36, 35, 32, 0.07);
+    --os-blue-glow:    0 0 24px rgba(36, 35, 32, 0.10);
+    --os-blue-solid:   #242320;
 
     /* Accent: Teal — MagicDraft sidebar & success */
-    --os-teal:         #14B8A6;
-    --os-teal-dim:     rgba(20, 184, 166, 0.10);
-    --os-teal-glow:    0 0 20px rgba(20, 184, 166, 0.15);
+    --os-teal:         #4A4A46;
+    --os-teal-dim:     rgba(36, 35, 32, 0.07);
+    --os-teal-glow:    0 0 20px rgba(36, 35, 32, 0.08);
 
     /* Accent: Indigo — charts & memory */
-    --os-indigo:       #8B5CF6;
-    --os-indigo-dim:   rgba(139, 92, 246, 0.10);
+    --os-indigo:       #6E6E6A;
+    --os-indigo-dim:   rgba(36, 35, 32, 0.06);
 
     /* Accent: Orange — tasks & warnings */
-    --os-orange:       #F59E0B;
-    --os-orange-dim:   rgba(245, 158, 11, 0.10);
+    --os-orange:       #8B8B8B;
+    --os-orange-dim:   rgba(139, 139, 139, 0.12);
 
     /* Accent: Green — files & success */
-    --os-green:        #22C55E;
-    --os-green-dim:    rgba(34, 197, 94, 0.10);
+    --os-green:        #4F6B4F;
+    --os-green-dim:    rgba(79, 107, 79, 0.10);
 
     /* Accent: Pink/Magenta — charts (from fitness ref) */
-    --os-pink:         #EC4899;
-    --os-pink-dim:     rgba(236, 72, 153, 0.10);
+    --os-pink:         #8B8B8B;
+    --os-pink-dim:     rgba(139, 139, 139, 0.12);
 
     /* Accent: Red — alerts */
-    --os-red:          #EF4444;
-    --os-red-dim:      rgba(239, 68, 68, 0.10);
+    --os-red:          #B3402A;
+    --os-red-dim:      rgba(179, 64, 42, 0.10);
 
     /* Stat card colored backgrounds (Debtrix-style) */
-    --os-stat-amber:   linear-gradient(145deg, #2e2310 0%, #1c1a14 100%);
-    --os-stat-blue:    linear-gradient(145deg, #141c2e 0%, #12141c 100%);
-    --os-stat-teal:    linear-gradient(145deg, #0e2420 0%, #10161c 100%);
-    --os-stat-indigo:  linear-gradient(145deg, #1a142e 0%, #14121c 100%);
-    --os-stat-pink:    linear-gradient(145deg, #2a1224 0%, #1c1018 100%);
+    --os-stat-amber:   linear-gradient(145deg, #EFEDE7 0%, #F7F6F2 100%);
+    --os-stat-blue:    linear-gradient(145deg, #EFEDE7 0%, #F7F6F2 100%);
+    --os-stat-teal:    linear-gradient(145deg, #EFEDE7 0%, #F7F6F2 100%);
+    --os-stat-indigo:  linear-gradient(145deg, #EFEDE7 0%, #F7F6F2 100%);
+    --os-stat-pink:    linear-gradient(145deg, #EFEDE7 0%, #F7F6F2 100%);
 
     /* Shadows — 5-layer depth like sales dashboard */
     --os-shadow-sm:
@@ -110,9 +110,9 @@
     );
 
     /* Sidebar — MagicDraft style */
-    --os-sidebar-bg:     #0f0f13;
-    --os-sidebar-active:  rgba(20, 184, 166, 0.10);
-    --os-sidebar-accent:  var(--os-teal);
+    --os-sidebar-bg:     #F7F6F2;
+    --os-sidebar-active:  rgba(36, 35, 32, 0.07);
+    --os-sidebar-accent:  #242320;
     --os-sidebar-width:   260px;
 
     /* Card radius (Debtrix uses ~16-20px, AKIRA uses ~12-16px) */
@@ -128,10 +128,10 @@
     --os-ease-bounce:  cubic-bezier(0.34, 1.56, 0.64, 1);
 
     /* Typography */
-    --os-font-display: 'DM Serif Display', serif;
-    --os-font-body:    'DM Sans', sans-serif;
-    --os-font-mono:    'DM Mono', monospace;
-    --os-font-ui:      'Space Grotesk', sans-serif;
+    --os-font-display: 'Sora', sans-serif;
+    --os-font-body:    'Manrope', sans-serif;
+    --os-font-mono:    'JetBrains Mono', monospace;
+    --os-font-ui:      'Sora', sans-serif;
   }
 
   /* ========================================
@@ -139,42 +139,42 @@
    * Ref: IMG_6200 — olive/sage cards, white bg, green accents
    * ======================================== */
   .light, [data-theme='light'] {
-    --os-bg:          #f2f4ec;
-    --os-bg-raised:   #f7f8f3;
+    --os-bg:          #F7F6F2;
+    --os-bg-raised:   #FFFFFF;
     --os-bg-card:     #ffffff;
-    --os-bg-card-alt: #f0f2ea;
-    --os-bg-input:    #eef0e8;
-    --os-bg-overlay:  rgba(242, 244, 236, 0.90);
+    --os-bg-card-alt: #EFEDE7;
+    --os-bg-input:    #FFFFFF;
+    --os-bg-overlay:  rgba(247, 246, 242, 0.92);
 
     --os-border:        rgba(0, 0, 0, 0.06);
     --os-border-subtle: rgba(0, 0, 0, 0.03);
     --os-border-hover:  rgba(0, 0, 0, 0.10);
-    --os-border-focus:  rgba(76, 140, 74, 0.35);
+    --os-border-focus:  rgba(36, 35, 32, 0.35);
 
-    --os-text:         #1a1e1a;
-    --os-text-sub:     rgba(26, 30, 26, 0.55);
-    --os-text-muted:   rgba(26, 30, 26, 0.30);
-    --os-text-inverse: #f2f4ec;
+    --os-text:         #242320;
+    --os-text-sub:     rgba(36, 35, 32, 0.58);
+    --os-text-muted:   #8B8B8B;
+    --os-text-inverse: #F7F6F2;
 
     /* Light mode uses sage green as primary */
-    --os-amber:        #6B8E4E;       /* Olive green replaces amber */
-    --os-amber-dim:    rgba(107, 142, 78, 0.08);
-    --os-amber-glow:   0 0 16px rgba(107, 142, 78, 0.10);
+    --os-amber:        #242320;
+    --os-amber-dim:    rgba(36, 35, 32, 0.07);
+    --os-amber-glow:   0 0 16px rgba(36, 35, 32, 0.08);
 
-    --os-blue:         #4C8C4A;       /* Forest green replaces blue */
-    --os-blue-dim:     rgba(76, 140, 74, 0.08);
-    --os-blue-glow:    0 0 16px rgba(76, 140, 74, 0.12);
-    --os-blue-solid:   #4C8C4A;
+    --os-blue:         #242320;
+    --os-blue-dim:     rgba(36, 35, 32, 0.07);
+    --os-blue-glow:    0 0 16px rgba(36, 35, 32, 0.10);
+    --os-blue-solid:   #242320;
 
-    --os-teal:         #3D8B6E;
-    --os-teal-dim:     rgba(61, 139, 110, 0.08);
+    --os-teal:         #4A4A46;
+    --os-teal-dim:     rgba(36, 35, 32, 0.07);
 
     /* Stat card backgrounds — soft sage tints */
-    --os-stat-amber:   linear-gradient(145deg, #e8ecd8 0%, #f5f6ef 100%);
-    --os-stat-blue:    linear-gradient(145deg, #dde8d8 0%, #f0f4ea 100%);
-    --os-stat-teal:    linear-gradient(145deg, #d4e8e0 0%, #eef4ef 100%);
-    --os-stat-indigo:  linear-gradient(145deg, #e2dce8 0%, #f2f0f6 100%);
-    --os-stat-pink:    linear-gradient(145deg, #e8d8de 0%, #f6f0f2 100%);
+    --os-stat-amber:   linear-gradient(145deg, #EFEDE7 0%, #F7F6F2 100%);
+    --os-stat-blue:    linear-gradient(145deg, #EFEDE7 0%, #F7F6F2 100%);
+    --os-stat-teal:    linear-gradient(145deg, #EFEDE7 0%, #F7F6F2 100%);
+    --os-stat-indigo:  linear-gradient(145deg, #EFEDE7 0%, #F7F6F2 100%);
+    --os-stat-pink:    linear-gradient(145deg, #EFEDE7 0%, #F7F6F2 100%);
 
     /* Lighter shadows */
     --os-shadow-sm:

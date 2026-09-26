@@ -160,7 +160,7 @@ function TranscriptContent({ content }: { content: Record<string, unknown> }) {
 function NoteContent({ content }: { content: Record<string, unknown> }) {
   return (
     <p className="text-[14px] leading-relaxed whitespace-pre-wrap line-clamp-8"
-      style={{ color: "rgba(242,242,242,0.75)", fontFamily: "'DM Sans', sans-serif" }}>
+      style={{ color: "rgba(242,242,242,0.75)", fontFamily: "'Manrope', sans-serif" }}>
       {content.text as string ?? "Empty note"}
     </p>
   );

@@ -7,6 +7,7 @@ import superjson from "superjson";
 import App from "./App";
 import "./index.css";
 import "./styles/sutaeru-os.css";
+import "./styles/preview.css";
 
 const queryClient = new QueryClient();
 

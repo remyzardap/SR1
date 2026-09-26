@@ -4,6 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
+import { LandingMark } from "@/components/LandingMark";
+import { OrbitalSystem } from "../landing/FigureEffects";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Email or handle is required"),
@@ -25,15 +27,6 @@ type LoginForm = z.infer<typeof loginSchema>;
 type RegisterForm = z.infer<typeof registerSchema>;
 type FounderForm = z.infer<typeof founderSchema>;
 
-const SLogo = () => (
-  <svg width="64" height="38" viewBox="0 0 96 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M48,28 C45,20 38,8 26,8 C12,8 4,17 4,28 C4,39 12,48 26,48 C38,48 45,36 48,28 C51,20 58,8 70,8 C84,8 92,17 92,28 C92,39 84,48 70,48 C58,48 51,36 48,28Z" stroke="currentColor" strokeWidth="5.5" strokeLinejoin="round" fill="none"/>
-    <line x1="62" y1="19" x2="78" y2="19" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-    <path d="M60,28 C60,24.5 63.5,22.5 66.5,24 C67,21.5 70,20.5 72.5,22 C74.5,20.5 79,21.5 79,25 C79,28 76,29.5 73,29 C72,30.5 67,30.5 65.5,29 C62.5,29 60,28.8 60,28Z" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-    <line x1="59" y1="34" x2="81" y2="34" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-    <path d="M67.5,34 L70,38.5 L72.5,34" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-  </svg>
-);
 
 function FounderLoginForm({ inputStyle, labelStyle }: { inputStyle: React.CSSProperties; labelStyle: React.CSSProperties }) {
   const [, navigate] = useLocation();
@@ -51,7 +44,7 @@ function FounderLoginForm({ inputStyle, labelStyle }: { inputStyle: React.CSSPro
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('/api/trpc/auth.founderLogin', {
+      const res = await fetch(`${import.meta.env.VITE_SR1_API_ORIGIN || ''}/api/trpc/auth.founderLogin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -91,7 +84,7 @@ function FounderLoginForm({ inputStyle, labelStyle }: { inputStyle: React.CSSPro
       <button data-testid="button-founder-login" type="submit" disabled={loading} style={{
         width: '100%', padding: '15px', borderRadius: 'var(--r-sm, 12px)', border: 'none',
         background: 'var(--btn-fill, #f2f2f2)', color: 'var(--btn-ink, #050505)',
-        fontFamily: 'var(--font-d, "Syne", sans-serif)', fontSize: '13px', fontWeight: 800,
+        fontFamily: 'var(--font-d)', fontSize: '13px', fontWeight: 800,
         letterSpacing: '.06em', textTransform: 'uppercase' as const,
         cursor: loading ? 'not-allowed' : 'pointer',
         transition: 'all .22s', marginTop: '2px', opacity: loading ? 0.6 : 1,
@@ -149,15 +142,15 @@ export default function Login() {
     borderRadius: 'var(--r-sm, 12px)',
     background: 'var(--card, rgba(255,255,255,0.07))',
     border: '1px solid var(--glass-border, rgba(255,255,255,0.18))',
-    color: 'var(--foreground, #f5f2ed)',
-    fontFamily: 'var(--font-b, "DM Sans", sans-serif)',
-    fontSize: '14px', outline: 'none',
+    color: 'var(--foreground)',
+    fontFamily: 'var(--font-b, "Manrope", sans-serif)',
+    fontSize: '16px', outline: 'none',
     WebkitAppearance: 'none' as any,
     transition: 'border-color .2s, background .2s',
     boxSizing: 'border-box' as const,
   };
   const labelStyle: React.CSSProperties = {
-    fontFamily: 'var(--font-d, "Syne", sans-serif)', fontSize: '9px', fontWeight: 700,
+    fontFamily: 'var(--font-d)', fontSize: '9px', fontWeight: 700,
     letterSpacing: '.14em', textTransform: 'uppercase' as const,
     color: 'var(--muted-foreground, rgba(245,242,237,0.40))', padding: '0 3px',
   };
@@ -169,13 +162,14 @@ export default function Login() {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0,
+      minHeight: '100dvh',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: 'var(--background, #0d0a1a)',
-      color: 'var(--foreground, #f5f2ed)',
-      fontFamily: 'var(--font-b, "DM Sans", sans-serif)',
+      color: 'var(--foreground)',
+      fontFamily: 'var(--font-b, "Manrope", sans-serif)',
       padding: '24px',
     }}>
+      <div className="sutaeru-desktop-art" aria-hidden="true"><OrbitalSystem visible={true} /></div>
       {/* Radial glow */}
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
@@ -192,9 +186,9 @@ export default function Login() {
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
           marginBottom: '44px',
         }}>
-          <SLogo />
+          <LandingMark className="sutaeru-login-mark" />
           <span style={{
-            fontFamily: 'var(--font-d, "Syne", sans-serif)', fontWeight: 800, fontSize: '12px',
+            fontFamily: 'var(--font-d)', fontWeight: 800, fontSize: '12px',
             letterSpacing: '.2em', textTransform: 'uppercase' as const,
             color: 'var(--muted-foreground, rgba(245,242,237,0.55))',
           }}>Sutaeru</span>
@@ -228,7 +222,7 @@ export default function Login() {
                 style={{
                   flex: 1, padding: '11px',
                   borderRadius: 'calc(var(--r-lg, 24px) - 8px)',
-                  fontFamily: 'var(--font-d, "Syne", sans-serif)', fontSize: '11px', fontWeight: 700,
+                  fontFamily: 'var(--font-d)', fontSize: '11px', fontWeight: 700,
                   letterSpacing: '.08em', textTransform: 'uppercase' as const, textAlign: 'center' as const,
                   color: tab === t.key ? 'var(--t1, #f2f2f2)' : 'var(--t3, rgba(242,242,242,0.22))',
                   cursor: 'pointer', transition: 'all .22s', border: 'none',
@@ -273,7 +267,7 @@ export default function Login() {
                 <button data-testid="button-signin" type="submit" disabled={loginMutation.isPending} style={{
                   width: '100%', padding: '15px', borderRadius: 'var(--r-sm, 12px)', border: 'none',
                   background: 'var(--btn-fill, #f2f2f2)', color: 'var(--btn-ink, #050505)',
-                  fontFamily: 'var(--font-d, "Syne", sans-serif)', fontSize: '13px', fontWeight: 800,
+                  fontFamily: 'var(--font-d)', fontSize: '13px', fontWeight: 800,
                   letterSpacing: '.06em', textTransform: 'uppercase' as const,
                   cursor: loginMutation.isPending ? 'not-allowed' : 'pointer',
                   transition: 'all .22s', marginTop: '2px', opacity: loginMutation.isPending ? 0.6 : 1,
@@ -324,7 +318,7 @@ export default function Login() {
                 <button data-testid="button-register" type="submit" disabled={registerMutation.isPending} style={{
                   width: '100%', padding: '15px', borderRadius: 'var(--r-sm, 12px)', border: 'none',
                   background: 'var(--btn-fill, #f2f2f2)', color: 'var(--btn-ink, #050505)',
-                  fontFamily: 'var(--font-d, "Syne", sans-serif)', fontSize: '13px', fontWeight: 800,
+                  fontFamily: 'var(--font-d)', fontSize: '13px', fontWeight: 800,
                   letterSpacing: '.06em', textTransform: 'uppercase' as const,
                   cursor: registerMutation.isPending ? 'not-allowed' : 'pointer',
                   transition: 'all .22s', marginTop: '2px', opacity: registerMutation.isPending ? 0.6 : 1,

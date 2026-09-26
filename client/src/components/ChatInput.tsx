@@ -33,7 +33,7 @@ export function ChatInput({
   const canSend = value.trim().length > 0 && !isStreaming;
 
   return (
-    <div className="flex-none px-3 sm:px-4 pb-4 pt-2" style={{ background: "transparent" }}>
+    <div className="sutaeru-chat-input flex-none" style={{ background: "transparent" }}>
       <div className="w-full max-w-2xl mx-auto">
         <motion.div
           animate={focused
@@ -41,7 +41,7 @@ export function ChatInput({
             : { boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }
           }
           transition={{ duration: 0.2 }}
-          className="relative flex items-end gap-2 px-4 py-3 rounded-[28px]"
+          className="sutaeru-input-box relative flex items-end gap-2 px-4 py-3"
           style={{
             background: "#ffffff",
             border: focused ? "1px solid rgba(10,10,10,0.14)" : "1px solid rgba(10,10,10,0.06)",
@@ -60,7 +60,7 @@ export function ChatInput({
             className="flex-1 min-w-0 resize-none bg-transparent text-[14px] outline-none leading-relaxed min-h-[24px] max-h-[180px]"
             style={{
               color: NEON.ink,
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "'Manrope', sans-serif",
               caretColor: NEON.orange,
             }}
           />
@@ -74,13 +74,13 @@ export function ChatInput({
                 exit={{ scale: 0.8, opacity: 0 }}
                 transition={{ duration: 0.15 }}
                 onClick={onStop}
-                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200"
+                className="shrink-0 w-12 h-12 rounded-md flex items-center justify-center transition-all duration-200"
                 style={{
                   background: NEON.orangeDim,
                   border: `1px solid ${NEON.orange}40`,
                   color: NEON.orange,
                 }}
-                title="Stop generation"
+                title="Stop generation" aria-label="Stop generation"
               >
                 <Square className="h-3.5 w-3.5 fill-current" />
               </motion.button>
@@ -93,13 +93,13 @@ export function ChatInput({
                 transition={{ duration: 0.15 }}
                 onClick={onSend}
                 disabled={!canSend}
-                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 disabled:cursor-not-allowed"
+                className="shrink-0 w-12 h-12 rounded-md flex items-center justify-center transition-all duration-200 disabled:cursor-not-allowed"
                 style={{
                   background: canSend ? NEON.black : "rgba(10,10,10,0.08)",
                   color: canSend ? NEON.cream : NEON.muted,
                   boxShadow: canSend ? "0 2px 12px rgba(0,0,0,0.18)" : "none",
                 }}
-                title="Send message"
+                title="Send message" aria-label="Send message"
               >
                 <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
               </motion.button>

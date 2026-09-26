@@ -2,17 +2,20 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { MessageSquare, Plus, Trash2, Pencil, Check, X, Loader2 } from "lucide-react";
+import { MessageSquare, Plus, Trash2, Pencil, Check, X, Loader2, PanelLeftClose } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { NEON, NEON_FD, NEON_FM } from "@/lib/design";
+import { LandingMark } from "@/components/LandingMark";
 
 interface ChatSessionListProps {
   activeSessionId: string | null;
   onSelectSession: (sessionId: string) => void;
   onNewSession: () => void;
+  onClose?: () => void;
 }
 
-export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession }: ChatSessionListProps) {
+export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession, onClose }: ChatSessionListProps) {
   const utils = trpc.useUtils();
   const { data: sessions = [], isLoading } = trpc.chat.listSessions.useQuery();
 
@@ -50,23 +53,7 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
 
   return (
     <div className="flex flex-col h-full" style={{ background: "transparent", position: "relative" }}>
-      {/* Logo area */}
-      <div className="p-4 flex items-center justify-center">
-        <div
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 14,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "#ffffff",
-            boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-          }}
-        >
-          <span style={{ color: NEON.ink, fontSize: 20, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: NEON_FD }}>S</span>
-        </div>
-      </div>
+      <div className="sutaeru-history-mark"><LandingMark className="sutaeru-nav-mark" /><span>SUTAERU</span>{onClose && <Button variant="ghost" size="icon" className="sutaeru-history-close" onClick={onClose} aria-label="Close history" title="Close history"><PanelLeftClose className="h-5 w-5" /></Button>}</div>
 
       {/* Header */}
       <div className="p-3 pb-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.10)" }}>
@@ -147,7 +134,7 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
                 )}
 
                 {editingId !== session.id && (
-                  <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       className="p-1 rounded-md transition-colors"
                       style={{ color: "rgba(255,255,255,0.45)" }}

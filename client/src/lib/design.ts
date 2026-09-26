@@ -1,52 +1,52 @@
 import type { CSSProperties } from "react";
 
 // ── Fonts ──────────────────────────────────────────────────────────────────
-export const F  = "'Inter', system-ui, -apple-system, sans-serif";
-export const FD = "'DM Serif Display', 'Georgia', 'Times New Roman', serif";
-export const FM = "'SF Mono', 'Menlo', 'Consolas', monospace";
+export const F  = "'Manrope', system-ui, -apple-system, sans-serif";
+export const FD = "'Sora', sans-serif";
+export const FM = "'JetBrains Mono', 'Menlo', 'Consolas', monospace";
 
 // Opera Neon design language fonts (used by the login page)
-export const NEON_FD = "'Syne', sans-serif";
-export const NEON_FB = "'Inter', system-ui, -apple-system, sans-serif";
-export const NEON_FM = "'DM Mono', 'Menlo', 'Consolas', monospace";
+export const NEON_FD = "'Sora', sans-serif";
+export const NEON_FB = "'Manrope', system-ui, -apple-system, sans-serif";
+export const NEON_FM = "'JetBrains Mono', monospace";
 
 // ── Colors ─────────────────────────────────────────────────────────────────
-export const MOCHA        = "#A47764";
-export const MOCHA_DARK   = "#8f6654";
-export const MOCHA_DEEP   = "#926a56";
-export const MOCHA_PALE   = "#f0e8e0";
-export const AMBER        = "#e8913a";
-export const AMBER_DARK   = "#d4802e";
-export const AMBER_LIGHT  = "#f0a050";
-export const AMBER_PALE   = "#fef3e2";
-export const DARK_CARD    = "#1e1812";
-export const DARK_CARD_2  = "#2a2018";
-export const TEXT_PRIMARY = "#1e150d";
-export const TEXT_MUTED   = "#a39080";
-export const TEXT_SOFT    = "#b0a090";
-export const TEXT_FAINT   = "#c4b5a4";
-export const GREEN        = "#5a8a5a";
-export const GREEN_LIGHT  = "#7abe8e";
-export const BLUE         = "#8a9cc7";
-export const SALMON       = "#d4917a";
+export const MOCHA        = "#242320";
+export const MOCHA_DARK   = "#3A3936";
+export const MOCHA_DEEP   = "#4A4A46";
+export const MOCHA_PALE   = "#EFEDE7";
+export const AMBER        = "#8B8B8B";
+export const AMBER_DARK   = "#6E6E6A";
+export const AMBER_LIGHT  = "#A8A8A4";
+export const AMBER_PALE   = "#EFEDE7";
+export const DARK_CARD    = "#242320";
+export const DARK_CARD_2  = "#3A3936";
+export const TEXT_PRIMARY = "#242320";
+export const TEXT_MUTED   = "#8B8B8B";
+export const TEXT_SOFT    = "#A8A8A4";
+export const TEXT_FAINT   = "#C8C5BD";
+export const GREEN        = "#4F6B4F";
+export const GREEN_LIGHT  = "#6E8A6E";
+export const BLUE         = "#6E6E6A";
+export const SALMON       = "#B3402A";
 
 // ── Opera Neon palette ─────────────────────────────────────────────────────
 export const NEON = {
-  cream:       "#f5f0e8",
-  creamWarm:   "#f0e6d6",
-  creamCool:   "#e8e2d6",
-  black:       "#0a0a0a",
-  ink:         "#111111",
-  charcoal:    "#1a1a1a",
-  muted:       "#7a7368",
-  soft:        "#a39b8e",
-  orange:      "#e8442a",
-  orangePale:  "#ffefea",
-  orangeDim:   "rgba(232,68,42,0.12)",
-  white:       "#f5f0e8",
-  panelBg:     "#0a0a0a",
-  panelText:   "#f5f0e8",
-  gridLine:    "rgba(10,10,10,0.08)",
+  cream:       "#F7F6F2",
+  creamWarm:   "#EFEDE7",
+  creamCool:   "#E7E5DF",
+  black:       "#242320",
+  ink:         "#242320",
+  charcoal:    "#3A3936",
+  muted:       "#8B8B8B",
+  soft:        "#A8A8A4",
+  orange:      "#242320",
+  orangePale:  "#EFEDE7",
+  orangeDim:   "rgba(36,35,32,0.10)",
+  white:       "#F7F6F2",
+  panelBg:     "#242320",
+  panelText:   "#F7F6F2",
+  gridLine:    "rgba(36,35,32,0.10)",
 };
 
 export const NEON_TAGS = [

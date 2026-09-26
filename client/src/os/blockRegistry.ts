@@ -18,7 +18,7 @@ export type BlockVariant = 'featured' | 'stat' | 'list' | 'terminal';
 export interface BlockConfig {
   id: BlockId;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   variant: BlockVariant;
   accentColor: string;
   statCardClass?: string;    // os-stat-card--color for tinted bg

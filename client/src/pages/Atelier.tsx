@@ -222,7 +222,7 @@ function ImageSection({ section, t }: { section: ReportSection; t: typeof THEMES
 function ReportPreview({ report }: { report: ReportStructure }) {
   const t = THEMES[report.theme] ?? THEMES.corporate;
   return (
-    <div className="w-full rounded-2xl overflow-hidden shadow-xl" style={{ background: t.bg, fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="w-full rounded-2xl overflow-hidden shadow-xl" style={{ background: t.bg, fontFamily: "'Manrope', sans-serif" }}>
       <div className="p-8 max-w-3xl mx-auto">
         {report.sections.map((section) => {
           switch (section.type) {
@@ -353,7 +353,7 @@ export default function Atelier() {
       formData.append("file", file);
       const res = await fetch("/api/atelier/parse", { method: "POST", credentials: "include", body: formData });
       const data = await res.json() as { filename: string; content: string; preview: string };
-      setUploadedFile(data);
+      setUploadedFile({ name: data.filename, content: data.content, preview: data.preview });
       toast.success(`${data.filename} parsed successfully`);
     } catch (err) {
       toast.error("Failed to parse file: " + (err as Error).message);
@@ -668,7 +668,7 @@ export default function Atelier() {
               rows={1}
               disabled={streaming}
               className="flex-1 resize-none bg-transparent text-[14px] outline-none leading-relaxed min-h-[24px] max-h-[120px]"
-              style={{ color: "#f2f2f2", fontFamily: "'DM Sans', sans-serif", caretColor: "#f2f2f2" }}
+              style={{ color: "#f2f2f2", fontFamily: "'Manrope', sans-serif", caretColor: "#f2f2f2" }}
             />
             <button
               onClick={streaming ? () => abortRef.current?.abort() : () => void sendMessage()}

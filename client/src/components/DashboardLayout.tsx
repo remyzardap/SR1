@@ -36,6 +36,7 @@ import { FloatingVideoPlayer } from './FloatingVideoPlayer';
 
 import { Button } from "./ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { LandingMark } from "@/components/LandingMark";
 
 const menuItems = [
   // ── Sutaeru core ──
@@ -323,7 +324,6 @@ function DashboardLayoutContent({
         <Sidebar
           collapsible="icon"
           className="border-r-0"
-          disableTransition={isResizing}
         >
           <SidebarHeader className="h-16 justify-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
             <div className="flex items-center gap-3 px-2 transition-all w-full">
@@ -336,12 +336,8 @@ function DashboardLayoutContent({
               </button>
               {!isCollapsed ? (
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--accent-color), var(--accent-color))', borderRadius: '10px', boxShadow: '0 0 12px var(--accent-glow)' }}>
-                    <Brain className="h-3.5 w-3.5 text-[#f5f2ed]" />
-                  </div>
-                  <span className="text-xs font-bold tracking-widest uppercase text-gradient truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                    SUTAERU
-                  </span>
+                  <LandingMark className="sutaeru-nav-mark" />
+                  <span className="sutaeru-wordmark">SUTAERU</span>
                 </div>
               ) : null}
             </div>
@@ -351,7 +347,7 @@ function DashboardLayoutContent({
             <SidebarMenu className="px-2 py-1">
               {/* Sutaeru core group */}
               {!isCollapsed && (
-                <div className="px-3 py-2 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '0.6rem', color: 'var(--accent-color)' }}>
+                <div className="px-3 py-2 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Sora', sans-serif", fontSize: '0.6rem', color: 'var(--accent-color)' }}>
                   — Sutaeru
                 </div>
               )}
@@ -376,7 +372,7 @@ function DashboardLayoutContent({
 
               {/* File generation group */}
               {!isCollapsed && (
-                <div className="px-3 py-2 mt-2 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '0.6rem', color: 'rgba(245,242,237,0.30)' }}>
+                <div className="px-3 py-2 mt-2 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Sora', sans-serif", fontSize: '0.6rem', color: 'rgba(245,242,237,0.30)' }}>
                   — Generate
                 </div>
               )}
@@ -491,12 +487,13 @@ function DashboardLayoutContent({
       </div>
 
       <SidebarInset>
-        <div ref={contentRef} className="flex flex-col flex-1 h-full">
+        <div ref={contentRef} className="flex flex-col flex-1 min-h-0">
           {isMobile && (
-            <div className="flex border-b border-[rgba(255,255,255,0.05)] h-14 items-center justify-between bg-[rgba(13,10,26,0.92)] px-2 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
+            <div className="sutaeru-mobile-topbar flex border-b h-16 items-center justify-between px-4 sticky top-0 z-40">
               <div className="flex items-center gap-2">
-                <SidebarTrigger className="h-9 w-9 rounded-lg glass" />
+                <SidebarTrigger className="h-11 w-11" aria-label="Open navigation" />
                 <div className="flex items-center gap-3">
+                  <LandingMark className="sutaeru-nav-mark" />
                   <div className="flex flex-col gap-1">
                     <span className="tracking-tight text-foreground">
                       {activeMenuItem?.label ?? "Menu"}

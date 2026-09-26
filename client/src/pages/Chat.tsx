@@ -99,6 +99,9 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [isAgentActive, setIsAgentActive] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastInput, setLastInput] = useState("");
   const [sessionId, setSessionId] = useState<string>(() => {
@@ -126,6 +129,14 @@ export default function Chat() {
   const [usedSkills, setUsedSkills] = useState<Array<{ id: number; name: string }>>([]);
   const [usage, setUsage] = useState<{ inputTokens: number; outputTokens: number; totalTokens: number } | null>(null);
   const [sources, setSources] = useState<Source[]>([]);
+
+  useEffect(() => {
+    if (!isStreaming || startedAt === null) return;
+    const update = () => setElapsed(Math.floor((Date.now() - startedAt) / 1000));
+    update();
+    const clock = window.setInterval(update, 1000);
+    return () => window.clearInterval(clock);
+  }, [isStreaming, startedAt]);
 
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -207,6 +218,7 @@ export default function Chat() {
     setMessages([]);
     setInput("");
     setError(null);
+    setSidebarOpen(false);
     setMode("fast");
     setAllowedTools(MODE_DEFAULTS.fast);
     setMessageModel("auto");
@@ -219,7 +231,7 @@ export default function Chat() {
 
   // ─── Load persisted history on mount ───────────────────────────────────────
   useEffect(() => {
-    fetch(`/api/chat/history?sessionId=${sessionId}`, { credentials: "include" })
+    fetch(`${import.meta.env.VITE_SR1_API_ORIGIN || ""}/api/chat/history?sessionId=${sessionId}`, { credentials: "include" })
       .then((r) => r.json())
       .then((data: Array<{ role: string; content: string; createdAt: string; model?: string }>) => {
         if (Array.isArray(data) && data.length > 0) {
@@ -261,6 +273,8 @@ export default function Chat() {
       setLastInput(messageText);
       setError(null);
       setIsStreaming(true);
+      setElapsed(0);
+      setStartedAt(Date.now());
       setIsAgentActive(false);
       setAgentSteps([]);
       setUsedSkills([]);
@@ -290,7 +304,7 @@ export default function Chat() {
       abortRef.current = controller;
 
       try {
-        const response = await fetch("/api/kemma/stream", {
+        const response = await fetch(`${import.meta.env.VITE_SR1_API_ORIGIN || ""}/api/kemma/stream`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -390,6 +404,7 @@ export default function Chat() {
         setMessages((prev) => prev.filter((m) => m.id !== assistantId));
       } finally {
         setIsStreaming(false);
+        setStartedAt(null);
         setCurrentStep("");
       }
     },
@@ -404,6 +419,13 @@ export default function Chat() {
   };
 
   const retry = () => void handleSend(lastInput);
+  const stopRun = () => {
+    abortRef.current?.abort();
+    setIsStreaming(false);
+    setStartedAt(null);
+    setCurrentStep("");
+    setMessages((prev) => prev.map((m) => m.streaming ? { ...m, streaming: false } : m));
+  };
 
   const exportThread = useCallback(() => {
     const md = messages
@@ -423,7 +445,7 @@ export default function Chat() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ ...NEON_PAGE_BG, display: "flex", minHeight: "100vh" }}>
+    <div className="sutaeru-chat" style={{ ...NEON_PAGE_BG, display: "flex", minHeight: "100vh" }}>
       <div style={NEON_GRID} />
       <div style={NOISE_OVERLAY} />
 
@@ -431,11 +453,10 @@ export default function Chat() {
       <div
         className={cn(
           "flex-none transition-all duration-200 overflow-hidden flex flex-col",
-          sidebarOpen ? "w-64" : "w-0"
+          sidebarOpen ? "sutaeru-history-open" : "sutaeru-history-closed"
         )}
         style={{
           background: NEON.black,
-          position: "relative",
           zIndex: 10,
         }}
       >
@@ -445,6 +466,7 @@ export default function Chat() {
               activeSessionId={sessionId}
               onSelectSession={handleSelectSession}
               onNewSession={handleNewChat}
+              onClose={() => setSidebarOpen(false)}
             />
           </div>
         )}
@@ -462,6 +484,11 @@ export default function Chat() {
           onToggleMax={() => handleSetMode(mode === "deep" ? "fast" : "deep")}
         />
 
+        <div className="sutaeru-run-status" role="status" aria-live="off">
+          <span className={cn("sutaeru-status-dot", isStreaming && "sutaeru-status-active")} />
+          <div className="sutaeru-status-copy"><strong>{isStreaming ? "Working" : error ? "Run failed" : "Ready"}</strong><span>{isStreaming ? currentStep || "Thinking…" : error ? "Check the message below" : "Start a conversation"}</span></div>
+          <time className="sutaeru-timer" aria-label="Run duration">{String(Math.floor(elapsed / 60)).padStart(2, "0")}:{String(elapsed % 60).padStart(2, "0")}</time>
+        </div>
         <div className="flex flex-1 min-h-0">
           <div className="flex flex-col flex-1 min-w-0">
             <ChatMessages
@@ -578,7 +605,15 @@ export default function Chat() {
               </div>
             )}
 
-            <div className="flex-none px-3 sm:px-4 pb-4 pt-2">
+            <div className="sutaeru-run-controls">
+              <div className="sutaeru-run-actions">
+                <Button size="icon" variant="outline" onClick={() => setSettingsOpen((o) => !o)} aria-label="Run settings" title="Run settings"><Settings className="h-5 w-5" /></Button>
+                <Button size="icon" variant="outline" onClick={() => setMobileDetailsOpen((o) => !o)} aria-label="Run details" title="Run details"><PanelRightOpen className="h-5 w-5" /></Button>
+                <Button size="icon" variant="outline" onClick={exportThread} disabled={messages.length === 0} aria-label="Export conversation" title="Export conversation"><Download className="h-5 w-5" /></Button>
+                {isStreaming && <Button variant="outline" className="sutaeru-stop-run" onClick={stopRun}>Stop run</Button>}
+              </div>
+              {mobileDetailsOpen && <div className="sutaeru-mobile-details"><strong>Run details</strong><p>{isStreaming ? currentStep || "Thinking…" : error ? "Run failed" : "No active run"}</p>{agentSteps.map(step => <p key={step.id}>{step.label}</p>)}</div>}
+              <div className="sutaeru-run-composer">
               <div className="mx-auto flex max-w-2xl items-center gap-2">
                 <Button
                   size="icon"
@@ -605,9 +640,10 @@ export default function Chat() {
                     onChange={setInput}
                     onKeyDown={handleKeyDown}
                     onSend={() => void handleSend()}
-                    onStop={() => { abortRef.current?.abort(); setIsStreaming(false); }}
+                    onStop={stopRun}
                   />
                 </div>
+              </div>
               </div>
             </div>
           </div>
