@@ -342,14 +342,6 @@ export default function Login() {
             )}
           </div>
         </div>
-
-        {/* Back */}
-        <div onClick={() => navigate('/')} style={{
-          marginTop: '24px',
-          fontFamily: 'var(--font-d, "Syne", sans-serif)', fontSize: '10px', fontWeight: 700,
-          letterSpacing: '.12em', textTransform: 'uppercase' as const,
-          color: 'var(--muted-foreground, rgba(245,242,237,0.40))', cursor: 'pointer', transition: 'color .2s',
-        }}>← Back</div>
       </div>
 
       <style>{`
