@@ -3,12 +3,14 @@
  *
  * Classifies user messages and routes to the best available backend model.
  * S1 is the single personality — all models respond as S1, never as themselves.
- * Default: Gemini for general knowledge. Sonar for web search. Claude for writing.
- * GPT (LiteLLM) for quick tasks. Falls back through configured providers.
+ * Only two model families are used: Qwen (writing, docs, quick tasks) and
+ * Gemini (general knowledge & reasoning, default). Falls back between the two.
  *
- * Vertex AI (Gemini 2.5) is the preferred default when GOOGLE_APPLICATION_CREDENTIALS
+ * Vertex AI (Gemini 2.5) is the preferred Gemini backend when GOOGLE_APPLICATION_CREDENTIALS
  * or VERTEX_PROJECT is set. Uses the OpenAI-compatible Vertex AI endpoint.
  */
+
+import { chatRoute, longDocRoute, routeFor } from "../core/kemmaRouter";
 
 export interface S1Agent {
   id: string;
@@ -37,8 +39,6 @@ export interface AgentConfig {
 // ─── Agent definitions ────────────────────────────────────────────────────────
 
 // Max mode: uses the most capable model variant for each agent.
-// Claude Max mode uses claude-opus-4-6 for enhanced processing.
-// Kimi is retained for documentation tasks via the routing logic below.
 const AGENTS: Record<
   string,
   { info: AgentInfo; normalModel: string; maxModel: string }
@@ -54,63 +54,22 @@ const AGENTS: Record<
     normalModel: "gemini-2.5-flash",
     maxModel: "gemini-2.5-pro",
   },
-  litellm: {
+  qwen: {
     info: {
-      agent: "litellm",
-      label: "LiteLLM",
-      reason: "quick tasks & translation",
-      emoji: "⚡",
-      color: "#8b5cf6",
-    },
-    normalModel: "openai/gpt-5.2",
-    maxModel: "openai/gpt-5.1-codex-max",
-  },
-  claude: {
-    info: {
-      agent: "claude",
-      label: "Claude",
-      reason: "writing & reasoning",
+      agent: "qwen",
+      label: "Qwen",
+      reason: "writing, documentation & quick tasks",
       emoji: "✍️",
-      color: "#f97316",
+      color: "#7c3aed",
     },
-    normalModel: "claude-sonnet-4-6",
-    maxModel: "claude-opus-4-6",
-  },
-  kimi: {
-    info: {
-      agent: "kimi",
-      label: "Kimi",
-      reason: "documentation & code",
-      emoji: "💻",
-      color: "#f59e0b",
-    },
-    normalModel: "moonshot-v1-128k",
-    maxModel: "moonshot-v1-128k",
-  },
-  sonar: {
-    info: {
-      agent: "sonar",
-      label: "Sonar",
-      reason: "web search & news",
-      emoji: "🔍",
-      color: "#2dd4bf",
-    },
-    normalModel: "sonar",
-    maxModel: "sonar-pro",
+    normalModel: chatRoute().model,
+    maxModel: longDocRoute().model,
   },
 };
 
 // ─── Agent configs (API endpoints + keys) ────────────────────────────────────
 
 function getAgentConfig(agentId: string, max: boolean): AgentConfig | null {
-  const LITELLM_KEY = process.env.LITELLM_API_KEY;
-  const LITELLM_BASE = process.env.LITELLM_BASE_URL || "https://litellm.koboi2026.biz.id/v1";
-  const ANTHROPIC = process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API;
-  const KIMI = process.env.KIMI_API_KEY || process.env.KIMI_API;
-  const SONAR =
-    process.env.SONAR_API_KEY ||
-    process.env.SONAR_PERPLEXITY ||
-    process.env.PERPLEXITY_API_KEY;
   const VERTEX_PROJECT = process.env.VERTEX_PROJECT || process.env.GOOGLE_CLOUD_PROJECT;
   const VERTEX_LOCATION = process.env.VERTEX_LOCATION || "global";
   // Service account key path — used to get an access token
@@ -136,24 +95,11 @@ function getAgentConfig(agentId: string, max: boolean): AgentConfig | null {
       return null;
     }
 
-    case "litellm":
-      if (LITELLM_KEY) return { baseUrl: LITELLM_BASE, model, apiKey: LITELLM_KEY };
+    case "qwen": {
+      const route = routeFor(model);
+      if (route.apiKey) return { baseUrl: route.baseUrl, model, apiKey: route.apiKey };
       return null;
-
-    case "claude":
-      if (ANTHROPIC)
-        return { baseUrl: "https://api.anthropic.com/v1", model, apiKey: ANTHROPIC };
-      return getAgentConfig("gemini", max);
-
-    case "kimi":
-      if (KIMI)
-        return { baseUrl: "https://api.moonshot.cn/v1", model, apiKey: KIMI };
-      return getAgentConfig("gemini", max);
-
-    case "sonar":
-      if (SONAR)
-        return { baseUrl: "https://api.perplexity.ai", model, apiKey: SONAR };
-      return getAgentConfig("gemini", max);
+    }
 
     default:
       return null;
@@ -170,20 +116,14 @@ export interface GoogleToolContext {
 function classifyQuery(text: string): string {
   const lower = text.toLowerCase();
 
-  const webPatterns =
-    /\b(today|latest|news|current|now|recent|search|2024|2025|2026|weather|price|stock)\b/;
   const writingPatterns =
     /\b(write|draft|essay|poem|story|letter|memo|blog|article|rewrite|proofread|tone|creative writing)\b/;
   const quickPatterns =
     /\b(translate|convert|calculate|summarise|summarize|tldr|eli5|format|list)\b/;
-  // Kimi handles documentation tasks
   const docsPatterns =
     /\b(docs|documentation|readme|changelog|api docs|jsdoc|docstring|wiki|guide|manual|reference)\b/;
 
-  if (webPatterns.test(lower)) return "sonar";
-  if (docsPatterns.test(lower)) return "kimi";
-  if (writingPatterns.test(lower)) return "claude";
-  if (quickPatterns.test(lower)) return "litellm";
+  if (docsPatterns.test(lower) || writingPatterns.test(lower) || quickPatterns.test(lower)) return "qwen";
   return "gemini";
 }
 
@@ -207,7 +147,7 @@ export function s1Route(
   max: boolean,
 ): { info: AgentInfo; config: AgentConfig } {
   const preferred = classifyQuery(text);
-  const fallbackOrder = [preferred, "gemini", "kimi", "claude", "litellm", "sonar"];
+  const fallbackOrder = [preferred, "gemini", "qwen"];
 
   for (const agentId of Array.from(new Set(fallbackOrder))) {
     const config = getAgentConfig(agentId, max);
@@ -220,7 +160,7 @@ export function s1Route(
   }
 
   throw new Error(
-    "No LLM provider configured. Set VERTEX_PROJECT + GOOGLE_APPLICATION_CREDENTIALS, LITELLM_API_KEY, ANTHROPIC_API_KEY, KIMI_API_KEY, or SONAR_API_KEY.",
+    "No LLM provider configured. Set GEMINI_API_KEY (or VERTEX_PROJECT + GOOGLE_APPLICATION_CREDENTIALS) and/or QWEN_API_KEY.",
   );
 }
 
@@ -253,7 +193,7 @@ export function buildS1SystemPrompt(
 
 IDENTITY:
 - Your name is S1. You are one entity, one mind, one personality. Always.
-- You are NOT Claude, NOT GPT, NOT Kimi, NOT Sonar, NOT Gemini. You are S1.
+- You are NOT Qwen, NOT Gemini, NOT any underlying model. You are S1.
 - If asked "what model are you?" or "are you ChatGPT?", respond: "I'm S1."
 - Never reference, hint at, or acknowledge any underlying model. Ever.
 

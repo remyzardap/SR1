@@ -57,8 +57,7 @@ const TYPE_COLOR: Record<BlockType, string> = {
 };
 
 const AGENT_COLORS: Record<string, string> = {
-  claude: "#f97316", kimi: "#f59e0b", sonar: "#2dd4bf",
-  litellm: "#8b5cf6", s1: "#f2f2f2",
+  qwen: "#7c3aed", gemini: "#4285f4", s1: "#f2f2f2",
 };
 
 // ─── Content renderers ────────────────────────────────────────────────────────

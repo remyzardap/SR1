@@ -6,11 +6,11 @@
  *
  * S1 patch: replaced manual provider dropdown with intelligent S1 routing.
  * The client no longer needs to specify a provider — S1 classifies the query
- * and picks the best agent (Sonar / Kimi / Claude / Gemini) automatically.
+ * and picks the best agent (Qwen / Gemini) automatically.
  *
  * New SSE event emitted before streaming:
  *   event: agent
- *   data: { "agent": "claude", "label": "Claude", "reason": "writing & reasoning", "emoji": "✍", "color": "ember" }
+ *   data: { "agent": "qwen", "label": "Qwen", "reason": "writing, documentation & quick tasks", "emoji": "✍", "color": "#7c3aed" }
  */
 
 import type { Router } from "express";

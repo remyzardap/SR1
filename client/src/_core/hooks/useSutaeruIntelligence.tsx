@@ -53,7 +53,7 @@ export interface CallSession {
 interface Agent {
   id: string;
   name: string;
-  provider: 'kimi' | 'anthropic' | 'google';
+  provider: 'qwen' | 'google';
   status: 'active' | 'standby' | 'offline';
   specialties: string[];
   latency: number;
@@ -75,8 +75,7 @@ export function useSutaeruIntelligence() {
   });
   
   const [agents, setAgents] = useState<Agent[]>([
-    { id: 'kimi', name: 'Kimi', provider: 'kimi', status: 'active', specialties: ['coding', 'analysis', 'reasoning', 'chinese', 'long-context'], latency: 700 },
-    { id: 'claude', name: 'Claude', provider: 'anthropic', status: 'active', specialties: ['long-context', 'nuanced-understanding', 'safety', 'instruction-following', 'creative-writing'], latency: 800 },
+    { id: 'qwen', name: 'Qwen', provider: 'qwen', status: 'active', specialties: ['coding', 'analysis', 'reasoning', 'chinese', 'long-context', 'creative-writing'], latency: 700 },
     { id: 'gemini', name: 'Gemini', provider: 'google', status: 'active', specialties: ['multimodal', 'factual', 'research', 'summarization', 'speed'], latency: 500 },
   ]);
   

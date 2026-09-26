@@ -1,6 +1,8 @@
 // ============================================================================
-// BLENDED AGENTS SERVICE — Kimi + Claude + Gemini
+// BLENDED AGENTS SERVICE — Qwen + Gemini
 // ============================================================================
+
+import { chatRoute, plannerRoute } from '../core/kemmaRouter';
 
 interface AgentConfig {
   id: string;
@@ -27,31 +29,25 @@ interface BlendedResponse {
 }
 
 // Agent configurations (load from environment)
+const qwenRoute = chatRoute();
+const geminiRoute = plannerRoute();
+
 const AGENTS: AgentConfig[] = [
   {
-    id: 'kimi',
-    name: 'Kimi',
-    apiKey: process.env.KIMI_API_KEY || '',
-    baseUrl: 'https://api.moonshot.cn/v1',
-    model: 'moonshot-v1-128k',
-    specialties: ['coding', 'analysis', 'reasoning', 'chinese', 'long-context'],
+    id: 'qwen',
+    name: 'Qwen',
+    apiKey: qwenRoute.apiKey,
+    baseUrl: qwenRoute.baseUrl,
+    model: qwenRoute.model,
+    specialties: ['coding', 'analysis', 'reasoning', 'chinese', 'long-context', 'creative-writing'],
     latency: 700,
-  },
-  {
-    id: 'claude',
-    name: 'Claude',
-    apiKey: process.env.CLAUDE_API_KEY || '',
-    baseUrl: 'https://api.anthropic.com/v1',
-    model: 'claude-sonnet-4-6',
-    specialties: ['long-context', 'nuanced-understanding', 'safety', 'instruction-following', 'creative-writing'],
-    latency: 800,
   },
   {
     id: 'gemini',
     name: 'Gemini',
     apiKey: process.env.GEMINI_API_KEY || '',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-    model: 'gemini-1.5-flash',
+    model: geminiRoute.model,
     specialties: ['multimodal', 'factual', 'research', 'summarization', 'speed'],
     latency: 500,
   },
@@ -101,8 +97,8 @@ export function selectBestAgent(queryType: string, activeAgents: AgentConfig[] =
   return [...activeAgents].sort((a, b) => a.latency - b.latency)[0] || AGENTS[0];
 }
 
-// Call Kimi API
-async function callKimi(message: string, config: AgentConfig): Promise<AgentResponse> {
+// Call Qwen API (OpenAI-compatible)
+async function callQwen(message: string, config: AgentConfig): Promise<AgentResponse> {
   const startTime = Date.now();
   
   const response = await fetch(`${config.baseUrl}/chat/completions`, {
@@ -123,49 +119,15 @@ async function callKimi(message: string, config: AgentConfig): Promise<AgentResp
   });
 
   if (!response.ok) {
-    throw new Error(`Kimi API error: ${await response.text()}`);
+    throw new Error(`Qwen API error: ${await response.text()}`);
   }
 
   const data = await response.json();
   
   return {
     content: data.choices[0].message.content,
-    model: 'Kimi',
+    model: 'Qwen',
     confidence: 0.92,
-    latency: Date.now() - startTime,
-  };
-}
-
-// Call Claude API
-async function callClaude(message: string, config: AgentConfig): Promise<AgentResponse> {
-  const startTime = Date.now();
-  
-  const response = await fetch(`${config.baseUrl}/messages`, {
-    method: 'POST',
-    headers: {
-      'x-api-key': config.apiKey,
-      'anthropic-version': '2023-06-01',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: config.model,
-      max_tokens: 2000,
-      messages: [
-        { role: 'user', content: message },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Claude API error: ${await response.text()}`);
-  }
-
-  const data = await response.json();
-  
-  return {
-    content: data.content[0].text,
-    model: 'Claude',
-    confidence: 0.94,
     latency: Date.now() - startTime,
   };
 }
@@ -214,10 +176,8 @@ async function callGemini(message: string, config: AgentConfig): Promise<AgentRe
 // Route to correct agent
 async function callAgent(agent: AgentConfig, message: string): Promise<AgentResponse> {
   switch (agent.id) {
-    case 'kimi':
-      return callKimi(message, agent);
-    case 'claude':
-      return callClaude(message, agent);
+    case 'qwen':
+      return callQwen(message, agent);
     case 'gemini':
       return callGemini(message, agent);
     default:

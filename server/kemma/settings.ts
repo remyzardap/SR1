@@ -84,7 +84,7 @@ function deriveProvider(model: string): string {
   try {
     return routeFor(model).provider;
   } catch {
-    return "litellm";
+    return "qwen";
   }
 }
 

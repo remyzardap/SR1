@@ -182,7 +182,7 @@ export function registerAtelierRoutes(app: Express) {
         ? [...messages, { role: "user", content: `Here is the uploaded document content:\n\n${uploadedContent}\n\nPlease ${mode === "reformat" ? "reformat and restructure" : "rewrite and enhance"} this into a professional ${reportType}.` }]
         : messages;
 
-      // Use Kimi for long-form generation
+      // Long-form generation
       const full = await streamCompletion(res, finalMessages, sysPrompt, "generate structured long document JSON", 8000);
 
       // Try to parse and emit the structured report

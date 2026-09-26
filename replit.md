@@ -8,10 +8,10 @@ Sutaeru is a **personal AI identity and memory platform** ("soul-cloud"). Users 
 - **Identity**: Persistent AI persona with handle, bio, traits, and language settings
 - **Skills**: Reusable AI capabilities (prompts, behaviors, workflows) that can be public or private
 - **Memories**: Structured long-term knowledge storage (5 types) injected into chat context
-- **Connections**: Secure links to LLM providers (API keys) and OAuth services
-- **Chat (S1)**: Streaming SSE chat with automatic intelligent agent routing across LiteLLM, Claude, Sonar, and Kimi. Google Workspace integration (Gmail/Calendar/Drive) connected to S1 — when user asks about emails, calendar, or files, S1 detects the intent and injects live Google data into context
+- **Connections**: Secure links to OAuth services and third-party API keys (the LLM is chosen by the platform, never by the customer)
+- **Chat (S1)**: Streaming SSE chat with automatic intelligent agent routing across Qwen and Gemini. Google Workspace integration (Gmail/Calendar/Drive) connected to S1 — when user asks about emails, calendar, or files, S1 detects the intent and injects live Google data into context
 - **FileForge**: Prompt-to-document generation (PDF, DOCX, XLSX, PPTX, Markdown)
-- **Image Generation**: DALL-E 3 via LiteLLM proxy
+- **Image Generation**: Gemini image model via Vertex AI
 - **HER Voice**: ElevenLabs conversational AI assistant with personality styles
 - **Back Office**: Receipt OCR, task tracking, procurement workflows, Stripe billing
 - **Board**: Block-based content system for organizing notes, media, tasks, and chat fragments
@@ -54,18 +54,16 @@ The frontend is a single-page application. Protected routes redirect unauthentic
 
 #### S1 Intelligent Routing Layer
 S1 is the single user-facing AI entity with one consistent personality. The underlying models are invisible — the user always sees "S1", never individual model names. Internally, `server/routers/s1Router.ts` classifies messages and routes to the best backend model:
-- Kimi (Moonshot) — **default**, general knowledge, code, reasoning
-- Claude (Anthropic) — writing, drafting, creative work
-- Sonar (Perplexity) — web/real-time search queries
-- LiteLLM (GPT-5.2 via proxy) — quick tasks, translation, formatting
+- Gemini — **default**, general knowledge and reasoning
+- Qwen — writing, documentation, quick tasks (translation, formatting)
 
-Fallback order: `preferred → kimi → claude → litellm → sonar`. The system prompt enforces a strong unified personality — S1 never acknowledges which model is running underneath.
+Fallback order: `preferred → gemini → qwen`. The system prompt enforces a strong unified personality — S1 never acknowledges which model is running underneath.
 
 #### Google Workspace Integration
 `server/services/google.ts` provides OAuth2 flow + Gmail, Calendar, and Drive API wrappers. `server/routers/google.ts` exposes tRPC endpoints for connect/disconnect/list/send. `server/routers/googleCallback.ts` handles the OAuth callback via Express. When a user asks S1 about emails, calendar events, or files, the chat router detects the intent via `detectGoogleIntent()` and injects live Google data into the system prompt. Requires `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` env vars. Token storage: `google_tokens` table.
 
 #### Image Generation
-`server/_core/imageGeneration.ts` uses DALL-E 3 via the LiteLLM proxy (`openai/dall-e-3`). Supports custom sizes and quality options. Generated images are saved to the files table.
+`server/_core/imageGeneration.ts` uses a Gemini image model via Vertex AI. Supports custom sizes and quality options. Generated images are saved to the files table.
 
 #### HER Voice
 `server/services/elevenlabs.ts` integrates ElevenLabs Conversational AI for the HER voice assistant. Uses WebSocket-based real-time audio with personality styles (warm, professional, mysterious, playful). Voice: Carolyn Scarlett Jo (raspy, intimate).
@@ -97,14 +95,11 @@ Fallback order: `preferred → kimi → claude → litellm → sonar`. The syste
 
 ### LLM Provider Abstraction
 
-`server/llmProvider.ts` and `server/_core/llm.ts` provide a unified interface across:
-- LiteLLM proxy (default — GPT-5.2, GPT-5.1-codex-max, DALL-E 3)
-- Anthropic (Claude)
-- Moonshot / Kimi
-- Perplexity Sonar
-- OpenAI (direct, if key provided)
+All chat and document generation goes through `server/core/kemmaRouter.ts` (env-driven `KEMMA_MODEL_*` slots) and uses only two model families:
+- Qwen (`QWEN_API_KEY`, `QWEN_BASE_URL`) — text, tools, reports
+- Gemini (`GEMINI_API_KEY` or Vertex AI) — vision, planning, verification, embeddings, images
 
-Users can bring their own API keys via the Connections page. Platform-level keys are env vars as fallback.
+Perplexity Sonar is still used by the Kemma `web_search` tool only. Customers cannot choose or supply models or keys; platform keys come from env vars.
 
 ---
 
@@ -117,11 +112,9 @@ Users can bring their own API keys via the Connections page. Platform-level keys
 ### AI / LLM Providers
 | Provider | Env Var | Use |
 |---|---|---|
-| LiteLLM Proxy | `LITELLM_API_KEY`, `LITELLM_BASE_URL` | Default LLM (GPT-5.2) + DALL-E 3 image gen |
-| Anthropic | `ANTHROPIC_API_KEY` / `ANTHROPIC_API` | Writing/reasoning agent (Claude) |
-| Moonshot (Kimi) | `KIMI_API_KEY` / `KIMI_API` | Code/long-context agent |
-| Perplexity Sonar | `SONAR_API_KEY` / `SONAR_PERPLEXITY` | Web/real-time search agent |
-| OpenAI | `OPENAI_API_KEY` | Direct OpenAI (optional) |
+| Qwen | `QWEN_API_KEY`, `QWEN_BASE_URL` | Text, tools, reports, writing |
+| Gemini | `GEMINI_API_KEY` (or `VERTEX_PROJECT` + `GOOGLE_APPLICATION_CREDENTIALS`) | Vision, planning, verification, images |
+| Perplexity Sonar | `SONAR_API_KEY` / `SONAR_PERPLEXITY` | Kemma web-search tool only |
 | ElevenLabs | `ELEVEN_LABS_API_KEY`, `ELEVEN_LABS_AGENT_ID`, `ELEVEN_LABS_VOICE_ID` | HER Voice feature |
 | Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Gmail, Calendar, Drive integration |
 

@@ -16,13 +16,10 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
-  // Sutaeru platform-level model keys (fallback when user has no connection)
-  kimiApiKey: process.env.KIMI_API_KEY ?? process.env.KIMI_API ?? "",
-  openaiApiKey: process.env.OPENAI_API_KEY ?? "",
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? process.env.ANTHROPIC_API ?? "",
+  // Platform-level model keys (Qwen + Gemini). Customers never supply their own.
+  qwenApiKey: process.env.QWEN_API_KEY ?? "",
   geminiApiKey: process.env.GEMINI_API_KEY ?? process.env.GEMINI ?? "",
   sonarApiKey: process.env.SONAR_API_KEY ?? process.env.SONAR_PERPLEXITY ?? "",
-  vertexApiKey: process.env.VERTEX_API ?? "",
   // ElevenLabs (Kemma Voice)
   elevenLabsApiKey: process.env.ELEVEN_LABS_API_KEY ?? "",
   elevenLabsAgentId: process.env.ELEVEN_LABS_AGENT_ID ?? "",

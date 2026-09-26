@@ -140,10 +140,6 @@ function getClientIp(req: any): string {
   return req.ip || req.socket?.remoteAddress || "unknown";
 }
 
-// The LLM is always chosen by the platform, never by the customer.
-async function getUserLLMConfig(_userId: number) {
-  return null;
-}
 
 export const appRouter = router({
   system: systemRouter,
@@ -370,12 +366,7 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        const llmConfig = await getUserLLMConfig(ctx.user.id);
-        const aiOptions = await generateStyleOptions(
-          input.prompt,
-          input.format,
-          llmConfig
-        );
+        const aiOptions = await generateStyleOptions(input.prompt, input.format);
         // Merge AI-generated options with our predefined visual styles
         return STYLE_DEFINITIONS.map((styleDef, i) => ({
           ...styleDef,
@@ -398,14 +389,11 @@ export const appRouter = router({
         const style = STYLE_DEFINITIONS.find((s) => s.id === input.styleId);
         if (!style) throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid style" });
 
-        const llmConfig = await getUserLLMConfig(ctx.user.id);
-
         // Generate document content via LLM
         const content = await generateDocumentContent(
           input.prompt,
           input.format,
-          style.label,
-          llmConfig
+          style.label
         );
 
         // Generate file bytes

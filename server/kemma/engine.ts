@@ -427,7 +427,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     }
 
     if (polish) {
-      // Optional final polish via LiteLLM-only route.
+      // Optional final polish (currently disabled: polishRoute() returns null).
       try {
         const { polishRoute } = await import("../core/kemmaRouter");
         const polishCfg = polishRoute();
