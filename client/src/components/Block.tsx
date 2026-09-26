@@ -57,7 +57,7 @@ const TYPE_COLOR: Record<BlockType, string> = {
 };
 
 const AGENT_COLORS: Record<string, string> = {
-  qwen: "#7c3aed", gemini: "#4285f4", s1: "#f2f2f2",
+  qwen: "#7c3aed", gemini: "#4285f4", sonar: "#2dd4bf", s1: "#f2f2f2",
 };
 
 // ─── Content renderers ────────────────────────────────────────────────────────

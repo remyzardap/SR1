@@ -6,7 +6,7 @@
  *
  * S1 patch: replaced manual provider dropdown with intelligent S1 routing.
  * The client no longer needs to specify a provider — S1 classifies the query
- * and picks the best agent (Qwen / Gemini) automatically.
+ * and picks the best agent (Qwen / Gemini / Sonar) automatically.
  *
  * New SSE event emitted before streaming:
  *   event: agent

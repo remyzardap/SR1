@@ -3,8 +3,9 @@
  *
  * Classifies user messages and routes to the best available backend model.
  * S1 is the single personality — all models respond as S1, never as themselves.
- * Only two model families are used: Qwen (writing, docs, quick tasks) and
- * Gemini (general knowledge & reasoning, default). Falls back between the two.
+ * Models used: Qwen (writing, docs, quick tasks), Gemini (general knowledge &
+ * reasoning, default) and Perplexity Sonar (web search & news). Falls back to
+ * Gemini, then Qwen, when the preferred backend has no key.
  *
  * Vertex AI (Gemini 2.5) is the preferred Gemini backend when GOOGLE_APPLICATION_CREDENTIALS
  * or VERTEX_PROJECT is set. Uses the OpenAI-compatible Vertex AI endpoint.
@@ -65,6 +66,17 @@ const AGENTS: Record<
     normalModel: chatRoute().model,
     maxModel: longDocRoute().model,
   },
+  sonar: {
+    info: {
+      agent: "sonar",
+      label: "Sonar",
+      reason: "web search & news",
+      emoji: "🔍",
+      color: "#2dd4bf",
+    },
+    normalModel: "sonar",
+    maxModel: "sonar-pro",
+  },
 };
 
 // ─── Agent configs (API endpoints + keys) ────────────────────────────────────
@@ -101,6 +113,15 @@ function getAgentConfig(agentId: string, max: boolean): AgentConfig | null {
       return null;
     }
 
+    case "sonar": {
+      const SONAR =
+        process.env.SONAR_API_KEY ||
+        process.env.SONAR_PERPLEXITY ||
+        process.env.PERPLEXITY_API_KEY;
+      if (SONAR) return { baseUrl: "https://api.perplexity.ai", model, apiKey: SONAR };
+      return getAgentConfig("gemini", max);
+    }
+
     default:
       return null;
   }
@@ -116,6 +137,8 @@ export interface GoogleToolContext {
 function classifyQuery(text: string): string {
   const lower = text.toLowerCase();
 
+  const webPatterns =
+    /\b(today|latest|news|current|now|recent|search|2024|2025|2026|weather|price|stock)\b/;
   const writingPatterns =
     /\b(write|draft|essay|poem|story|letter|memo|blog|article|rewrite|proofread|tone|creative writing)\b/;
   const quickPatterns =
@@ -123,6 +146,7 @@ function classifyQuery(text: string): string {
   const docsPatterns =
     /\b(docs|documentation|readme|changelog|api docs|jsdoc|docstring|wiki|guide|manual|reference)\b/;
 
+  if (webPatterns.test(lower)) return "sonar";
   if (docsPatterns.test(lower) || writingPatterns.test(lower) || quickPatterns.test(lower)) return "qwen";
   return "gemini";
 }
@@ -147,7 +171,7 @@ export function s1Route(
   max: boolean,
 ): { info: AgentInfo; config: AgentConfig } {
   const preferred = classifyQuery(text);
-  const fallbackOrder = [preferred, "gemini", "qwen"];
+  const fallbackOrder = [preferred, "gemini", "qwen", "sonar"];
 
   for (const agentId of Array.from(new Set(fallbackOrder))) {
     const config = getAgentConfig(agentId, max);
@@ -160,7 +184,7 @@ export function s1Route(
   }
 
   throw new Error(
-    "No LLM provider configured. Set GEMINI_API_KEY (or VERTEX_PROJECT + GOOGLE_APPLICATION_CREDENTIALS) and/or QWEN_API_KEY.",
+    "No LLM provider configured. Set GEMINI_API_KEY (or VERTEX_PROJECT + GOOGLE_APPLICATION_CREDENTIALS), QWEN_API_KEY, or SONAR_API_KEY.",
   );
 }
 
@@ -193,7 +217,7 @@ export function buildS1SystemPrompt(
 
 IDENTITY:
 - Your name is S1. You are one entity, one mind, one personality. Always.
-- You are NOT Qwen, NOT Gemini, NOT any underlying model. You are S1.
+- You are NOT Qwen, NOT Gemini, NOT Sonar, NOT any underlying model. You are S1.
 - If asked "what model are you?" or "are you ChatGPT?", respond: "I'm S1."
 - Never reference, hint at, or acknowledge any underlying model. Ever.
 

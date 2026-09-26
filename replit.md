@@ -9,7 +9,7 @@ Sutaeru is a **personal AI identity and memory platform** ("soul-cloud"). Users 
 - **Skills**: Reusable AI capabilities (prompts, behaviors, workflows) that can be public or private
 - **Memories**: Structured long-term knowledge storage (5 types) injected into chat context
 - **Connections**: Secure links to OAuth services and third-party API keys (the LLM is chosen by the platform, never by the customer)
-- **Chat (S1)**: Streaming SSE chat with automatic intelligent agent routing across Qwen and Gemini. Google Workspace integration (Gmail/Calendar/Drive) connected to S1 — when user asks about emails, calendar, or files, S1 detects the intent and injects live Google data into context
+- **Chat (S1)**: Streaming SSE chat with automatic intelligent agent routing across Qwen, Gemini and Sonar. Google Workspace integration (Gmail/Calendar/Drive) connected to S1 — when user asks about emails, calendar, or files, S1 detects the intent and injects live Google data into context
 - **FileForge**: Prompt-to-document generation (PDF, DOCX, XLSX, PPTX, Markdown)
 - **Image Generation**: Gemini image model via Vertex AI
 - **HER Voice**: ElevenLabs conversational AI assistant with personality styles
@@ -56,8 +56,9 @@ The frontend is a single-page application. Protected routes redirect unauthentic
 S1 is the single user-facing AI entity with one consistent personality. The underlying models are invisible — the user always sees "S1", never individual model names. Internally, `server/routers/s1Router.ts` classifies messages and routes to the best backend model:
 - Gemini — **default**, general knowledge and reasoning
 - Qwen — writing, documentation, quick tasks (translation, formatting)
+- Sonar (Perplexity) — web/real-time search queries
 
-Fallback order: `preferred → gemini → qwen`. The system prompt enforces a strong unified personality — S1 never acknowledges which model is running underneath.
+Fallback order: `preferred → gemini → qwen → sonar`. The system prompt enforces a strong unified personality — S1 never acknowledges which model is running underneath.
 
 #### Google Workspace Integration
 `server/services/google.ts` provides OAuth2 flow + Gmail, Calendar, and Drive API wrappers. `server/routers/google.ts` exposes tRPC endpoints for connect/disconnect/list/send. `server/routers/googleCallback.ts` handles the OAuth callback via Express. When a user asks S1 about emails, calendar events, or files, the chat router detects the intent via `detectGoogleIntent()` and injects live Google data into the system prompt. Requires `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` env vars. Token storage: `google_tokens` table.
@@ -99,7 +100,7 @@ All chat and document generation goes through `server/core/kemmaRouter.ts` (env-
 - Qwen (`QWEN_API_KEY`, `QWEN_BASE_URL`) — text, tools, reports
 - Gemini (`GEMINI_API_KEY` or Vertex AI) — vision, planning, verification, embeddings, images
 
-Perplexity Sonar is still used by the Kemma `web_search` tool only. Customers cannot choose or supply models or keys; platform keys come from env vars.
+Perplexity Sonar is used for the Kemma `web_search` tool and for web/news queries in S1 chat. Customers cannot choose or supply models or keys; platform keys come from env vars.
 
 ---
 
@@ -114,7 +115,7 @@ Perplexity Sonar is still used by the Kemma `web_search` tool only. Customers ca
 |---|---|---|
 | Qwen | `QWEN_API_KEY`, `QWEN_BASE_URL` | Text, tools, reports, writing |
 | Gemini | `GEMINI_API_KEY` (or `VERTEX_PROJECT` + `GOOGLE_APPLICATION_CREDENTIALS`) | Vision, planning, verification, images |
-| Perplexity Sonar | `SONAR_API_KEY` / `SONAR_PERPLEXITY` | Kemma web-search tool only |
+| Perplexity Sonar | `SONAR_API_KEY` / `SONAR_PERPLEXITY` | Web search (Kemma tool + S1 chat) |
 | ElevenLabs | `ELEVEN_LABS_API_KEY`, `ELEVEN_LABS_AGENT_ID`, `ELEVEN_LABS_VOICE_ID` | HER Voice feature |
 | Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Gmail, Calendar, Drive integration |
 
