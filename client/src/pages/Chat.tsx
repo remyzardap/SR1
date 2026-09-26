@@ -10,7 +10,7 @@ import { ChatErrorBanner } from "@/components/ChatErrorBanner";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { NEON_PAGE_BG, NEON_GRID, NOISE_OVERLAY, NEON, NEON_FD, NEON_FM } from "@/lib/design";
-import { Settings, X, Cpu, Wrench, Sparkles, Download, PanelRightOpen, PanelRightClose, Zap, Search, FileText, Image as ImageIcon } from "lucide-react";
+import { Settings, X, Wrench, Sparkles, Download, PanelRightOpen, PanelRightClose, Zap, Search, FileText, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -120,7 +120,6 @@ export default function Chat() {
   const [allowedTools, setAllowedTools] = useState<string[]>(MODE_DEFAULTS.fast);
 
   // Message-level settings
-  const [messageModel, setMessageModel] = useState<string>("auto");
   const [taggedSkills, setTaggedSkills] = useState<number[]>([]);
 
   // Agent run state
@@ -144,7 +143,6 @@ export default function Chat() {
 
   // ─── tRPC ──────────────────────────────────────────────────────────────────
   const utils = trpc.useUtils();
-  const { data: availableModels = [] } = trpc.kemma.availableModels.useQuery();
   const { data: approvedSkills = [] } = trpc.kemma.approvedSkills.useQuery();
   const { data: sessionSettings = {} } = trpc.kemma.getSessionSettings.useQuery(
     { sessionId },
@@ -199,7 +197,6 @@ export default function Chat() {
       setSidebarOpen(false);
       setMode("fast");
       setAllowedTools(MODE_DEFAULTS.fast);
-      setMessageModel("auto");
       setTaggedSkills([]);
       setAgentSteps([]);
       setUsedSkills([]);
@@ -221,7 +218,6 @@ export default function Chat() {
     setSidebarOpen(false);
     setMode("fast");
     setAllowedTools(MODE_DEFAULTS.fast);
-    setMessageModel("auto");
     setTaggedSkills([]);
     setAgentSteps([]);
     setUsedSkills([]);
@@ -295,7 +291,6 @@ export default function Chat() {
 
       const conversationSoFar = [...messages, userMsg];
       const settings: StreamSettings = {
-        model: messageModel === "auto" ? undefined : messageModel,
         taggedSkills: taggedSkills.length > 0 ? taggedSkills : undefined,
       };
 
@@ -408,7 +403,7 @@ export default function Chat() {
         setCurrentStep("");
       }
     },
-    [input, isStreaming, messages, sessionId, mode, messageModel, taggedSkills]
+    [input, isStreaming, messages, sessionId, mode, taggedSkills]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -518,27 +513,6 @@ export default function Chat() {
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="neon-label mb-1 flex items-center gap-1">
-                        <Cpu className="h-3 w-3" /> Model
-                      </label>
-                      <Select value={messageModel} onValueChange={setMessageModel}>
-                        <SelectTrigger className="w-full rounded-xl border-black/10 bg-white">
-                          <SelectValue placeholder="Auto" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="auto">Auto (router picks)</SelectItem>
-                          {availableModels
-                            .filter((m) => m.id !== "auto" && m.hasKey)
-                            .map((m) => (
-                              <SelectItem key={m.id} value={m.id}>
-                                {m.label} · {m.tier}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
                     <div>
                       <label className="neon-label mb-1 flex items-center gap-1">
                         <Sparkles className="h-3 w-3" /> Mode

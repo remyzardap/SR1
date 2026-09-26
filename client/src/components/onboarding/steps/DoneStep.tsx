@@ -1,15 +1,7 @@
 import { motion } from "framer-motion";
-import { CheckCircle, User, Wrench, Key, Sparkles, ArrowRight, Loader2 } from "lucide-react";
+import { CheckCircle, User, Wrench, Sparkles, ArrowRight, Loader2 } from "lucide-react";
 import type { IdentityData } from "./IdentityStep";
 import type { SkillData } from "./SkillsStep";
-import type { ApiKeyData } from "./ApiKeyStep";
-
-const PROVIDER_LABELS: Record<string, string> = {
-  kimi: "Kimi (Moonshot AI)",
-  openai: "OpenAI",
-  anthropic: "Anthropic Claude",
-  gemini: "Google Gemini",
-};
 
 const LANGUAGE_NAMES: Record<string, string> = {
   en: "English", id: "Indonesian", zh: "Chinese", ja: "Japanese",
@@ -20,12 +12,11 @@ const LANGUAGE_NAMES: Record<string, string> = {
 interface DoneStepProps {
   identity: IdentityData;
   skills: SkillData[];
-  apiKey?: ApiKeyData;
   onComplete: () => void;
   isLoading: boolean;
 }
 
-export function DoneStep({ identity, skills, apiKey, onComplete, isLoading }: DoneStepProps) {
+export function DoneStep({ identity, skills, onComplete, isLoading }: DoneStepProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -127,31 +118,6 @@ export function DoneStep({ identity, skills, apiKey, onComplete, isLoading }: Do
           </motion.div>
         )}
 
-        {/* API Key */}
-        {apiKey && (
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 }}
-            className="p-4 border border-[#333] rounded-xl bg-neutral-900/50"
-          >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                <Key className="w-4 h-4 text-white" />
-              </div>
-              <h3 className="font-semibold text-white">API Key</h3>
-            </div>
-            <div className="pl-11">
-              <p className="text-sm text-neutral-300">
-                {PROVIDER_LABELS[apiKey.provider] ?? apiKey.provider} connected
-              </p>
-              <p className="text-xs text-green-400 flex items-center gap-1 mt-1">
-                <CheckCircle className="w-3 h-3" />
-                Encrypted and secure
-              </p>
-            </div>
-          </motion.div>
-        )}
       </div>
 
       {/* What's next */}

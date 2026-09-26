@@ -309,7 +309,6 @@ export default function Connections() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="llm_api_key">LLM API Key</SelectItem>
                     <SelectItem value="oauth2">OAuth 2.0</SelectItem>
                     <SelectItem value="generic_api_key">Generic API Key</SelectItem>
                   </SelectContent>
