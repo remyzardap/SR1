@@ -59,8 +59,8 @@ export function SkillsStep({ initialData, onNext, onBack, onSkip }: SkillsStepPr
       transition={{ duration: 0.3 }}
     >
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white mb-2">Add your skills</h2>
-        <p className="text-neutral-400">
+        <h2 className="text-2xl font-bold text-foreground mb-2">Add your skills</h2>
+        <p className="text-muted-foreground">
           Skills are reusable capabilities your agent carries everywhere. You can add more later.
         </p>
       </div>
@@ -74,23 +74,23 @@ export function SkillsStep({ initialData, onNext, onBack, onSkip }: SkillsStepPr
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 10 }}
-              className="flex items-start gap-3 p-4 border border-[#333] rounded-xl bg-[#111]"
+              className="flex items-start gap-3 p-4 border border-border rounded-xl bg-card"
             >
-              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Wrench className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Wrench className="w-4 h-4 text-foreground" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <p className="text-sm font-medium text-white">{skill.name}</p>
-                  <span className="text-xs text-neutral-500 border border-[#333] rounded px-1.5 py-0.5">
+                  <p className="text-sm font-medium text-foreground">{skill.name}</p>
+                  <span className="text-xs text-muted-foreground border border-border rounded px-1.5 py-0.5">
                     {SKILL_TYPE_LABELS[skill.type]}
                   </span>
                 </div>
-                <p className="text-xs text-neutral-400 line-clamp-2">{skill.description}</p>
+                <p className="text-xs text-muted-foreground line-clamp-2">{skill.description}</p>
               </div>
               <button
                 onClick={() => removeSkill(index)}
-                className="text-neutral-600 hover:text-red-400 transition-colors flex-shrink-0"
+                className="text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -104,24 +104,24 @@ export function SkillsStep({ initialData, onNext, onBack, onSkip }: SkillsStepPr
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 border border-[#444] rounded-xl bg-[#111] mb-4 space-y-3"
+          className="p-4 border border-border rounded-xl bg-card mb-4 space-y-3"
         >
           <input
             type="text"
             value={newSkill.name}
             onChange={(e) => setNewSkill((p) => ({ ...p, name: e.target.value }))}
             placeholder="Skill name (e.g. Code Reviewer)"
-            className="w-full px-3 py-2.5 bg-neutral-900 border border-[#333] rounded-lg text-white
-                       placeholder-neutral-600 focus:outline-none focus:border-neutral-500 text-sm"
+            className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-foreground
+                       placeholder:text-muted-foreground focus:outline-none focus:border-foreground text-sm"
           />
           <select
             value={newSkill.type}
             onChange={(e) => setNewSkill((p) => ({ ...p, type: e.target.value as SkillData["type"] }))}
-            className="w-full px-3 py-2.5 bg-neutral-900 border border-[#333] rounded-lg text-white
-                       focus:outline-none focus:border-neutral-500 text-sm cursor-pointer"
+            className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-foreground
+                       focus:outline-none focus:border-foreground text-sm cursor-pointer"
           >
             {Object.entries(SKILL_TYPE_LABELS).map(([value, label]) => (
-              <option key={value} value={value} className="bg-neutral-900">
+              <option key={value} value={value} className="bg-card">
                 {label}
               </option>
             ))}
@@ -131,22 +131,22 @@ export function SkillsStep({ initialData, onNext, onBack, onSkip }: SkillsStepPr
             onChange={(e) => setNewSkill((p) => ({ ...p, description: e.target.value }))}
             placeholder="Describe what this skill does..."
             rows={2}
-            className="w-full px-3 py-2.5 bg-neutral-900 border border-[#333] rounded-lg text-white
-                       placeholder-neutral-600 focus:outline-none focus:border-neutral-500 text-sm resize-none"
+            className="w-full px-3 py-2.5 bg-card border border-border rounded-lg text-foreground
+                       placeholder:text-muted-foreground focus:outline-none focus:border-foreground text-sm resize-none"
           />
-          {addError && <p className="text-sm text-red-400">{addError}</p>}
+          {addError && <p className="text-sm text-destructive">{addError}</p>}
           <div className="flex gap-2">
             <button
               onClick={() => { setIsAdding(false); setAddError(""); }}
-              className="px-4 py-2 border border-[#333] rounded-lg text-neutral-300 text-sm
-                         hover:border-white hover:text-white transition-colors"
+              className="px-4 py-2 border border-border rounded-lg text-foreground text-sm
+                         hover:border-foreground hover:text-foreground transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={addSkill}
-              className="flex-1 px-4 py-2 bg-white text-black rounded-lg text-sm font-medium
-                         hover:bg-neutral-200 transition-colors"
+              className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium
+                         hover:bg-[#3a3936] transition-colors"
             >
               Add Skill
             </button>
@@ -155,8 +155,8 @@ export function SkillsStep({ initialData, onNext, onBack, onSkip }: SkillsStepPr
       ) : skills.length < 3 ? (
         <button
           onClick={() => setIsAdding(true)}
-          className="w-full flex items-center justify-center gap-2 p-4 border border-dashed border-[#333]
-                     rounded-xl text-neutral-400 hover:border-white hover:text-white transition-colors mb-4"
+          className="w-full flex items-center justify-center gap-2 p-4 border border-dashed border-border
+                     rounded-xl text-muted-foreground hover:border-foreground hover:text-foreground transition-colors mb-4"
         >
           <Plus className="w-4 h-4" />
           Add a skill {skills.length > 0 && `(${3 - skills.length} more)`}
@@ -164,11 +164,11 @@ export function SkillsStep({ initialData, onNext, onBack, onSkip }: SkillsStepPr
       ) : null}
 
       {/* Navigation */}
-      <div className="flex gap-3 mt-4">
+      <div className="flex flex-wrap gap-3 mt-4">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-6 py-3 border border-[#333] rounded-xl text-neutral-300
-                     hover:border-white hover:text-white transition-colors duration-200"
+          className="flex items-center gap-2 px-6 py-3 border border-border rounded-xl text-foreground
+                     hover:border-foreground hover:text-foreground transition-colors duration-200"
         >
           <ArrowLeft className="w-4 h-4" />
           Back
@@ -176,8 +176,8 @@ export function SkillsStep({ initialData, onNext, onBack, onSkip }: SkillsStepPr
         {skills.length === 0 ? (
           <button
             onClick={onSkip}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border border-[#333]
-                       rounded-xl text-neutral-300 hover:border-white hover:text-white transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border border-border
+                       rounded-xl text-foreground hover:border-foreground hover:text-foreground transition-colors"
           >
             Skip for now
             <SkipForward className="w-4 h-4" />
@@ -185,8 +185,8 @@ export function SkillsStep({ initialData, onNext, onBack, onSkip }: SkillsStepPr
         ) : (
           <button
             onClick={() => onNext(skills)}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-white text-black
-                       font-semibold rounded-xl hover:bg-neutral-200 transition-colors duration-200"
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground
+                       font-semibold rounded-xl hover:bg-[#3a3936] transition-colors duration-200"
           >
             Continue with {skills.length} skill{skills.length !== 1 ? "s" : ""}
             <ArrowRight className="w-4 h-4" />

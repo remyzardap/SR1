@@ -7,15 +7,15 @@ import { Loader2, Shield, ClipboardList, AlertTriangle, CheckCircle, XCircle, In
 import { trpc } from "@/lib/trpc";
 
 const SEVERITY_STYLES: Record<string, string> = {
-  info: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  warn: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  error: "bg-red-500/10 text-red-400 border-red-500/20",
-  critical: "bg-red-700/20 text-red-300 border-red-600/30",
+  info: "bg-secondary text-foreground border-border",
+  warn: "bg-secondary text-[#8b6f43] border-border",
+  error: "bg-destructive/10 text-destructive border-destructive/20",
+  critical: "bg-destructive/15 text-destructive border-destructive/30",
 };
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
-  success: <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />,
-  failure: <XCircle className="h-3.5 w-3.5 text-red-400" />,
+  success: <CheckCircle className="h-3.5 w-3.5 text-[#4f6b4f]" />,
+  failure: <XCircle className="h-3.5 w-3.5 text-destructive" />,
 };
 
 function formatTs(ts: number) {
@@ -39,7 +39,7 @@ export default function AuditLogs() {
 
   if (error) {
     return (
-      <div className="space-y-5">
+      <div className="sutaeru-editorial-page space-y-5">
         <h1 className="text-2xl font-bold tracking-tight">Audit Logs</h1>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 gap-3 text-destructive">
@@ -53,7 +53,7 @@ export default function AuditLogs() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="sutaeru-editorial-page space-y-5">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Audit Logs</h1>
         <p className="text-muted-foreground text-sm mt-1">Security and activity trail across the platform</p>
@@ -63,10 +63,10 @@ export default function AuditLogs() {
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Total Events", value: stats.total, icon: <ClipboardList className="h-5 w-5 text-blue-400" /> },
-            { label: "Failures", value: stats.failures, icon: <XCircle className="h-5 w-5 text-red-400" /> },
-            { label: "Critical", value: stats.critical, icon: <AlertTriangle className="h-5 w-5 text-orange-400" /> },
-            { label: "Last 24h", value: stats.last24h, icon: <Info className="h-5 w-5 text-emerald-400" /> },
+            { label: "Total Events", value: stats.total, icon: <ClipboardList className="h-5 w-5 text-foreground" /> },
+            { label: "Failures", value: stats.failures, icon: <XCircle className="h-5 w-5 text-destructive" /> },
+            { label: "Critical", value: stats.critical, icon: <AlertTriangle className="h-5 w-5 text-[#8b6f43]" /> },
+            { label: "Last 24h", value: stats.last24h, icon: <Info className="h-5 w-5 text-[#4f6b4f]" /> },
           ].map((s) => (
             <Card key={s.label}>
               <CardContent className="p-4 flex items-center gap-3">
@@ -87,13 +87,13 @@ export default function AuditLogs() {
           placeholder="Filter by action (e.g. user.login)"
           value={actionFilter}
           onChange={(e) => { setActionFilter(e.target.value); setOffset(0); }}
-          className="w-64"
+           className="w-full sm:w-64"
         />
         <Input
           placeholder="Filter by user ID"
           value={userFilter}
           onChange={(e) => { setUserFilter(e.target.value); setOffset(0); }}
-          className="w-48"
+           className="w-full sm:w-48"
         />
       </div>
 
@@ -113,7 +113,7 @@ export default function AuditLogs() {
               <p className="text-sm">No audit events found</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+             <div className="sutaeru-data-list">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-xs text-muted-foreground">
@@ -128,18 +128,18 @@ export default function AuditLogs() {
                 <tbody>
                   {data.logs.map((log) => (
                     <tr key={log.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-2 text-xs text-muted-foreground whitespace-nowrap">{formatTs(log.createdAt)}</td>
-                      <td className="px-4 py-2 font-mono text-xs truncate max-w-[120px]">{log.userId}</td>
-                      <td className="px-4 py-2 font-mono text-xs">{log.action}</td>
-                      <td className="px-4 py-2 text-xs text-muted-foreground">
+                       <td data-label="Time" className="px-4 py-2 text-xs text-muted-foreground whitespace-nowrap">{formatTs(log.createdAt)}</td>
+                       <td data-label="User" className="px-4 py-2 font-mono text-xs break-all">{log.userId}</td>
+                       <td data-label="Action" className="px-4 py-2 font-mono text-xs break-all">{log.action}</td>
+                       <td data-label="Resource" className="px-4 py-2 text-xs text-muted-foreground break-all">
                         {log.resourceType}{log.resourceId ? ` #${log.resourceId}` : ""}
                       </td>
-                      <td className="px-4 py-2">
+                       <td data-label="Severity" className="px-4 py-2">
                         <Badge variant="outline" className={`text-[10px] ${SEVERITY_STYLES[log.severity] ?? ""}`}>
                           {log.severity}
                         </Badge>
                       </td>
-                      <td className="px-4 py-2">
+                       <td data-label="Status" className="px-4 py-2">
                         <span className="flex items-center gap-1">
                           {STATUS_ICON[log.status] ?? null}
                           <span className="text-xs">{log.status}</span>
@@ -156,7 +156,7 @@ export default function AuditLogs() {
 
       {/* Pagination */}
       {data && data.total > LIMIT && (
-        <div className="flex items-center gap-3 justify-end text-sm">
+         <div className="flex flex-wrap items-center gap-3 justify-end text-sm">
           <Button variant="outline" size="sm" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - LIMIT))}>
             Previous
           </Button>

@@ -6,6 +6,9 @@ import { z } from "zod";
 import { trpc } from "@/lib/trpc";
 import { useLocation, Link } from "wouter";
 import { Loader2, ArrowRight } from "lucide-react";
+import { LandingMark } from "@/components/LandingMark";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const resetPasswordSchema = z
   .object({
@@ -49,84 +52,82 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-sutaeru flex justify-center items-center p-8">
+    <div className="sutaeru-auth-page min-h-dvh bg-sutaeru flex justify-center items-center p-4 sm:p-8">
       <div className="w-full max-w-md">
         <div className="mb-10 text-center">
           <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-7 h-7 bg-white rounded-xl flex items-center justify-center">
-              <span className="text-black font-bold text-sm">S</span>
-            </div>
-            <span className="text-white font-semibold text-lg tracking-tight">
+            <LandingMark className="sutaeru-login-mark" />
+            <span className="text-foreground font-semibold text-lg">
               Sutaeru
             </span>
           </Link>
         </div>
 
         <div className="mb-8">
-          <h2 className="text-2xl font-bold tracking-tight text-white mb-2">
+           <h2 className="text-2xl font-bold text-foreground mb-2">
             Reset your password
           </h2>
-          <p className="text-[#7a7670]/70 text-sm">
+           <p className="text-muted-foreground text-sm">
             Enter a new password for your account.
           </p>
         </div>
 
         {success ? (
           <div className="text-center">
-            <p className="text-green-400 mb-6">Your password has been reset successfully.</p>
-            <Link href="/login">
-              <a className="w-full btn-primary-teal font-medium text-sm py-3 rounded-xl hover:bg-[#e5e5e5] active:bg-[#cccccc] transition-colors flex items-center justify-center gap-2">
+             <p className="text-[var(--state-success)] mb-6">Your password has been reset successfully.</p>
+             <Button asChild className="w-full min-h-11"><Link href="/login">
                 Back to Sign In
                 <ArrowRight className="w-4 h-4" />
-              </a>
-            </Link>
+               </Link></Button>
           </div>
         ) : (
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             {error && (
-              <div className="border border-[rgba(255,255,255,0.05)] glass rounded-xl px-4 py-3 text-sm text-[#c8c4be]">
+               <div className="border border-destructive/30 bg-destructive/5 rounded-md px-4 py-3 text-sm text-destructive">
                 {error}
               </div>
             )}
 
             <div className="space-y-2">
-              <label className="block text-xs text-[#7a7670]/70 uppercase tracking-widest font-medium">
+               <label htmlFor="new-password" className="block text-xs text-muted-foreground uppercase font-medium">
                 New Password
               </label>
-              <input
+               <Input
+                 id="new-password"
                 type="password"
                 placeholder="••••••••"
-                className="w-full glass border border-[rgba(255,255,255,0.05)] rounded-xl px-4 py-3 text-sm text-[#f5f5f5] placeholder-[rgba(122,118,112,0.6)] focus:outline-none focus:border-[rgba(232,68,42,0.5)] transition-colors"
+                 className="w-full min-h-11"
                 {...form.register("password")}
               />
               {form.formState.errors.password && (
-                <p className="text-xs text-[#666666]">
+                 <p className="text-xs text-destructive">
                   {form.formState.errors.password.message}
                 </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <label className="block text-xs text-[#7a7670]/70 uppercase tracking-widest font-medium">
+               <label htmlFor="confirm-password" className="block text-xs text-muted-foreground uppercase font-medium">
                 Confirm New Password
               </label>
-              <input
+               <Input
+                 id="confirm-password"
                 type="password"
                 placeholder="••••••••"
-                className="w-full glass border border-[rgba(255,255,255,0.05)] rounded-xl px-4 py-3 text-sm text-[#f5f5f5] placeholder-[rgba(122,118,112,0.6)] focus:outline-none focus:border-[rgba(232,68,42,0.5)] transition-colors"
+                 className="w-full min-h-11"
                 {...form.register("confirmPassword")}
               />
               {form.formState.errors.confirmPassword && (
-                <p className="text-xs text-[#666666]">
+                 <p className="text-xs text-destructive">
                   {form.formState.errors.confirmPassword.message}
                 </p>
               )}
             </div>
 
-            <button
+             <Button
               type="submit"
               disabled={resetPasswordMutation.isPending}
-              className="w-full btn-primary-teal font-medium text-sm py-3 rounded-xl hover:bg-[#e5e5e5] active:bg-[#cccccc] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+               className="w-full min-h-11 mt-2"
             >
               {resetPasswordMutation.isPending ? (
                 <>
@@ -139,7 +140,7 @@ export default function ResetPassword() {
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
-            </button>
+             </Button>
           </form>
         )}
       </div>

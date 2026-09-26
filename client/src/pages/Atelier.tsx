@@ -475,14 +475,14 @@ export default function Atelier() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col gap-8 p-4 sm:p-8 max-w-3xl mx-auto w-full"
+        className="sutaeru-editorial-page flex flex-col gap-8 p-4 sm:p-8 max-w-3xl mx-auto w-full"
       >
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-semibold mb-1" style={{ color: "#f2f2f2", fontFamily: "'Syne', sans-serif" }}>
+          <h1 className="text-2xl font-semibold mb-1" style={{ color: "var(--foreground)", fontFamily: "var(--font-d)" }}>
             Atelier
           </h1>
-          <p className="text-sm" style={{ color: "rgba(242,242,242,0.4)" }}>
+          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
             Professional report studio — powered by S1
           </p>
         </div>
@@ -490,14 +490,14 @@ export default function Atelier() {
         {/* Two entry points */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Chat intake */}
-          <div className="rounded-2xl p-5 flex flex-col gap-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(242,242,242,0.06)", border: "1px solid rgba(242,242,242,0.10)" }}>
-                <Pen className="w-4 h-4" style={{ color: "#f2f2f2" }} />
+          <div className="rounded-2xl p-5 flex flex-col gap-3" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "var(--muted-foreground)", border: "1px solid var(--border)" }}>
+                <Pen className="w-4 h-4" style={{ color: "var(--foreground)" }} />
               </div>
-              <span className="text-sm font-semibold" style={{ color: "#f2f2f2" }}>Chat with Kemma</span>
+              <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Chat with Kemma</span>
             </div>
-            <p className="text-[13px]" style={{ color: "rgba(242,242,242,0.45)" }}>
+            <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
               S1 interviews you with targeted questions to gather everything needed, then builds your report automatically.
             </p>
           </div>
@@ -505,43 +505,43 @@ export default function Atelier() {
           {/* Upload */}
           <div
             className="rounded-2xl p-5 flex flex-col gap-3 cursor-pointer transition-all duration-200"
-            style={{ background: uploadedFile ? "rgba(45,212,191,0.06)" : "rgba(255,255,255,0.03)", border: uploadedFile ? "1px solid rgba(45,212,191,0.2)" : "1px solid rgba(255,255,255,0.08)" }}
+            style={{ background: uploadedFile ? "var(--accent-dim)" : "var(--card)", border: uploadedFile ? "1px solid var(--border)" : "1px solid var(--border)" }}
             onClick={() => fileInputRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFileUpload(f); }}
           >
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: uploadedFile ? "rgba(45,212,191,0.1)" : "rgba(255,255,255,0.06)", border: uploadedFile ? "1px solid rgba(45,212,191,0.2)" : "1px solid rgba(242,242,242,0.10)" }}>
-                {uploadParsing ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}><RefreshCw className="w-4 h-4" style={{ color: "#2dd4bf" }} /></motion.div>
-                  : uploadedFile ? <Check className="w-4 h-4" style={{ color: "#2dd4bf" }} />
-                  : <Upload className="w-4 h-4" style={{ color: "#f2f2f2" }} />}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: uploadedFile ? "var(--accent-dim)" : "var(--card)", border: uploadedFile ? "1px solid var(--border)" : "1px solid var(--border)" }}>
+                {uploadParsing ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}><RefreshCw className="w-4 h-4" style={{ color: "var(--foreground)" }} /></motion.div>
+                  : uploadedFile ? <Check className="w-4 h-4" style={{ color: "var(--foreground)" }} />
+                  : <Upload className="w-4 h-4" style={{ color: "var(--foreground)" }} />}
               </div>
-              <span className="text-sm font-semibold" style={{ color: uploadedFile ? "#2dd4bf" : "#f2f2f2" }}>
+              <span className="text-sm font-semibold" style={{ color: uploadedFile ? "var(--foreground)" : "var(--foreground)" }}>
                 {uploadedFile ? uploadedFile.name : "Upload a file"}
               </span>
             </div>
             {uploadedFile ? (
               <>
-                <p className="text-[12px] font-mono line-clamp-2" style={{ color: "rgba(45,212,191,0.7)" }}>{uploadedFile.preview}</p>
-                <div className="flex gap-2 mt-1">
+                <p className="text-[12px] font-mono line-clamp-2" style={{ color: "var(--muted-foreground)" }}>{uploadedFile.preview}</p>
+                <div className="flex flex-wrap gap-2 mt-1">
                   {(["rewrite", "reformat"] as UploadMode[]).map((m) => (
                     <button key={m} onClick={(e) => { e.stopPropagation(); setUploadMode(m); }}
                       className="px-3 py-1 rounded-full text-[11px] font-medium transition-all"
                       style={uploadMode === m
-                        ? { background: "rgba(45,212,191,0.15)", border: "1px solid rgba(45,212,191,0.3)", color: "#2dd4bf" }
-                        : { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(242,242,242,0.4)" }}
+                        ? { background: "var(--accent-dim)", border: "1px solid var(--border)", color: "var(--foreground)" }
+                        : { background: "var(--card)", border: "1px solid var(--border)", color: "var(--muted-foreground)" }}
                     >
                       {m === "rewrite" ? "Rewrite" : "Reformat only"}
                     </button>
                   ))}
                   <button onClick={(e) => { e.stopPropagation(); setUploadedFile(null); }}
-                    className="ml-auto p-1 rounded-full" style={{ color: "rgba(242,242,242,0.3)" }}>
+                    aria-label="Remove upload" className="ml-auto min-w-11 min-h-11 flex items-center justify-center rounded-md" style={{ color: "var(--muted-foreground)" }}>
                     <X className="w-3 h-3" />
                   </button>
                 </div>
               </>
             ) : (
-              <p className="text-[13px]" style={{ color: "rgba(242,242,242,0.45)" }}>
+              <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
                 PDF, DOCX, MD, TXT, CSV — Atelier extracts and rebuilds it.
               </p>
             )}
@@ -553,18 +553,18 @@ export default function Atelier() {
 
         {/* Report type */}
         <div>
-          <p className="text-[11px] uppercase tracking-widest font-medium mb-3" style={{ color: "rgba(242,242,242,0.3)", fontFamily: "'Syne', sans-serif" }}>Report Type</p>
+          <p className="text-[11px] uppercase tracking-widest font-medium mb-3" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-d)" }}>Report Type</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             {REPORT_TYPES.map(({ type, icon, desc }) => (
               <button key={type} onClick={() => setReportType(type)}
-                className="text-left p-3.5 rounded-xl transition-all duration-150"
+                className="text-left min-h-28 p-3.5 rounded-md transition-all duration-150"
                 style={reportType === type
-                  ? { background: "rgba(242,242,242,0.08)", border: "1px solid rgba(242,242,242,0.16)" }
-                  : { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+                  ? { background: "var(--accent-dim)", border: "1px solid var(--border)" }
+                  : { background: "var(--card)", border: "1px solid var(--border)" }}
               >
                 <div className="text-xl mb-2">{icon}</div>
-                <p className="text-[13px] font-medium" style={{ color: reportType === type ? "#f2f2f2" : "rgba(242,242,242,0.6)" }}>{type}</p>
-                <p className="text-[11px] mt-0.5" style={{ color: "rgba(242,242,242,0.3)" }}>{desc}</p>
+                <p className="text-[13px] font-medium" style={{ color: reportType === type ? "var(--foreground)" : "var(--foreground)" }}>{type}</p>
+                <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{desc}</p>
               </button>
             ))}
           </div>
@@ -572,19 +572,19 @@ export default function Atelier() {
 
         {/* Theme */}
         <div>
-          <p className="text-[11px] uppercase tracking-widest font-medium mb-3" style={{ color: "rgba(242,242,242,0.3)", fontFamily: "'Syne', sans-serif" }}>Report Theme</p>
-          <div className="flex gap-2.5">
+          <p className="text-[11px] uppercase tracking-widest font-medium mb-3" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-d)" }}>Report Theme</p>
+          <div className="grid grid-cols-3 gap-2 min-w-0">
             {(Object.entries(THEMES) as [Theme, typeof THEMES[Theme]][]).map(([key, t]) => (
               <button key={key} onClick={() => setTheme(key)}
-                className="flex-1 p-3 rounded-xl transition-all duration-150 text-left"
+                className="min-w-0 flex-1 p-2 sm:p-3 rounded-md transition-all duration-150 text-left"
                 style={theme === key
-                  ? { background: "rgba(242,242,242,0.08)", border: "1px solid rgba(242,242,242,0.16)" }
-                  : { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
+                  ? { background: "var(--accent-dim)", border: "1px solid var(--border)" }
+                  : { background: "var(--card)", border: "1px solid var(--border)" }}
               >
                 <div className="w-full h-8 rounded-lg mb-2" style={{ background: t.bg, border: `1px solid ${t.border}` }}>
                   <div className="m-2 h-1.5 rounded-full w-3/4" style={{ background: t.accent }} />
                 </div>
-                <p className="text-[12px] font-medium" style={{ color: theme === key ? "#f2f2f2" : "rgba(242,242,242,0.5)" }}>{t.label}</p>
+                <p className="text-[12px] font-medium" style={{ color: theme === key ? "var(--foreground)" : "var(--muted-foreground)" }}>{t.label}</p>
               </button>
             ))}
           </div>
@@ -594,9 +594,7 @@ export default function Atelier() {
         <button
           onClick={startInterview}
           className="w-full py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200"
-          style={{ background: "#f2f2f2", color: "#050505", fontFamily: "'Syne', sans-serif", boxShadow: "0 4px 20px rgba(242,242,242,0.15)" }}
-          onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 6px 28px rgba(242,242,242,0.25)"}
-          onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 20px rgba(242,242,242,0.15)"}
+          style={{ background: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-d)" }}
         >
           <Sparkles className="w-4 h-4" />
           {uploadedFile ? `Build ${reportType} from upload` : `Start ${reportType} with S1`}
@@ -609,28 +607,28 @@ export default function Atelier() {
   // ─── Phase: Interview ───────────────────────────────────────────────────────
   if (phase === "interview") {
     return (
-      <div className="flex flex-col h-full max-w-2xl mx-auto w-full">
+      <div className="sutaeru-editorial-page flex flex-col h-full min-h-0 max-w-2xl mx-auto w-full">
         {/* Header */}
         <div className="flex-none flex items-center justify-between px-4 sm:px-6 py-3"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.07)", background: "rgba(5,5,5,0.85)", backdropFilter: "blur(20px)" }}>
+          style={{ borderBottom: "1px solid var(--border)", background: "var(--background)", backdropFilter: "blur(20px)" }}>
           <div>
-            <p className="text-sm font-semibold" style={{ color: "#f2f2f2", fontFamily: "'Syne', sans-serif" }}>Atelier · {reportType}</p>
-            <p className="text-[11px]" style={{ color: "rgba(242,242,242,0.3)" }}>S1 is gathering information</p>
+            <p className="text-sm font-semibold" style={{ color: "var(--foreground)", fontFamily: "var(--font-d)" }}>Atelier · {reportType}</p>
+            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>S1 is gathering information</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {readyToGenerate && (
               <motion.button
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 onClick={() => { setPhase("select"); setReadyToGenerate(false); setTimeout(generateReport, 100); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
-                style={{ background: "#f2f2f2", color: "#050505", fontFamily: "'Syne', sans-serif" }}
+                className="flex min-h-11 items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold transition-all"
+                style={{ background: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-d)" }}
               >
                 <Sparkles className="w-3 h-3" />
                 Build Report
               </motion.button>
             )}
-            <button onClick={() => setPhase("select")} style={{ color: "rgba(242,242,242,0.3)" }}>
+            <button onClick={() => setPhase("select")} aria-label="Close interview" className="min-h-11 min-w-11 flex items-center justify-center" style={{ color: "var(--muted-foreground)" }}>
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -645,8 +643,8 @@ export default function Atelier() {
                 <div
                   className="max-w-[82%] px-4 py-3 rounded-2xl text-[14px] leading-relaxed"
                   style={msg.role === "user"
-                    ? { background: "#f2f2f2", color: "#050505", borderRadius: "20px 20px 4px 20px" }
-                    : { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", color: "#f2f2f2", borderRadius: "20px 20px 20px 4px" }}
+                    ? { background: "var(--primary)", color: "var(--primary-foreground)", borderRadius: "20px 20px 4px 20px" }
+                    : { background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)", borderRadius: "20px 20px 20px 4px" }}
                 >
                   {msg.content || <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1 }}>●●●</motion.span>}
                 </div>
@@ -659,7 +657,7 @@ export default function Atelier() {
         {/* Input */}
         <div className="flex-none px-4 sm:px-6 pb-4 pt-2">
           <div className="flex items-end gap-2 px-4 py-3 rounded-2xl"
-            style={{ background: "rgba(18,18,18,0.92)", backdropFilter: "blur(28px)", border: "1px solid rgba(255,255,255,0.10)" }}>
+            style={{ background: "var(--card)", backdropFilter: "blur(28px)", border: "1px solid var(--border)" }}>
             <textarea
               value={input}
               onChange={(e) => { setInput(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`; }}
@@ -668,14 +666,15 @@ export default function Atelier() {
               rows={1}
               disabled={streaming}
               className="flex-1 resize-none bg-transparent text-[14px] outline-none leading-relaxed min-h-[24px] max-h-[120px]"
-              style={{ color: "#f2f2f2", fontFamily: "'Manrope', sans-serif", caretColor: "#f2f2f2" }}
+              style={{ color: "var(--foreground)", fontFamily: "'Manrope', sans-serif", caretColor: "var(--foreground)" }}
             />
             <button
               onClick={streaming ? () => abortRef.current?.abort() : () => void sendMessage()}
-              className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all"
+              aria-label={streaming ? "Stop response" : "Send message"}
+               className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all"
               style={streaming
-                ? { background: "rgba(249,115,22,0.15)", border: "1px solid rgba(249,115,22,0.3)", color: "#f97316" }
-                : { background: input.trim() ? "#f2f2f2" : "rgba(242,242,242,0.08)", color: input.trim() ? "#050505" : "rgba(242,242,242,0.3)" }}
+                ? { background: "rgba(179,64,42,.1)", border: "1px solid var(--border)", color: "var(--destructive)" }
+                : { background: input.trim() ? "var(--foreground)" : "var(--accent-dim)", color: input.trim() ? "var(--primary-foreground)" : "var(--muted-foreground)" }}
             >
               {streaming ? <Square className="w-3 h-3 fill-current" /> : <ArrowUp className="w-3.5 h-3.5" strokeWidth={2.5} />}
             </button>
@@ -693,23 +692,23 @@ export default function Atelier() {
       <div className="flex flex-col items-center justify-center h-full gap-8 px-6">
         <motion.div className="relative w-16 h-16">
           <motion.div className="absolute inset-0 rounded-full" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-            style={{ border: "2px solid transparent", borderTopColor: "#f2f2f2", borderRightColor: "rgba(242,242,242,0.3)" }} />
+            style={{ border: "2px solid transparent", borderTopColor: "var(--foreground)", borderRightColor: "var(--muted-foreground)" }} />
           <div className="absolute inset-0 flex items-center justify-center">
-            <Sparkles className="w-6 h-6" style={{ color: "#f2f2f2" }} />
+            <Sparkles className="w-6 h-6" style={{ color: "var(--foreground)" }} />
           </div>
         </motion.div>
         <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2" style={{ color: "#f2f2f2", fontFamily: "'Syne', sans-serif" }}>Building your {reportType}</h2>
-          <p className="text-sm" style={{ color: "rgba(242,242,242,0.4)" }}>S1 is writing your report now…</p>
+          <h2 className="text-xl font-semibold mb-2" style={{ color: "var(--foreground)", fontFamily: "var(--font-d)" }}>Building your {reportType}</h2>
+          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>S1 is writing your report now…</p>
         </div>
         <div className="flex flex-col gap-2 w-full max-w-xs">
           {steps.map((step, i) => (
             <motion.div key={step} initial={{ opacity: 0.2 }} animate={{ opacity: i <= approxStep ? 1 : 0.25 }}
               className="flex items-center gap-3 text-[13px]"
-              style={{ color: i <= approxStep ? "#f2f2f2" : "rgba(242,242,242,0.3)" }}>
-              <div className="w-1.5 h-1.5 rounded-full" style={{ background: i <= approxStep ? "#f2f2f2" : "rgba(242,242,242,0.2)" }} />
+              style={{ color: i <= approxStep ? "var(--foreground)" : "var(--muted-foreground)" }}>
+              <div className="w-1.5 h-1.5 rounded-full" style={{ background: i <= approxStep ? "var(--foreground)" : "var(--muted-foreground)" }} />
               {step}
-              {i === approxStep && <motion.span animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1 }} style={{ color: "rgba(242,242,242,0.5)" }}>…</motion.span>}
+              {i === approxStep && <motion.span animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1 }} style={{ color: "var(--muted-foreground)" }}>…</motion.span>}
             </motion.div>
           ))}
         </div>
@@ -720,34 +719,34 @@ export default function Atelier() {
   // ─── Phase: Preview ─────────────────────────────────────────────────────────
   if (phase === "preview" && report) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="sutaeru-editorial-page flex flex-col h-full min-h-0">
         {/* Toolbar */}
         <div className="flex-none flex items-center justify-between px-4 sm:px-6 py-3 flex-wrap gap-2"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.07)", background: "rgba(5,5,5,0.9)", backdropFilter: "blur(20px)" }}>
+          style={{ borderBottom: "1px solid var(--border)", background: "var(--background)", backdropFilter: "blur(20px)" }}>
           <div>
-            <p className="text-sm font-semibold" style={{ color: "#f2f2f2", fontFamily: "'Syne', sans-serif" }}>{report.title}</p>
-            <p className="text-[11px]" style={{ color: "rgba(242,242,242,0.3)" }}>Atelier · {reportType}</p>
+            <p className="text-sm font-semibold" style={{ color: "var(--foreground)", fontFamily: "var(--font-d)" }}>{report.title}</p>
+            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Atelier · {reportType}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Theme switcher */}
-            <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
               {(Object.keys(THEMES) as Theme[]).map((t) => (
                 <button key={t} onClick={() => { setTheme(t); setReport((r) => r ? { ...r, theme: t } : r); }}
-                  className="px-2.5 py-1 rounded-full text-[11px] font-medium transition-all"
+                  className="min-h-11 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all"
                   style={theme === t
-                    ? { background: "rgba(255,255,255,0.12)", color: "#f2f2f2" }
-                    : { color: "rgba(242,242,242,0.35)" }}>
+                    ? { background: "var(--accent)", color: "var(--foreground)" }
+                    : { color: "var(--muted-foreground)" }}>
                   {THEMES[t].label}
                 </button>
               ))}
             </div>
             <button onClick={() => { setPhase("select"); setReport(null); setMessages([]); }}
-              className="text-[12px] px-3 py-1.5 rounded-full transition-all"
-              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", color: "rgba(242,242,242,0.5)" }}>
+              className="min-h-11 text-[12px] px-3 py-1.5 rounded-md transition-all"
+              style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--muted-foreground)" }}>
               New Report
             </button>
-            <button className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full font-semibold transition-all"
-              style={{ background: "#f2f2f2", color: "#050505" }}
+            <button className="flex min-h-11 items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-md font-semibold transition-all"
+              style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}
               onClick={() => toast.info("Export coming soon — PDF, DOCX, XLSX, MD")}>
               <Download className="w-3.5 h-3.5" />
               Export

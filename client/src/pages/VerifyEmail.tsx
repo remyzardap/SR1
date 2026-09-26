@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { LandingMark } from "@/components/LandingMark";
+import { Button } from "@/components/ui/button";
 
 export default function VerifyEmail() {
   const token = new URLSearchParams(window.location.search).get("token");
@@ -29,17 +31,12 @@ export default function VerifyEmail() {
   }, []);
 
   return (
-    <div className="min-h-screen flex justify-center items-center p-8">
+    <div className="sutaeru-auth-page min-h-dvh flex justify-center items-center p-4 sm:p-8">
       <div className="w-full max-w-md text-center">
         {/* Logo */}
         <div className="mb-10">
           <Link href="/" className="inline-flex items-center gap-2 justify-center">
-            <div
-              className="w-7 h-7 rounded-xl flex items-center justify-center"
-              style={{ background: "var(--accent-color)" }}
-            >
-              <span className="text-white font-bold text-sm">S</span>
-            </div>
+             <LandingMark className="sutaeru-login-mark" />
             <span
               className="font-semibold text-lg tracking-tight"
               style={{ color: "var(--foreground)" }}
@@ -65,7 +62,7 @@ export default function VerifyEmail() {
           <div className="space-y-6">
             <CheckCircle
               className="w-12 h-12 mx-auto"
-              style={{ color: "#22c55e" }}
+               style={{ color: "var(--state-success)" }}
             />
             <div>
               <h2
@@ -78,17 +75,7 @@ export default function VerifyEmail() {
                 Your email address has been successfully verified.
               </p>
             </div>
-            <Link href="/chat">
-              <span
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-sm cursor-pointer"
-                style={{
-                  background: "var(--accent-color)",
-                  color: "#fff",
-                }}
-              >
-                Go to Dashboard
-              </span>
-            </Link>
+             <Button asChild className="min-h-11"><Link href="/chat">Go to Dashboard</Link></Button>
           </div>
         )}
 
@@ -96,7 +83,7 @@ export default function VerifyEmail() {
           <div className="space-y-6">
             <XCircle
               className="w-12 h-12 mx-auto"
-              style={{ color: "#ef4444" }}
+               style={{ color: "var(--destructive)" }}
             />
             <div>
               <h2
@@ -109,17 +96,7 @@ export default function VerifyEmail() {
                 {message || "This link is invalid or has expired."}
               </p>
             </div>
-            <Link href="/login">
-              <span
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-sm cursor-pointer"
-                style={{
-                  background: "var(--accent-color)",
-                  color: "#fff",
-                }}
-              >
-                Back to Sign In
-              </span>
-            </Link>
+             <Button asChild className="min-h-11"><Link href="/login">Back to Sign In</Link></Button>
           </div>
         )}
       </div>

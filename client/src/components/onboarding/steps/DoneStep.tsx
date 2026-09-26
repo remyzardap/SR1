@@ -39,16 +39,16 @@ export function DoneStep({ identity, skills, apiKey, onComplete, isLoading }: Do
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-        className="w-16 h-16 rounded-full bg-white flex items-center justify-center mx-auto mb-6"
+        className="w-16 h-16 rounded-full bg-primary flex items-center justify-center mx-auto mb-6"
       >
-        <CheckCircle className="w-8 h-8 text-black" />
+        <CheckCircle className="w-8 h-8 text-primary-foreground" />
       </motion.div>
 
       <motion.h2
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="text-3xl font-bold text-white mb-2"
+        className="text-3xl font-bold text-foreground mb-2"
       >
         You're all set!
       </motion.h2>
@@ -57,7 +57,7 @@ export function DoneStep({ identity, skills, apiKey, onComplete, isLoading }: Do
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="text-neutral-400 mb-8"
+        className="text-muted-foreground mb-8"
       >
         Your agent identity is ready. Here's what we set up:
       </motion.p>
@@ -69,33 +69,33 @@ export function DoneStep({ identity, skills, apiKey, onComplete, isLoading }: Do
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4 }}
-          className="p-4 border border-[#333] rounded-xl bg-neutral-900/50"
+          className="p-4 border border-border rounded-xl bg-card"
         >
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-              <User className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+              <User className="w-4 h-4 text-foreground" />
             </div>
-            <h3 className="font-semibold text-white">Identity</h3>
+            <h3 className="font-semibold text-foreground">Identity</h3>
           </div>
           <div className="pl-11 space-y-1">
-            <p className="text-sm text-white font-medium">{identity.displayName}</p>
+            <p className="text-sm text-foreground font-medium">{identity.displayName}</p>
             {identity.handle && (
-              <p className="text-xs text-neutral-500">@{identity.handle}</p>
+              <p className="text-xs text-muted-foreground">@{identity.handle}</p>
             )}
-            <p className="text-xs text-neutral-400 line-clamp-2">{identity.bio}</p>
+            <p className="text-xs text-muted-foreground line-clamp-2">{identity.bio}</p>
             {identity.personalityTraits.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {identity.personalityTraits.slice(0, 3).map((trait) => (
-                  <span key={trait} className="px-2 py-0.5 border border-[#333] text-neutral-300 text-xs rounded-full">
+                  <span key={trait} className="px-2 py-0.5 border border-border text-foreground text-xs rounded-full">
                     {trait}
                   </span>
                 ))}
                 {identity.personalityTraits.length > 3 && (
-                  <span className="text-xs text-neutral-500">+{identity.personalityTraits.length - 3} more</span>
+                  <span className="text-xs text-muted-foreground">+{identity.personalityTraits.length - 3} more</span>
                 )}
               </div>
             )}
-            <p className="text-xs text-neutral-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Language: {LANGUAGE_NAMES[identity.primaryLanguage] ?? identity.primaryLanguage}
             </p>
           </div>
@@ -107,20 +107,20 @@ export function DoneStep({ identity, skills, apiKey, onComplete, isLoading }: Do
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.5 }}
-            className="p-4 border border-[#333] rounded-xl bg-neutral-900/50"
+            className="p-4 border border-border rounded-xl bg-card"
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                <Wrench className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+                <Wrench className="w-4 h-4 text-foreground" />
               </div>
-              <h3 className="font-semibold text-white">Skills</h3>
-              <span className="text-xs text-neutral-500">({skills.length})</span>
+              <h3 className="font-semibold text-foreground">Skills</h3>
+              <span className="text-xs text-muted-foreground">({skills.length})</span>
             </div>
             <div className="pl-11 space-y-1">
               {skills.map((skill, i) => (
                 <div key={i}>
-                  <p className="text-sm text-white">{skill.name}</p>
-                  <p className="text-xs text-neutral-500 line-clamp-1">{skill.description}</p>
+                  <p className="text-sm text-foreground">{skill.name}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-1">{skill.description}</p>
                 </div>
               ))}
             </div>
@@ -133,19 +133,19 @@ export function DoneStep({ identity, skills, apiKey, onComplete, isLoading }: Do
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.6 }}
-            className="p-4 border border-[#333] rounded-xl bg-neutral-900/50"
+            className="p-4 border border-border rounded-xl bg-card"
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                <Key className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+                <Key className="w-4 h-4 text-foreground" />
               </div>
-              <h3 className="font-semibold text-white">API Key</h3>
+              <h3 className="font-semibold text-foreground">API Key</h3>
             </div>
             <div className="pl-11">
-              <p className="text-sm text-neutral-300">
+              <p className="text-sm text-foreground">
                 {PROVIDER_LABELS[apiKey.provider] ?? apiKey.provider} connected
               </p>
-              <p className="text-xs text-green-400 flex items-center gap-1 mt-1">
+              <p className="text-xs text-[#4f6b4f] flex items-center gap-1 mt-1">
                 <CheckCircle className="w-3 h-3" />
                 Encrypted and secure
               </p>
@@ -159,13 +159,13 @@ export function DoneStep({ identity, skills, apiKey, onComplete, isLoading }: Do
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
-        className="p-4 border border-dashed border-[#333] rounded-xl mb-8 text-left"
+        className="p-4 border border-dashed border-border rounded-xl mb-8 text-left"
       >
         <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="w-4 h-4 text-yellow-400" />
-          <h4 className="text-sm font-medium text-white">What's next?</h4>
+          <Sparkles className="w-4 h-4 text-[#8b6f43]" />
+          <h4 className="text-sm font-medium text-foreground">What's next?</h4>
         </div>
-        <p className="text-sm text-neutral-400 pl-6">
+        <p className="text-sm text-muted-foreground pl-6">
           Head to your dashboard to start chatting with your agent, add more skills, and build your memory.
         </p>
       </motion.div>
@@ -182,8 +182,8 @@ export function DoneStep({ identity, skills, apiKey, onComplete, isLoading }: Do
         className={`w-full px-6 py-4 rounded-xl font-semibold text-base transition-all duration-200
                    flex items-center justify-center gap-2 ${
                      isLoading
-                       ? "bg-neutral-700 text-neutral-400 cursor-not-allowed"
-                       : "bg-white text-black hover:bg-neutral-200"
+                       ? "bg-secondary text-muted-foreground cursor-not-allowed"
+                       : "bg-primary text-primary-foreground hover:bg-[#3a3936]"
                    }`}
       >
         {isLoading ? (

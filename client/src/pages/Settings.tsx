@@ -4,9 +4,9 @@ export const PROVIDERS = [
 
 export default function Settings() {
   return (
-    <div style={{ padding: '32px', color: 'var(--foreground, #f5f2ed)' }}>
-      <h1 style={{ fontFamily: 'var(--font-d, "Syne", sans-serif)', fontSize: '24px', fontWeight: 800, marginBottom: '16px' }}>Settings</h1>
-      <p style={{ color: 'var(--muted-foreground, rgba(245,242,237,0.55))', fontSize: '14px' }}>Settings page coming soon.</p>
+    <div className="sutaeru-editorial-page mx-auto max-w-3xl px-3 py-6 sm:px-4 sm:py-8">
+      <h1 className="text-2xl font-semibold text-foreground mb-4">Settings</h1>
+      <p className="text-sm text-muted-foreground">Settings page coming soon.</p>
     </div>
   );
 }

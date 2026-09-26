@@ -192,7 +192,7 @@ export default function Identity() {
   const statItems = [
     { icon: Brain, label: "Skills", value: stats?.skillsCount ?? 0, color: "var(--accent-color)", dim: "var(--accent-dim)", border: "var(--accent-border)" },
     { icon: MessageSquare, label: "Memories", value: stats?.memoriesCount ?? 0, color: "var(--secondary-color)", dim: "var(--secondary-dim)", border: "var(--secondary-border)" },
-    { icon: Users, label: "Connections", value: stats?.connectionsCount ?? 0, color: "#7aaaf0", dim: "rgba(122,170,240,0.10)", border: "rgba(122,170,240,0.18)" },
+    { icon: Users, label: "Connections", value: stats?.connectionsCount ?? 0, color: "var(--foreground)", dim: "var(--accent-dim)", border: "var(--accent-border)" },
   ];
 
   // ─── Loading state ─────────────────────────────────────────────────────────
@@ -390,7 +390,7 @@ export default function Identity() {
                 type="button"
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={isUploadingAvatar}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                 className="flex min-h-11 items-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   background: "var(--accent-dim)",
                   border: "1px solid var(--accent-border)",
@@ -408,7 +408,7 @@ export default function Identity() {
                 <button
                   type="button"
                   onClick={() => { setAvatarUrl(""); }}
-                  className="text-xs transition-colors"
+                   className="min-h-11 text-xs transition-colors"
                   style={{ color: "var(--muted-foreground)" }}
                 >
                   Remove avatar
@@ -515,8 +515,8 @@ export default function Identity() {
             </SelectTrigger>
             <SelectContent
               style={{
-                background: "rgba(14,14,14,0.95)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                background: "var(--popover)",
+                border: "1px solid var(--border)",
                 backdropFilter: "blur(20px)",
               }}
             >
@@ -543,8 +543,8 @@ export default function Identity() {
           <div
             className="flex flex-wrap items-center gap-1.5 min-h-10 px-3 py-2 transition-all"
             style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.10)",
+              background: "var(--card)",
+              border: "1px solid var(--border)",
               borderRadius: "12px",
               backdropFilter: "blur(12px)",
             }}
@@ -554,7 +554,7 @@ export default function Identity() {
             }}
             onBlur={(e) => {
               (e.currentTarget as HTMLDivElement).style.borderColor =
-                "rgba(255,255,255,0.10)";
+                "var(--border)";
             }}
           >
             {personalityTraits.map((trait) => (
@@ -571,7 +571,7 @@ export default function Identity() {
                 <button
                   type="button"
                   onClick={() => removeTrait(trait)}
-                  className="transition-colors hover:opacity-80"
+                   className="min-h-11 min-w-11 flex items-center justify-center transition-colors hover:opacity-80"
                   aria-label={`Remove ${trait}`}
                 >
                   <X className="h-3 w-3" />
@@ -598,7 +598,7 @@ export default function Identity() {
               <button
                 type="button"
                 onClick={addTrait}
-                className="shrink-0 transition-colors"
+                 className="min-h-11 min-w-11 shrink-0 flex items-center justify-center transition-colors"
                 style={{ color: "var(--muted-foreground)" }}
                 aria-label="Add trait"
               >
