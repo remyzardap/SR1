@@ -24,23 +24,12 @@ import type { BlockData } from "@/components/Block";
 // ─── Navigation Items ─────────────────────────────────────────────────────────
 
 const PAGES = [
-  { label: "Dashboard", path: "/", icon: LayoutDashboard, category: "Pages" },
   { label: "Chat", path: "/chat", icon: MessageSquare, category: "Pages" },
   { label: "Memories", path: "/memories", icon: Brain, category: "Pages" },
   { label: "Skills", path: "/skills", icon: Zap, category: "Pages" },
   { label: "Files", path: "/files", icon: FolderOpen, category: "Pages" },
-  { label: "Board", path: "/board", icon: LayoutGrid, category: "Pages" },
   { label: "Atelier", path: "/atelier", icon: Layers, category: "Pages" },
-  { label: "Feed", path: "/feed", icon: Rss, category: "Pages" },
-  { label: "Workflows", path: "/workflow", icon: Zap, category: "Pages" },
   { label: "Connections", path: "/connections", icon: Plug, category: "Pages" },
-  { label: "Receipts", path: "/receipts", icon: Receipt, category: "Pages" },
-  { label: "Reports", path: "/reports", icon: BarChart3, category: "Pages" },
-  { label: "Tasks", path: "/tasks", icon: CheckSquare, category: "Pages" },
-  { label: "Procurement", path: "/procurement", icon: ShoppingCart, category: "Pages" },
-  { label: "KPIs", path: "/kpis", icon: TrendingUp, category: "Pages" },
-  { label: "Image Gen", path: "/image-gen", icon: Image, category: "Pages" },
-  { label: "Kemma Calls", path: "/kemma-calls", icon: Phone, category: "Pages" },
 ];
 
 const QUICK_ACTIONS = [

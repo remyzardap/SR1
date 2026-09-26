@@ -78,7 +78,7 @@ export default function VerifyEmail() {
                 Your email address has been successfully verified.
               </p>
             </div>
-            <Link href="/dashboard">
+            <Link href="/chat">
               <span
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-sm cursor-pointer"
                 style={{

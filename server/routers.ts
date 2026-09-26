@@ -68,17 +68,9 @@ import { generateStyleOptions, generateDocumentContent } from "./llmProvider";
 import { generateFile, STYLE_DEFINITIONS } from "./fileGenerator";
 import { TRPCError } from "@trpc/server";
 import { sdk } from "./_core/sdk";
-import { receiptsRouter } from "./routers/receipts";
 import { tasksRouter } from "./routers/tasks";
-import { procurementRouter } from "./routers/procurement";
-import { reportsRouter } from "./routers/reports";
-import { whatsappRouter } from "./routers/whatsapp";
-import { paymentsRouter } from "./routers/payments";
 import { agentRouter } from "./routers/agent";
 import { businessesRouter } from "./routers/businesses";
-import { imageGenRouter } from "./routers/imageGen";
-import { healthRouter } from "./routers/health";
-import { kpisRouter } from "./routers/kpis";
 import { betaInvitesRouter } from "./routers/betaInvites";
 import { blocksRouter } from "./routers/blocks";
 import { googleRouter } from "./routers/google";
@@ -509,19 +501,11 @@ export const appRouter = router({
   // ─── Settings router ────────────────────────────────────────────────────────
   // ─── Back Office routers ──────────────────────────────────────────────────
   businesses: businessesRouter,
-  receipts: receiptsRouter,
   tasks: tasksRouter,
-  procurement: procurementRouter,
-  reports: reportsRouter,
-  whatsapp: whatsappRouter,
   blocks: blocksRouter,
   google: googleRouter,
   telegram: telegramRouter,
   openclaw: openclawRouter,
-  payments: paymentsRouter,
-  imageGen: imageGenRouter,
-  health: healthRouter,
-  kpis: kpisRouter,
   kemma: kemmaRouter,
   spaces: spacesRouter,
   // ─── Settings router ────────────────────────────────────────────────────────

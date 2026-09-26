@@ -1,5 +1,4 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useBusiness } from "@/contexts/BusinessContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,27 +44,11 @@ const menuItems = [
   { icon: Layers, label: "Skills", path: "/skills", group: "sutaeru" },
   { icon: CloudLightning, label: "Memories", path: "/memories", group: "sutaeru" },
   { icon: Plug, label: "Connections", path: "/connections", group: "sutaeru" },
-  { icon: Compass, label: "Discover", path: "/discover", group: "sutaeru" },
-  { icon: Rss, label: "Feed", path: "/feed", group: "sutaeru" },
-  { icon: Heart, label: "Health", path: "/health", group: "sutaeru" },
-  { icon: Phone, label: "Kemma Calls", path: "/kemma-calls", group: "sutaeru" },
-  { icon: LayoutGrid, label: "Board", path: "/board", group: "sutaeru" },
-  { icon: GitBranch, label: "Workflows", path: "/workflow", group: "sutaeru" },
   // ── File generation ──
   { icon: Palette, label: "Atelier", path: "/atelier", group: "forge" },
   { icon: Sparkles, label: "Generate", path: "/generate", group: "forge" },
-  { icon: Image, label: "Image Gen", path: "/image-gen", group: "forge" },
   { icon: FolderOpen, label: "My Files", path: "/files", group: "forge" },
   // ── Back Office ──
-  { icon: Building2, label: "Businesses", path: "/business", group: "office" },
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", group: "office" },
-  { icon: Receipt, label: "Receipts", path: "/receipts", group: "office" },
-  { icon: ClipboardCheck, label: "Review Queue", path: "/review", group: "office" },
-  { icon: CheckSquare, label: "Tasks", path: "/tasks", group: "office" },
-  { icon: ShoppingCart, label: "Procurement", path: "/procurement", group: "office" },
-  { icon: BarChart3, label: "Reports", path: "/reports", group: "office" },
-  { icon: MessageCircle, label: "WhatsApp", path: "/whatsapp", group: "office" },
-  { icon: CreditCard, label: "Billing", path: "/billing", group: "office" },
   // ── Settings ──
   { icon: Settings, label: "Settings", path: "/settings", group: "settings" },
 ];
@@ -274,77 +257,6 @@ function DashboardLayoutWithPalette({ setSidebarWidth, noPadding, children }: { 
   );
 }
 
-// ─── Business Switcher widget ────────────────────────────────────────────────
-function BusinessSwitcher() {
-  const { businesses, activeBusiness, setActiveBusiness } = useBusiness();
-  const [, setLocation] = useLocation();
-
-  if (businesses.length === 0) {
-    return (
-      <div className="px-3 pb-2">
-        <button
-          onClick={() => setLocation("/business")}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/40 transition-colors"
-          style={{ background: "rgba(255,255,255,0.04)", border: "1px dashed rgba(255,255,255,0.10)" }}
-        >
-          <Building2 className="w-3.5 h-3.5 shrink-0" />
-          <span className="truncate">No business — create one</span>
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="px-3 pb-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs transition-colors"
-            style={{
-              background: activeBusiness ? "var(--accent-dim)" : "rgba(255,255,255,0.05)",
-              border: activeBusiness ? "1px solid var(--accent-border)" : "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <Building2
-              className="w-3.5 h-3.5 shrink-0"
-              style={{ color: activeBusiness ? "var(--accent-color)" : "rgba(255,255,255,0.40)" }}
-            />
-            <span
-              className="flex-1 truncate text-left font-medium"
-              style={{ color: activeBusiness ? "var(--accent-color)" : "rgba(255,255,255,0.50)" }}
-            >
-              {activeBusiness ? activeBusiness.name : "Select business"}
-            </span>
-            <ChevronDown className="w-3 h-3 text-white/30 shrink-0" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-52">
-          {businesses.map((biz) => (
-            <DropdownMenuItem
-              key={biz.id}
-              onClick={() => setActiveBusiness(activeBusiness?.id === biz.id ? null : biz)}
-              className="cursor-pointer"
-            >
-              <Building2 className="mr-2 h-3.5 w-3.5" />
-              <span className="truncate flex-1">{biz.name}</span>
-              {activeBusiness?.id === biz.id && (
-                <span className="ml-2 text-[10px] font-bold" style={{ color: "var(--accent-color)" }}>✓</span>
-              )}
-            </DropdownMenuItem>
-          ))}
-          <DropdownMenuItem
-            onClick={() => setLocation("/business")}
-            className="cursor-pointer border-t border-white/10 mt-1 pt-1"
-          >
-            <Building2 className="mr-2 h-3.5 w-3.5" />
-            Manage Businesses
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  );
-}
-
 type DashboardLayoutContentProps = {
   children: React.ReactNode;
   setSidebarWidth: (width: number) => void;
@@ -487,31 +399,6 @@ function DashboardLayoutContent({
                 );
               })}
 
-              {/* The Office Group */}
-              {!isCollapsed && (
-                <div className="px-3 py-2 mt-2 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '0.6rem', color: 'rgba(245,242,237,0.30)' }}>
-                  — The Office
-                </div>
-              )}
-              {menuItems.filter(item => item.group === "office").map(item => {
-                const isActive = location === item.path;
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      onClick={() => setLocation(item.path)}
-                      tooltip={item.label}
-                      className={`h-10 transition-all font-normal`}
-                    >
-                      <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
-                      />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-
               {/* Admin (only for admin users) */}
               {user?.role === "admin" && (
                 <>
@@ -529,28 +416,6 @@ function DashboardLayoutContent({
                     >
                       <Shield className={`h-4 w-4 ${location === "/admin" ? "text-primary" : ""}`} />
                       <span>Admin</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem key="/kpis">
-                    <SidebarMenuButton
-                      isActive={location === "/kpis"}
-                      onClick={() => setLocation("/kpis")}
-                      tooltip="KPIs Dashboard"
-                      className={`h-10 transition-all font-normal`}
-                    >
-                      <TrendingUp className={`h-4 w-4 ${location === "/kpis" ? "text-primary" : ""}`} />
-                      <span>KPIs</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem key="/health">
-                    <SidebarMenuButton
-                      isActive={location === "/health"}
-                      onClick={() => setLocation("/health")}
-                      tooltip="System Health"
-                      className={`h-10 transition-all font-normal`}
-                    >
-                      <Activity className={`h-4 w-4 ${location === "/health" ? "text-primary" : ""}`} />
-                      <span>Health</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </>
@@ -582,9 +447,6 @@ function DashboardLayoutContent({
               })}
             </SidebarMenu>
           </SidebarContent>
-
-          {/* Active Business Switcher */}
-          {!isCollapsed && <BusinessSwitcher />}
 
 
           <SidebarFooter className="p-3">
