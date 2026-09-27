@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -50,7 +49,7 @@
 */
 
 :root {
-  --radius: 22px;
+  --radius: 8px;
   /* ── Mocha Design System Tokens ── */
   --font-d: 'Sora', sans-serif;
   --font-b: 'Manrope', sans-serif;
@@ -68,7 +67,7 @@
   --t1:          #242320;
   --t2:          rgba(36,35,32,0.62);
   --t3:          rgba(36,35,32,0.38);
-  --btn-fill:    #242320;
+  --btn-fill:    #E8500F;
   --btn-ink:     #F7F6F2;
   --glow:        rgba(36,35,32,0.08);
   --mocha:       #242320;
@@ -118,10 +117,10 @@
   --duration-slow:    350ms;
 
   /* ── State Colors ── */
-  --state-success:    #2dd4bf;
-  --state-warning:    #f59e0b;
-  --state-error:      #f43f5e;
-  --state-info:       #60a5fa;
+  --state-success:    #4F6B4F;
+  --state-warning:    #8B6F43;
+  --state-error:      #B3402A;
+  --state-info:       #4A4A46;
 
   --background:           #F7F6F2;
   --foreground:           #242320;
@@ -134,11 +133,11 @@
   --secondary:            rgba(36,35,32,0.05);
   --secondary-foreground: #242320;
   --muted:                rgba(36,35,32,0.05);
-  --muted-foreground:     #8B8B8B;
+  --muted-foreground:     #66645f;
   --accent:               rgba(36,35,32,0.06);
   --accent-foreground:    #242320;
   --destructive:          #B3402A;
-  --destructive-foreground: #ffffff;
+  --destructive-foreground: #F7F6F2;
   --border:               rgba(36,35,32,0.12);
   --input:                rgba(36,35,32,0.10);
   --ring:                 rgba(36,35,32,0.30);
@@ -236,8 +235,8 @@ body::after {
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Sora', sans-serif;
     font-weight: 600;
-    letter-spacing: -0.02em;
-    color: #242320;
+    letter-spacing: 0;
+    color: var(--foreground);
   }
   h1.page-title, h1.main-title {
     font-family: 'Sora', sans-serif;

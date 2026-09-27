@@ -40,9 +40,9 @@ export const NEON = {
   charcoal:    "#3A3936",
   muted:       "#8B8B8B",
   soft:        "#A8A8A4",
-  orange:      "#242320",
-  orangePale:  "#EFEDE7",
-  orangeDim:   "rgba(36,35,32,0.10)",
+  orange:      "#E8500F",
+  orangePale:  "#FCE9DF",
+  orangeDim:   "rgba(232,80,15,0.10)",
   white:       "#F7F6F2",
   panelBg:     "#242320",
   panelText:   "#F7F6F2",
@@ -147,7 +147,7 @@ export const NEON_GRID: CSSProperties = {
 
 export const NOISE_OVERLAY: CSSProperties = {
   position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0,
-  opacity: 0.035,
+  opacity: 0.05,
   backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
   backgroundRepeat: "repeat",
   backgroundSize: "256px 256px",

@@ -115,7 +115,7 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-sutaeru flex items-center justify-center p-4">
+     <div className="sutaeru-onboarding min-h-dvh bg-sutaeru flex items-center justify-center p-3 sm:p-6">
       <div className="w-full max-w-lg">
         {/* Progress indicator — hide on welcome and done */}
         {currentStep !== "welcome" && currentStep !== "done" && (
@@ -131,7 +131,7 @@ export default function Onboarding() {
         )}
 
         {/* Step content */}
-        <div className="glass border border-[rgba(255,255,255,0.05)] rounded-2xl p-8">
+         <div className="glass border border-border rounded-md p-4 sm:p-8">
           <AnimatePresence mode="wait">
             {currentStep === "welcome" && (
               <WelcomeStep key="welcome" onNext={goNext} />
@@ -167,7 +167,7 @@ export default function Onboarding() {
 
         {/* Step counter */}
         {currentStep !== "welcome" && (
-          <p className="text-center text-xs text-neutral-600 mt-4">
+           <p className="text-center text-xs text-muted-foreground mt-4">
             Step {stepIndex} of {STEPS.length - 1}
           </p>
         )}

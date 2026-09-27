@@ -9,7 +9,7 @@ export default function Admin() {
 
   if (error) {
     return (
-      <div className="space-y-5">
+      <div className="sutaeru-editorial-page space-y-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Admin</h1>
           <p className="text-muted-foreground text-sm mt-1">User management and system overview</p>
@@ -26,7 +26,7 @@ export default function Admin() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="sutaeru-editorial-page space-y-5">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Admin</h1>
         <p className="text-muted-foreground text-sm mt-1">User management and system overview</p>
@@ -37,8 +37,8 @@ export default function Admin() {
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                <Users className="h-5 w-5 text-blue-600" />
+              <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center">
+                <Users className="h-5 w-5 text-foreground" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Total Users</p>
@@ -50,8 +50,8 @@ export default function Admin() {
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-purple-50 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-purple-600" />
+              <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center">
+                <FileText className="h-5 w-5 text-foreground" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Total Files</p>
@@ -63,8 +63,8 @@ export default function Admin() {
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-green-50 flex items-center justify-center">
-                <Shield className="h-5 w-5 text-green-600" />
+              <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center">
+                <Shield className="h-5 w-5 text-foreground" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Admins</p>
@@ -93,8 +93,8 @@ export default function Admin() {
               <p className="text-sm">No users found</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+             <div className="sutaeru-data-list">
+               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/30">
                     <th className="text-left px-5 py-3 text-xs font-medium text-muted-foreground">Name</th>
@@ -106,20 +106,20 @@ export default function Admin() {
                 </thead>
                 <tbody className="divide-y">
                   {users.map((user) => (
-                    <tr key={user.id} className="hover:bg-muted/20">
-                      <td className="px-5 py-3 font-medium">{user.name ?? "-"}</td>
-                      <td className="px-5 py-3 text-muted-foreground">{user.email ?? "-"}</td>
-                      <td className="px-5 py-3">
+                     <tr key={user.id} className="hover:bg-muted/20">
+                       <td data-label="Name" className="px-5 py-3 font-medium">{user.name ?? "-"}</td>
+                       <td data-label="Email" className="px-5 py-3 text-muted-foreground break-all">{user.email ?? "-"}</td>
+                       <td data-label="Role" className="px-5 py-3">
                         {user.role === "admin" ? (
-                          <Badge className="bg-purple-100 text-purple-800 border-purple-200 gap-1">
+                          <Badge className="bg-secondary text-foreground border-border gap-1">
                             <Shield className="h-3 w-3" /> Admin
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="text-xs">User</Badge>
                         )}
                       </td>
-                      <td className="px-5 py-3 text-right font-semibold">{user.filesGenerated ?? 0}</td>
-                      <td className="px-5 py-3 text-right text-muted-foreground">{formatDate(user.createdAt)}</td>
+                       <td data-label="Files Generated" className="px-5 py-3 text-right font-semibold">{user.filesGenerated ?? 0}</td>
+                       <td data-label="Joined Date" className="px-5 py-3 text-right text-muted-foreground">{formatDate(user.createdAt)}</td>
                     </tr>
                   ))}
                 </tbody>

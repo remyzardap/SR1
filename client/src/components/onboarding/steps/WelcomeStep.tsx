@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Sparkles, Brain, Layers, ArrowRight } from "lucide-react";
+import { LandingMark } from "@/components/LandingMark";
 
 interface WelcomeStepProps {
   onNext: () => void;
@@ -19,16 +20,16 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.1, duration: 0.4 }}
-        className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mx-auto mb-8"
+        className="w-20 h-16 flex items-center justify-center mx-auto mb-8"
       >
-        <span className="text-black font-bold text-2xl tracking-tight">S</span>
+        <LandingMark className="sutaeru-login-mark" />
       </motion.div>
 
       <motion.h1
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="text-4xl font-bold text-white mb-4"
+        className="text-4xl font-bold text-foreground mb-4"
       >
         Welcome to Sutaeru
       </motion.h1>
@@ -37,11 +38,11 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="text-lg text-neutral-400 mb-12 max-w-md mx-auto leading-relaxed"
+        className="text-lg text-muted-foreground mb-12 max-w-md mx-auto leading-relaxed"
       >
         One identity. Every model. For life.
         <br />
-        <span className="text-neutral-500 text-base">
+        <span className="text-muted-foreground text-base">
           Build your persistent AI agent soul — skills, memories, and context that travel with you across every AI surface.
         </span>
       </motion.p>
@@ -51,7 +52,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="grid grid-cols-3 gap-4 mb-12"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8 sm:mb-12"
       >
         {[
           { icon: Brain, label: "Persistent Memory", desc: "Your context, always remembered" },
@@ -60,11 +61,11 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
         ].map(({ icon: Icon, label, desc }) => (
           <div
             key={label}
-            className="p-4 border border-[#222] rounded-xl bg-[#111] text-left"
+            className="p-4 border border-border rounded-xl bg-card text-left"
           >
-            <Icon className="w-5 h-5 text-white mb-2" />
-            <p className="text-sm font-medium text-white">{label}</p>
-            <p className="text-xs text-neutral-500 mt-1">{desc}</p>
+            <Icon className="w-5 h-5 text-foreground mb-2" />
+            <p className="text-sm font-medium text-foreground">{label}</p>
+            <p className="text-xs text-muted-foreground mt-1">{desc}</p>
           </div>
         ))}
       </motion.div>
@@ -76,8 +77,8 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
         transition={{ delay: 0.5 }}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className="w-full max-w-sm mx-auto px-8 py-4 bg-white text-black font-semibold text-base rounded-xl
-                   hover:bg-neutral-200 transition-colors duration-200 flex items-center justify-center gap-2"
+        className="w-full max-w-sm mx-auto px-8 py-4 bg-primary text-primary-foreground font-semibold text-base rounded-xl
+                   hover:bg-[#3a3936] transition-colors duration-200 flex items-center justify-center gap-2"
       >
         Get Started
         <ArrowRight className="w-5 h-5" />

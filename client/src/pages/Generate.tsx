@@ -99,9 +99,9 @@ export default function Generate() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="sutaeru-editorial-page mx-auto max-w-3xl px-3 py-6 sm:px-4 sm:py-8">
       {/* Progress steps */}
-      <div className="mb-10 flex items-center gap-2 text-sm">
+      <div className="mb-8 flex flex-wrap items-center gap-1 text-xs sm:gap-2 sm:text-sm">
         {(["prompt", "styles", "generating", "done"] as Step[]).map((s, i) => {
           const labels: Record<Step, string> = {
             prompt: "Describe",
@@ -118,7 +118,7 @@ export default function Generate() {
               {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
               <span
                 className={cn(
-                  "rounded-full px-3 py-1 font-medium transition-colors",
+                   "rounded-md px-2 py-1 font-medium transition-colors sm:px-3",
                   isActive && "bg-primary text-primary-foreground",
                   isPast && "text-muted-foreground line-through",
                   !isActive && !isPast && "text-muted-foreground"
@@ -157,11 +157,12 @@ export default function Generate() {
             <label className="mb-3 block text-sm font-medium text-foreground">Output format</label>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               {FORMAT_OPTIONS.map((opt) => (
-                <button
+                 <Button
+                   variant="outline"
                   key={opt.value}
                   onClick={() => setFormat(opt.value)}
                   className={cn(
-                    "flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center transition-all",
+                     "min-h-24 h-auto whitespace-normal flex flex-col items-center gap-1.5 rounded-md border p-3 text-center transition-all",
                     format === opt.value
                       ? "border-primary bg-accent text-accent-foreground ring-2 ring-primary"
                       : "border-border bg-card text-card-foreground hover:border-primary/40 hover:bg-accent/50"
@@ -170,7 +171,7 @@ export default function Generate() {
                   <opt.icon className="h-5 w-5" />
                   <span className="text-sm font-medium">{opt.label}</span>
                   <span className="text-xs text-muted-foreground">{opt.desc}</span>
-                </button>
+                 </Button>
               ))}
             </div>
           </div>
@@ -213,11 +214,12 @@ export default function Generate() {
                 const colors = STYLE_COLORS[card.id] ?? STYLE_COLORS["minimal"];
                 const isSelected = selectedStyle === card.id;
                 return (
-                  <button
+                   <Button
+                     variant="outline"
                     key={card.id}
                     onClick={() => setSelectedStyle(card.id)}
                     className={cn(
-                      "style-card group relative flex flex-col overflow-hidden rounded-xl border text-left transition-all",
+                       "style-card group relative flex h-auto min-w-0 flex-col overflow-hidden whitespace-normal rounded-md border p-0 text-left transition-all",
                       isSelected
                         ? "selected border-primary ring-2 ring-primary"
                         : "border-border hover:border-primary/40"
@@ -264,13 +266,13 @@ export default function Generate() {
                       </div>
                       <p className="text-xs text-muted-foreground">{card.description}</p>
                     </div>
-                  </button>
+                   </Button>
                 );
               })}
             </div>
           )}
 
-          <div className="flex gap-3">
+           <div className="flex flex-wrap gap-3">
             <Button variant="outline" onClick={() => setStep("prompt")} className="flex-1">
               Back
             </Button>
@@ -301,7 +303,7 @@ export default function Generate() {
               The AI is writing and formatting your document. This usually takes 10–30 seconds.
             </p>
           </div>
-          <div className="flex gap-2">
+           <div className="flex flex-wrap justify-center gap-2">
             {["Writing content", "Applying style", "Building file"].map((label, i) => (
               <Badge key={label} variant="secondary" className="animate-pulse" style={{ animationDelay: `${i * 0.3}s` }}>
                 {label}
@@ -323,7 +325,7 @@ export default function Generate() {
             </h2>
             <p className="text-muted-foreground">{generatedFile.name}</p>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
+           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <Button asChild size="lg">
               <a href={generatedFile.url} target="_blank" rel="noopener noreferrer" download>
                 <Download className="mr-2 h-4 w-4" />

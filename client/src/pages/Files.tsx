@@ -37,7 +37,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
-import type { FileRecord } from "../../../drizzle/schema";
+type FileRecord = {
+  id: number; name: string; format: string; kind: string; originalPrompt: string;
+  styleLabel?: string | null; createdAt: Date | string; fileSizeBytes?: number | null;
+  threadId?: string | null; fileUrl: string; trashed?: boolean; spaceId?: number | null;
+};
 
 const FORMAT_ICON: Record<string, React.ElementType> = {
   pdf: FileText,
@@ -167,9 +171,9 @@ export default function Files() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
+    <div className="sutaeru-editorial-page mx-auto max-w-5xl px-3 py-6 sm:px-4 sm:py-8">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-700 text-foreground">File Manager</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -254,7 +258,7 @@ export default function Files() {
             return (
               <div
                 key={file.id}
-                className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-accent/30"
+                 className="group flex flex-wrap items-center gap-3 rounded-md border border-border bg-card p-3 sm:p-4 transition-colors hover:border-primary/30 hover:bg-accent/30"
               >
                 {/* Icon */}
                 <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold", colorClass)}>
@@ -262,7 +266,7 @@ export default function Files() {
                 </div>
 
                 {/* Info */}
-                <div className="min-w-0 flex-1">
+                 <div className="min-w-0 flex-1 basis-[calc(100%-4rem)] sm:basis-0">
                   <div className="flex items-center gap-2">
                     <p className="truncate font-medium text-foreground">{file.name}</p>
                     <Badge variant="secondary" className="shrink-0 text-xs uppercase">
@@ -284,23 +288,23 @@ export default function Files() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex shrink-0 items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                  <Button size="sm" variant="ghost" onClick={() => setPreviewFile(file)}>
+                 <div className="flex w-full shrink-0 items-center justify-end gap-1 border-t border-border pt-2 sm:w-auto sm:border-0 sm:pt-0 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+                   <Button size="icon" variant="ghost" aria-label={`Preview ${file.name}`} title="Preview" onClick={() => setPreviewFile(file)}>
                     <Eye className="h-4 w-4" />
                   </Button>
                   {file.threadId && (
-                    <Button size="sm" variant="ghost" onClick={() => navigate(`/chat/${file.threadId}`)}>
+                     <Button size="icon" variant="ghost" aria-label={`Open chat for ${file.name}`} title="Open chat" onClick={() => navigate(`/chat/${file.threadId}`)}>
                       <MessageSquare className="h-4 w-4" />
                     </Button>
                   )}
-                  <Button asChild size="sm" variant="ghost">
-                    <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" download>
+                   <Button asChild size="icon" variant="ghost">
+                     <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" download aria-label={`Download ${file.name}`} title="Download">
                       <Download className="h-4 w-4" />
                     </a>
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button size="sm" variant="ghost">
+                       <Button size="icon" variant="ghost" aria-label={`More actions for ${file.name}`} title="More actions">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>

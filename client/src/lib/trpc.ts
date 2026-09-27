@@ -1,4 +1,3 @@
 import { createTRPCReact } from "@trpc/react-query";
-import type { AppRouter } from "../../../server/routers";
-
-export const trpc = createTRPCReact<AppRouter>();
+// The server router remains in the SR1 repository; the preview consumes its API at runtime.
+export const trpc: any = createTRPCReact<any>();

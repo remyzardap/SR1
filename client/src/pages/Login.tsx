@@ -5,7 +5,9 @@ import { z } from "zod";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { LandingMark } from "@/components/LandingMark";
-import { OrbitalSystem } from "../landing/FigureEffects";
+import { setAuthToken } from "@/lib/authSession";
+import { enterDesignPreview } from "@/lib/designPreview";
+import { OrbitalSystem } from "../../landing/FigureEffects";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Email or handle is required"),
@@ -52,6 +54,7 @@ function FounderLoginForm({ inputStyle, labelStyle }: { inputStyle: React.CSSPro
       });
       const data = await res.json();
       if (data?.result?.data?.json?.success) {
+        setAuthToken(data.result.data.json.token);
         window.location.href = '/chat';
       } else {
         const msg = data?.error?.json?.message || data?.error?.message || 'Invalid handle or password';
@@ -80,9 +83,9 @@ function FounderLoginForm({ inputStyle, labelStyle }: { inputStyle: React.CSSPro
           <input data-testid="input-founder-password" type="password" placeholder="Your password" style={inputStyle} autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} />
         </div>
       </div>
-      {error && <p data-testid="text-founder-error" style={{ fontSize: '12px', color: '#f87171', margin: 0, textAlign: 'center' as const }}>{error}</p>}
+       {error && <p data-testid="text-founder-error" style={{ fontSize: '12px', color: 'var(--destructive)', margin: 0, textAlign: 'center' as const }}>{error}</p>}
       <button data-testid="button-founder-login" type="submit" disabled={loading} style={{
-        width: '100%', padding: '15px', borderRadius: 'var(--r-sm, 12px)', border: 'none',
+        width: '100%', padding: '15px', borderRadius: '100px', border: 'none',
         background: 'var(--btn-fill, #f2f2f2)', color: 'var(--btn-ink, #050505)',
         fontFamily: 'var(--font-d)', fontSize: '13px', fontWeight: 800,
         letterSpacing: '.06em', textTransform: 'uppercase' as const,
@@ -112,7 +115,15 @@ export default function Login() {
   const founderForm = useForm<FounderForm>({ resolver: zodResolver(founderSchema), defaultValues: { handle: '', password: '' } });
 
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: async () => { await utils.auth.me.invalidate(); navigate('/chat'); },
+    onSuccess: async (data: unknown) => {
+      const result = data as { token?: unknown } | null;
+      if (!setAuthToken(result?.token)) {
+        setLoginError('Sign-in succeeded, but no session was returned. Please try again.');
+        return;
+      }
+      await utils.auth.me.invalidate();
+      navigate('/chat');
+    },
     onError: (e) => setLoginError(e.message || 'Invalid credentials'),
   });
   const registerMutation = trpc.auth.register.useMutation({
@@ -120,7 +131,15 @@ export default function Login() {
     onError: (e) => setRegisterError(e.message || 'Registration failed'),
   });
   const founderMutation = trpc.auth.founderLogin.useMutation({
-    onSuccess: async () => { await utils.auth.me.invalidate(); navigate('/chat'); },
+    onSuccess: async (data: unknown) => {
+      const result = data as { token?: unknown } | null;
+      if (!setAuthToken(result?.token)) {
+        setFounderError('Sign-in succeeded, but no session was returned. Please try again.');
+        return;
+      }
+      await utils.auth.me.invalidate();
+      navigate('/chat');
+    },
     onError: (e) => setFounderError(e.message || 'Invalid handle or password'),
   });
 
@@ -205,7 +224,7 @@ export default function Login() {
           border: '1px solid var(--glass-border, rgba(255,255,255,0.18))',
           borderRadius: 'var(--r-lg, 24px)',
           padding: '5px',
-          boxShadow: '0 0 0 1px rgba(255,255,255,0.015) inset, 0 24px 64px rgba(0,0,0,0.35)',
+           boxShadow: '0 12px 32px rgba(36,35,32,.08)',
         }}>
           {/* Tab row */}
           <div style={{
@@ -227,7 +246,7 @@ export default function Login() {
                   color: tab === t.key ? 'var(--t1, #f2f2f2)' : 'var(--t3, rgba(242,242,242,0.22))',
                   cursor: 'pointer', transition: 'all .22s', border: 'none',
                   background: tab === t.key ? 'var(--bg-raise2, #141414)' : 'transparent',
-                  boxShadow: tab === t.key ? '0 2px 8px rgba(0,0,0,.25)' : 'none',
+                   boxShadow: 'none',
                 }}
               >{t.label}</button>
             ))}
@@ -251,7 +270,7 @@ export default function Login() {
                     <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: 'var(--t3)', pointerEvents: 'none', lineHeight: 1 }}>✉</span>
                     <input data-testid="input-email" {...loginForm.register('email')} type="text" placeholder="you@example.com or @handle" style={inputStyle} />
                   </div>
-                  {loginForm.formState.errors.email && <p style={{ fontSize: '11px', color: '#f87171', margin: 0 }}>{loginForm.formState.errors.email.message}</p>}
+                   {loginForm.formState.errors.email && <p style={{ fontSize: '11px', color: 'var(--destructive)', margin: 0 }}>{loginForm.formState.errors.email.message}</p>}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                   <label style={labelStyle}>Password</label>
@@ -259,13 +278,13 @@ export default function Login() {
                     <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: 'var(--t3)', pointerEvents: 'none', lineHeight: 1 }}>⚿</span>
                     <input data-testid="input-password" {...loginForm.register('password')} type="password" placeholder="Your password" style={inputStyle} />
                   </div>
-                  {loginForm.formState.errors.password && <p style={{ fontSize: '11px', color: '#f87171', margin: 0 }}>{loginForm.formState.errors.password.message}</p>}
+                   {loginForm.formState.errors.password && <p style={{ fontSize: '11px', color: 'var(--destructive)', margin: 0 }}>{loginForm.formState.errors.password.message}</p>}
                 </div>
-                <div style={{ textAlign: 'right' as const, fontSize: '12px', color: 'var(--t3)', cursor: 'pointer', padding: '0 3px', marginTop: '-4px' }}
-                  onClick={() => navigate('/reset-password')}>Forgot password?</div>
-                {loginError && <p style={{ fontSize: '12px', color: '#f87171', margin: 0, textAlign: 'center' as const }}>{loginError}</p>}
+                 <button type="button" style={{ textAlign: 'right' as const, fontSize: '12px', color: 'var(--muted-foreground)', padding: '8px 3px', marginTop: '-4px' }}
+                   onClick={() => navigate('/reset-password')}>Forgot password?</button>
+                 {loginError && <p style={{ fontSize: '12px', color: 'var(--destructive)', margin: 0, textAlign: 'center' as const }}>{loginError}</p>}
                 <button data-testid="button-signin" type="submit" disabled={loginMutation.isPending} style={{
-                  width: '100%', padding: '15px', borderRadius: 'var(--r-sm, 12px)', border: 'none',
+                  width: '100%', padding: '15px', borderRadius: '100px', border: 'none',
                   background: 'var(--btn-fill, #f2f2f2)', color: 'var(--btn-ink, #050505)',
                   fontFamily: 'var(--font-d)', fontSize: '13px', fontWeight: 800,
                   letterSpacing: '.06em', textTransform: 'uppercase' as const,
@@ -288,7 +307,7 @@ export default function Login() {
                     <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: 'var(--t3)', pointerEvents: 'none', lineHeight: 1 }}>✦</span>
                     <input data-testid="input-name" {...registerForm.register('name')} type="text" placeholder="Your name" style={inputStyle} />
                   </div>
-                  {registerForm.formState.errors.name && <p style={{ fontSize: '11px', color: '#f87171', margin: 0 }}>{registerForm.formState.errors.name.message}</p>}
+                  {registerForm.formState.errors.name && <p style={{ fontSize: '11px', color: 'var(--destructive)', margin: 0 }}>{registerForm.formState.errors.name.message}</p>}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                   <label style={labelStyle}>Email</label>
@@ -296,7 +315,7 @@ export default function Login() {
                     <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: 'var(--t3)', pointerEvents: 'none', lineHeight: 1 }}>✉</span>
                     <input data-testid="input-register-email" {...registerForm.register('email')} type="email" placeholder="you@example.com" style={inputStyle} />
                   </div>
-                  {registerForm.formState.errors.email && <p style={{ fontSize: '11px', color: '#f87171', margin: 0 }}>{registerForm.formState.errors.email.message}</p>}
+                  {registerForm.formState.errors.email && <p style={{ fontSize: '11px', color: 'var(--destructive)', margin: 0 }}>{registerForm.formState.errors.email.message}</p>}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                   <label style={labelStyle}>Password</label>
@@ -304,7 +323,7 @@ export default function Login() {
                     <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: 'var(--t3)', pointerEvents: 'none', lineHeight: 1 }}>⚿</span>
                     <input data-testid="input-register-password" {...registerForm.register('password')} type="password" placeholder="Min 8 characters" style={inputStyle} />
                   </div>
-                  {registerForm.formState.errors.password && <p style={{ fontSize: '11px', color: '#f87171', margin: 0 }}>{registerForm.formState.errors.password.message}</p>}
+                  {registerForm.formState.errors.password && <p style={{ fontSize: '11px', color: 'var(--destructive)', margin: 0 }}>{registerForm.formState.errors.password.message}</p>}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                   <label style={labelStyle}>Confirm Password</label>
@@ -312,11 +331,11 @@ export default function Login() {
                     <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: 'var(--t3)', pointerEvents: 'none', lineHeight: 1 }}>⚿</span>
                     <input data-testid="input-confirm-password" {...registerForm.register('confirmPassword')} type="password" placeholder="Repeat password" style={inputStyle} />
                   </div>
-                  {registerForm.formState.errors.confirmPassword && <p style={{ fontSize: '11px', color: '#f87171', margin: 0 }}>{registerForm.formState.errors.confirmPassword.message}</p>}
+                  {registerForm.formState.errors.confirmPassword && <p style={{ fontSize: '11px', color: 'var(--destructive)', margin: 0 }}>{registerForm.formState.errors.confirmPassword.message}</p>}
                 </div>
-                {registerError && <p style={{ fontSize: '12px', color: '#f87171', margin: 0, textAlign: 'center' as const }}>{registerError}</p>}
+                {registerError && <p style={{ fontSize: '12px', color: 'var(--destructive)', margin: 0, textAlign: 'center' as const }}>{registerError}</p>}
                 <button data-testid="button-register" type="submit" disabled={registerMutation.isPending} style={{
-                  width: '100%', padding: '15px', borderRadius: 'var(--r-sm, 12px)', border: 'none',
+                  width: '100%', padding: '15px', borderRadius: '100px', border: 'none',
                   background: 'var(--btn-fill, #f2f2f2)', color: 'var(--btn-ink, #050505)',
                   fontFamily: 'var(--font-d)', fontSize: '13px', fontWeight: 800,
                   letterSpacing: '.06em', textTransform: 'uppercase' as const,
@@ -336,6 +355,20 @@ export default function Login() {
             )}
           </div>
         </div>
+
+        <button
+          data-testid="button-design-preview"
+          type="button"
+          onClick={() => { enterDesignPreview(); navigate('/chat'); }}
+          style={{
+            marginTop: '22px', padding: '10px 18px', borderRadius: '100px',
+            background: 'transparent', border: '1px solid var(--glass-border, rgba(255,255,255,0.18))',
+            color: 'var(--muted-foreground, rgba(245,242,237,0.55))',
+            fontFamily: 'var(--font-d)', fontSize: '10px', fontWeight: 700,
+            letterSpacing: '.1em', textTransform: 'uppercase' as const,
+            cursor: 'pointer', transition: 'all .22s',
+          }}
+        >Look around without signing in →</button>
       </div>
 
       <style>{`

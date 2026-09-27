@@ -81,7 +81,7 @@ function GoogleWorkspaceCard() {
   if (!configured?.configured) {
     return (
       <Card className="mb-6 border-dashed border-muted-foreground/30" data-testid="card-google-not-configured">
-        <CardContent className="flex items-center gap-4 py-6">
+       <CardContent className="flex flex-wrap items-center gap-4 py-6">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
             <SiGoogle className="h-5 w-5 text-muted-foreground" />
           </div>
@@ -100,7 +100,7 @@ function GoogleWorkspaceCard() {
   return (
     <Card className="mb-6" data-testid="card-google-workspace">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
+         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-red-500/10">
               <SiGoogle className="h-5 w-5 text-blue-600" />
@@ -122,7 +122,7 @@ function GoogleWorkspaceCard() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-3 gap-3 mb-4">
+         <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-3 mb-4">
           <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
             <Mail className="h-4 w-4 text-red-500" />
             <span className="text-sm">Gmail</span>
@@ -249,7 +249,7 @@ export default function Connections() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-8">
+     <div className="sutaeru-editorial-page mx-auto max-w-4xl px-3 py-6 sm:px-4 sm:py-8">
         <div className="flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span className="text-sm text-muted-foreground">Loading connections...</span>
@@ -261,7 +261,7 @@ export default function Connections() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       {/* Page header */}
-      <div className="mb-8 flex items-center justify-between">
+       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-700 text-foreground">Connections</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -342,7 +342,8 @@ export default function Connections() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                   className="absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10 p-0"
+                   aria-label={showCredentials ? "Hide credentials" : "Show credentials"}
                   onClick={() => setShowCredentials(!showCredentials)}
                 >
                   {showCredentials ? (
@@ -392,16 +393,16 @@ export default function Connections() {
                 )}
               >
                 <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
+                   <div className="flex flex-wrap items-start justify-between gap-3">
+                     <div className="flex min-w-0 items-center gap-3">
                       <div className={cn(
                         "flex h-10 w-10 items-center justify-center rounded-lg",
                         connectionTypeColors[connection.type].split(" ")[0]
                       )}>
                         <TypeIcon className="h-5 w-5" />
                       </div>
-                      <div>
-                        <CardTitle className="text-base">
+                       <div className="min-w-0">
+                         <CardTitle className="text-base break-words">
                           {connection.displayName || connection.provider}
                         </CardTitle>
                         <div className="flex items-center gap-2 mt-0.5">

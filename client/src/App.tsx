@@ -24,8 +24,27 @@ import VerifyEmail from "./pages/VerifyEmail";
 import DashboardLayout from "./components/DashboardLayout";
 import { useAuth } from "./_core/hooks/useAuth";
 import { IntelligenceProvider } from "./_core/hooks/useSutaeruIntelligence";
+import { exitDesignPreview, isDesignPreview } from "./lib/designPreview";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
+
+function DesignPreviewBadge() {
+  if (!isDesignPreview()) return null;
+  return (
+    <button
+      data-testid="button-exit-design-preview"
+      onClick={() => { exitDesignPreview(); window.location.href = "/login"; }}
+      style={{
+        position: 'fixed', bottom: '14px', left: '14px', zIndex: 9999,
+        padding: '8px 14px', borderRadius: '100px',
+        background: 'var(--btn-fill, #E8500F)', color: 'var(--btn-ink, #050505)',
+        border: 'none', fontFamily: 'var(--font-d)', fontSize: '10px',
+        fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase',
+        cursor: 'pointer', boxShadow: '0 6px 18px rgba(0,0,0,.35)',
+      }}
+    >Design preview · Exit</button>
+  );
+}
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, loading } = useAuth();
@@ -48,6 +67,8 @@ function AppRoutes() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/index" component={Home} />
+      <Route path="/index.html" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/verify-email" component={VerifyEmail} />
@@ -173,6 +194,7 @@ function App() {
           <IntelligenceProvider>
             <TooltipProvider>
               <Toaster richColors position="top-right" />
+              <DesignPreviewBadge />
               <AppRoutes />
             </TooltipProvider>
           </IntelligenceProvider>

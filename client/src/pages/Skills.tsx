@@ -67,16 +67,16 @@ const typeConfig: Record<
   tool_definition: {
     label: "Tool",
     icon: Wrench,
-    bg: "rgba(240,160,32,0.08)",
-    color: "#f0c060",
-    border: "rgba(240,160,32,0.22)",
+    bg: "var(--accent-dim)",
+    color: "var(--foreground)",
+    border: "var(--border)",
   },
   behavior: {
     label: "Behavior",
     icon: Brain,
-    bg: "rgba(180,100,220,0.08)",
-    color: "#c090e8",
-    border: "rgba(180,100,220,0.22)",
+    bg: "var(--accent-dim)",
+    color: "var(--foreground)",
+    border: "var(--border)",
   },
 };
 
@@ -137,14 +137,15 @@ function SkillCard({
               {skill.description || "No description provided"}
             </p>
             <div className="flex items-center justify-between">
-              <span className="text-xs" style={{ color: "rgba(107,103,96,0.6)" }}>
+              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
                 {formatDate(skill.createdAt)}
               </span>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowDeleteDialog(true)}
-                className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity h-8 w-8"
+                 className="min-h-11 min-w-11 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
+                 aria-label={`Delete ${skill.name}`}
                 style={{ color: "var(--muted-foreground)" }}
               >
                 <Trash2 className="w-4 h-4" />
@@ -156,8 +157,7 @@ function SkillCard({
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent
-          className="glass-strong mx-4 sm:mx-auto"
-          style={{ border: "1px solid rgba(255,255,255,0.1)", borderRadius: "20px" }}
+           className="glass-strong w-[calc(100%-2rem)] sm:mx-auto"
         >
           <AlertDialogHeader>
             <AlertDialogTitle style={{ color: "var(--foreground)" }}>
@@ -173,8 +173,8 @@ function SkillCard({
             <AlertDialogAction
               onClick={() => onDelete(skill.id)}
               style={{
-                background: "rgba(232,68,42,0.15)",
-                color: "#f5a090",
+                background: "rgba(179,64,42,.08)",
+                color: "var(--destructive)",
                 border: "1px solid rgba(232,68,42,0.3)",
               }}
             >
@@ -296,7 +296,7 @@ export default function Skills() {
   return (
     <div className="min-h-screen bg-sutaeru">
       {/* ── Page header ── */}
-      <header className="page-header">
+       <header className="page-header">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           <h1 className="text-xl sm:text-2xl font-bold" style={{ color: "var(--foreground)" }}>
             Skills
@@ -306,13 +306,13 @@ export default function Skills() {
             className="btn-primary-teal px-4 py-2 text-sm inline-flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Add Skill</span>
+             <span>Add Skill</span>
           </button>
         </div>
       </header>
 
       {/* ── Main content ── */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+       <main className="sutaeru-editorial-page max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Search bar */}
         <div className="mb-6 sm:mb-8">
           <div className="relative w-full sm:max-w-md">
@@ -369,8 +369,7 @@ export default function Skills() {
       {/* ── Add Skill Modal ── */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent
-          className="glass-strong w-[calc(100%-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto mx-auto"
-          style={{ border: "1px solid rgba(255,255,255,0.1)", borderRadius: "20px" }}
+           className="glass-strong w-[calc(100%-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto mx-auto"
         >
           <DialogHeader>
             <DialogTitle
@@ -418,8 +417,8 @@ export default function Skills() {
                 </SelectTrigger>
                 <SelectContent
                   style={{
-                    background: "rgba(14,14,14,0.95)",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    background: "var(--popover)",
+                    border: "1px solid var(--border)",
                     backdropFilter: "blur(20px)",
                   }}
                 >
