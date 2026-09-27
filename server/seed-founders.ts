@@ -20,9 +20,9 @@
  *   node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"
  */
 import "dotenv/config";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { eq } from "drizzle-orm";
-import mysql from "mysql2/promise";
+import pg from "pg";
 import { identities, users } from "../drizzle/schema";
 import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
@@ -96,8 +96,8 @@ async function main() {
     password: requireEnv(f.passwordEnvKey),
   }));
 
-  const connection = await mysql.createConnection(process.env.DATABASE_URL!);
-  const db = drizzle(connection);
+  const pool = new pg.Pool({ connectionString: requireEnv("DATABASE_URL") });
+  const db = drizzle(pool);
 
   console.log("\n🚀 Seeding founder & owner accounts...\n");
 
@@ -118,7 +118,7 @@ async function main() {
     const openId = `founder:${nanoid(21)}`;
     const passwordHash = await bcrypt.hash(founder.password, 12);
 
-    await db.insert(users).values({
+    const [user] = await db.insert(users).values({
       openId,
       name: founder.name,
       email: null,
@@ -127,14 +127,7 @@ async function main() {
       passwordHash,
       onboarded: true,
       lastSignedIn: new Date(),
-    });
-
-    // Get the created user
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.openId, openId))
-      .limit(1);
+    }).returning({ id: users.id });
 
     // Create identity with handle
     await db.insert(identities).values({
@@ -160,7 +153,7 @@ async function main() {
   console.log("  ⚠️  Store PASSWORD_* vars securely in Railway.");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
-  await connection.end();
+  await pool.end();
   process.exit(0);
 }
 

@@ -110,3 +110,6 @@ temp/
 .webdev/
 /sutaeru-data
 /secrets
+
+# Local backups of .env (contain secrets)
+.env.bak*

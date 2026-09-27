@@ -9,7 +9,7 @@ interface PinchOptions {
 }
 
 export function usePinchGesture(
-  ref: React.RefObject<HTMLElement>,
+  ref: React.RefObject<HTMLElement | null>,
   options: PinchOptions = {}
 ) {
   const {

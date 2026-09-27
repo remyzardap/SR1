@@ -19,7 +19,6 @@ import {
   FileText, BookOpen, Mic, StickyNote, X,
 } from "lucide-react";
 import { F, FM, MOCHA, AMBER, TEXT_PRIMARY, TEXT_MUTED, TEXT_SOFT } from "@/lib/design";
-import type { BlockData } from "@/components/Block";
 
 // ─── Navigation Items ─────────────────────────────────────────────────────────
 
@@ -191,7 +190,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     });
     
     // Blocks
-    blocks.forEach((block: BlockData) => {
+    blocks.forEach((block) => {
       const titleScore = block.title ? fuzzyScore(query, block.title) : 0;
       const contentText = JSON.stringify(block.content);
       const contentScore = fuzzyScore(query, contentText) * 0.3;
