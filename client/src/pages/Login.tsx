@@ -5,6 +5,8 @@ import { z } from "zod";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { LandingMark } from "@/components/LandingMark";
+import { setAuthToken } from "@/lib/authSession";
+import { enterDesignPreview } from "@/lib/designPreview";
 import { OrbitalSystem } from "../../landing/FigureEffects";
 
 const loginSchema = z.object({
@@ -52,6 +54,7 @@ function FounderLoginForm({ inputStyle, labelStyle }: { inputStyle: React.CSSPro
       });
       const data = await res.json();
       if (data?.result?.data?.json?.success) {
+        setAuthToken(data.result.data.json.token);
         window.location.href = '/chat';
       } else {
         const msg = data?.error?.json?.message || data?.error?.message || 'Invalid handle or password';
@@ -82,7 +85,7 @@ function FounderLoginForm({ inputStyle, labelStyle }: { inputStyle: React.CSSPro
       </div>
        {error && <p data-testid="text-founder-error" style={{ fontSize: '12px', color: 'var(--destructive)', margin: 0, textAlign: 'center' as const }}>{error}</p>}
       <button data-testid="button-founder-login" type="submit" disabled={loading} style={{
-        width: '100%', padding: '15px', borderRadius: 'var(--r-sm, 12px)', border: 'none',
+        width: '100%', padding: '15px', borderRadius: '100px', border: 'none',
         background: 'var(--btn-fill, #f2f2f2)', color: 'var(--btn-ink, #050505)',
         fontFamily: 'var(--font-d)', fontSize: '13px', fontWeight: 800,
         letterSpacing: '.06em', textTransform: 'uppercase' as const,
@@ -112,7 +115,15 @@ export default function Login() {
   const founderForm = useForm<FounderForm>({ resolver: zodResolver(founderSchema), defaultValues: { handle: '', password: '' } });
 
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: async () => { await utils.auth.me.invalidate(); navigate('/chat'); },
+    onSuccess: async (data: unknown) => {
+      const result = data as { token?: unknown } | null;
+      if (!setAuthToken(result?.token)) {
+        setLoginError('Sign-in succeeded, but no session was returned. Please try again.');
+        return;
+      }
+      await utils.auth.me.invalidate();
+      navigate('/chat');
+    },
     onError: (e) => setLoginError(e.message || 'Invalid credentials'),
   });
   const registerMutation = trpc.auth.register.useMutation({
@@ -120,7 +131,15 @@ export default function Login() {
     onError: (e) => setRegisterError(e.message || 'Registration failed'),
   });
   const founderMutation = trpc.auth.founderLogin.useMutation({
-    onSuccess: async () => { await utils.auth.me.invalidate(); navigate('/chat'); },
+    onSuccess: async (data: unknown) => {
+      const result = data as { token?: unknown } | null;
+      if (!setAuthToken(result?.token)) {
+        setFounderError('Sign-in succeeded, but no session was returned. Please try again.');
+        return;
+      }
+      await utils.auth.me.invalidate();
+      navigate('/chat');
+    },
     onError: (e) => setFounderError(e.message || 'Invalid handle or password'),
   });
 
@@ -265,7 +284,7 @@ export default function Login() {
                    onClick={() => navigate('/reset-password')}>Forgot password?</button>
                  {loginError && <p style={{ fontSize: '12px', color: 'var(--destructive)', margin: 0, textAlign: 'center' as const }}>{loginError}</p>}
                 <button data-testid="button-signin" type="submit" disabled={loginMutation.isPending} style={{
-                  width: '100%', padding: '15px', borderRadius: 'var(--r-sm, 12px)', border: 'none',
+                  width: '100%', padding: '15px', borderRadius: '100px', border: 'none',
                   background: 'var(--btn-fill, #f2f2f2)', color: 'var(--btn-ink, #050505)',
                   fontFamily: 'var(--font-d)', fontSize: '13px', fontWeight: 800,
                   letterSpacing: '.06em', textTransform: 'uppercase' as const,
@@ -316,7 +335,7 @@ export default function Login() {
                 </div>
                 {registerError && <p style={{ fontSize: '12px', color: 'var(--destructive)', margin: 0, textAlign: 'center' as const }}>{registerError}</p>}
                 <button data-testid="button-register" type="submit" disabled={registerMutation.isPending} style={{
-                  width: '100%', padding: '15px', borderRadius: 'var(--r-sm, 12px)', border: 'none',
+                  width: '100%', padding: '15px', borderRadius: '100px', border: 'none',
                   background: 'var(--btn-fill, #f2f2f2)', color: 'var(--btn-ink, #050505)',
                   fontFamily: 'var(--font-d)', fontSize: '13px', fontWeight: 800,
                   letterSpacing: '.06em', textTransform: 'uppercase' as const,
@@ -336,6 +355,20 @@ export default function Login() {
             )}
           </div>
         </div>
+
+        <button
+          data-testid="button-design-preview"
+          type="button"
+          onClick={() => { enterDesignPreview(); navigate('/chat'); }}
+          style={{
+            marginTop: '22px', padding: '10px 18px', borderRadius: '100px',
+            background: 'transparent', border: '1px solid var(--glass-border, rgba(255,255,255,0.18))',
+            color: 'var(--muted-foreground, rgba(245,242,237,0.55))',
+            fontFamily: 'var(--font-d)', fontSize: '10px', fontWeight: 700,
+            letterSpacing: '.1em', textTransform: 'uppercase' as const,
+            cursor: 'pointer', transition: 'all .22s',
+          }}
+        >Look around without signing in →</button>
       </div>
 
       <style>{`
