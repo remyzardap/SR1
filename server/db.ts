@@ -748,6 +748,16 @@ export async function listChatSessions(userId: number, spaceId?: string) {
     .orderBy(desc(chatSessions.lastMessageAt));
 }
 
+export async function getChatSessionForUser(sessionId: string, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const { chatSessions } = await import("../drizzle/schema");
+  const [session] = await db.select().from(chatSessions)
+    .where(and(eq(chatSessions.id, sessionId), eq(chatSessions.userId, userId)))
+    .limit(1);
+  return session;
+}
+
 export async function updateChatSessionSpace(sessionId: string, userId: number, spaceId: string | null) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

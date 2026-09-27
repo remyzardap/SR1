@@ -18,6 +18,7 @@ import { ENV } from './env';
 import { sdk } from './sdk';
 import { generalApiRateLimiter } from './rateLimiter';
 import { registerFileRoutes } from '../routes/files';
+import { registerExportRoutes } from '../routes/export';
 
 // Load secrets from Secret Manager before starting
 await loadSecretsFromSecretManager();
@@ -87,6 +88,7 @@ registerAtelierRoutes(app);
 app.use('/api/intelligence', requireSession, intelligenceRouter);
 app.post('/api/kemma/stream', requireSession, kemmaStreamRoute);
 registerFileRoutes(app);
+registerExportRoutes(app);
 
 // tRPC API routes
 app.use('/api/trpc', createExpressMiddleware({
