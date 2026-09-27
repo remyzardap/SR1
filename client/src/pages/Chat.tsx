@@ -446,7 +446,6 @@ export default function Chat() {
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="sutaeru-chat" style={{ ...NEON_PAGE_BG, display: "flex", minHeight: "100vh" }}>
-      <div style={NEON_GRID} />
       <div style={NOISE_OVERLAY} />
 
       {/* Session sidebar */}
