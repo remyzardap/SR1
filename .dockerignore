@@ -3,6 +3,10 @@ npm-debug.log
 .env
 .env.local
 .env.*.local
+secrets
+sutaeru-data
+vertex-*.json
+*.pem
 .git
 .gitignore
 README.md

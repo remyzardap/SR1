@@ -14,12 +14,19 @@ import { kemmaStreamRoute } from '../routes/kemmaStream';
 import { startTrialExpiryJob } from '../core/trialManager';
 import { setupVite, serveStatic } from './vite';
 import { loadSecretsFromSecretManager } from './secretManager';
+import { ENV } from './env';
 import { sdk } from './sdk';
 import { generalApiRateLimiter } from './rateLimiter';
 import { registerFileRoutes } from '../routes/files';
 
 // Load secrets from Secret Manager before starting
 await loadSecretsFromSecretManager();
+
+// Sessions are signed with this key; an empty one makes every login fail at runtime.
+if (ENV.isProduction && !ENV.cookieSecret) {
+  console.error("[Startup] SESSION_SECRET (or JWT_SECRET) is not set - refusing to start.");
+  process.exit(1);
+}
 
 const app = express();
 
@@ -41,9 +48,14 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
 });
 
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.APP_URL || "https://sutaeru.com")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 app.use(cors({
   origin: process.env.NODE_ENV === "production"
-    ? (process.env.APP_URL || "https://sutaeru.com")
+    ? (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin))
     : true,
   credentials: true,
 }));

@@ -6,10 +6,15 @@ const SECRET_NAMES = [
   "DATABASE_URL",
   "VITE_APP_ID",
   "SESSION_SECRET",
+  "JWT_SECRET",
   "OWNER_OPEN_ID",
   "QWEN_API_KEY",
   "GEMINI_API_KEY",
   "SONAR_API_KEY",
+  "SONAR_PERPLEXITY_API_KEY",
+  "PERPLEXITY_API_KEY",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
   "ELEVEN_LABS_API_KEY",
   "ELEVEN_LABS_AGENT_ID",
   "ELEVEN_LABS_VOICE_ID",
@@ -57,6 +62,7 @@ export async function loadSecretsFromSecretManager(): Promise<Record<string, str
     return secrets;
   }
 
+  const missing: string[] = [];
   for (const secretName of SECRET_NAMES) {
     try {
       const url = `https://secretmanager.googleapis.com/v1/projects/${PROJECT_ID}/secrets/${secretName}/versions/latest:access`;
@@ -64,20 +70,31 @@ export async function loadSecretsFromSecretManager(): Promise<Record<string, str
         headers: { Authorization: `Bearer ${accessToken}` },
         timeout: 5000,
       });
-      
+
       const value = Buffer.from(response.data.payload.data, "base64").toString("utf-8");
-      
+
       if (value && value !== "placeholder" && !value.startsWith("your-")) {
         secrets[secretName] = value;
         // Also set in process.env so it's available everywhere
         process.env[secretName] = value;
+      } else {
+        missing.push(`${secretName}(empty)`);
       }
     } catch (err) {
-      // Secret doesn't exist or no access - that's okay, we'll use env vars
+      // Secret doesn't exist, has no enabled version, or no access - fall back to env vars
+      const status = (err as { response?: { status?: number } }).response?.status;
+      missing.push(`${secretName}(${status ?? "error"})`);
     }
   }
 
-  console.log(`[SecretManager] Loaded ${Object.keys(secrets).length} secrets`);
+  // Perplexity Sonar is stored under different names depending on the project
+  if (!process.env.SONAR_API_KEY) {
+    const alias = process.env.SONAR_PERPLEXITY_API_KEY || process.env.PERPLEXITY_API_KEY;
+    if (alias) process.env.SONAR_API_KEY = alias;
+  }
+
+  console.log(`[SecretManager] Loaded ${Object.keys(secrets).length} secrets: ${Object.keys(secrets).join(", ") || "none"}`);
+  if (missing.length) console.log(`[SecretManager] Not loaded: ${missing.join(", ")}`);
   return secrets;
 }
 

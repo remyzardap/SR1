@@ -32,12 +32,13 @@ COPY --from=builder /app/server ./server
 COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/drizzle.config.ts ./
 
-# Expose port
-EXPOSE 5000
+# Cloud Run sets PORT (3000 on the sutaeru service); this is the default for local runs.
+ENV PORT=3000
+EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:5000/health || exit 1
+# Health check (ignored by Cloud Run; used by plain Docker / Compose)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:${PORT}/api/health || exit 1
 
 # Run migrations and start server
 CMD ["sh", "-c", "node --import tsx/esm server/migrate.ts && node dist/index.js"]
