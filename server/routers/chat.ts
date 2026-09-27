@@ -15,7 +15,7 @@
 
 import type { Router } from "express";
 import { randomUUID } from "crypto";
-import { eq, asc } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 import { sdk } from "../_core/sdk";
 import {
   getOrCreateIdentity,
@@ -24,7 +24,7 @@ import {
   getDb,
 } from "../db";
 import type { Skill, Memory } from "../../drizzle/schema";
-import { chatMessages } from "../../drizzle/schema";
+import { chatMessages, chatSessions } from "../../drizzle/schema";
 import { s1Blend, S1_BLEND_INFO, buildS1SystemPrompt, buildGoogleToolPrompt, detectGoogleIntent } from "./s1Router";
 import { getConnectionStatus, listEmails, listCalendarEvents, listDriveFiles } from "../services/google";
 import { openclaw } from "../lib/openclaw";
@@ -391,8 +391,9 @@ export function registerChatStreamRoute(app: Router) {
 
   // ── GET /api/chat/history — load persisted history for a session ──────────
   app.get("/api/chat/history", async (req, res) => {
+    let user;
     try {
-      await sdk.authenticateRequest(req);
+      user = await sdk.authenticateRequest(req);
     } catch {
       res.status(401).json({ error: "Unauthorized" });
       return;
@@ -408,6 +409,15 @@ export function registerChatStreamRoute(app: Router) {
       const _db = await getDb();
       if (!_db) {
         res.json([]);
+        return;
+      }
+      const [owned] = await _db
+        .select({ id: chatSessions.id })
+        .from(chatSessions)
+        .where(and(eq(chatSessions.id, sid), eq(chatSessions.userId, user.id)))
+        .limit(1);
+      if (!owned) {
+        res.status(404).json({ error: "Not found" });
         return;
       }
       const history = await _db

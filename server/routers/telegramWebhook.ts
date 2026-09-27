@@ -1,17 +1,32 @@
 import type { Express } from "express";
-import { getOrCreateTelegramUser } from "../services/telegram";
+import crypto from "crypto";
 import { s1Blend, buildS1SystemPrompt, resolveBearer } from "./s1Router";
 
 export function registerTelegramWebhookRoute(app: Express) {
   const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+  const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
   const OPENCLAW_WEBHOOK = process.env.OPENCLAW_WEBHOOK_URL;
 
-  if (!TELEGRAM_TOKEN) {
-    console.log("[Telegram] Bot token not configured. Webhook disabled.");
+  if (!TELEGRAM_TOKEN || !WEBHOOK_SECRET) {
+    console.log("[Telegram] Bot token or webhook secret not configured. Webhook disabled.");
     return;
   }
 
-  app.post(`/api/telegram/webhook/${TELEGRAM_TOKEN}`, async (req, res) => {
+  app.post("/api/telegram/webhook", async (req, res) => {
+    const provided = req.header("x-telegram-bot-api-secret-token") || "";
+    let validSecret = false;
+    try {
+      const a = Buffer.from(provided);
+      const b = Buffer.from(WEBHOOK_SECRET);
+      validSecret = a.length === b.length && crypto.timingSafeEqual(a, b);
+    } catch {
+      validSecret = false;
+    }
+    if (!validSecret) {
+      res.status(401).json({ ok: false });
+      return;
+    }
+
     try {
       const update = req.body;
 
@@ -98,11 +113,11 @@ export function registerTelegramWebhookRoute(app: Express) {
       res.json({ ok: true });
     } catch (error) {
       console.error("[Telegram] Webhook error:", error);
-      res.json({ ok: false, error: String(error) });
+      res.json({ ok: false });
     }
   });
 
-  console.log(`[Telegram] Webhook registered at /api/telegram/webhook/${TELEGRAM_TOKEN}`);
+  console.log("[Telegram] Webhook registered at /api/telegram/webhook");
 }
 
 async function sendTelegramMessage(chatId: number | string, text: string, token: string) {
