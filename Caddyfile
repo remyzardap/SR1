@@ -1,3 +1,7 @@
 sutaeru.com {
     reverse_proxy sutaeru:5000
 }
+
+www.sutaeru.com {
+    redir https://sutaeru.com{uri} permanent
+}
