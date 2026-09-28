@@ -344,15 +344,6 @@ export const appRouter = router({
       return { enabled: !!(user?.totpEnabled) };
     }),
 
-    // ─── Founder handle-based login (disabled) ─────────────────────────────────
-    founderLogin: publicProcedure
-      .input(z.object({
-        handle: z.string().min(1).max(64),
-        password: z.string().min(1),
-      }))
-      .mutation(async () => {
-        throw new TRPCError({ code: "FORBIDDEN", message: authDisabledMessage() });
-      }),
   }),
 
   // ─── Files router ───────────────────────────────────────────────────────────
