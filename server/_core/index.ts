@@ -14,12 +14,20 @@ import { kemmaStreamRoute } from '../routes/kemmaStream';
 import { startTrialExpiryJob } from '../core/trialManager';
 import { setupVite, serveStatic } from './vite';
 import { loadSecretsFromSecretManager } from './secretManager';
+import { ENV } from './env';
 import { sdk } from './sdk';
 import { generalApiRateLimiter } from './rateLimiter';
 import { registerFileRoutes } from '../routes/files';
+import { registerExportRoutes } from '../routes/export';
 
 // Load secrets from Secret Manager before starting
 await loadSecretsFromSecretManager();
+
+// Sessions are signed with this key; an empty one makes every login fail at runtime.
+if (ENV.isProduction && !ENV.cookieSecret) {
+  console.error("[Startup] SESSION_SECRET (or JWT_SECRET) is not set - refusing to start.");
+  process.exit(1);
+}
 
 const app = express();
 
@@ -44,31 +52,24 @@ app.get('/api/health', (_req, res) => {
 // Allowed web origins: comma-separated ALLOWED_ORIGINS wins, then APP_URL,
 // then the production default. Lets multiple frontends (e.g. sutaeru.com and
 // a preview deployment) sign in against the same server.
-const allowedOrigins = (
-  process.env.ALLOWED_ORIGINS ||
-  process.env.APP_URL ||
-  "https://sutaeru.com"
-)
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.APP_URL || "https://sutaeru.com")
   .split(",")
-  .map((o) => o.trim())
+  .map((s) => s.trim())
   .filter(Boolean);
 
 app.use(cors({
   origin: process.env.NODE_ENV === "production"
-    ? (origin, callback) => {
-        // Allow same-origin/server-to-server requests (no Origin header)
-        // and any origin on the allowlist.
-        if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(null, false);
-        }
-      }
+    ? (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin))
     : true,
   credentials: true,
 }));
 app.use(cookieParser());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, _res, buf) => {
+    (req as any).rawBody = buf;
+  },
+}));
 
 app.use((req, res, next) => {
   if (req.headers.accept?.includes('text/html')) {
@@ -90,6 +91,7 @@ registerAtelierRoutes(app);
 app.use('/api/intelligence', requireSession, intelligenceRouter);
 app.post('/api/kemma/stream', requireSession, kemmaStreamRoute);
 registerFileRoutes(app);
+registerExportRoutes(app);
 
 // tRPC API routes
 app.use('/api/trpc', createExpressMiddleware({

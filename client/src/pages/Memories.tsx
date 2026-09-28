@@ -38,7 +38,7 @@ function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div
       className={`animate-pulse rounded ${className}`}
-      style={{ background: "rgba(255,255,255,0.04)" }}
+      style={{ background: "var(--accent-dim)" }}
     />
   );
 }
@@ -56,27 +56,27 @@ const TYPE_COLORS: Record<string, { bg: string; color: string; border: string }>
     border: "var(--secondary-border)",
   },
   project: {
-    bg: "rgba(240,160,32,0.07)",
-    color: "#f0c060",
-    border: "rgba(240,160,32,0.2)",
+    bg: "var(--accent-dim)",
+    color: "var(--foreground)",
+    border: "var(--border)",
   },
   document: {
-    bg: "rgba(180,100,220,0.07)",
-    color: "#c090e8",
-    border: "rgba(180,100,220,0.2)",
+    bg: "var(--accent-dim)",
+    color: "var(--foreground)",
+    border: "var(--border)",
   },
   interaction: {
-    bg: "rgba(100,180,100,0.07)",
-    color: "#90c890",
-    border: "rgba(100,180,100,0.2)",
+    bg: "rgba(79,107,79,.08)",
+    color: "var(--state-success)",
+    border: "rgba(79,107,79,.2)",
   },
 };
 
 function TypeBadge({ type }: { type: string }) {
   const c = TYPE_COLORS[type] ?? {
-    bg: "rgba(255,255,255,0.05)",
+    bg: "var(--accent-dim)",
     color: "var(--muted-foreground)",
-    border: "rgba(255,255,255,0.1)",
+    border: "var(--border)",
   };
   return (
     <span
@@ -179,8 +179,7 @@ function AddMemoryModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 10 }}
           transition={{ duration: 0.2 }}
-          className="glass-strong w-full max-w-lg p-6 shadow-2xl"
-          style={{ borderRadius: "20px", border: "1px solid rgba(255,255,255,0.1)" }}
+           className="glass-strong w-full max-w-lg max-h-[90dvh] overflow-y-auto p-4 sm:p-6"
         >
           {/* Modal header */}
           <div className="mb-5 flex items-center justify-between">
@@ -192,10 +191,11 @@ function AddMemoryModal({
             </h2>
             <button
               onClick={onClose}
-              className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors"
+               className="flex h-11 w-11 items-center justify-center rounded-md transition-colors"
+               aria-label="Close add memory"
               style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.08)",
+                background: "var(--accent-dim)",
+                border: "1px solid var(--border)",
                 color: "var(--muted-foreground)",
               }}
             >
@@ -228,9 +228,9 @@ function AddMemoryModal({
                             boxShadow: `0 0 8px ${c.border}`,
                           }
                         : {
-                            background: "rgba(255,255,255,0.04)",
+                            background: "var(--accent-dim)",
                             color: "var(--muted-foreground)",
-                            border: "1px solid rgba(255,255,255,0.07)",
+                            border: "1px solid var(--border)",
                           }
                     }
                   >
@@ -248,7 +248,7 @@ function AddMemoryModal({
               style={{ color: "var(--muted-foreground)" }}
             >
               Content{" "}
-              <span style={{ color: "rgba(255,255,255,0.18)" }}>(required)</span>
+              <span style={{ color: "var(--muted-foreground)" }}>(required)</span>
             </label>
             <textarea
               value={content}
@@ -266,7 +266,7 @@ function AddMemoryModal({
               style={{ color: "var(--muted-foreground)" }}
             >
               Source{" "}
-              <span style={{ color: "rgba(255,255,255,0.18)" }}>(optional)</span>
+              <span style={{ color: "var(--muted-foreground)" }}>(optional)</span>
             </label>
             <input
               type="text"
@@ -277,7 +277,7 @@ function AddMemoryModal({
             />
           </div>
 
-          {error && <p className="mb-3 text-xs text-red-400/80">{error}</p>}
+          {error && <p className="mb-3 text-xs text-destructive">{error}</p>}
 
           <div className="flex justify-end gap-2">
             <button onClick={onClose} className="btn-liquid px-4 py-2 text-xs">
@@ -346,9 +346,9 @@ function MemoryCard({
             {memory.source && (
               <span
                 className="flex items-center gap-1 text-[11px]"
-                style={{ color: "rgba(107,103,96,0.7)" }}
+                style={{ color: "var(--muted-foreground)" }}
               >
-                <span style={{ color: "rgba(255,255,255,0.15)" }}>from</span>
+                <span style={{ color: "var(--muted-foreground)" }}>from</span>
                 <span className="font-mono" style={{ color: "var(--muted-foreground)" }}>
                   {memory.source}
                 </span>
@@ -356,7 +356,7 @@ function MemoryCard({
             )}
             <span
               className="text-[11px] font-mono"
-              style={{ color: "rgba(255,255,255,0.18)" }}
+              style={{ color: "var(--muted-foreground)" }}
             >
               {memory.createdAt ? formatDate(memory.createdAt) : "—"}
             </span>
@@ -367,13 +367,14 @@ function MemoryCard({
         <button
           onClick={handleDelete}
           disabled={deleteMutation.isPending}
-          className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-all ${
+             className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-md border transition-all ${
             confirming
-              ? "border-red-500/40 bg-red-500/10 text-red-400"
-              : "border-transparent bg-transparent opacity-0 group-hover:opacity-100"
+              ? "border-destructive/40 bg-destructive/10 text-destructive"
+               : "border-transparent bg-transparent opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"
           } disabled:opacity-30`}
-          style={confirming ? {} : { color: "rgba(255,255,255,0.25)" }}
-          title={confirming ? "Click again to confirm" : "Delete memory"}
+          style={confirming ? {} : { color: "var(--muted-foreground)" }}
+           title={confirming ? "Click again to confirm" : "Delete memory"}
+           aria-label={confirming ? "Confirm delete memory" : "Delete memory"}
         >
           <TrashIcon />
         </button>
@@ -392,7 +393,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
     >
       <div
         className="flex h-16 w-16 items-center justify-center rounded-full glass"
-        style={{ border: "1px solid rgba(255,255,255,0.07)" }}
+        style={{ border: "1px solid var(--border)" }}
       >
         <svg
           width="24"
@@ -403,7 +404,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
           strokeWidth="1.4"
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{ color: "rgba(255,255,255,0.2)" }}
+          style={{ color: "var(--muted-foreground)" }}
         >
           <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z" />
           <path d="M12 8v4l3 3" />
@@ -413,7 +414,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
           No memories yet
         </p>
-        <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.2)" }}>
+        <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
           Store facts, preferences, and context your agent should remember.
         </p>
       </div>
@@ -475,7 +476,7 @@ export default function Memories() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="flex flex-col gap-5 p-4 sm:p-6 max-w-3xl mx-auto w-full"
+         className="sutaeru-editorial-page flex flex-col gap-5 p-3 sm:p-6 max-w-3xl mx-auto w-full min-w-0"
       >
         {/* ── Header ── */}
         <div className="flex items-center justify-between gap-3">
@@ -490,8 +491,8 @@ export default function Memories() {
               <span
                 className="rounded-full px-2.5 py-0.5 text-xs font-mono"
                 style={{
-                  background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "var(--accent-dim)",
+                  border: "1px solid var(--border)",
                   color: "var(--muted-foreground)",
                 }}
               >
@@ -512,7 +513,7 @@ export default function Memories() {
         <div className="relative">
           <span
             className="absolute left-3 top-1/2 -translate-y-1/2"
-            style={{ color: "rgba(255,255,255,0.25)" }}
+            style={{ color: "var(--muted-foreground)" }}
           >
             <SearchIcon />
           </span>
@@ -526,8 +527,9 @@ export default function Memories() {
           {search && (
             <button
               onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-              style={{ color: "rgba(255,255,255,0.25)" }}
+               className="absolute right-0 top-1/2 -translate-y-1/2 h-11 w-11 flex items-center justify-center transition-colors"
+               aria-label="Clear search"
+              style={{ color: "var(--muted-foreground)" }}
             >
               <CloseIcon />
             </button>
@@ -547,7 +549,7 @@ export default function Memories() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className="flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all"
+                 className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all"
                 style={
                   isActive
                     ? {
@@ -556,7 +558,7 @@ export default function Memories() {
                         border: "1px solid var(--accent-border)",
                       }
                     : {
-                        color: "rgba(255,255,255,0.3)",
+                        color: "var(--muted-foreground)",
                         border: "1px solid transparent",
                       }
                 }
@@ -565,7 +567,7 @@ export default function Memories() {
                 <span
                   className="text-[10px]"
                   style={{
-                    color: isActive ? "var(--muted-foreground)" : "rgba(255,255,255,0.18)",
+                    color: isActive ? "var(--muted-foreground)" : "var(--muted-foreground)",
                   }}
                 >
                   {count}

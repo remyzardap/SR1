@@ -4,6 +4,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
+import { LandingMark } from "@/components/LandingMark";
+import { setAuthToken } from "@/lib/authSession";
+import { enterDesignPreview } from "@/lib/designPreview";
+import { OrbitalSystem } from "../../landing/FigureEffects";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Email or handle is required"),
@@ -25,15 +29,6 @@ type LoginForm = z.infer<typeof loginSchema>;
 type RegisterForm = z.infer<typeof registerSchema>;
 type FounderForm = z.infer<typeof founderSchema>;
 
-const SLogo = () => (
-  <svg width="64" height="38" viewBox="0 0 96 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M48,28 C45,20 38,8 26,8 C12,8 4,17 4,28 C4,39 12,48 26,48 C38,48 45,36 48,28 C51,20 58,8 70,8 C84,8 92,17 92,28 C92,39 84,48 70,48 C58,48 51,36 48,28Z" stroke="currentColor" strokeWidth="5.5" strokeLinejoin="round" fill="none"/>
-    <line x1="62" y1="19" x2="78" y2="19" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-    <path d="M60,28 C60,24.5 63.5,22.5 66.5,24 C67,21.5 70,20.5 72.5,22 C74.5,20.5 79,21.5 79,25 C79,28 76,29.5 73,29 C72,30.5 67,30.5 65.5,29 C62.5,29 60,28.8 60,28Z" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-    <line x1="59" y1="34" x2="81" y2="34" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-    <path d="M67.5,34 L70,38.5 L72.5,34" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-  </svg>
-);
 
 function FounderLoginForm({ inputStyle, labelStyle }: { inputStyle: React.CSSProperties; labelStyle: React.CSSProperties }) {
   const [, navigate] = useLocation();
@@ -51,7 +46,7 @@ function FounderLoginForm({ inputStyle, labelStyle }: { inputStyle: React.CSSPro
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('/api/trpc/auth.founderLogin', {
+      const res = await fetch(`${import.meta.env.VITE_SR1_API_ORIGIN || ''}/api/trpc/auth.founderLogin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -59,6 +54,7 @@ function FounderLoginForm({ inputStyle, labelStyle }: { inputStyle: React.CSSPro
       });
       const data = await res.json();
       if (data?.result?.data?.json?.success) {
+        setAuthToken(data.result.data.json.token);
         window.location.href = '/chat';
       } else {
         const msg = data?.error?.json?.message || data?.error?.message || 'Invalid handle or password';
@@ -87,11 +83,11 @@ function FounderLoginForm({ inputStyle, labelStyle }: { inputStyle: React.CSSPro
           <input data-testid="input-founder-password" type="password" placeholder="Your password" style={inputStyle} autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} />
         </div>
       </div>
-      {error && <p data-testid="text-founder-error" style={{ fontSize: '12px', color: '#f87171', margin: 0, textAlign: 'center' as const }}>{error}</p>}
+       {error && <p data-testid="text-founder-error" style={{ fontSize: '12px', color: 'var(--destructive)', margin: 0, textAlign: 'center' as const }}>{error}</p>}
       <button data-testid="button-founder-login" type="submit" disabled={loading} style={{
-        width: '100%', padding: '15px', borderRadius: 'var(--r-sm, 12px)', border: 'none',
+        width: '100%', padding: '15px', borderRadius: '100px', border: 'none',
         background: 'var(--btn-fill, #f2f2f2)', color: 'var(--btn-ink, #050505)',
-        fontFamily: 'var(--font-d, "Syne", sans-serif)', fontSize: '13px', fontWeight: 800,
+        fontFamily: 'var(--font-d)', fontSize: '13px', fontWeight: 800,
         letterSpacing: '.06em', textTransform: 'uppercase' as const,
         cursor: loading ? 'not-allowed' : 'pointer',
         transition: 'all .22s', marginTop: '2px', opacity: loading ? 0.6 : 1,
@@ -119,7 +115,15 @@ export default function Login() {
   const founderForm = useForm<FounderForm>({ resolver: zodResolver(founderSchema), defaultValues: { handle: '', password: '' } });
 
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: async () => { await utils.auth.me.invalidate(); navigate('/chat'); },
+    onSuccess: async (data: unknown) => {
+      const result = data as { token?: unknown } | null;
+      if (!setAuthToken(result?.token)) {
+        setLoginError('Sign-in succeeded, but no session was returned. Please try again.');
+        return;
+      }
+      await utils.auth.me.invalidate();
+      navigate('/chat');
+    },
     onError: (e) => setLoginError(e.message || 'Invalid credentials'),
   });
   const registerMutation = trpc.auth.register.useMutation({
@@ -127,7 +131,15 @@ export default function Login() {
     onError: (e) => setRegisterError(e.message || 'Registration failed'),
   });
   const founderMutation = trpc.auth.founderLogin.useMutation({
-    onSuccess: async () => { await utils.auth.me.invalidate(); navigate('/chat'); },
+    onSuccess: async (data: unknown) => {
+      const result = data as { token?: unknown } | null;
+      if (!setAuthToken(result?.token)) {
+        setFounderError('Sign-in succeeded, but no session was returned. Please try again.');
+        return;
+      }
+      await utils.auth.me.invalidate();
+      navigate('/chat');
+    },
     onError: (e) => setFounderError(e.message || 'Invalid handle or password'),
   });
 
@@ -149,15 +161,15 @@ export default function Login() {
     borderRadius: 'var(--r-sm, 12px)',
     background: 'var(--card, rgba(255,255,255,0.07))',
     border: '1px solid var(--glass-border, rgba(255,255,255,0.18))',
-    color: 'var(--foreground, #f5f2ed)',
-    fontFamily: 'var(--font-b, "DM Sans", sans-serif)',
-    fontSize: '14px', outline: 'none',
+    color: 'var(--foreground)',
+    fontFamily: 'var(--font-b, "Manrope", sans-serif)',
+    fontSize: '16px', outline: 'none',
     WebkitAppearance: 'none' as any,
     transition: 'border-color .2s, background .2s',
     boxSizing: 'border-box' as const,
   };
   const labelStyle: React.CSSProperties = {
-    fontFamily: 'var(--font-d, "Syne", sans-serif)', fontSize: '9px', fontWeight: 700,
+    fontFamily: 'var(--font-d)', fontSize: '9px', fontWeight: 700,
     letterSpacing: '.14em', textTransform: 'uppercase' as const,
     color: 'var(--muted-foreground, rgba(245,242,237,0.40))', padding: '0 3px',
   };
@@ -169,13 +181,14 @@ export default function Login() {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0,
+      minHeight: '100dvh',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: 'var(--background, #0d0a1a)',
-      color: 'var(--foreground, #f5f2ed)',
-      fontFamily: 'var(--font-b, "DM Sans", sans-serif)',
+      color: 'var(--foreground)',
+      fontFamily: 'var(--font-b, "Manrope", sans-serif)',
       padding: '24px',
     }}>
+      <div className="sutaeru-desktop-art" aria-hidden="true"><OrbitalSystem visible={true} /></div>
       {/* Radial glow */}
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
@@ -192,9 +205,9 @@ export default function Login() {
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
           marginBottom: '44px',
         }}>
-          <SLogo />
+          <LandingMark className="sutaeru-login-mark" />
           <span style={{
-            fontFamily: 'var(--font-d, "Syne", sans-serif)', fontWeight: 800, fontSize: '12px',
+            fontFamily: 'var(--font-d)', fontWeight: 800, fontSize: '12px',
             letterSpacing: '.2em', textTransform: 'uppercase' as const,
             color: 'var(--muted-foreground, rgba(245,242,237,0.55))',
           }}>Sutaeru</span>
@@ -211,7 +224,7 @@ export default function Login() {
           border: '1px solid var(--glass-border, rgba(255,255,255,0.18))',
           borderRadius: 'var(--r-lg, 24px)',
           padding: '5px',
-          boxShadow: '0 0 0 1px rgba(255,255,255,0.015) inset, 0 24px 64px rgba(0,0,0,0.35)',
+           boxShadow: '0 12px 32px rgba(36,35,32,.08)',
         }}>
           {/* Tab row */}
           <div style={{
@@ -228,12 +241,12 @@ export default function Login() {
                 style={{
                   flex: 1, padding: '11px',
                   borderRadius: 'calc(var(--r-lg, 24px) - 8px)',
-                  fontFamily: 'var(--font-d, "Syne", sans-serif)', fontSize: '11px', fontWeight: 700,
+                  fontFamily: 'var(--font-d)', fontSize: '11px', fontWeight: 700,
                   letterSpacing: '.08em', textTransform: 'uppercase' as const, textAlign: 'center' as const,
                   color: tab === t.key ? 'var(--t1, #f2f2f2)' : 'var(--t3, rgba(242,242,242,0.22))',
                   cursor: 'pointer', transition: 'all .22s', border: 'none',
                   background: tab === t.key ? 'var(--bg-raise2, #141414)' : 'transparent',
-                  boxShadow: tab === t.key ? '0 2px 8px rgba(0,0,0,.25)' : 'none',
+                   boxShadow: 'none',
                 }}
               >{t.label}</button>
             ))}
@@ -257,7 +270,7 @@ export default function Login() {
                     <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: 'var(--t3)', pointerEvents: 'none', lineHeight: 1 }}>✉</span>
                     <input data-testid="input-email" {...loginForm.register('email')} type="text" placeholder="you@example.com or @handle" style={inputStyle} />
                   </div>
-                  {loginForm.formState.errors.email && <p style={{ fontSize: '11px', color: '#f87171', margin: 0 }}>{loginForm.formState.errors.email.message}</p>}
+                   {loginForm.formState.errors.email && <p style={{ fontSize: '11px', color: 'var(--destructive)', margin: 0 }}>{loginForm.formState.errors.email.message}</p>}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                   <label style={labelStyle}>Password</label>
@@ -265,15 +278,15 @@ export default function Login() {
                     <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: 'var(--t3)', pointerEvents: 'none', lineHeight: 1 }}>⚿</span>
                     <input data-testid="input-password" {...loginForm.register('password')} type="password" placeholder="Your password" style={inputStyle} />
                   </div>
-                  {loginForm.formState.errors.password && <p style={{ fontSize: '11px', color: '#f87171', margin: 0 }}>{loginForm.formState.errors.password.message}</p>}
+                   {loginForm.formState.errors.password && <p style={{ fontSize: '11px', color: 'var(--destructive)', margin: 0 }}>{loginForm.formState.errors.password.message}</p>}
                 </div>
-                <div style={{ textAlign: 'right' as const, fontSize: '12px', color: 'var(--t3)', cursor: 'pointer', padding: '0 3px', marginTop: '-4px' }}
-                  onClick={() => navigate('/reset-password')}>Forgot password?</div>
-                {loginError && <p style={{ fontSize: '12px', color: '#f87171', margin: 0, textAlign: 'center' as const }}>{loginError}</p>}
+                 <button type="button" style={{ textAlign: 'right' as const, fontSize: '12px', color: 'var(--muted-foreground)', padding: '8px 3px', marginTop: '-4px' }}
+                   onClick={() => navigate('/reset-password')}>Forgot password?</button>
+                 {loginError && <p style={{ fontSize: '12px', color: 'var(--destructive)', margin: 0, textAlign: 'center' as const }}>{loginError}</p>}
                 <button data-testid="button-signin" type="submit" disabled={loginMutation.isPending} style={{
-                  width: '100%', padding: '15px', borderRadius: 'var(--r-sm, 12px)', border: 'none',
+                  width: '100%', padding: '15px', borderRadius: '100px', border: 'none',
                   background: 'var(--btn-fill, #f2f2f2)', color: 'var(--btn-ink, #050505)',
-                  fontFamily: 'var(--font-d, "Syne", sans-serif)', fontSize: '13px', fontWeight: 800,
+                  fontFamily: 'var(--font-d)', fontSize: '13px', fontWeight: 800,
                   letterSpacing: '.06em', textTransform: 'uppercase' as const,
                   cursor: loginMutation.isPending ? 'not-allowed' : 'pointer',
                   transition: 'all .22s', marginTop: '2px', opacity: loginMutation.isPending ? 0.6 : 1,
@@ -294,7 +307,7 @@ export default function Login() {
                     <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: 'var(--t3)', pointerEvents: 'none', lineHeight: 1 }}>✦</span>
                     <input data-testid="input-name" {...registerForm.register('name')} type="text" placeholder="Your name" style={inputStyle} />
                   </div>
-                  {registerForm.formState.errors.name && <p style={{ fontSize: '11px', color: '#f87171', margin: 0 }}>{registerForm.formState.errors.name.message}</p>}
+                  {registerForm.formState.errors.name && <p style={{ fontSize: '11px', color: 'var(--destructive)', margin: 0 }}>{registerForm.formState.errors.name.message}</p>}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                   <label style={labelStyle}>Email</label>
@@ -302,7 +315,7 @@ export default function Login() {
                     <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: 'var(--t3)', pointerEvents: 'none', lineHeight: 1 }}>✉</span>
                     <input data-testid="input-register-email" {...registerForm.register('email')} type="email" placeholder="you@example.com" style={inputStyle} />
                   </div>
-                  {registerForm.formState.errors.email && <p style={{ fontSize: '11px', color: '#f87171', margin: 0 }}>{registerForm.formState.errors.email.message}</p>}
+                  {registerForm.formState.errors.email && <p style={{ fontSize: '11px', color: 'var(--destructive)', margin: 0 }}>{registerForm.formState.errors.email.message}</p>}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                   <label style={labelStyle}>Password</label>
@@ -310,7 +323,7 @@ export default function Login() {
                     <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: 'var(--t3)', pointerEvents: 'none', lineHeight: 1 }}>⚿</span>
                     <input data-testid="input-register-password" {...registerForm.register('password')} type="password" placeholder="Min 8 characters" style={inputStyle} />
                   </div>
-                  {registerForm.formState.errors.password && <p style={{ fontSize: '11px', color: '#f87171', margin: 0 }}>{registerForm.formState.errors.password.message}</p>}
+                  {registerForm.formState.errors.password && <p style={{ fontSize: '11px', color: 'var(--destructive)', margin: 0 }}>{registerForm.formState.errors.password.message}</p>}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                   <label style={labelStyle}>Confirm Password</label>
@@ -318,13 +331,13 @@ export default function Login() {
                     <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: 'var(--t3)', pointerEvents: 'none', lineHeight: 1 }}>⚿</span>
                     <input data-testid="input-confirm-password" {...registerForm.register('confirmPassword')} type="password" placeholder="Repeat password" style={inputStyle} />
                   </div>
-                  {registerForm.formState.errors.confirmPassword && <p style={{ fontSize: '11px', color: '#f87171', margin: 0 }}>{registerForm.formState.errors.confirmPassword.message}</p>}
+                  {registerForm.formState.errors.confirmPassword && <p style={{ fontSize: '11px', color: 'var(--destructive)', margin: 0 }}>{registerForm.formState.errors.confirmPassword.message}</p>}
                 </div>
-                {registerError && <p style={{ fontSize: '12px', color: '#f87171', margin: 0, textAlign: 'center' as const }}>{registerError}</p>}
+                {registerError && <p style={{ fontSize: '12px', color: 'var(--destructive)', margin: 0, textAlign: 'center' as const }}>{registerError}</p>}
                 <button data-testid="button-register" type="submit" disabled={registerMutation.isPending} style={{
-                  width: '100%', padding: '15px', borderRadius: 'var(--r-sm, 12px)', border: 'none',
+                  width: '100%', padding: '15px', borderRadius: '100px', border: 'none',
                   background: 'var(--btn-fill, #f2f2f2)', color: 'var(--btn-ink, #050505)',
-                  fontFamily: 'var(--font-d, "Syne", sans-serif)', fontSize: '13px', fontWeight: 800,
+                  fontFamily: 'var(--font-d)', fontSize: '13px', fontWeight: 800,
                   letterSpacing: '.06em', textTransform: 'uppercase' as const,
                   cursor: registerMutation.isPending ? 'not-allowed' : 'pointer',
                   transition: 'all .22s', marginTop: '2px', opacity: registerMutation.isPending ? 0.6 : 1,
@@ -342,6 +355,20 @@ export default function Login() {
             )}
           </div>
         </div>
+
+        <button
+          data-testid="button-design-preview"
+          type="button"
+          onClick={() => { enterDesignPreview(); navigate('/chat'); }}
+          style={{
+            marginTop: '22px', padding: '10px 18px', borderRadius: '100px',
+            background: 'transparent', border: '1px solid var(--glass-border, rgba(255,255,255,0.18))',
+            color: 'var(--muted-foreground, rgba(245,242,237,0.55))',
+            fontFamily: 'var(--font-d)', fontSize: '10px', fontWeight: 700,
+            letterSpacing: '.1em', textTransform: 'uppercase' as const,
+            cursor: 'pointer', transition: 'all .22s',
+          }}
+        >Look around without signing in →</button>
       </div>
 
       <style>{`

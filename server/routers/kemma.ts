@@ -17,7 +17,7 @@ import {
   getChatSessionSettings,
   updateChatSessionSettings,
 } from "../db";
-import { resolveSettings, listAvailableModels, type ThreadSettings, type MessageSettings, type ChatMode } from "../kemma/settings";
+import { resolveSettings, type ThreadSettings, type MessageSettings, type ChatMode } from "../kemma/settings";
 
 const messageSchema = z.object({ role: z.enum(["user", "assistant", "system", "tool"]), content: z.string().nullable() });
 
@@ -84,8 +84,6 @@ export const kemmaRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Kemma error: ${(e as Error).message}` });
       }
     }),
-
-  availableModels: protectedProcedure.query(() => listAvailableModels()),
 
   approvedSkills: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();

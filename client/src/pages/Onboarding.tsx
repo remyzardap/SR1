@@ -9,22 +9,19 @@ import {
   WelcomeStep,
   IdentityStep,
   SkillsStep,
-  ApiKeyStep,
   DoneStep,
 } from "@/components/onboarding";
 import type { IdentityData } from "@/components/onboarding";
 import type { SkillData } from "@/components/onboarding";
-import type { ApiKeyData } from "@/components/onboarding";
 
-type Step = "welcome" | "identity" | "skills" | "apikey" | "done";
+type Step = "welcome" | "identity" | "skills" | "done";
 
-const STEPS: Step[] = ["welcome", "identity", "skills", "apikey", "done"];
+const STEPS: Step[] = ["welcome", "identity", "skills", "done"];
 
 const STEP_LABELS: Record<Step, string> = {
   welcome: "Welcome",
   identity: "Identity",
   skills: "Skills",
-  apikey: "Connect AI",
   done: "Done",
 };
 
@@ -37,7 +34,6 @@ export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState<Step>("welcome");
   const [identityData, setIdentityData] = useState<IdentityData | null>(null);
   const [skillsData, setSkillsData] = useState<SkillData[]>([]);
-  const [apiKeyData, setApiKeyData] = useState<ApiKeyData | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Check if user already completed onboarding
@@ -51,7 +47,6 @@ export default function Onboarding() {
 
   const upsertIdentity = trpc.identity.upsert.useMutation();
   const createSkill = trpc.skills.create.useMutation();
-  const addConnection = trpc.connections.add.useMutation();
   const completeOnboarding = trpc.identity.completeOnboarding.useMutation();
 
   const stepIndex = STEPS.indexOf(currentStep);
@@ -73,11 +68,6 @@ export default function Onboarding() {
 
   const handleSkillsNext = (skills: SkillData[]) => {
     setSkillsData(skills);
-    goNext();
-  };
-
-  const handleApiKeyNext = (data: ApiKeyData) => {
-    setApiKeyData(data);
     goNext();
   };
 
@@ -107,20 +97,10 @@ export default function Onboarding() {
         );
       }
 
-      // 3. Save API key as a connection
-      if (apiKeyData) {
-        await addConnection.mutateAsync({
-          provider: apiKeyData.provider,
-          type: "llm_api_key",
-          displayName: `${apiKeyData.provider} API Key`,
-          encryptedCredentials: apiKeyData.apiKey,
-        });
-      }
-
-      // 4. Mark onboarding complete
+      // 3. Mark onboarding complete
       await completeOnboarding.mutateAsync();
 
-      // 5. Invalidate queries and navigate
+      // 4. Invalidate queries and navigate
       await utils.identity.get.invalidate();
       await utils.skills.list.invalidate();
 
@@ -135,13 +115,13 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-sutaeru flex items-center justify-center p-4">
+     <div className="sutaeru-onboarding min-h-dvh bg-sutaeru flex items-center justify-center p-3 sm:p-6">
       <div className="w-full max-w-lg">
         {/* Progress indicator — hide on welcome and done */}
         {currentStep !== "welcome" && currentStep !== "done" && (
           <div className="mb-8">
             <ProgressIndicator
-              steps={["identity", "skills", "apikey"].map((s) => ({
+              steps={["identity", "skills"].map((s) => ({
                 id: s,
                 label: STEP_LABELS[s as Step],
               }))}
@@ -151,7 +131,7 @@ export default function Onboarding() {
         )}
 
         {/* Step content */}
-        <div className="glass border border-[rgba(255,255,255,0.05)] rounded-2xl p-8">
+         <div className="glass border border-border rounded-md p-4 sm:p-8">
           <AnimatePresence mode="wait">
             {currentStep === "welcome" && (
               <WelcomeStep key="welcome" onNext={goNext} />
@@ -173,21 +153,11 @@ export default function Onboarding() {
                 onSkip={goNext}
               />
             )}
-            {currentStep === "apikey" && (
-              <ApiKeyStep
-                key="apikey"
-                initialData={apiKeyData}
-                onNext={handleApiKeyNext}
-                onBack={goBack}
-                onSkip={goNext}
-              />
-            )}
             {currentStep === "done" && identityData && (
               <DoneStep
                 key="done"
                 identity={identityData}
                 skills={skillsData}
-                apiKey={apiKeyData}
                 onComplete={handleComplete}
                 isLoading={isSubmitting}
               />
@@ -197,7 +167,7 @@ export default function Onboarding() {
 
         {/* Step counter */}
         {currentStep !== "welcome" && (
-          <p className="text-center text-xs text-neutral-600 mt-4">
+           <p className="text-center text-xs text-muted-foreground mt-4">
             Step {stepIndex} of {STEPS.length - 1}
           </p>
         )}

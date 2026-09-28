@@ -36,6 +36,7 @@ import { FloatingVideoPlayer } from './FloatingVideoPlayer';
 
 import { Button } from "./ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { LandingMark } from "@/components/LandingMark";
 
 const menuItems = [
   // ── Sutaeru core ──
@@ -60,11 +61,11 @@ const MAX_WIDTH = 480;
 
 // ─── Shared UI primitives (used by KemmaCalls, AgentHub, etc.) ─────────────
 const glassColors = {
-  blue: '#5B8DEF',
-  purple: '#8B5CF6',
-  textWhite: '#FFFFFF',
-  glassBg: 'rgba(17, 24, 39, 0.8)',
-  glassBorder: 'rgba(91, 141, 239, 0.2)',
+  blue: 'var(--foreground)',
+  purple: 'var(--foreground)',
+  textWhite: 'var(--primary-foreground)',
+  glassBg: 'var(--card)',
+  glassBorder: 'var(--border)',
 };
 
 export const GlassCard = ({
@@ -100,10 +101,7 @@ export const GradientText = ({
 }) => (
   <span
     style={{
-      background: `linear-gradient(135deg, ${glassColors.blue}, ${glassColors.purple})`,
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      backgroundClip: 'text',
+       color: glassColors.blue,
       fontWeight: 700,
       ...style,
     }}
@@ -124,7 +122,7 @@ export const PrimaryButton = ({
   <button
     onClick={onClick}
     style={{
-      background: `linear-gradient(135deg, ${glassColors.blue}, ${glassColors.purple})`,
+       background: glassColors.blue,
       color: glassColors.textWhite,
       border: 'none',
       borderRadius: '12px',
@@ -133,7 +131,6 @@ export const PrimaryButton = ({
       fontWeight: 600,
       cursor: 'pointer',
       transition: 'all 0.2s ease',
-      boxShadow: '0 4px 20px rgba(91, 141, 239, 0.3)',
       ...style,
     }}
   >
@@ -154,7 +151,7 @@ export const SecondaryButton = ({
     onClick={onClick}
     style={{
       background: 'transparent',
-      color: glassColors.textWhite,
+       color: glassColors.blue,
       border: `1px solid ${glassColors.glassBorder}`,
       borderRadius: '12px',
       padding: '12px 24px',
@@ -323,9 +320,8 @@ function DashboardLayoutContent({
         <Sidebar
           collapsible="icon"
           className="border-r-0"
-          disableTransition={isResizing}
         >
-          <SidebarHeader className="h-16 justify-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <SidebarHeader className="h-16 justify-center" style={{ borderBottom: '1px solid var(--border)' }}>
             <div className="flex items-center gap-3 px-2 transition-all w-full">
               <button
                 onClick={toggleSidebar}
@@ -336,12 +332,8 @@ function DashboardLayoutContent({
               </button>
               {!isCollapsed ? (
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--accent-color), var(--accent-color))', borderRadius: '10px', boxShadow: '0 0 12px var(--accent-glow)' }}>
-                    <Brain className="h-3.5 w-3.5 text-[#f5f2ed]" />
-                  </div>
-                  <span className="text-xs font-bold tracking-widest uppercase text-gradient truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                    SUTAERU
-                  </span>
+                  <LandingMark className="sutaeru-nav-mark" />
+                  <span className="sutaeru-wordmark">SUTAERU</span>
                 </div>
               ) : null}
             </div>
@@ -351,7 +343,7 @@ function DashboardLayoutContent({
             <SidebarMenu className="px-2 py-1">
               {/* Sutaeru core group */}
               {!isCollapsed && (
-                <div className="px-3 py-2 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '0.6rem', color: 'var(--accent-color)' }}>
+                <div className="px-3 py-2 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Sora', sans-serif", fontSize: '0.6rem', color: 'var(--accent-color)' }}>
                   — Sutaeru
                 </div>
               )}
@@ -363,7 +355,7 @@ function DashboardLayoutContent({
                       isActive={isActive}
                       onClick={() => setLocation(item.path)}
                       tooltip={item.label}
-                      className={`h-10 transition-all font-normal`}
+                      className="min-h-11 transition-all font-normal"
                     >
                       <item.icon
                         className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
@@ -376,7 +368,7 @@ function DashboardLayoutContent({
 
               {/* File generation group */}
               {!isCollapsed && (
-                <div className="px-3 py-2 mt-2 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '0.6rem', color: 'rgba(245,242,237,0.30)' }}>
+                <div className="px-3 py-2 mt-2 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.6rem', color: 'var(--muted-foreground)' }}>
                   — Generate
                 </div>
               )}
@@ -388,7 +380,7 @@ function DashboardLayoutContent({
                       isActive={isActive}
                       onClick={() => setLocation(item.path)}
                       tooltip={item.label}
-                      className={`h-10 transition-all font-normal`}
+                      className="min-h-11 transition-all font-normal"
                     >
                       <item.icon
                         className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
@@ -403,7 +395,7 @@ function DashboardLayoutContent({
               {user?.role === "admin" && (
                 <>
                   {!isCollapsed && (
-                    <div className="px-3 py-2 mt-2 text-xs font-medium text-[#7a7670]/60 uppercase tracking-wider">
+                     <div className="px-3 py-2 mt-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Admin
                     </div>
                   )}
@@ -412,7 +404,7 @@ function DashboardLayoutContent({
                       isActive={location === "/admin"}
                       onClick={() => setLocation("/admin")}
                       tooltip="Admin"
-                      className={`h-10 transition-all font-normal`}
+                       className="min-h-11 transition-all font-normal"
                     >
                       <Shield className={`h-4 w-4 ${location === "/admin" ? "text-primary" : ""}`} />
                       <span>Admin</span>
@@ -423,7 +415,7 @@ function DashboardLayoutContent({
 
               {/* Settings Group */}
               {!isCollapsed && (
-                <div className="px-3 py-2 mt-2 text-xs font-medium text-[#7a7670]/60 uppercase tracking-wider">
+                 <div className="px-3 py-2 mt-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Settings
                 </div>
               )}
@@ -435,7 +427,7 @@ function DashboardLayoutContent({
                       isActive={isActive}
                       onClick={() => setLocation(item.path)}
                       tooltip={item.label}
-                      className={`h-10 transition-all font-normal`}
+                     className="min-h-11 transition-all font-normal"
                     >
                       <item.icon
                         className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
@@ -454,7 +446,7 @@ function DashboardLayoutContent({
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Avatar className="h-9 w-9 border shrink-0">
-                    <AvatarFallback style={{ background: 'var(--accent-dim)', color: 'var(--accent-color)', border: '1px solid rgba(255,255,255,0.08)' }} className="text-xs font-medium">
+                    <AvatarFallback style={{ background: 'var(--accent-dim)', color: 'var(--accent-color)', border: '1px solid var(--border)' }} className="text-xs font-medium">
                       {user?.name?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -491,12 +483,13 @@ function DashboardLayoutContent({
       </div>
 
       <SidebarInset>
-        <div ref={contentRef} className="flex flex-col flex-1 h-full">
+        <div ref={contentRef} className="flex flex-col flex-1 min-h-0">
           {isMobile && (
-            <div className="flex border-b border-[rgba(255,255,255,0.05)] h-14 items-center justify-between bg-[rgba(13,10,26,0.92)] px-2 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
+            <div className="sutaeru-mobile-topbar flex border-b h-16 items-center justify-between px-4 sticky top-0 z-40">
               <div className="flex items-center gap-2">
-                <SidebarTrigger className="h-9 w-9 rounded-lg glass" />
+                <SidebarTrigger className="h-11 w-11" aria-label="Open navigation" />
                 <div className="flex items-center gap-3">
+                  <LandingMark className="sutaeru-nav-mark" />
                   <div className="flex flex-col gap-1">
                     <span className="tracking-tight text-foreground">
                       {activeMenuItem?.label ?? "Menu"}
@@ -506,7 +499,7 @@ function DashboardLayoutContent({
               </div>
             </div>
           )}
-          <main className={noPadding ? "flex-1 flex flex-col overflow-hidden bg-sutaeru" : "flex-1 p-4 overflow-y-auto bg-sutaeru"}>{children}</main>
+           <main className={noPadding ? "flex-1 min-w-0 flex flex-col overflow-hidden bg-sutaeru" : "flex-1 min-w-0 p-3 sm:p-6 overflow-y-auto bg-sutaeru"}>{children}</main>
         </div>
       </SidebarInset>
     </>

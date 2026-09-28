@@ -212,15 +212,15 @@ const normalizeToolChoice = (
 const resolveApiUrl = () =>
   ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
     ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
-    : "https://api.moonshot.cn/v1/chat/completions";
+    : `${(process.env.QWEN_BASE_URL || "https://token-plan.maas.qwencloudapi.com/compatible-mode/v1").replace(/\/$/, "")}/chat/completions`;
 
 const assertApiKey = () => {
-  const key = ENV.forgeApiKey || ENV.kimiApiKey;
+  const key = ENV.forgeApiKey || ENV.qwenApiKey;
   if (!key) {
-    throw new Error("No LLM API key configured. Set KIMI_API_KEY or BUILT_IN_FORGE_API_KEY.");
+    throw new Error("No LLM API key configured. Set QWEN_API_KEY or BUILT_IN_FORGE_API_KEY.");
   }
 };
-const resolveApiKey = () => ENV.forgeApiKey || ENV.kimiApiKey;
+const resolveApiKey = () => ENV.forgeApiKey || ENV.qwenApiKey;
 
 const normalizeResponseFormat = ({
   responseFormat,
@@ -282,7 +282,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   } = params;
 
   const payload: Record<string, unknown> = {
-    model: "moonshot-v1-8k",
+    model: process.env.KEMMA_MODEL_CHAT || "qwen3.8-max",
     messages: messages.map(normalizeMessage),
   };
 

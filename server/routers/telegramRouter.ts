@@ -1,21 +1,17 @@
-import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
-import { z } from "zod";
+import { router, protectedProcedure } from "../_core/trpc";
+import { TRPCError } from "@trpc/server";
 
 export const telegramRouter = router({
   /**
-   * Get Telegram webhook info
+   * Get Telegram webhook info (admin only)
    */
-  webhookInfo: publicProcedure.query(async () => {
+  webhookInfo: protectedProcedure.query(async ({ ctx }) => {
+    if (ctx.user.role !== "admin") {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+    }
     const token = process.env.TELEGRAM_BOT_TOKEN;
     if (!token) return { configured: false, status: "Token not set" };
     return { configured: true, status: "Ready" };
-  }),
-
-  /**
-   * Test endpoint for Telegram integration
-   */
-  test: publicProcedure.query(async () => {
-    return { message: "Telegram integration active", timestamp: new Date().toISOString() };
   }),
 });
 

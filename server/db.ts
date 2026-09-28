@@ -3,7 +3,7 @@ import {
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import {
-  InsertUser, users, files, apiKeys, InsertFileRecord, InsertApiKey,
+  InsertUser, users, files, InsertFileRecord,
   receipts, InsertReceipt,
   tasks, InsertTask,
   procurementRequests, InsertProcurementRequest,
@@ -180,24 +180,6 @@ export async function getFilesCountByUser(userId: number) {
   if (!db) return 0;
   const result = await db.select({ count: sql<number>`count(*)` }).from(files).where(eq(files.userId, userId));
   return Number(result[0]?.count ?? 0);
-}
-
-// ─── API Keys ─────────────────────────────────────────────────────────────────
-
-export async function upsertApiKey(data: InsertApiKey) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db
-    .insert(apiKeys)
-    .values(data)
-    .onConflictDoUpdate({ target: apiKeys.userId, set: { provider: data.provider, encryptedKey: data.encryptedKey } });
-}
-
-export async function getApiKeyByUser(userId: number) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const result = await db.select().from(apiKeys).where(eq(apiKeys.userId, userId)).limit(1);
-  return result[0] ?? undefined;
 }
 
 // ─── Receipts ─────────────────────────────────────────────────────────────────
@@ -764,6 +746,16 @@ export async function listChatSessions(userId: number, spaceId?: string) {
   return db.select().from(chatSessions)
     .where(where)
     .orderBy(desc(chatSessions.lastMessageAt));
+}
+
+export async function getChatSessionForUser(sessionId: string, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const { chatSessions } = await import("../drizzle/schema");
+  const [session] = await db.select().from(chatSessions)
+    .where(and(eq(chatSessions.id, sessionId), eq(chatSessions.userId, userId)))
+    .limit(1);
+  return session;
 }
 
 export async function updateChatSessionSpace(sessionId: string, userId: number, spaceId: string | null) {

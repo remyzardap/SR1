@@ -6,11 +6,18 @@
  */
 
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../trpc";
 import { getDb } from "../db";
 import { blocks } from "../../drizzle/schema";
 import { eq, and, desc, asc, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
+
+async function requireDb() {
+  const db = await getDb();
+  if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+  return db;
+}
 
 const BlockTypeEnum = z.enum(["chat", "atelier", "memory", "task", "media", "transcript", "widget", "note"]);
 const BlockSourceEnum = z.enum(["s1", "atelier", "kemma", "user", "feed", "system"]);
@@ -31,7 +38,7 @@ export const blocksRouter = router({
       pinned: z.boolean().default(false),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
+      const db = await requireDb();
       const id = randomUUID();
       const [block] = await db.insert(blocks).values({
         id,
@@ -62,7 +69,7 @@ export const blocksRouter = router({
       offset: z.number().default(0),
     }))
     .query(async ({ ctx, input }) => {
-      const db = await getDb();
+      const db = await requireDb();
       const conditions = [
         eq(blocks.userId, ctx.user.id),
         eq(blocks.archived, input.archived),
@@ -85,7 +92,7 @@ export const blocksRouter = router({
   get: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const db = await getDb();
+      const db = await requireDb();
       const [block] = await db.select().from(blocks)
         .where(and(eq(blocks.id, input.id), eq(blocks.userId, ctx.user.id)));
       return block ?? null;
@@ -96,7 +103,7 @@ export const blocksRouter = router({
     .input(z.object({
       id: z.string(),
       title: z.string().optional(),
-      content: z.record(z.unknown()).optional(),
+      content: z.record(z.string(), z.unknown()).optional(),
       tags: z.array(z.string()).optional(),
       pinned: z.boolean().optional(),
       locked: z.boolean().optional(),
@@ -104,7 +111,7 @@ export const blocksRouter = router({
       position: z.number().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
+      const db = await requireDb();
       const { id, ...updates } = input;
       const [block] = await db.update(blocks)
         .set({ ...updates, updatedAt: new Date() })
@@ -117,7 +124,7 @@ export const blocksRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
+      const db = await requireDb();
       await db.delete(blocks)
         .where(and(eq(blocks.id, input.id), eq(blocks.userId, ctx.user.id)));
       return { success: true };
@@ -127,7 +134,7 @@ export const blocksRouter = router({
   togglePin: protectedProcedure
     .input(z.object({ id: z.string(), pinned: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
+      const db = await requireDb();
       const [block] = await db.update(blocks)
         .set({ pinned: input.pinned, updatedAt: new Date() })
         .where(and(eq(blocks.id, input.id), eq(blocks.userId, ctx.user.id)))
@@ -139,7 +146,7 @@ export const blocksRouter = router({
   fork: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
+      const db = await requireDb();
       const [original] = await db.select().from(blocks)
         .where(and(eq(blocks.id, input.id), eq(blocks.userId, ctx.user.id)));
       if (!original) throw new Error("Block not found");
@@ -164,7 +171,7 @@ export const blocksRouter = router({
   // ── Get pinned blocks for Board ───────────────────────────────────────────
   pinned: protectedProcedure
     .query(async ({ ctx }) => {
-      const db = await getDb();
+      const db = await requireDb();
       return db.select().from(blocks)
         .where(and(
           eq(blocks.userId, ctx.user.id),
@@ -180,7 +187,7 @@ export const blocksRouter = router({
       items: z.array(z.object({ id: z.string(), position: z.number() })),
     }))
     .mutation(async ({ ctx, input }) => {
-      const db = await getDb();
+      const db = await requireDb();
       await Promise.all(input.items.map((item) =>
         db.update(blocks)
           .set({ position: item.position, updatedAt: new Date() })

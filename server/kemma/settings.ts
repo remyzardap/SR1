@@ -35,7 +35,8 @@ export function resolveSettings(
   message: MessageSettings = {},
   defaults: { model: string; mode: ChatMode; allowedTools: string[] } = { model: "auto", mode: "fast", allowedTools: defaultToolSet("fast") }
 ): { model: string; allowedTools: string[]; skills: number[] } {
-  const model = message.model && message.model !== "auto" ? message.model : (thread.model && thread.model !== "auto" ? thread.model : defaults.model);
+  // The model is chosen by us, never by the customer: ignore any client-supplied model.
+  const model = defaults.model;
   const mode = thread.mode ?? defaults.mode;
   const threadTools = thread.allowedTools ?? defaultToolSet(mode);
   const allowedTools = thread.allowedTools ?? threadTools;
@@ -83,7 +84,7 @@ function deriveProvider(model: string): string {
   try {
     return routeFor(model).provider;
   } catch {
-    return "litellm";
+    return "qwen";
   }
 }
 

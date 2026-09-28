@@ -27,7 +27,8 @@
 | `PORT` | Internal app port |
 | `APP_URL` | Production URL |
 | `VITE_APP_ID` | App identifier for Vite |
-| `SESSION_SECRET` | Session encryption key |
+| `SESSION_SECRET` | Session/cookie signing key. Falls back to `JWT_SECRET` if unset. The server refuses to start in production without one of the two |
+| `ALLOWED_ORIGINS` | Comma-separated list of origins allowed to make credentialed cross-origin requests (CORS). Falls back to `APP_URL`, then `https://sutaeru.com` |
 
 ---
 
@@ -170,13 +171,19 @@ SONAR_API_KEY=
 
 ## 🔍 Verification Commands
 
+Production runs on Cloud Run (service `sutaeru`, region `asia-southeast2`), not a local container.
+
 ```bash
-# Check container env vars
-docker inspect sutaeru --format='{{range .Config.Env}}{{.}}{{"\n"}}{{end}}'
+# Check the env vars configured on the live service
+gcloud run services describe sutaeru --region asia-southeast2 \
+  --format="yaml(spec.template.spec.containers[0].env)"
+
+# Tail recent logs (secret load status, migration status, startup errors)
+gcloud run services logs read sutaeru --region asia-southeast2 --limit 50
 
 # Test endpoints
 curl -I https://sutaeru.com
-curl -I http://localhost:3000
+curl -I http://localhost:3000   # local dev only
 ```
 
 ---

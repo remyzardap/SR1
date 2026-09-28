@@ -1,7 +1,7 @@
 import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { createChatSession } from "../db";
-import { s1Route, buildS1SystemPrompt } from "./s1Router";
+import { s1Blend, buildS1SystemPrompt, resolveBearer } from "./s1Router";
 
 export const openclawRouter = router({
   /**
@@ -28,8 +28,7 @@ export const openclawRouter = router({
       const { userId, message, sessionId } = input;
 
       try {
-        // Route to S1 (auto-detects best agent based on query)
-        const { config: agentConfig } = s1Route(message, false);
+        // S1 blends Qwen + Gemini (+ Sonar for web questions) into one answer
         const systemPrompt = buildS1SystemPrompt({
           agent: "s1",
           label: "Kemma",
@@ -38,17 +37,21 @@ export const openclawRouter = router({
           color: "#E8442A",
         });
 
-        const messages = [
-          { role: "system" as const, content: systemPrompt },
-          { role: "user" as const, content: message },
-        ];
+        const { config: agentConfig, messages } = await s1Blend(
+          message,
+          [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: message },
+          ],
+          { draftMaxTokens: 1000 },
+        );
 
         // Call the LLM
         const response = await fetch(`${agentConfig.baseUrl}/chat/completions`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${agentConfig.apiKey}`,
+            Authorization: `Bearer ${await resolveBearer(agentConfig)}`,
           },
           body: JSON.stringify({
             model: agentConfig.model,

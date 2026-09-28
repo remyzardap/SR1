@@ -4,8 +4,7 @@ import { processIncomingMessage } from "../../services/message-processor";
 
 const router = Router();
 
-const WHATSAPP_VERIFY_TOKEN =
-  process.env.WHATSAPP_VERIFY_TOKEN || "sutaeru_verify_token";
+const WHATSAPP_VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "";
 const WHATSAPP_APP_SECRET = process.env.WHATSAPP_APP_SECRET || "";
 const WHATSAPP_API_TOKEN = process.env.WHATSAPP_API_TOKEN || "";
 const WHATSAPP_API_URL = "https://graph.facebook.com/v18.0";
@@ -16,13 +15,14 @@ const WHATSAPP_API_URL = "https://graph.facebook.com/v18.0";
  */
 function validateWebhookSignature(req: Request): boolean {
   const signature = req.headers["x-hub-signature-256"] as string;
-  if (!signature || !WHATSAPP_APP_SECRET) return false;
+  const rawBody = (req as any).rawBody as Buffer | undefined;
+  if (!signature || !WHATSAPP_APP_SECRET || !rawBody) return false;
 
   const expectedSignature =
     "sha256=" +
     crypto
       .createHmac("sha256", WHATSAPP_APP_SECRET)
-      .update(JSON.stringify(req.body))
+      .update(rawBody)
       .digest("hex");
 
   try {

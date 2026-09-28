@@ -109,8 +109,6 @@ describe("files router", () => {
       fileKey: "user-1/files/test.pdf",
     }),
     createFile: vi.fn().mockResolvedValue({}),
-    upsertApiKey: vi.fn().mockResolvedValue(undefined),
-    getApiKeyByUser: vi.fn().mockResolvedValue(null),
   }));
 
   it("files.list returns user files", async () => {
@@ -140,26 +138,5 @@ describe("files router", () => {
     const caller = appRouter.createCaller(ctx);
     const file = await caller.files.getById({ id: 1 });
     expect(file.name).toBe("Test Report");
-  });
-});
-
-// ─── Settings router tests ────────────────────────────────────────────────────
-
-describe("settings router", () => {
-  it("settings.getApiKey returns null when no key is set", async () => {
-    const { ctx } = createAuthContext();
-    const caller = appRouter.createCaller(ctx);
-    const result = await caller.settings.getApiKey();
-    expect(result).toBeNull();
-  });
-
-  it("settings.saveApiKey returns success", async () => {
-    const { ctx } = createAuthContext();
-    const caller = appRouter.createCaller(ctx);
-    const result = await caller.settings.saveApiKey({
-      provider: "openai",
-      apiKey: "sk-test-key-1234",
-    });
-    expect(result).toEqual({ success: true });
   });
 });

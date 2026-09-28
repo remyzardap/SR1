@@ -1,48 +1,48 @@
 import { Link } from 'wouter';
 import { Home, ArrowLeft } from 'lucide-react';
+import { LandingMark } from '@/components/LandingMark';
+import { Button } from '@/components/ui/button';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-sutaeru flex flex-col items-center justify-center px-6">
+     <div className="sutaeru-auth-page min-h-dvh bg-sutaeru flex flex-col items-center justify-center px-6 py-12">
       <div className="text-center max-w-lg">
+         <LandingMark className="sutaeru-login-mark mx-auto mb-8" />
         {/* Large 404 */}
-        <h1 className="text-8xl sm:text-9xl font-light tracking-tighter text-white/10 mb-4 select-none">
+         <h1 className="text-8xl sm:text-9xl font-light text-muted-foreground/40 mb-4 select-none">
           404
         </h1>
 
         {/* Subtitle */}
-        <h2 className="text-2xl sm:text-3xl font-medium text-white mb-4">
+         <h2 className="text-2xl sm:text-3xl font-medium text-foreground mb-4">
           Page not found
         </h2>
 
         {/* Message */}
-        <p className="text-[#7a7670] mb-10 leading-relaxed">
+         <p className="text-muted-foreground mb-10 leading-relaxed">
           The page you're looking for doesn't exist or has been moved. 
           Check the URL or navigate back to the dashboard.
         </p>
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Link
-            href="/"
-            className="group flex items-center gap-2 px-8 py-4 btn-primary-teal font-medium rounded-full hover:bg-white/90 transition-all duration-300"
-          >
+           <Button asChild className="min-h-11"><Link href="/">
             <Home className="w-4 h-4" />
-            Go to Dashboard
-          </Link>
-          <button
+             Go Home
+           </Link></Button>
+           <Button variant="outline"
             onClick={() => window.history.back()}
-            className="flex items-center gap-2 px-8 py-4 border border-[rgba(255,255,255,0.05)] text-white font-medium rounded-full hover:bg-[rgba(255,255,255,0.04)] hover:border-[#333333] transition-all duration-300"
+             className="min-h-11"
           >
             <ArrowLeft className="w-4 h-4" />
             Go Back
-          </button>
+           </Button>
         </div>
       </div>
 
       {/* Footer hint */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-        <p className="text-white/20 text-sm">
+       <div className="mt-12 text-center">
+         <p className="text-muted-foreground text-sm">
           Sutaeru — One identity. Every model. For life.
         </p>
       </div>

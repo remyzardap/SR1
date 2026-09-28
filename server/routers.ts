@@ -25,8 +25,6 @@ import {
   deleteFile,
   setFileTrashed,
   moveFileToSpace,
-  upsertApiKey,
-  getApiKeyByUser,
   getAllUsersWithStats,
   getOrCreateIdentity,
   upsertIdentity,
@@ -142,15 +140,6 @@ function getClientIp(req: any): string {
   return req.ip || req.socket?.remoteAddress || "unknown";
 }
 
-// Helper: get user's API key config or null
-async function getUserLLMConfig(userId: number) {
-  const keyRecord = await getApiKeyByUser(userId);
-  if (!keyRecord) return null;
-  return { provider: keyRecord.provider, apiKey: keyRecord.encryptedKey } as {
-    provider: "kimi" | "openai" | "gemini";
-    apiKey: string;
-  };
-}
 
 export const appRouter = router({
   system: systemRouter,
@@ -377,12 +366,7 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        const llmConfig = await getUserLLMConfig(ctx.user.id);
-        const aiOptions = await generateStyleOptions(
-          input.prompt,
-          input.format,
-          llmConfig
-        );
+        const aiOptions = await generateStyleOptions(input.prompt, input.format);
         // Merge AI-generated options with our predefined visual styles
         return STYLE_DEFINITIONS.map((styleDef, i) => ({
           ...styleDef,
@@ -405,14 +389,11 @@ export const appRouter = router({
         const style = STYLE_DEFINITIONS.find((s) => s.id === input.styleId);
         if (!style) throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid style" });
 
-        const llmConfig = await getUserLLMConfig(ctx.user.id);
-
         // Generate document content via LLM
         const content = await generateDocumentContent(
           input.prompt,
           input.format,
-          style.label,
-          llmConfig
+          style.label
         );
 
         // Generate file bytes
@@ -510,44 +491,6 @@ export const appRouter = router({
   spaces: spacesRouter,
   // ─── Settings router ────────────────────────────────────────────────────────
   settings: router({
-    saveApiKey: protectedProcedure
-      .input(
-        z.object({
-          provider: z.enum(["kimi", "openai", "gemini", "anthropic"]),
-          apiKey: z.string().min(1),
-        })
-      )
-      .mutation(async ({ ctx, input }) => {
-        await upsertApiKey({
-          userId: ctx.user.id,
-          provider: input.provider,
-          encryptedKey: input.apiKey,
-        });
-        return { success: true };
-      }),
-
-    getApiKey: protectedProcedure.query(async ({ ctx }) => {
-      const record = await getApiKeyByUser(ctx.user.id);
-      if (!record) return null;
-      // Mask the key for display
-      const masked =
-        record.encryptedKey.length > 8
-          ? record.encryptedKey.substring(0, 4) +
-            "•".repeat(record.encryptedKey.length - 8) +
-            record.encryptedKey.slice(-4)
-          : "••••••••";
-      return { provider: record.provider, maskedKey: masked };
-    }),
-
-    clearApiKey: protectedProcedure.mutation(async ({ ctx }) => {
-      const { getDb } = await import("./db");
-      const { apiKeys } = await import("../drizzle/schema");
-      const { eq } = await import("drizzle-orm");
-      const db = await getDb();
-      if (db) await db.delete(apiKeys).where(eq(apiKeys.userId, ctx.user.id));
-      return { success: true };
-    }),
-
     // ─── Avatar upload ─────────────────────────────────────────────────────
     uploadAvatar: protectedProcedure
       .input(

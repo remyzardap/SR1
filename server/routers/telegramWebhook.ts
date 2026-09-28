@@ -1,17 +1,32 @@
 import type { Express } from "express";
-import { getOrCreateTelegramUser } from "../services/telegram";
-import { s1Route, buildS1SystemPrompt } from "./s1Router";
+import crypto from "crypto";
+import { s1Blend, buildS1SystemPrompt, resolveBearer } from "./s1Router";
 
 export function registerTelegramWebhookRoute(app: Express) {
   const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+  const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
   const OPENCLAW_WEBHOOK = process.env.OPENCLAW_WEBHOOK_URL;
 
-  if (!TELEGRAM_TOKEN) {
-    console.log("[Telegram] Bot token not configured. Webhook disabled.");
+  if (!TELEGRAM_TOKEN || !WEBHOOK_SECRET) {
+    console.log("[Telegram] Bot token or webhook secret not configured. Webhook disabled.");
     return;
   }
 
-  app.post(`/api/telegram/webhook/${TELEGRAM_TOKEN}`, async (req, res) => {
+  app.post("/api/telegram/webhook", async (req, res) => {
+    const provided = req.header("x-telegram-bot-api-secret-token") || "";
+    let validSecret = false;
+    try {
+      const a = Buffer.from(provided);
+      const b = Buffer.from(WEBHOOK_SECRET);
+      validSecret = a.length === b.length && crypto.timingSafeEqual(a, b);
+    } catch {
+      validSecret = false;
+    }
+    if (!validSecret) {
+      res.status(401).json({ ok: false });
+      return;
+    }
+
     try {
       const update = req.body;
 
@@ -57,19 +72,22 @@ export function registerTelegramWebhookRoute(app: Express) {
       } else {
         // Direct S1 routing (fallback)
         console.log("[Telegram] No OpenClaw configured. Using direct S1 routing.");
-        const { config: agentConfig } = s1Route(messageText, false);
         const systemPrompt = buildS1SystemPrompt({ agent: "s1", label: "Kemma", reason: "chat", emoji: "🧠", color: "#E8442A" });
 
-        const fullMessages = [
-          { role: "system" as const, content: systemPrompt },
-          { role: "user" as const, content: messageText },
-        ];
+        const { config: agentConfig, messages: fullMessages } = await s1Blend(
+          messageText,
+          [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: messageText },
+          ],
+          { draftMaxTokens: 500 },
+        );
 
         const llmResponse = await globalThis.fetch(`${agentConfig.baseUrl}/chat/completions`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${agentConfig.apiKey}`,
+            Authorization: `Bearer ${await resolveBearer(agentConfig)}`,
           },
           body: JSON.stringify({
             model: agentConfig.model,
@@ -95,11 +113,11 @@ export function registerTelegramWebhookRoute(app: Express) {
       res.json({ ok: true });
     } catch (error) {
       console.error("[Telegram] Webhook error:", error);
-      res.json({ ok: false, error: String(error) });
+      res.json({ ok: false });
     }
   });
 
-  console.log(`[Telegram] Webhook registered at /api/telegram/webhook/${TELEGRAM_TOKEN}`);
+  console.log("[Telegram] Webhook registered at /api/telegram/webhook");
 }
 
 async function sendTelegramMessage(chatId: number | string, text: string, token: string) {

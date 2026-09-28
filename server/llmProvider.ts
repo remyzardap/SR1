@@ -1,12 +1,9 @@
 /**
- * LLM Provider abstraction — uses LiteLLM proxy by default.
- * Falls back to OpenAI, Anthropic, or other configured providers.
+ * LLM helper for document generation. Models are chosen by the platform via
+ * the Kemma router (Qwen for text, Gemini as fallback) — never by the customer.
  */
 
-export interface LLMConfig {
-  provider: "kimi" | "openai" | "gemini" | "anthropic" | "litellm" | "nvidia";
-  apiKey: string;
-}
+import { chatRoute, fallbackRoutes } from "./core/kemmaRouter";
 
 export interface DocumentContent {
   title: string;
@@ -20,55 +17,16 @@ export interface StyleOption {
   previewText?: string;
 }
 
-function resolveEndpoint(llmConfig?: LLMConfig | null): { baseUrl: string; apiKey: string; model: string } {
-  if (llmConfig) {
-    switch (llmConfig.provider) {
-      case "openai":
-        return { baseUrl: "https://api.openai.com/v1", apiKey: llmConfig.apiKey, model: "gpt-4o-mini" };
-      case "anthropic":
-        return { baseUrl: "https://api.anthropic.com/v1", apiKey: llmConfig.apiKey, model: "claude-haiku-4-5" };
-      case "kimi":
-        return { baseUrl: "https://api.moonshot.cn/v1", apiKey: llmConfig.apiKey, model: "moonshot-v1-128k" };
-      case "gemini":
-        return { baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", apiKey: llmConfig.apiKey, model: "gemini-2.0-flash" };
-      case "litellm":
-        return {
-          baseUrl: process.env.LITELLM_BASE_URL || "https://litellm.koboi2026.biz.id/v1",
-          apiKey: llmConfig.apiKey,
-          model: "openai/gpt-5.2",
-        };
-      case "nvidia":
-        return {
-          baseUrl: "https://integrate.api.nvidia.com/v1",
-          apiKey: llmConfig.apiKey,
-          model: "meta/llama-3.1-405b-instruct",
-        };
-    }
+function resolveEndpoint(): { baseUrl: string; apiKey: string; model: string } {
+  const route = [chatRoute(), ...fallbackRoutes()].find((r) => r.apiKey);
+  if (!route) {
+    throw new Error("No LLM provider configured. Set QWEN_API_KEY or GEMINI_API_KEY.");
   }
-
-  const LITELLM  = process.env.LITELLM_API_KEY;
-  const LITELLM_BASE = process.env.LITELLM_BASE_URL || "https://litellm.koboi2026.biz.id/v1";
-  const OPENAI   = process.env.OPENAI_API_KEY;
-  const ANTHROPIC = process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API;
-  const KIMI     = process.env.KIMI_API_KEY || process.env.KIMI_API;
-  const VERTEX   = process.env.VERTEX_API;
-  const NVIDIA   = process.env.NVIDIA_API_KEY;
-
-  if (LITELLM)   return { baseUrl: LITELLM_BASE, apiKey: LITELLM, model: "openai/gpt-5.2" };
-  if (NVIDIA)    return { baseUrl: "https://integrate.api.nvidia.com/v1", apiKey: NVIDIA, model: "meta/llama-3.1-405b-instruct" };
-  if (VERTEX)    return { baseUrl: "https://vertex-ai.googleapis.com/v1", apiKey: VERTEX, model: "gemini-1.5-pro" };
-  if (OPENAI)    return { baseUrl: "https://api.openai.com/v1", apiKey: OPENAI, model: "gpt-4o-mini" };
-  if (KIMI)      return { baseUrl: "https://api.moonshot.cn/v1", apiKey: KIMI, model: "moonshot-v1-128k" };
-  if (ANTHROPIC) return { baseUrl: "https://api.anthropic.com/v1", apiKey: ANTHROPIC, model: "claude-haiku-4-5" };
-
-  throw new Error("No LLM provider configured. Set NVIDIA_API_KEY, LITELLM_API_KEY, OPENAI_API_KEY, KIMI_API_KEY, or ANTHROPIC_API_KEY.");
+  return { baseUrl: route.baseUrl, apiKey: route.apiKey, model: route.model };
 }
 
-async function callLLM(
-  messages: Array<{ role: string; content: string }>,
-  llmConfig?: LLMConfig | null
-): Promise<string> {
-  const ep = resolveEndpoint(llmConfig);
+async function callLLM(messages: Array<{ role: string; content: string }>): Promise<string> {
+  const ep = resolveEndpoint();
 
   const response = await fetch(`${ep.baseUrl}/chat/completions`, {
     method: "POST",
@@ -101,8 +59,7 @@ async function callLLM(
 export async function generateDocumentContent(
   prompt: string,
   format?: string,
-  styleLabel?: string,
-  llmConfig?: LLMConfig | null
+  styleLabel?: string
 ): Promise<DocumentContent> {
   const systemPrompt = `You are a professional document writer. Generate structured document content.
 Return ONLY a JSON object (no markdown) with this shape:
@@ -118,7 +75,7 @@ Return ONLY a JSON object (no markdown) with this shape:
     const raw = await callLLM([
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
-    ], llmConfig);
+    ]);
 
     const cleaned = raw.replace(/```json\n?|```\n?/g, "").trim();
     const parsed = JSON.parse(cleaned) as DocumentContent;
@@ -140,8 +97,7 @@ Return ONLY a JSON object (no markdown) with this shape:
 
 export async function generateStyleOptions(
   prompt: string,
-  format?: string,
-  llmConfig?: LLMConfig | null
+  format?: string
 ): Promise<StyleOption[]> {
   const systemPrompt = `You are a design expert. Generate style descriptions for a document.
 Return ONLY a JSON array (no markdown) with exactly 3 objects:
@@ -153,7 +109,7 @@ Return ONLY a JSON array (no markdown) with exactly 3 objects:
     const raw = await callLLM([
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
-    ], llmConfig);
+    ]);
 
     const cleaned = raw.replace(/```json\n?|```\n?/g, "").trim();
     return JSON.parse(cleaned) as StyleOption[];
@@ -165,6 +121,3 @@ Return ONLY a JSON array (no markdown) with exactly 3 objects:
     ];
   }
 }
-
-export const PROVIDER_MODELS_COMPLEX: Record<string, string> = {};
-export function getModel(modelName: string): string { return modelName || "default"; }

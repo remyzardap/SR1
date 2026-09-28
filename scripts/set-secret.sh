@@ -13,8 +13,8 @@ if [ -z "$SECRET_NAME" ] || [ -z "$SECRET_VALUE" ]; then
   echo ""
   echo "Available secrets:"
   echo "  DATABASE_URL, VITE_APP_ID, SESSION_SECRET, OWNER_OPEN_ID"
-  echo "  KIMI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY"
-  echo "  SONAR_API_KEY, VERTEX_API, ELEVEN_LABS_API_KEY"
+  echo "  QWEN_API_KEY, GEMINI_API_KEY"
+  echo "  SONAR_API_KEY, ELEVEN_LABS_API_KEY"
   echo "  EMAIL_HOST, EMAIL_USER, EMAIL_PASSWORD, etc."
   exit 1
 fi

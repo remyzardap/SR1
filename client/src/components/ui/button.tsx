@@ -5,13 +5,13 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-[var(--duration-fast)] ease-[var(--spring-smooth)] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:shadow-[var(--elev-focus-ring)] active:shadow-[var(--elev-active)] active:translate-y-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring",
   {
     variants: {
       variant: {
         default: "bg-[var(--btn-fill)] text-[var(--btn-ink)] border border-[var(--line-2)] hover:shadow-[var(--elev-hover)] hover:-translate-y-0.5",
         destructive:
-          "bg-[var(--state-error)] text-white hover:bg-[var(--state-error)]/90 border border-[var(--state-error)]/30 hover:shadow-[var(--elev-hover)] hover:-translate-y-0.5",
+          "bg-destructive text-destructive-foreground hover:opacity-90 border border-destructive",
         outline:
           "border border-[var(--line-2)] bg-transparent hover:bg-[var(--elev-1-bg)] hover:border-[var(--line-3)]",
         secondary:

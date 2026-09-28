@@ -7,6 +7,7 @@ import { sdk } from "../_core/sdk";
 import { getStorageAdapter, ensureLocalStorageRoot } from "../storageAdapter";
 import { getDb } from "../db";
 import { files } from "../../drizzle/schema";
+import { and, eq } from "drizzle-orm";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 500 * 1024 * 1024 } });
 
@@ -24,6 +25,19 @@ export function registerFileRoutes(app: Express) {
   app.get("/files/*", requireSession, async (req, res) => {
     const key = req.params[0];
     if (!key) return res.status(400).json({ error: "Missing file key" });
+    const user = (req as any).user;
+    try {
+      const db = await getDb();
+      if (!db) return res.status(404).json({ error: "File not found" });
+      const [owned] = await db
+        .select({ id: files.id })
+        .from(files)
+        .where(and(eq(files.fileKey, key), eq(files.userId, user.id)))
+        .limit(1);
+      if (!owned) return res.status(404).json({ error: "File not found" });
+    } catch {
+      return res.status(404).json({ error: "File not found" });
+    }
     try {
       const adapter = getStorageAdapter();
       const buffer = await adapter.get(key);

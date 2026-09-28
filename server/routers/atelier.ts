@@ -9,7 +9,7 @@
  */
 
 import type { Express } from "express";
-import { s1Route } from "./s1Router";
+import { s1Blend } from "./s1Router";
 import multer from "multer";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
@@ -92,14 +92,24 @@ async function streamCompletion(
   agentHint: string,
   maxTokens: number
 ) {
-  const { config } = s1Route(agentHint, false);
+  const plan = await s1Blend(agentHint, [{ role: "system", content: systemPrompt }, ...messages], {
+    draftMaxTokens: Math.min(maxTokens, 3000),
+  });
+  const { config } = plan;
+
+  let bearer = config.apiKey;
+  if (config.vertexProject) {
+    const { GoogleAuth } = await import("google-auth-library");
+    const token = await (await new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform"] }).getClient()).getAccessToken();
+    bearer = token.token ?? "";
+  }
 
   const response = await fetch(`${config.baseUrl}/chat/completions`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.apiKey}` },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${bearer}` },
     body: JSON.stringify({
       model: config.model,
-      messages: [{ role: "system", content: systemPrompt }, ...messages],
+      messages: plan.messages,
       stream: true,
       max_tokens: maxTokens,
       temperature: maxTokens > 2000 ? 0.7 : 0.85,
@@ -182,7 +192,7 @@ export function registerAtelierRoutes(app: Express) {
         ? [...messages, { role: "user", content: `Here is the uploaded document content:\n\n${uploadedContent}\n\nPlease ${mode === "reformat" ? "reformat and restructure" : "rewrite and enhance"} this into a professional ${reportType}.` }]
         : messages;
 
-      // Use Kimi for long-form generation
+      // Long-form generation
       const full = await streamCompletion(res, finalMessages, sysPrompt, "generate structured long document JSON", 8000);
 
       // Try to parse and emit the structured report

@@ -28,10 +28,10 @@ export function ProgressIndicator({ steps, currentStepId }: ProgressIndicatorPro
                 <motion.div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors duration-300 ${
                     isCompleted
-                      ? "bg-white text-black"
+                      ? "bg-primary text-primary-foreground"
                       : isCurrent
-                      ? "bg-white text-black ring-2 ring-white ring-offset-2 ring-offset-[#0a0a0a]"
-                      : "bg-neutral-800 text-neutral-500 border border-[#333]"
+                      ? "bg-primary text-primary-foreground ring-2 ring-foreground ring-offset-2 ring-offset-background"
+                      : "bg-secondary text-muted-foreground border border-border"
                   }`}
                   initial={false}
                   animate={{ scale: isCurrent ? 1.1 : 1 }}
@@ -41,7 +41,7 @@ export function ProgressIndicator({ steps, currentStepId }: ProgressIndicatorPro
                 </motion.div>
                 <span
                   className={`mt-1.5 text-xs font-medium ${
-                    isCurrent ? "text-white" : isCompleted ? "text-neutral-400" : "text-neutral-600"
+                    isCurrent ? "text-foreground" : isCompleted ? "text-muted-foreground" : "text-muted-foreground"
                   }`}
                 >
                   {step.label}
@@ -50,9 +50,9 @@ export function ProgressIndicator({ steps, currentStepId }: ProgressIndicatorPro
 
               {/* Connector line */}
               {index < steps.length - 1 && (
-                <div className="flex-1 h-px mx-2 mb-5 bg-neutral-800 relative overflow-hidden">
+                <div className="flex-1 h-px mx-2 mb-5 bg-secondary relative overflow-hidden">
                   <motion.div
-                    className="absolute inset-y-0 left-0 bg-white"
+                    className="absolute inset-y-0 left-0 bg-primary"
                     initial={{ width: 0 }}
                     animate={{ width: isCompleted ? "100%" : "0%" }}
                     transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
