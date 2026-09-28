@@ -1,1 +1,510 @@
-aW1wb3J0IHsgUEFHRV9CRywgTk9JU0VfT1ZFUkxBWSwgQ1NTX0FOSU0gfSBmcm9tICdAL2xpYi9kZXNpZ24nOwppbXBvcnQgeyB1c2VTdGF0ZSB9IGZyb20gInJlYWN0IjsKaW1wb3J0IHsgdHJwYyB9IGZyb20gIkAvbGliL3RycGMiOwppbXBvcnQgeyBCdXR0b24gfSBmcm9tICJAL2NvbXBvbmVudHMvdWkvYnV0dG9uIjsKaW1wb3J0IHsgSW5wdXQgfSBmcm9tICJAL2NvbXBvbmVudHMvdWkvaW5wdXQiOwppbXBvcnQgeyBCYWRnZSB9IGZyb20gIkAvY29tcG9uZW50cy91aS9iYWRnZSI7CmltcG9ydCB7CiAgRGlhbG9nLAogIERpYWxvZ0NvbnRlbnQsCiAgRGlhbG9nSGVhZGVyLAogIERpYWxvZ1RpdGxlLAogIERpYWxvZ0Zvb3RlciwKfSBmcm9tICJAL2NvbXBvbmVudHMvdWkvZGlhbG9nIjsKaW1wb3J0IHsKICBEcm9wZG93bk1lbnUsCiAgRHJvcGRvd25NZW51Q29udGVudCwKICBEcm9wZG93bk1lbnVJdGVtLAogIERyb3Bkb3duTWVudVRyaWdnZXIsCn0gZnJvbSAiQC9jb21wb25lbnRzL3VpL2Ryb3Bkb3duLW1lbnUiOwppbXBvcnQgeyB0b2FzdCB9IGZyb20gInNvbm5lciI7CmltcG9ydCB7CiAgRmlsZVRleHQsCiAgVGFibGUsCiAgUHJlc2VudGF0aW9uLAogIEZpbGVDb2RlLAogIFNlYXJjaCwKICBNb3JlVmVydGljYWwsCiAgRG93bmxvYWQsCiAgUGVuY2lsLAogIFRyYXNoMiwKICBQbHVzLAogIEZvbGRlck9wZW4sCiAgTWVzc2FnZVNxdWFyZSwKICBFeWUsCiAgUm90YXRlQ2N3LAogIEZvbGRlciwKfSBmcm9tICJsdWNpZGUtcmVhY3QiOwppbXBvcnQgeyBjbiB9IGZyb20gIkAvbGliL3V0aWxzIjsKaW1wb3J0IHsgdXNlTG9jYXRpb24gfSBmcm9tICJ3b3V0ZXIiOwp0eXBlIEZpbGVSZWNvcmQgPSB7CiAgaWQ6IG51bWJlcjsgbmFtZTogc3RyaW5nOyBmb3JtYXQ6IHN0cmluZzsga2luZDogc3RyaW5nOyBvcmlnaW5hbFByb21wdDogc3RyaW5nOwogIHN0eWxlTGFiZWw/OiBzdHJpbmcgfCBudWxsOyBjcmVhdGVkQXQ6IERhdGUgfCBzdHJpbmc7IGZpbGVTaXplQnl0ZXM/OiBudW1iZXIgfCBudWxsOwogIHRocmVhZElkPzogc3RyaW5nIHwgbnVsbDsgZmlsZVVybDogc3RyaW5nOyB0cmFzaGVkPzogYm9vbGVhbjsgc3BhY2VJZD86IG51bWJlciB8IG51bGw7Cn07Cgpjb25zdCBGT1JNQVRfSUNPTjogUmVjb3JkPHN0cmluZywgUmVhY3QuRWxlbWVudFR5cGU+ID0gewogIHBkZjogRmlsZVRleHQsCiAgZG9jeDogRmlsZVRleHQsCiAgeGxzeDogVGFibGUsCiAgcHB0eDogUHJlc2VudGF0aW9uLAogIG1kOiBGaWxlQ29kZSwKfTsKCmNvbnN0IEZPUk1BVF9DT0xPUjogUmVjb3JkPHN0cmluZywgc3RyaW5nPiA9IHsKICBwZGY6ICJiZy1yZWQtMTAwIHRleHQtcmVkLTcwMCIsCiAgZG9jeDogImJnLWJsdWUtMTAwIHRleHQtYmx1ZS03MDAiLAogIHhsc3g6ICJiZy1ncmVlbi0xMDAgdGV4dC1ncmVlbi03MDAiLAogIHBwdHg6ICJiZy1vcmFuZ2UtMTAwIHRleHQtb3JhbmdlLTcwMCIsCiAgbWQ6ICJiZy1wdXJwbGUtMTAwIHRleHQtcHVycGxlLTcwMCIsCn07CgpmdW5jdGlvbiBmb3JtYXRCeXRlcyhieXRlczogbnVtYmVyIHwgbnVsbCB8IHVuZGVmaW5lZCk6IHN0cmluZyB7CiAgaWYgKCFieXRlcykgcmV0dXJuICLigJQiOwogIGlmIChieXRlcyA8IDEwMjQpIHJldHVybiBgJHtieXRlc30gQmA7CiAgaWYgKGJ5dGVzIDwgMTAyNCAqIDEwMjQpIHJldHVybiBgJHsoYnl0ZXMgLyAxMDI0KS50b0ZpeGVkKDEpfSBLQmA7CiAgcmV0dXJuIGAkeyhieXRlcyAvIDEwMjQgLyAxMDI0KS50b0ZpeGVkKDEpfSBNQmA7Cn0KCmZ1bmN0aW9uIGZvcm1hdERhdGUoZGF0ZTogRGF0ZSB8IHN0cmluZyk6IHN0cmluZyB7CiAgcmV0dXJuIG5ldyBEYXRlKGRhdGUpLnRvTG9jYWxlRGF0ZVN0cmluZyh1bmRlZmluZWQsIHsKICAgIHllYXI6ICJudW1lcmljIiwKICAgIG1vbnRoOiAic2hvcnQiLAogICAgZGF5OiAibnVtZXJpYyIsCiAgfSk7Cn0KCmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIEZpbGVzKCkgewogIGNvbnN0IFssIG5hdmlnYXRlXSA9IHVzZUxvY2F0aW9uKCk7CiAgY29uc3QgW3NlYXJjaCwgc2V0U2VhcmNoXSA9IHVzZVN0YXRlKCIiKTsKICBjb25zdCBbZmlsdGVyS2luZCwgc2V0RmlsdGVyS2luZF0gPSB1c2VTdGF0ZTxzdHJpbmc+KCJhbGwiKTsKICBjb25zdCBbcmVuYW1lRGlhbG9nLCBzZXRSZW5hbWVEaWFsb2ddID0gdXNlU3RhdGU8eyBvcGVuOiBib29sZWFuOyBmaWxlOiBGaWxlUmVjb3JkIHwgbnVsbCB9Pih7CiAgICBvcGVuOiBmYWxzZSwKICAgIGZpbGU6IG51bGwsCiAgfSk7CiAgY29uc3QgW25ld05hbWUsIHNldE5ld05hbWVdID0gdXNlU3RhdGUoIiIpOwogIGNvbnN0IFtkZWxldGVEaWFsb2csIHNldERlbGV0ZURpYWxvZ10gPSB1c2VTdGF0ZTx7IG9wZW46IGJvb2xlYW47IGZpbGU6IEZpbGVSZWNvcmQgfCBudWxsIH0+KHsKICAgIG9wZW46IGZhbHNlLAogICAgZmlsZTogbnVsbCwKICB9KTsKICBjb25zdCBbcHJldmlld0ZpbGUsIHNldFByZXZpZXdGaWxlXSA9IHVzZVN0YXRlPEZpbGVSZWNvcmQgfCBudWxsPihudWxsKTsKICBjb25zdCBbdmlldywgc2V0Vmlld10gPSB1c2VTdGF0ZTwiYWN0aXZlIiB8ICJ0cmFzaGVkIj4oImFjdGl2ZSIpOwogIGNvbnN0IFttb3ZlRGlhbG9nLCBzZXRNb3ZlRGlhbG9nXSA9IHVzZVN0YXRlPHsgb3BlbjogYm9vbGVhbjsgZmlsZTogRmlsZVJlY29yZCB8IG51bGwgfT4oewogICAgb3BlbjogZmFsc2UsCiAgICBmaWxlOiBudWxsLAogIH0pOwoKICBjb25zdCB1dGlscyA9IHRycGMudXNlVXRpbHMoKTsKCiAgY29uc3QgeyBkYXRhOiBmaWxlcyA9IFtdLCBpc0xvYWRpbmcgfSA9IHRycGMuZmlsZXMubGlzdC51c2VRdWVyeSgpOwogIGNvbnN0IHsgZGF0YTogc3BhY2VzID0gW10gfSA9IHRycGMuc3BhY2VzLmxpc3QudXNlUXVlcnkoKTsKICBjb25zdCBbbmV3U3BhY2VOYW1lLCBzZXROZXdTcGFjZU5hbWVdID0gdXNlU3RhdGUoIiIpOwoKICBjb25zdCBjcmVhdGVTcGFjZU11dGF0aW9uID0gdHJwYy5zcGFjZXMuY3JlYXRlLnVzZU11dGF0aW9uKHsKICAgIG9uU3VjY2VzczogKCkgPT4gewogICAgICB0b2FzdC5zdWNjZXNzKCJTcGFjZSBjcmVhdGVkIik7CiAgICAgIHV0aWxzLnNwYWNlcy5saXN0LmludmFsaWRhdGUoKTsKICAgICAgc2V0TmV3U3BhY2VOYW1lKCIiKTsKICAgIH0sCiAgICBvbkVycm9yOiAoZXJyKSA9PiB0b2FzdC5lcnJvcigiQ3JlYXRlIHNwYWNlIGZhaWxlZDogIiArIGVyci5tZXNzYWdlKSwKICB9KTsKCiAgY29uc3QgcmVuYW1lTXV0YXRpb24gPSB0cnBjLmZpbGVzLnJlbmFtZS51c2VNdXRhdGlvbih7CiAgICBvblN1Y2Nlc3M6ICgpID0+IHsKICAgICAgdG9hc3Quc3VjY2VzcygiRmlsZSByZW5hbWVkIik7CiAgICAgIHV0aWxzLmZpbGVzLmxpc3QuaW52YWxpZGF0ZSgpOwogICAgICBzZXRSZW5hbWVEaWFsb2coeyBvcGVuOiBmYWxzZSwgZmlsZTogbnVsbCB9KTsKICAgIH0sCiAgICBvbkVycm9yOiAoZXJyKSA9PiB0b2FzdC5lcnJvcigiUmVuYW1lIGZhaWxlZDogIiArIGVyci5tZXNzYWdlKSwKICB9KTsKCiAgY29uc3QgZGVsZXRlTXV0YXRpb24gPSB0cnBjLmZpbGVzLmRlbGV0ZS51c2VNdXRhdGlvbih7CiAgICBvblN1Y2Nlc3M6ICgpID0+IHsKICAgICAgdG9hc3Quc3VjY2VzcygiRmlsZSBkZWxldGVkIik7CiAgICAgIHV0aWxzLmZpbGVzLmxpc3QuaW52YWxpZGF0ZSgpOwogICAgICBzZXREZWxldGVEaWFsb2coeyBvcGVuOiBmYWxzZSwgZmlsZTogbnVsbCB9KTsKICAgIH0sCiAgICBvbkVycm9yOiAoZXJyKSA9PiB0b2FzdC5lcnJvcigiRGVsZXRlIGZhaWxlZDogIiArIGVyci5tZXNzYWdlKSwKICB9KTsKCiAgY29uc3QgdHJhc2hNdXRhdGlvbiA9IHRycGMuZmlsZXMuc2V0VHJhc2hlZC51c2VNdXRhdGlvbih7CiAgICBvblN1Y2Nlc3M6ICgpID0+IHsKICAgICAgdG9hc3Quc3VjY2Vzcyh2aWV3ID09PSAiYWN0aXZlIiA/ICJGaWxlIG1vdmVkIHRvIHRyYXNoIiA6ICJGaWxlIHJlc3RvcmVkIik7CiAgICAgIHV0aWxzLmZpbGVzLmxpc3QuaW52YWxpZGF0ZSgpOwogICAgfSwKICAgIG9uRXJyb3I6IChlcnIpID0+IHRvYXN0LmVycm9yKCJUcmFzaCBhY3Rpb24gZmFpbGVkOiAiICsgZXJyLm1lc3NhZ2UpLAogIH0pOwoKICBjb25zdCBtb3ZlTXV0YXRpb24gPSB0cnBjLmZpbGVzLm1vdmUudXNlTXV0YXRpb24oewogICAgb25TdWNjZXNzOiAoKSA9PiB7CiAgICAgIHRvYXN0LnN1Y2Nlc3MoIkZpbGUgbW92ZWQiKTsKICAgICAgdXRpbHMuZmlsZXMubGlzdC5pbnZhbGlkYXRlKCk7CiAgICAgIHNldE1vdmVEaWFsb2coeyBvcGVuOiBmYWxzZSwgZmlsZTogbnVsbCB9KTsKICAgIH0sCiAgICBvbkVycm9yOiAoZXJyKSA9PiB0b2FzdC5lcnJvcigiTW92ZSBmYWlsZWQ6ICIgKyBlcnIubWVzc2FnZSksCiAgfSk7CgogIGNvbnN0IGZpbHRlcmVkID0gZmlsZXMuZmlsdGVyKAogICAgKGYpID0+CiAgICAgICh2aWV3ID09PSAiYWN0aXZlIiA/ICFmLnRyYXNoZWQgOiBmLnRyYXNoZWQpICYmCiAgICAgIChmaWx0ZXJLaW5kID09PSAiYWxsIiB8fCBmLmtpbmQgPT09IGZpbHRlcktpbmQpICYmCiAgICAgIChmLm5hbWUudG9Mb3dlckNhc2UoKS5pbmNsdWRlcyhzZWFyY2gudG9Mb3dlckNhc2UoKSkgfHwKICAgICAgICBmLm9yaWdpbmFsUHJvbXB0LnRvTG93ZXJDYXNlKCkuaW5jbHVkZXMoc2VhcmNoLnRvTG93ZXJDYXNlKCkpKQogICk7CgogIGNvbnN0IEtJTkRfTEFCRUxTOiBSZWNvcmQ8c3RyaW5nLCBzdHJpbmc+ID0gewogICAgYWxsOiAiQWxsIiwKICAgIGRvY3VtZW50OiAiRG9jdW1lbnRzIiwKICAgIGltYWdlOiAiSW1hZ2VzIiwKICAgIHZpZGVvOiAiVmlkZW9zIiwKICAgIGF1ZGlvOiAiQXVkaW8iLAogICAgb3RoZXI6ICJPdGhlciIsCiAgfTsKCiAgY29uc3Qgb3BlblJlbmFtZSA9IChmaWxlOiBGaWxlUmVjb3JkKSA9PiB7CiAgICBzZXROZXdOYW1lKGZpbGUubmFtZSk7CiAgICBzZXRSZW5hbWVEaWFsb2coeyBvcGVuOiB0cnVlLCBmaWxlIH0pOwogIH07CgogIGNvbnN0IG9wZW5EZWxldGUgPSAoZmlsZTogRmlsZVJlY29yZCkgPT4gewogICAgc2V0RGVsZXRlRGlhbG9nKHsgb3BlbjogdHJ1ZSwgZmlsZSB9KTsKICB9OwoKICByZXR1cm4gKAogICAgPGRpdiBjbGFzc05hbWU9InN1dGFlcnUtZWRpdG9yaWFsLXBhZ2UgbXgtYXV0byBtYXgtdy01eGwgcHgtMyBweS02IHNtOnB4LTQgc206cHktOCI+CiAgICAgIHsvKiBIZWFkZXIgKi99CiAgICAgIDxkaXYgY2xhc3NOYW1lPSJtYi04IGZsZXggZmxleC13cmFwIGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW4gZ2FwLTMiPgogICAgICAgIDxkaXY+CiAgICAgICAgICA8aDEgY2xhc3NOYW1lPSJmb250LWRpc3BsYXkgdGV4dC0yeGwgZm9udC03MDAgdGV4dC1mb3JlZ3JvdW5kIj5GaWxlIE1hbmFnZXI8L2gxPgogICAgICAgICAgPHAgY2xhc3NOYW1lPSJtdC0xIHRleHQtc20gdGV4dC1tdXRlZC1mb3JlZ3JvdW5kIj4KICAgICAgICAgICAge2ZpbGVzLmxlbmd0aH0gZmlsZXtmaWxlcy5sZW5ndGggIT09IDEgPyAicyIgOiAiIn0gZ2VuZXJhdGVkCiAgICAgICAgICA8L3A+CiAgICAgICAgPC9kaXY+CiAgICAgICAgPEJ1dHRvbiBvbkNsaWNrPXsoKSA9PiBuYXZpZ2F0ZSgiL2dlbmVyYXRlIil9PgogICAgICAgICAgPFBsdXMgY2xhc3NOYW1lPSJtci0yIGgtNCB3LTQiIC8+CiAgICAgICAgICBOZXcgRmlsZQogICAgICAgIDwvQnV0dG9uPgogICAgICA8L2Rpdj4KCiAgICAgIHsvKiBTZWFyY2ggKi99CiAgICAgIDxkaXYgY2xhc3NOYW1lPSJyZWxhdGl2ZSBtYi00Ij4KICAgICAgICA8U2VhcmNoIGNsYXNzTmFtZT0iYWJzb2x1dGUgbGVmdC0zIHRvcC0xLzIgaC00IHctNCAtdHJhbnNsYXRlLXktMS8yIHRleHQtbXV0ZWQtZm9yZWdyb3VuZCIgLz4KICAgICAgICA8SW5wdXQKICAgICAgICAgIHZhbHVlPXtzZWFyY2h9CiAgICAgICAgICBvbkNoYW5nZT17KGUpID0+IHNldFNlYXJjaChlLnRhcmdldC52YWx1ZSl9CiAgICAgICAgICBwbGFjZWhvbGRlcj0iU2VhcmNoIGZpbGVzIGJ5IG5hbWUgb3IgcHJvbXB0Li4uIgogICAgICAgICAgY2xhc3NOYW1lPSJwbC05IgogICAgICAgIC8+CiAgICAgIDwvZGl2PgoKICAgICAgey8qIFR5cGUgZmlsdGVyICovfQogICAgICA8ZGl2IGNsYXNzTmFtZT0ibWItNCBmbGV4IGZsZXgtd3JhcCBnYXAtMiI+CiAgICAgICAge09iamVjdC5lbnRyaWVzKEtJTkRfTEFCRUxTKS5tYXAoKFtraW5kLCBsYWJlbF0pID0+ICgKICAgICAgICAgIDxCdXR0b24KICAgICAgICAgICAga2V5PXtraW5kfQogICAgICAgICAgICBzaXplPSJzbSIKICAgICAgICAgICAgdmFyaWFudD17ZmlsdGVyS2luZCA9PT0ga2luZCA/ICJkZWZhdWx0IiA6ICJvdXRsaW5lIn0KICAgICAgICAgICAgb25DbGljaz17KCkgPT4gc2V0RmlsdGVyS2luZChraW5kKX0KICAgICAgICAgID4KICAgICAgICAgICAge2xhYmVsfQogICAgICAgICAgPC9CdXR0b24+CiAgICAgICAgKSl9CiAgICAgIDwvZGl2PgoKICAgICAgey8qIFZpZXcgdGFicyAqL30KICAgICAgPGRpdiBjbGFzc05hbWU9Im1iLTYgZmxleCBnYXAtMiI+CiAgICAgICAgPEJ1dHRvbiBzaXplPSJzbSIgdmFyaWFudD17dmlldyA9PT0gImFjdGl2ZSIgPyAiZGVmYXVsdCIgOiAib3V0bGluZSJ9IG9uQ2xpY2s9eygpID0+IHNldFZpZXcoImFjdGl2ZSIpfT4KICAgICAgICAgIEFjdGl2ZQogICAgICAgIDwvQnV0dG9uPgogICAgICAgIDxCdXR0b24gc2l6ZT0ic20iIHZhcmlhbnQ9e3ZpZXcgPT09ICJ0cmFzaGVkIiA/ICJkZWZhdWx0IiA6ICJvdXRsaW5lIn0gb25DbGljaz17KCkgPT4gc2V0VmlldygidHJhc2hlZCIpfT4KICAgICAgICAgIFRyYXNoCiAgICAgICAgPC9CdXR0b24+CiAgICAgIDwvZGl2PgoKICAgICAgey8qIEZpbGUgbGlzdCAqL30KICAgICAge2lzTG9hZGluZyA/ICgKICAgICAgICA8ZGl2IGNsYXNzTmFtZT0ic3BhY2UteS0zIj4KICAgICAgICAgIHtbLi4uQXJyYXkoNCldLm1hcCgoXywgaSkgPT4gKAogICAgICAgICAgICA8ZGl2IGtleT17aX0gY2xhc3NOYW1lPSJoLTIwIGFuaW1hdGUtcHVsc2Ugcm91bmRlZC14bCBiZy1tdXRlZCIgLz4KICAgICAgICAgICkpfQogICAgICAgIDwvZGl2PgogICAgICApIDogZmlsdGVyZWQubGVuZ3RoID09PSAwID8gKAogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGZsZXgtY29sIGl0ZW1zLWNlbnRlciBnYXAtNCBweS0yNCB0ZXh0LWNlbnRlciI+CiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBoLTE2IHctMTYgaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHJvdW5kZWQtZnVsbCBiZy1tdXRlZCB0ZXh0LW11dGVkLWZvcmVncm91bmQiPgogICAgICAgICAgICA8Rm9sZGVyT3BlbiBjbGFzc05hbWU9ImgtOCB3LTgiIC8+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICAgIDxkaXY+CiAgICAgICAgICAgIDxwIGNsYXNzTmFtZT0iZm9udC1tZWRpdW0gdGV4dC1mb3JlZ3JvdW5kIj4KICAgICAgICAgICAgICB7c2VhcmNoID8gIk5vIGZpbGVzIG1hdGNoIHlvdXIgc2VhcmNoIiA6ICJObyBmaWxlcyB5ZXQifQogICAgICAgICAgICA8L3A+CiAgICAgICAgICAgIDxwIGNsYXNzTmFtZT0ibXQtMSB0ZXh0LXNtIHRleHQtbXV0ZWQtZm9yZWdyb3VuZCI+CiAgICAgICAgICAgICAge3NlYXJjaAogICAgICAgICAgICAgICAgPyAiVHJ5IGEgZGlmZmVyZW50IHNlYXJjaCB0ZXJtIgogICAgICAgICAgICAgICAgOiAiR2VuZXJhdGUgeW91ciBmaXJzdCBmaWxlIHRvIHNlZSBpdCBoZXJlIn0KICAgICAgICAgICAgPC9wPgogICAgICAgICAgPC9kaXY+CiAgICAgICAgICB7IXNlYXJjaCAmJiAoCiAgICAgICAgICAgIDxCdXR0b24gb25DbGljaz17KCkgPT4gbmF2aWdhdGUoIi9nZW5lcmF0ZSIpfT4KICAgICAgICAgICAgICA8UGx1cyBjbGFzc05hbWU9Im1yLTIgaC00IHctNCIgLz4KICAgICAgICAgICAgICBHZW5lcmF0ZSBhIEZpbGUKICAgICAgICAgICAgPC9CdXR0b24+CiAgICAgICAgICApfQogICAgICAgIDwvZGl2PgogICAgICApIDogKAogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJzcGFjZS15LTMiPgogICAgICAgICAge2ZpbHRlcmVkLm1hcCgoZmlsZSkgPT4gewogICAgICAgICAgICBjb25zdCBJY29uID0gRk9STUFUX0lDT05bZmlsZS5mb3JtYXRdID8/IEZpbGVUZXh0OwogICAgICAgICAgICBjb25zdCBjb2xvckNsYXNzID0gRk9STUFUX0NPTE9SW2ZpbGUuZm9ybWF0XSA/PyAiYmctZ3JheS0xMDAgdGV4dC1ncmF5LTcwMCI7CiAgICAgICAgICAgIHJldHVybiAoCiAgICAgICAgICAgICAgPGRpdgogICAgICAgICAgICAgICAga2V5PXtmaWxlLmlkfQogICAgICAgICAgICAgICAgIGNsYXNzTmFtZT0iZ3JvdXAgZmxleCBmbGV4LXdyYXAgaXRlbXMtY2VudGVyIGdhcC0zIHJvdW5kZWQtbWQgYm9yZGVyIGJvcmRlci1ib3JkZXIgYmctY2FyZCBwLTMgc206cC00IHRyYW5zaXRpb24tY29sb3JzIGhvdmVyOmJvcmRlci1wcmltYXJ5LzMwIGhvdmVyOmJnLWFjY2VudC8zMCIKICAgICAgICAgICAgICA+CiAgICAgICAgICAgICAgICB7LyogSWNvbiAqL30KICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPXtjbigiZmxleCBoLTEwIHctMTAgc2hyaW5rLTAgaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHJvdW5kZWQtbGcgdGV4dC1zbSBmb250LWJvbGQiLCBjb2xvckNsYXNzKX0+CiAgICAgICAgICAgICAgICAgIDxJY29uIGNsYXNzTmFtZT0iaC01IHctNSIgLz4KICAgICAgICAgICAgICAgIDwvZGl2PgoKICAgICAgICAgICAgICAgIHsvKiBJbmZvICovfQogICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJtaW4tdy0wIGZsZXgtMSBiYXNpcy1bY2FsYygxMDAlLTRyZW0pXSBzbTpiYXNpcy0wIj4KICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggaXRlbXMtY2VudGVyIGdhcC0yIj4KICAgICAgICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9InRydW5jYXRlIGZvbnQtbWVkaXVtIHRleHQtZm9yZWdyb3VuZCI+e2ZpbGUubmFtZX08L3A+CiAgICAgICAgICAgICAgICAgICAgPEJhZGdlIHZhcmlhbnQ9InNlY29uZGFyeSIgY2xhc3NOYW1lPSJzaHJpbmstMCB0ZXh0LXhzIHVwcGVyY2FzZSI+CiAgICAgICAgICAgICAgICAgICAgICB7ZmlsZS5mb3JtYXR9CiAgICAgICAgICAgICAgICAgICAgPC9CYWRnZT4KICAgICAgICAgICAgICAgICAgICB7ZmlsZS5zdHlsZUxhYmVsICYmICgKICAgICAgICAgICAgICAgICAgICAgIDxCYWRnZSB2YXJpYW50PSJvdXRsaW5lIiBjbGFzc05hbWU9ImhpZGRlbiBzaHJpbmstMCB0ZXh0LXhzIHNtOmlubGluZS1mbGV4Ij4KICAgICAgICAgICAgICAgICAgICAgICAge2ZpbGUuc3R5bGVMYWJlbH0KICAgICAgICAgICAgICAgICAgICAgIDwvQmFkZ2U+CiAgICAgICAgICAgICAgICAgICAgKX0KICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT0ibXQtMC41IHRydW5jYXRlIHRleHQteHMgdGV4dC1tdXRlZC1mb3JlZ3JvdW5kIj4KICAgICAgICAgICAgICAgICAgICB7ZmlsZS5vcmlnaW5hbFByb21wdH0KICAgICAgICAgICAgICAgICAgPC9wPgogICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0ibXQtMSBmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMyB0ZXh0LXhzIHRleHQtbXV0ZWQtZm9yZWdyb3VuZCI+CiAgICAgICAgICAgICAgICAgICAgPHNwYW4+e2Zvcm1hdERhdGUoZmlsZS5jcmVhdGVkQXQpfTwvc3Bhbj4KICAgICAgICAgICAgICAgICAgICA8c3Bhbj57Zm9ybWF0Qnl0ZXMoZmlsZS5maWxlU2l6ZUJ5dGVzKX08L3NwYW4+CiAgICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgPC9kaXY+CgogICAgICAgICAgICAgICAgey8qIEFjdGlvbnMgKi99CiAgICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggdy1mdWxsIHNocmluay0wIGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWVuZCBnYXAtMSBib3JkZXItdCBib3JkZXItYm9yZGVyIHB0LTIgc206dy1hdXRvIHNtOmJvcmRlci0wIHNtOnB0LTAgc206b3BhY2l0eS0wIHNtOnRyYW5zaXRpb24tb3BhY2l0eSBzbTpncm91cC1ob3ZlcjpvcGFjaXR5LTEwMCBzbTpncm91cC1mb2N1cy13aXRoaW46b3BhY2l0eS0xMDAgW0BtZWRpYShob3Zlcjpub25lKV06b3BhY2l0eS0xMDAiPgogICAgICAgICAgICAgICAgICAgPEJ1dHRvbiBzaXplPSJpY29uIiB2YXJpYW50PSJnaG9zdCIgYXJpYS1sYWJlbD17YFByZXZpZXcgJHtmaWxlLm5hbWV9YH0gdGl0bGU9IlByZXZpZXciIG9uQ2xpY2s9eygpID0+IHNldFByZXZpZXdGaWxlKGZpbGUpfT4KICAgICAgICAgICAgICAgICAgICA8RXllIGNsYXNzTmFtZT0iaC00IHctNCIgLz4KICAgICAgICAgICAgICAgICAgPC9CdXR0b24+CiAgICAgICAgICAgICAgICAgIHtmaWxlLnRocmVhZElkICYmICgKICAgICAgICAgICAgICAgICAgICAgPEJ1dHRvbiBzaXplPSJpY29uIiB2YXJpYW50PSJnaG9zdCIgYXJpYS1sYWJlbD17YE9wZW4gY2hhdCBmb3IgJHtmaWxlLm5hbWV9YH0gdGl0bGU9Ik9wZW4gY2hhdCIgb25DbGljaz17KCkgPT4gbmF2aWdhdGUoYC9jaGF0LyR7ZmlsZS50aHJlYWRJZH1gKX0+CiAgICAgICAgICAgICAgICAgICAgICA8TWVzc2FnZVNxdWFyZSBjbGFzc05hbWU9ImgtNCB3LTQiIC8+CiAgICAgICAgICAgICAgICAgICAgPC9CdXR0b24+CiAgICAgICAgICAgICAgICAgICl9CiAgICAgICAgICAgICAgICAgICA8QnV0dG9uIGFzQ2hpbGQgc2l6ZT0iaWNvbiIgdmFyaWFudD0iZ2hvc3QiPgogICAgICAgICAgICAgICAgICAgICA8YSBocmVmPXtmaWxlLmZpbGVVcmx9IHRhcmdldD0iX2JsYW5rIiByZWw9Im5vb3BlbmVyIG5vcmVmZXJyZXIiIGRvd25sb2FkIGFyaWEtbGFiZWw9e2BEb3dubG9hZCAke2ZpbGUubmFtZX1gfSB0aXRsZT0iRG93bmxvYWQiPgogICAgICAgICAgICAgICAgICAgICAgPERvd25sb2FkIGNsYXNzTmFtZT0iaC00IHctNCIgLz4KICAgICAgICAgICAgICAgICAgICA8L2E+CiAgICAgICAgICAgICAgICAgIDwvQnV0dG9uPgogICAgICAgICAgICAgICAgICA8RHJvcGRvd25NZW51PgogICAgICAgICAgICAgICAgICAgIDxEcm9wZG93bk1lbnVUcmlnZ2VyIGFzQ2hpbGQ+CiAgICAgICAgICAgICAgICAgICAgICAgPEJ1dHRvbiBzaXplPSJpY29uIiB2YXJpYW50PSJnaG9zdCIgYXJpYS1sYWJlbD17YE1vcmUgYWN0aW9ucyBmb3IgJHtmaWxlLm5hbWV9YH0gdGl0bGU9Ik1vcmUgYWN0aW9ucyI+CiAgICAgICAgICAgICAgICAgICAgICAgIDxNb3JlVmVydGljYWwgY2xhc3NOYW1lPSJoLTQgdy00IiAvPgogICAgICAgICAgICAgICAgICAgICAgPC9CdXR0b24+CiAgICAgICAgICAgICAgICAgICAgPC9Ecm9wZG93bk1lbnVUcmlnZ2VyPgogICAgICAgICAgICAgICAgICAgIDxEcm9wZG93bk1lbnVDb250ZW50IGFsaWduPSJlbmQiPgogICAgICAgICAgICAgICAgICAgICAge3ZpZXcgPT09ICJhY3RpdmUiICYmICgKICAgICAgICAgICAgICAgICAgICAgICAgPD4KICAgICAgICAgICAgICAgICAgICAgICAgICA8RHJvcGRvd25NZW51SXRlbSBvbkNsaWNrPXsoKSA9PiBvcGVuUmVuYW1lKGZpbGUpfT4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxQZW5jaWwgY2xhc3NOYW1lPSJtci0yIGgtNCB3LTQiIC8+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICBSZW5hbWUKICAgICAgICAgICAgICAgICAgICAgICAgICA8L0Ryb3Bkb3duTWVudUl0ZW0+CiAgICAgICAgICAgICAgICAgICAgICAgICAgPERyb3Bkb3duTWVudUl0ZW0gb25DbGljaz17KCkgPT4gc2V0TW92ZURpYWxvZyh7IG9wZW46IHRydWUsIGZpbGUgfSl9PgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPEZvbGRlciBjbGFzc05hbWU9Im1yLTIgaC00IHctNCIgLz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIE1vdmUgdG8gU3BhY2UKICAgICAgICAgICAgICAgICAgICAgICAgICA8L0Ryb3Bkb3duTWVudUl0ZW0+CiAgICAgICAgICAgICAgICAgICAgICAgICAgPERyb3Bkb3duTWVudUl0ZW0KICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNsYXNzTmFtZT0idGV4dC1kZXN0cnVjdGl2ZSBmb2N1czp0ZXh0LWRlc3RydWN0aXZlIgogICAgICAgICAgICAgICAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gdHJhc2hNdXRhdGlvbi5tdXRhdGUoeyBpZDogZmlsZS5pZCwgdHJhc2hlZDogdHJ1ZSB9KX0KICAgICAgICAgICAgICAgICAgICAgICAgICA+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8VHJhc2gyIGNsYXNzTmFtZT0ibXItMiBoLTQgdy00IiAvPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgTW92ZSB0byB0cmFzaAogICAgICAgICAgICAgICAgICAgICAgICAgIDwvRHJvcGRvd25NZW51SXRlbT4KICAgICAgICAgICAgICAgICAgICAgICAgPC8+CiAgICAgICAgICAgICAgICAgICAgICApfQogICAgICAgICAgICAgICAgICAgICAge3ZpZXcgPT09ICJ0cmFzaGVkIiAmJiAoCiAgICAgICAgICAgICAgICAgICAgICAgIDw+CiAgICAgICAgICAgICAgICAgICAgICAgICAgPERyb3Bkb3duTWVudUl0ZW0gb25DbGljaz17KCkgPT4gdHJhc2hNdXRhdGlvbi5tdXRhdGUoeyBpZDogZmlsZS5pZCwgdHJhc2hlZDogZmFsc2UgfSl9PgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPFJvdGF0ZUNjdyBjbGFzc05hbWU9Im1yLTIgaC00IHctNCIgLz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIFJlc3RvcmUKICAgICAgICAgICAgICAgICAgICAgICAgICA8L0Ryb3Bkb3duTWVudUl0ZW0+CiAgICAgICAgICAgICAgICAgICAgICAgICAgPERyb3Bkb3duTWVudUl0ZW0KICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNsYXNzTmFtZT0idGV4dC1kZXN0cnVjdGl2ZSBmb2N1czp0ZXh0LWRlc3RydWN0aXZlIgogICAgICAgICAgICAgICAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gb3BlbkRlbGV0ZShmaWxlKX0KICAgICAgICAgICAgICAgICAgICAgICAgICA+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8VHJhc2gyIGNsYXNzTmFtZT0ibXItMiBoLTQgdy00IiAvPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgRGVsZXRlIGZvcmV2ZXIKICAgICAgICAgICAgICAgICAgICAgICAgICA8L0Ryb3Bkb3duTWVudUl0ZW0+CiAgICAgICAgICAgICAgICAgICAgICAgIDwvPgogICAgICAgICAgICAgICAgICAgICAgKX0KICAgICAgICAgICAgICAgICAgICA8L0Ryb3Bkb3duTWVudUNvbnRlbnQ+CiAgICAgICAgICAgICAgICAgIDwvRHJvcGRvd25NZW51PgogICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICk7CiAgICAgICAgICB9KX0KICAgICAgICA8L2Rpdj4KICAgICAgKX0KCiAgICAgIHsvKiBSZW5hbWUgRGlhbG9nICovfQogICAgICA8RGlhbG9nCiAgICAgICAgb3Blbj17cmVuYW1lRGlhbG9nLm9wZW59CiAgICAgICAgb25PcGVuQ2hhbmdlPXsob3BlbikgPT4gc2V0UmVuYW1lRGlhbG9nKChkKSA9PiAoeyAuLi5kLCBvcGVuIH0pKX0KICAgICAgPgogICAgICAgIDxEaWFsb2dDb250ZW50PgogICAgICAgICAgPERpYWxvZ0hlYWRlcj4KICAgICAgICAgICAgPERpYWxvZ1RpdGxlPlJlbmFtZSBGaWxlPC9EaWFsb2dUaXRsZT4KICAgICAgICAgIDwvRGlhbG9nSGVhZGVyPgogICAgICAgICAgPElucHV0CiAgICAgICAgICAgIHZhbHVlPXtuZXdOYW1lfQogICAgICAgICAgICBvbkNoYW5nZT17KGUpID0+IHNldE5ld05hbWUoZS50YXJnZXQudmFsdWUpfQogICAgICAgICAgICBwbGFjZWhvbGRlcj0iRmlsZSBuYW1lIgogICAgICAgICAgICBvbktleURvd249eyhlKSA9PiB7CiAgICAgICAgICAgICAgaWYgKGUua2V5ID09PSAiRW50ZXIiICYmIHJlbmFtZURpYWxvZy5maWxlKSB7CiAgICAgICAgICAgICAgICByZW5hbWVNdXRhdGlvbi5tdXRhdGUoeyBpZDogcmVuYW1lRGlhbG9nLmZpbGUuaWQsIG5hbWU6IG5ld05hbWUgfSk7CiAgICAgICAgICAgICAgfQogICAgICAgICAgICB9fQogICAgICAgICAgLz4KICAgICAgICAgIDxEaWFsb2dGb290ZXI+CiAgICAgICAgICAgIDxCdXR0b24KICAgICAgICAgICAgICB2YXJpYW50PSJvdXRsaW5lIgogICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHNldFJlbmFtZURpYWxvZyh7IG9wZW46IGZhbHNlLCBmaWxlOiBudWxsIH0pfQogICAgICAgICAgICA+CiAgICAgICAgICAgICAgQ2FuY2VsCiAgICAgICAgICAgIDwvQnV0dG9uPgogICAgICAgICAgICA8QnV0dG9uCiAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gewogICAgICAgICAgICAgICAgaWYgKHJlbmFtZURpYWxvZy5maWxlKSB7CiAgICAgICAgICAgICAgICAgIHJlbmFtZU11dGF0aW9uLm11dGF0ZSh7IGlkOiByZW5hbWVEaWFsb2cuZmlsZS5pZCwgbmFtZTogbmV3TmFtZSB9KTsKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICB9fQogICAgICAgICAgICAgIGRpc2FibGVkPXshbmV3TmFtZS50cmltKCkgfHwgcmVuYW1lTXV0YXRpb24uaXNQZW5kaW5nfQogICAgICAgICAgICA+CiAgICAgICAgICAgICAgUmVuYW1lCiAgICAgICAgICAgIDwvQnV0dG9uPgogICAgICAgICAgPC9EaWFsb2dGb290ZXI+CiAgICAgICAgPC9EaWFsb2dDb250ZW50PgogICAgICA8L0RpYWxvZz4KCiAgICAgIHsvKiBEZWxldGUgRGlhbG9nICovfQogICAgICA8RGlhbG9nCiAgICAgICAgb3Blbj17ZGVsZXRlRGlhbG9nLm9wZW59CiAgICAgICAgb25PcGVuQ2hhbmdlPXsob3BlbikgPT4gc2V0RGVsZXRlRGlhbG9nKChkKSA9PiAoeyAuLi5kLCBvcGVuIH0pKX0KICAgICAgPgogICAgICAgIDxEaWFsb2dDb250ZW50PgogICAgICAgICAgPERpYWxvZ0hlYWRlcj4KICAgICAgICAgICAgPERpYWxvZ1RpdGxlPkRlbGV0ZSBGaWxlPC9EaWFsb2dUaXRsZT4KICAgICAgICAgIDwvRGlhbG9nSGVhZGVyPgogICAgICAgICAgPHAgY2xhc3NOYW1lPSJ0ZXh0LXNtIHRleHQtbXV0ZWQtZm9yZWdyb3VuZCI+CiAgICAgICAgICAgIEFyZSB5b3Ugc3VyZSB5b3Ugd2FudCB0byBkZWxldGV7IiAifQogICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9ImZvbnQtbWVkaXVtIHRleHQtZm9yZWdyb3VuZCI+e2RlbGV0ZURpYWxvZy5maWxlPy5uYW1lfTwvc3Bhbj4/IFRoaXMKICAgICAgICAgICAgYWN0aW9uIGNhbm5vdCBiZSB1bmRvbmUuCiAgICAgICAgICA8L3A+CiAgICAgICAgICA8RGlhbG9nRm9vdGVyPgogICAgICAgICAgICA8QnV0dG9uCiAgICAgICAgICAgICAgdmFyaWFudD0ib3V0bGluZSIKICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXREZWxldGVEaWFsb2coeyBvcGVuOiBmYWxzZSwgZmlsZTogbnVsbCB9KX0KICAgICAgICAgICAgPgogICAgICAgICAgICAgIENhbmNlbAogICAgICAgICAgICA8L0J1dHRvbj4KICAgICAgICAgICAgPEJ1dHRvbgogICAgICAgICAgICAgIHZhcmlhbnQ9ImRlc3RydWN0aXZlIgogICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHsKICAgICAgICAgICAgICAgIGlmIChkZWxldGVEaWFsb2cuZmlsZSkgewogICAgICAgICAgICAgICAgICBkZWxldGVNdXRhdGlvbi5tdXRhdGUoeyBpZDogZGVsZXRlRGlhbG9nLmZpbGUuaWQgfSk7CiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgfX0KICAgICAgICAgICAgICBkaXNhYmxlZD17ZGVsZXRlTXV0YXRpb24uaXNQZW5kaW5nfQogICAgICAgICAgICA+CiAgICAgICAgICAgICAgRGVsZXRlCiAgICAgICAgICAgIDwvQnV0dG9uPgogICAgICAgICAgPC9EaWFsb2dGb290ZXI+CiAgICAgICAgPC9EaWFsb2dDb250ZW50PgogICAgICA8L0RpYWxvZz4KCiAgICAgIHsvKiBQcmV2aWV3IERpYWxvZyAqL30KICAgICAgPERpYWxvZyBvcGVuPXshIXByZXZpZXdGaWxlfSBvbk9wZW5DaGFuZ2U9eygpID0+IHNldFByZXZpZXdGaWxlKG51bGwpfT4KICAgICAgICA8RGlhbG9nQ29udGVudCBjbGFzc05hbWU9Im1heC13LTN4bCI+CiAgICAgICAgICA8RGlhbG9nSGVhZGVyPgogICAgICAgICAgICA8RGlhbG9nVGl0bGU+e3ByZXZpZXdGaWxlPy5uYW1lfTwvRGlhbG9nVGl0bGU+CiAgICAgICAgICA8L0RpYWxvZ0hlYWRlcj4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJtYXgtaC1bNjB2aF0gb3ZlcmZsb3ctYXV0byByb3VuZGVkLWxnIGJvcmRlciBiZy1tdXRlZCBwLTQiPgogICAgICAgICAgICB7cHJldmlld0ZpbGU/LmtpbmQgPT09ICJpbWFnZSIgPyAoCiAgICAgICAgICAgICAgPGltZyBzcmM9e3ByZXZpZXdGaWxlLmZpbGVVcmx9IGFsdD17cHJldmlld0ZpbGUubmFtZX0gY2xhc3NOYW1lPSJteC1hdXRvIG1heC1oLWZ1bGwgcm91bmRlZCIgLz4KICAgICAgICAgICAgKSA6IHByZXZpZXdGaWxlPy5raW5kID09PSAidmlkZW8iID8gKAogICAgICAgICAgICAgIDx2aWRlbyBzcmM9e3ByZXZpZXdGaWxlLmZpbGVVcmx9IGNvbnRyb2xzIGNsYXNzTmFtZT0idy1mdWxsIHJvdW5kZWQiIC8+CiAgICAgICAgICAgICkgOiBwcmV2aWV3RmlsZT8ua2luZCA9PT0gImF1ZGlvIiA/ICgKICAgICAgICAgICAgICA8YXVkaW8gc3JjPXtwcmV2aWV3RmlsZS5maWxlVXJsfSBjb250cm9scyBjbGFzc05hbWU9InctZnVsbCIgLz4KICAgICAgICAgICAgKSA6ICgKICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0idGV4dC1jZW50ZXIgdGV4dC1zbSB0ZXh0LW11dGVkLWZvcmVncm91bmQiPgogICAgICAgICAgICAgICAgPHA+UHJldmlldyBub3QgYXZhaWxhYmxlIGZvciB0aGlzIGZpbGUgdHlwZS48L3A+CiAgICAgICAgICAgICAgICA8QnV0dG9uIGFzQ2hpbGQgY2xhc3NOYW1lPSJtdC00IiBzaXplPSJzbSI+CiAgICAgICAgICAgICAgICAgIDxhIGhyZWY9e3ByZXZpZXdGaWxlPy5maWxlVXJsfSB0YXJnZXQ9Il9ibGFuayIgcmVsPSJub29wZW5lciBub3JlZmVycmVyIj4KICAgICAgICAgICAgICAgICAgICBPcGVuIGZpbGUKICAgICAgICAgICAgICAgICAgPC9hPgogICAgICAgICAgICAgICAgPC9CdXR0b24+CiAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICl9CiAgICAgICAgICA8L2Rpdj4KICAgICAgICAgIDxEaWFsb2dGb290ZXI+CiAgICAgICAgICAgIDxCdXR0b24gdmFyaWFudD0ib3V0bGluZSIgb25DbGljaz17KCkgPT4gc2V0UHJldmlld0ZpbGUobnVsbCl9PgogICAgICAgICAgICAgIENsb3NlCiAgICAgICAgICAgIDwvQnV0dG9uPgogICAgICAgICAgPC9EaWFsb2dGb290ZXI+CiAgICAgICAgPC9EaWFsb2dDb250ZW50PgogICAgICA8L0RpYWxvZz4KCiAgICAgIHsvKiBNb3ZlIHRvIFNwYWNlIERpYWxvZyAqL30KICAgICAgPERpYWxvZyBvcGVuPXttb3ZlRGlhbG9nLm9wZW59IG9uT3BlbkNoYW5nZT17KG9wZW4pID0+IHNldE1vdmVEaWFsb2coKGQpID0+ICh7IC4uLmQsIG9wZW4gfSkpfT4KICAgICAgICA8RGlhbG9nQ29udGVudD4KICAgICAgICAgIDxEaWFsb2dIZWFkZXI+CiAgICAgICAgICAgIDxEaWFsb2dUaXRsZT5Nb3ZlIHRvIFNwYWNlPC9EaWFsb2dUaXRsZT4KICAgICAgICAgIDwvRGlhbG9nSGVhZGVyPgogICAgICAgICAgPGRpdiBjbGFzc05hbWU9InNwYWNlLXktMiI+CiAgICAgICAgICAgIDxCdXR0b24KICAgICAgICAgICAgICB2YXJpYW50PSJvdXRsaW5lIgogICAgICAgICAgICAgIGNsYXNzTmFtZT0idy1mdWxsIGp1c3RpZnktc3RhcnQiCiAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gbW92ZURpYWxvZy5maWxlICYmIG1vdmVNdXRhdGlvbi5tdXRhdGUoeyBpZDogbW92ZURpYWxvZy5maWxlLmlkLCBzcGFjZUlkOiBudWxsIH0pfQogICAgICAgICAgICA+CiAgICAgICAgICAgICAgTm8gU3BhY2UKICAgICAgICAgICAgPC9CdXR0b24+CiAgICAgICAgICAgIHtzcGFjZXMubWFwKChzcGFjZSkgPT4gKAogICAgICAgICAgICAgIDxCdXR0b24KICAgICAgICAgICAgICAgIGtleT17c3BhY2UuaWR9CiAgICAgICAgICAgICAgICB2YXJpYW50PSJvdXRsaW5lIgogICAgICAgICAgICAgICAgY2xhc3NOYW1lPSJ3LWZ1bGwganVzdGlmeS1zdGFydCIKICAgICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IG1vdmVEaWFsb2cuZmlsZSAmJiBtb3ZlTXV0YXRpb24ubXV0YXRlKHsgaWQ6IG1vdmVEaWFsb2cuZmlsZS5pZCwgc3BhY2VJZDogc3BhY2UuaWQgfSl9CiAgICAgICAgICAgICAgPgogICAgICAgICAgICAgICAge3NwYWNlLm5hbWV9CiAgICAgICAgICAgICAgPC9CdXR0b24+CiAgICAgICAgICAgICkpfQogICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBnYXAtMiBwdC0yIj4KICAgICAgICAgICAgICA8SW5wdXQKICAgICAgICAgICAgICAgIHZhbHVlPXtuZXdTcGFjZU5hbWV9CiAgICAgICAgICAgICAgICBvbkNoYW5nZT17KGUpID0+IHNldE5ld1NwYWNlTmFtZShlLnRhcmdldC52YWx1ZSl9CiAgICAgICAgICAgICAgICBwbGFjZWhvbGRlcj0iTmV3IHNwYWNlIG5hbWUiCiAgICAgICAgICAgICAgLz4KICAgICAgICAgICAgICA8QnV0dG9uCiAgICAgICAgICAgICAgICBkaXNhYmxlZD17IW5ld1NwYWNlTmFtZS50cmltKCkgfHwgY3JlYXRlU3BhY2VNdXRhdGlvbi5pc1BlbmRpbmd9CiAgICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBjcmVhdGVTcGFjZU11dGF0aW9uLm11dGF0ZSh7IG5hbWU6IG5ld1NwYWNlTmFtZSB9KX0KICAgICAgICAgICAgICA+CiAgICAgICAgICAgICAgICBDcmVhdGUKICAgICAgICAgICAgICA8L0J1dHRvbj4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICAgIDxEaWFsb2dGb290ZXI+CiAgICAgICAgICAgIDxCdXR0b24gdmFyaWFudD0ib3V0bGluZSIgb25DbGljaz17KCkgPT4gc2V0TW92ZURpYWxvZyh7IG9wZW46IGZhbHNlLCBmaWxlOiBudWxsIH0pfT4KICAgICAgICAgICAgICBDYW5jZWwKICAgICAgICAgICAgPC9CdXR0b24+CiAgICAgICAgICA8L0RpYWxvZ0Zvb3Rlcj4KICAgICAgICA8L0RpYWxvZ0NvbnRlbnQ+CiAgICAgIDwvRGlhbG9nPgogICAgPC9kaXY+CiAgKTsKfQo=
+import { PAGE_BG, NOISE_OVERLAY, CSS_ANIM } from '@/lib/design';
+import { useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import {
+  FileText,
+  Table,
+  Presentation,
+  FileCode,
+  Search,
+  MoreVertical,
+  Download,
+  Pencil,
+  Trash2,
+  Plus,
+  FolderOpen,
+  MessageSquare,
+  Eye,
+  RotateCcw,
+  Folder,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
+type FileRecord = {
+  id: number; name: string; format: string; kind: string; originalPrompt: string;
+  styleLabel?: string | null; createdAt: Date | string; fileSizeBytes?: number | null;
+  threadId?: string | null; fileUrl: string; trashed?: boolean; spaceId?: number | null;
+};
+
+const FORMAT_ICON: Record<string, React.ElementType> = {
+  pdf: FileText,
+  docx: FileText,
+  xlsx: Table,
+  pptx: Presentation,
+  md: FileCode,
+};
+
+const FORMAT_COLOR: Record<string, string> = {
+  pdf: "bg-red-100 text-red-700",
+  docx: "bg-blue-100 text-blue-700",
+  xlsx: "bg-green-100 text-green-700",
+  pptx: "bg-orange-100 text-orange-700",
+  md: "bg-purple-100 text-purple-700",
+};
+
+function formatBytes(bytes: number | null | undefined): string {
+  if (!bytes) return "—";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function formatDate(date: Date | string): string {
+  return new Date(date).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+export default function Files() {
+  const [, navigate] = useLocation();
+  const [search, setSearch] = useState("");
+  const [filterKind, setFilterKind] = useState<string>("all");
+  const [renameDialog, setRenameDialog] = useState<{ open: boolean; file: FileRecord | null }>({
+    open: false,
+    file: null,
+  });
+  const [newName, setNewName] = useState("");
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; file: FileRecord | null }>({
+    open: false,
+    file: null,
+  });
+  const [previewFile, setPreviewFile] = useState<FileRecord | null>(null);
+  const [view, setView] = useState<"active" | "trashed">("active");
+  const [moveDialog, setMoveDialog] = useState<{ open: boolean; file: FileRecord | null }>({
+    open: false,
+    file: null,
+  });
+
+  const utils = trpc.useUtils();
+
+  const { data: files = [], isLoading } = trpc.files.list.useQuery();
+  const { data: spaces = [] } = trpc.spaces.list.useQuery();
+  const [newSpaceName, setNewSpaceName] = useState("");
+
+  const createSpaceMutation = trpc.spaces.create.useMutation({
+    onSuccess: () => {
+      toast.success("Space created");
+      utils.spaces.list.invalidate();
+      setNewSpaceName("");
+    },
+    onError: (err) => toast.error("Create space failed: " + err.message),
+  });
+
+  const renameMutation = trpc.files.rename.useMutation({
+    onSuccess: () => {
+      toast.success("File renamed");
+      utils.files.list.invalidate();
+      setRenameDialog({ open: false, file: null });
+    },
+    onError: (err) => toast.error("Rename failed: " + err.message),
+  });
+
+  const deleteMutation = trpc.files.delete.useMutation({
+    onSuccess: () => {
+      toast.success("File deleted");
+      utils.files.list.invalidate();
+      setDeleteDialog({ open: false, file: null });
+    },
+    onError: (err) => toast.error("Delete failed: " + err.message),
+  });
+
+  const trashMutation = trpc.files.setTrashed.useMutation({
+    onSuccess: () => {
+      toast.success(view === "active" ? "File moved to trash" : "File restored");
+      utils.files.list.invalidate();
+    },
+    onError: (err) => toast.error("Trash action failed: " + err.message),
+  });
+
+  const moveMutation = trpc.files.move.useMutation({
+    onSuccess: () => {
+      toast.success("File moved");
+      utils.files.list.invalidate();
+      setMoveDialog({ open: false, file: null });
+    },
+    onError: (err) => toast.error("Move failed: " + err.message),
+  });
+
+  const filtered = files.filter(
+    (f) =>
+      (view === "active" ? !f.trashed : f.trashed) &&
+      (filterKind === "all" || f.kind === filterKind) &&
+      (f.name.toLowerCase().includes(search.toLowerCase()) ||
+        f.originalPrompt.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const KIND_LABELS: Record<string, string> = {
+    all: "All",
+    document: "Documents",
+    image: "Images",
+    video: "Videos",
+    audio: "Audio",
+    other: "Other",
+  };
+
+  const openRename = (file: FileRecord) => {
+    setNewName(file.name);
+    setRenameDialog({ open: true, file });
+  };
+
+  const openDelete = (file: FileRecord) => {
+    setDeleteDialog({ open: true, file });
+  };
+
+  return (
+    <div className="sutaeru-editorial-page mx-auto max-w-5xl px-3 py-6 sm:px-4 sm:py-8">
+      {/* Header */}
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-700 text-foreground">File Manager</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {files.length} file{files.length !== 1 ? "s" : ""} generated
+          </p>
+        </div>
+        <Button onClick={() => navigate("/generate")}>
+          <Plus className="mr-2 h-4 w-4" />
+          New File
+        </Button>
+      </div>
+
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search files by name or prompt..."
+          className="pl-9"
+        />
+      </div>
+
+      {/* Type filter */}
+      <div className="mb-4 flex flex-wrap gap-2">
+        {Object.entries(KIND_LABELS).map(([kind, label]) => (
+          <Button
+            key={kind}
+            size="sm"
+            variant={filterKind === kind ? "default" : "outline"}
+            onClick={() => setFilterKind(kind)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+
+      {/* View tabs */}
+      <div className="mb-6 flex gap-2">
+        <Button size="sm" variant={view === "active" ? "default" : "outline"} onClick={() => setView("active")}>
+          Active
+        </Button>
+        <Button size="sm" variant={view === "trashed" ? "default" : "outline"} onClick={() => setView("trashed")}>
+          Trash
+        </Button>
+      </div>
+
+      {/* File list */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-20 animate-pulse rounded-xl bg-muted" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center gap-4 py-24 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <FolderOpen className="h-8 w-8" />
+          </div>
+          <div>
+            <p className="font-medium text-foreground">
+              {search ? "No files match your search" : "No files yet"}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {search
+                ? "Try a different search term"
+                : "Generate your first file to see it here"}
+            </p>
+          </div>
+          {!search && (
+            <Button onClick={() => navigate("/generate")}>
+              <Plus className="mr-2 h-4 w-4" />
+              Generate a File
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((file) => {
+            const Icon = FORMAT_ICON[file.format] ?? FileText;
+            const colorClass = FORMAT_COLOR[file.format] ?? "bg-gray-100 text-gray-700";
+            return (
+              <div
+                key={file.id}
+                 className="group flex flex-wrap items-center gap-3 rounded-md border border-border bg-card p-3 sm:p-4 transition-colors hover:border-primary/30 hover:bg-accent/30"
+              >
+                {/* Icon */}
+                <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold", colorClass)}>
+                  <Icon className="h-5 w-5" />
+                </div>
+
+                {/* Info */}
+                 <div className="min-w-0 flex-1 basis-[calc(100%-4rem)] sm:basis-0">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate font-medium text-foreground">{file.name}</p>
+                    <Badge variant="secondary" className="shrink-0 text-xs uppercase">
+                      {file.format}
+                    </Badge>
+                    {file.styleLabel && (
+                      <Badge variant="outline" className="hidden shrink-0 text-xs sm:inline-flex">
+                        {file.styleLabel}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {file.originalPrompt}
+                  </p>
+                  <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>{formatDate(file.createdAt)}</span>
+                    <span>{formatBytes(file.fileSizeBytes)}</span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                 <div className="flex w-full shrink-0 items-center justify-end gap-1 border-t border-border pt-2 sm:w-auto sm:border-0 sm:pt-0 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+                   <Button size="icon" variant="ghost" aria-label={`Preview ${file.name}`} title="Preview" onClick={() => setPreviewFile(file)}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  {file.threadId && (
+                     <Button size="icon" variant="ghost" aria-label={`Open chat for ${file.name}`} title="Open chat" onClick={() => navigate(`/chat/${file.threadId}`)}>
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                  )}
+                   <Button asChild size="icon" variant="ghost">
+                     <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" download aria-label={`Download ${file.name}`} title="Download">
+                      <Download className="h-4 w-4" />
+                    </a>
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                       <Button size="icon" variant="ghost" aria-label={`More actions for ${file.name}`} title="More actions">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {view === "active" && (
+                        <>
+                          <DropdownMenuItem onClick={() => openRename(file)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setMoveDialog({ open: true, file })}>
+                            <Folder className="mr-2 h-4 w-4" />
+                            Move to Space
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => trashMutation.mutate({ id: file.id, trashed: true })}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Move to trash
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {view === "trashed" && (
+                        <>
+                          <DropdownMenuItem onClick={() => trashMutation.mutate({ id: file.id, trashed: false })}>
+                            <RotateCcw className="mr-2 h-4 w-4" />
+                            Restore
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => openDelete(file)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete forever
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Rename Dialog */}
+      <Dialog
+        open={renameDialog.open}
+        onOpenChange={(open) => setRenameDialog((d) => ({ ...d, open }))}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename File</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="File name"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && renameDialog.file) {
+                renameMutation.mutate({ id: renameDialog.file.id, name: newName });
+              }
+            }}
+          />
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRenameDialog({ open: false, file: null })}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (renameDialog.file) {
+                  renameMutation.mutate({ id: renameDialog.file.id, name: newName });
+                }
+              }}
+              disabled={!newName.trim() || renameMutation.isPending}
+            >
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog((d) => ({ ...d, open }))}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete File</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete{" "}
+            <span className="font-medium text-foreground">{deleteDialog.file?.name}</span>? This
+            action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialog({ open: false, file: null })}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deleteDialog.file) {
+                  deleteMutation.mutate({ id: deleteDialog.file.id });
+                }
+              }}
+              disabled={deleteMutation.isPending}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{previewFile?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto rounded-lg border bg-muted p-4">
+            {previewFile?.kind === "image" ? (
+              <img src={previewFile.fileUrl} alt={previewFile.name} className="mx-auto max-h-full rounded" />
+            ) : previewFile?.kind === "video" ? (
+              <video src={previewFile.fileUrl} controls className="w-full rounded" />
+            ) : previewFile?.kind === "audio" ? (
+              <audio src={previewFile.fileUrl} controls className="w-full" />
+            ) : (
+              <div className="text-center text-sm text-muted-foreground">
+                <p>Preview not available for this file type.</p>
+                <Button asChild className="mt-4" size="sm">
+                  <a href={previewFile?.fileUrl} target="_blank" rel="noopener noreferrer">
+                    Open file
+                  </a>
+                </Button>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewFile(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Move to Space Dialog */}
+      <Dialog open={moveDialog.open} onOpenChange={(open) => setMoveDialog((d) => ({ ...d, open }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Move to Space</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => moveDialog.file && moveMutation.mutate({ id: moveDialog.file.id, spaceId: null })}
+            >
+              No Space
+            </Button>
+            {spaces.map((space) => (
+              <Button
+                key={space.id}
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => moveDialog.file && moveMutation.mutate({ id: moveDialog.file.id, spaceId: space.id })}
+              >
+                {space.name}
+              </Button>
+            ))}
+            <div className="flex gap-2 pt-2">
+              <Input
+                value={newSpaceName}
+                onChange={(e) => setNewSpaceName(e.target.value)}
+                placeholder="New space name"
+              />
+              <Button
+                disabled={!newSpaceName.trim() || createSpaceMutation.isPending}
+                onClick={() => createSpaceMutation.mutate({ name: newSpaceName })}
+              >
+                Create
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMoveDialog({ open: false, file: null })}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

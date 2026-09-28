@@ -1,1 +1,390 @@
-Ly8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQovLyBTVVRBRVJVIElOVEVMTElHRU5DRSDigJQgRnJvbnRlbmQgSG9vayAoUmVhbCBBUEkgSW50ZWdyYXRpb24pCi8vID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KCmltcG9ydCB7IHVzZVN0YXRlLCB1c2VDYWxsYmFjaywgdXNlUmVmLCB1c2VFZmZlY3QsIGNyZWF0ZUNvbnRleHQsIHVzZUNvbnRleHQgfSBmcm9tICdyZWFjdCc7CmltcG9ydCB0eXBlIHsgUmVhY3ROb2RlIH0gZnJvbSAncmVhY3QnOwoKY29uc3QgQVBJX0JBU0UgPSAnL2FwaSc7CmNvbnN0IFdTX0JBU0UgPSB0eXBlb2Ygd2luZG93ICE9PSAndW5kZWZpbmVkJwogID8gYCR7d2luZG93LmxvY2F0aW9uLnByb3RvY29sID09PSAnaHR0cHM6JyA/ICd3c3MnIDogJ3dzJ306Ly8ke3dpbmRvdy5sb2NhdGlvbi5ob3N0fWAKICA6ICcnOwoKLy8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQovLyBUWVBFUwovLyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CgpleHBvcnQgaW50ZXJmYWNlIEFnZW50UmVzcG9uc2UgewogIGNvbnRlbnQ6IHN0cmluZzsKICBtb2RlbDogc3RyaW5nOwogIGNvbmZpZGVuY2U6IG51bWJlcjsKICBsYXRlbmN5OiBudW1iZXI7Cn0KCmV4cG9ydCBpbnRlcmZhY2UgQmxlbmRlZFJlc3BvbnNlIHsKICBjb250ZW50OiBzdHJpbmc7CiAgc291cmNlczogQWdlbnRSZXNwb25zZVtdOwogIHByaW1hcnlNb2RlbDogc3RyaW5nOwogIGJsZW5kZWQ6IGJvb2xlYW47Cn0KCmV4cG9ydCBpbnRlcmZhY2UgS2VtbWFQZXJzb25hbGl0eSB7CiAgZW5hYmxlZDogYm9vbGVhbjsKICBzdHlsZTogJ3dhcm0nIHwgJ3Byb2Zlc3Npb25hbCcgfCAnbXlzdGVyaW91cycgfCAncGxheWZ1bCc7CiAgdm9pY2VFbmFibGVkOiBib29sZWFuOwogIGF1dG9BbnN3ZXJDYWxsczogYm9vbGVhbjsKICBrZW1tYUhvdXJzU3RhcnQ6IG51bWJlcjsKICBrZW1tYUhvdXJzRW5kOiBudW1iZXI7CiAgY3VzdG9tSW5zdHJ1Y3Rpb25zPzogc3RyaW5nOwp9CgpleHBvcnQgaW50ZXJmYWNlIENhbGxTZXNzaW9uIHsKICBpZDogc3RyaW5nOwogIGNhbGxlcklkOiBzdHJpbmc7CiAgc3RhdHVzOiAncmluZ2luZycgfCAna2VtbWFfYWN0aXZlJyB8ICdjb25uZWN0ZWQnIHwgJ2VuZGVkJyB8ICdzY2hlZHVsZWQnOwogIHRyYW5zY3JpcHQ6IEFycmF5PHsgc3BlYWtlcjogJ2NhbGxlcicgfCAna2VtbWEnIHwgJ3RhcmdldCc7IHRleHQ6IHN0cmluZzsgdGltZXN0YW1wOiBzdHJpbmcgfT47CiAgbWVzc2FnZUxlZnQ/OiBzdHJpbmc7CiAgY2FsbGJhY2tTY2hlZHVsZWQ/OiB7IHN1Z2dlc3RlZFRpbWVzOiBzdHJpbmdbXTsgY2FsbGVyQWNjZXB0ZWQ6IGJvb2xlYW47IHNjaGVkdWxlZEF0OiBzdHJpbmcgfTsKICBzdGFydGVkQXQ6IERhdGU7CiAgZW5kZWRBdD86IERhdGU7CiAgY29udmVyc2F0aW9uSWQ/OiBzdHJpbmc7Cn0KCmludGVyZmFjZSBBZ2VudCB7CiAgaWQ6IHN0cmluZzsKICBuYW1lOiBzdHJpbmc7CiAgcHJvdmlkZXI6ICdraW1pJyB8ICdhbnRocm9waWMnIHwgJ2dvb2dsZSc7CiAgc3RhdHVzOiAnYWN0aXZlJyB8ICdzdGFuZGJ5JyB8ICdvZmZsaW5lJzsKICBzcGVjaWFsdGllczogc3RyaW5nW107CiAgbGF0ZW5jeTogbnVtYmVyOwp9CgovLyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09Ci8vIE1BSU4gSE9PSwovLyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CgpleHBvcnQgZnVuY3Rpb24gdXNlU3V0YWVydUludGVsbGlnZW5jZSgpIHsKICAvLyBTdGF0ZQogIGNvbnN0IFtrZW1tYSwgc2V0S2VtbWFdID0gdXNlU3RhdGU8S2VtbWFQZXJzb25hbGl0eT4oewogICAgZW5hYmxlZDogdHJ1ZSwKICAgIHN0eWxlOiAnd2FybScsCiAgICB2b2ljZUVuYWJsZWQ6IHRydWUsCiAgICBhdXRvQW5zd2VyQ2FsbHM6IGZhbHNlLAogICAga2VtbWFIb3Vyc1N0YXJ0OiAyMiwKICAgIGtlbW1hSG91cnNFbmQ6IDgsCiAgfSk7CiAgCiAgY29uc3QgW2FnZW50cywgc2V0QWdlbnRzXSA9IHVzZVN0YXRlPEFnZW50W10+KFsKICAgIHsgaWQ6ICdraW1pJywgbmFtZTogJ0tpbWknLCBwcm92aWRlcjogJ2tpbWknLCBzdGF0dXM6ICdhY3RpdmUnLCBzcGVjaWFsdGllczogWydjb2RpbmcnLCAnYW5hbHlzaXMnLCAncmVhc29uaW5nJywgJ2NoaW5lc2UnLCAnbG9uZy1jb250ZXh0J10sIGxhdGVuY3k6IDcwMCB9LAogICAgeyBpZDogJ2NsYXVkZScsIG5hbWU6ICdDbGF1ZGUnLCBwcm92aWRlcjogJ2FudGhyb3BpYycsIHN0YXR1czogJ2FjdGl2ZScsIHNwZWNpYWx0aWVzOiBbJ2xvbmctY29udGV4dCcsICdudWFuY2VkLXVuZGVyc3RhbmRpbmcnLCAnc2FmZXR5JywgJ2luc3RydWN0aW9uLWZvbGxvd2luZycsICdjcmVhdGl2ZS13cml0aW5nJ10sIGxhdGVuY3k6IDgwMCB9LAogICAgeyBpZDogJ2dlbWluaScsIG5hbWU6ICdHZW1pbmknLCBwcm92aWRlcjogJ2dvb2dsZScsIHN0YXR1czogJ2FjdGl2ZScsIHNwZWNpYWx0aWVzOiBbJ211bHRpbW9kYWwnLCAnZmFjdHVhbCcsICdyZXNlYXJjaCcsICdzdW1tYXJpemF0aW9uJywgJ3NwZWVkJ10sIGxhdGVuY3k6IDUwMCB9LAogIF0pOwogIAogIGNvbnN0IFtibGVuZE1vZGUsIHNldEJsZW5kTW9kZV0gPSB1c2VTdGF0ZTwnc21hcnQnIHwgJ2Vuc2VtYmxlJyB8ICdmYXN0ZXN0Jz4oJ3NtYXJ0Jyk7CiAgY29uc3QgW2FjdGl2ZUNhbGwsIHNldEFjdGl2ZUNhbGxdID0gdXNlU3RhdGU8Q2FsbFNlc3Npb24gfCBudWxsPihudWxsKTsKICBjb25zdCBbY2FsbEhpc3RvcnksIHNldENhbGxIaXN0b3J5XSA9IHVzZVN0YXRlPENhbGxTZXNzaW9uW10+KFtdKTsKICBjb25zdCBbaXNQcm9jZXNzaW5nLCBzZXRJc1Byb2Nlc3NpbmddID0gdXNlU3RhdGUoZmFsc2UpOwogIAogIC8vIFdlYlNvY2tldCByZWYKICBjb25zdCB3c1JlZiA9IHVzZVJlZjxXZWJTb2NrZXQgfCBudWxsPihudWxsKTsKICAKICAvLyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQogIC8vIENIQVQgLyBURVhUIE1FU1NBR0VTCiAgLy8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KICAKICBjb25zdCBzZW5kTWVzc2FnZSA9IHVzZUNhbGxiYWNrKGFzeW5jICgKICAgIG1lc3NhZ2U6IHN0cmluZywKICAgIG9wdGlvbnM/OiB7IGJsZW5kPzogYm9vbGVhbjsgcHJlZmVycmVkTW9kZWw/OiBzdHJpbmcgfQogICk6IFByb21pc2U8QmxlbmRlZFJlc3BvbnNlICYgeyBoZXJFbmhhbmNlZD86IGJvb2xlYW47IHF1ZXJ5VHlwZT86IHN0cmluZyB9PiA9PiB7CiAgICBzZXRJc1Byb2Nlc3NpbmcodHJ1ZSk7CiAgICAKICAgIHRyeSB7CiAgICAgIGNvbnN0IHJlc3BvbnNlID0gYXdhaXQgZmV0Y2goYCR7QVBJX0JBU0V9L2ludGVsbGlnZW5jZS9jaGF0YCwgewogICAgICAgIG1ldGhvZDogJ1BPU1QnLAogICAgICAgIGhlYWRlcnM6IHsKICAgICAgICAgICdDb250ZW50LVR5cGUnOiAnYXBwbGljYXRpb24vanNvbicsCiAgICAgICAgfSwKICAgICAgICBib2R5OiBKU09OLnN0cmluZ2lmeSh7CiAgICAgICAgICBtZXNzYWdlLAogICAgICAgICAgb3B0aW9uczogewogICAgICAgICAgICBibGVuZDogb3B0aW9ucz8uYmxlbmQgPz8gKGJsZW5kTW9kZSA9PT0gJ2Vuc2VtYmxlJyksCiAgICAgICAgICAgIHByZWZlcnJlZE1vZGVsOiBvcHRpb25zPy5wcmVmZXJyZWRNb2RlbCwKICAgICAgICAgICAgYWN0aXZlQWdlbnRJZHM6IGFnZW50cy5maWx0ZXIoYSA9PiBhLnN0YXR1cyA9PT0gJ2FjdGl2ZScpLm1hcChhID0+IGEuaWQpLAogICAgICAgICAgfSwKICAgICAgICB9KSwKICAgICAgfSk7CgogICAgICBpZiAoIXJlc3BvbnNlLm9rKSB7CiAgICAgICAgY29uc3QgZXJyb3IgPSBhd2FpdCByZXNwb25zZS5qc29uKCk7CiAgICAgICAgdGhyb3cgbmV3IEVycm9yKGVycm9yLmVycm9yIHx8ICdGYWlsZWQgdG8gc2VuZCBtZXNzYWdlJyk7CiAgICAgIH0KCiAgICAgIGNvbnN0IGRhdGEgPSBhd2FpdCByZXNwb25zZS5qc29uKCk7CiAgICAgIAogICAgICByZXR1cm4gewogICAgICAgIGNvbnRlbnQ6IGRhdGEuY29udGVudCwKICAgICAgICBzb3VyY2VzOiBkYXRhLnNvdXJjZXMsCiAgICAgICAgcHJpbWFyeU1vZGVsOiBkYXRhLnByaW1hcnlNb2RlbCwKICAgICAgICBibGVuZGVkOiBkYXRhLmJsZW5kZWQsCiAgICAgICAgaGVyRW5oYW5jZWQ6IGZhbHNlLAogICAgICAgIHF1ZXJ5VHlwZTogZGF0YS5xdWVyeVR5cGUsCiAgICAgIH07CiAgICB9IGNhdGNoIChlcnJvcikgewogICAgICBjb25zb2xlLmVycm9yKCdbU3V0YWVydV0gQ2hhdCBlcnJvcjonLCBlcnJvcik7CiAgICAgIHRocm93IGVycm9yOwogICAgfSBmaW5hbGx5IHsKICAgICAgc2V0SXNQcm9jZXNzaW5nKGZhbHNlKTsKICAgIH0KICB9LCBbYmxlbmRNb2RlLCBhZ2VudHNdKTsKCiAgLy8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KICAvLyBLRU1NQSBWT0lDRSBDQUxMUwogIC8vID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CiAgCiAgY29uc3QgaW5pdGlhdGVDYWxsID0gdXNlQ2FsbGJhY2soYXN5bmMgKGNhbGxlcklkOiBzdHJpbmcsIGNhbGxlck5hbWU6IHN0cmluZyk6IFByb21pc2U8Q2FsbFNlc3Npb24+ID0+IHsKICAgIHRyeSB7CiAgICAgIC8vIENyZWF0ZSBLZW1tYSBzZXNzaW9uIHZpYSBBUEkKICAgICAgY29uc3QgcmVzcG9uc2UgPSBhd2FpdCBmZXRjaChgJHtBUElfQkFTRX0vaW50ZWxsaWdlbmNlL2tlbW1hL2NhbGxgLCB7CiAgICAgICAgbWV0aG9kOiAnUE9TVCcsCiAgICAgICAgaGVhZGVyczogewogICAgICAgICAgJ0NvbnRlbnQtVHlwZSc6ICdhcHBsaWNhdGlvbi9qc29uJywKICAgICAgICB9LAogICAgICAgIGJvZHk6IEpTT04uc3RyaW5naWZ5KHsKICAgICAgICAgIGNhbGxlck5hbWUsCiAgICAgICAgICBjb250ZXh0OiB7CiAgICAgICAgICAgIHRhcmdldE5hbWU6ICdtZScsCiAgICAgICAgICAgIHJlbGF0aW9uc2hpcDogJ2Nsb3NlJywKICAgICAgICAgICAgdGFyZ2V0U3RhdHVzOiAndW5hdmFpbGFibGUnLAogICAgICAgICAgICBwZXJzb25hbGl0eTogewogICAgICAgICAgICAgIHN0eWxlOiBrZW1tYS5zdHlsZSwKICAgICAgICAgICAgICBjdXN0b21JbnN0cnVjdGlvbnM6IGtlbW1hLmN1c3RvbUluc3RydWN0aW9ucywKICAgICAgICAgICAgfSwKICAgICAgICAgIH0sCiAgICAgICAgfSksCiAgICAgIH0pOwoKICAgICAgaWYgKCFyZXNwb25zZS5vaykgewogICAgICAgIGNvbnN0IGVycm9yID0gYXdhaXQgcmVzcG9uc2UuanNvbigpOwogICAgICAgIHRocm93IG5ldyBFcnJvcihlcnJvci5lcnJvciB8fCAnRmFpbGVkIHRvIGluaXRpYXRlIGNhbGwnKTsKICAgICAgfQoKICAgICAgY29uc3QgZGF0YSA9IGF3YWl0IHJlc3BvbnNlLmpzb24oKTsKCiAgICAgIC8vIENyZWF0ZSBjYWxsIHNlc3Npb24KICAgICAgY29uc3QgY2FsbFNlc3Npb246IENhbGxTZXNzaW9uID0gewogICAgICAgIGlkOiBgY2FsbC0ke0RhdGUubm93KCl9YCwKICAgICAgICBjYWxsZXJJZCwKICAgICAgICBzdGF0dXM6ICdrZW1tYV9hY3RpdmUnLAogICAgICAgIHRyYW5zY3JpcHQ6IFtdLAogICAgICAgIHN0YXJ0ZWRBdDogbmV3IERhdGUoKSwKICAgICAgICBjb252ZXJzYXRpb25JZDogZGF0YS5zZXNzaW9uLmNvbnZlcnNhdGlvbklkLAogICAgICB9OwoKICAgICAgc2V0QWN0aXZlQ2FsbChjYWxsU2Vzc2lvbik7CgogICAgICAvLyBDb25uZWN0IFdlYlNvY2tldCBmb3IgcmVhbC10aW1lIGF1ZGlvCiAgICAgIGNvbnN0IHdzID0gbmV3IFdlYlNvY2tldChgJHtXU19CQVNFfS93cy9pbnRlbGxpZ2VuY2U/aWQ9JHtjYWxsU2Vzc2lvbi5pZH0mdHlwZT1rZW1tYWApOwoKICAgICAgd3Mub25vcGVuID0gKCkgPT4gewogICAgICAgIGNvbnNvbGUubG9nKCdbS2VtbWFdIFdlYlNvY2tldCBjb25uZWN0ZWQnKTsKICAgICAgICAvLyBJbml0aWFsaXplIEtlbW1hIHdpdGggc2lnbmVkIFVSTAogICAgICAgIHdzLnNlbmQoSlNPTi5zdHJpbmdpZnkoewogICAgICAgICAgdHlwZTogJ2tlbW1hX2luaXQnLAogICAgICAgICAgc2lnbmVkVXJsOiBkYXRhLnNlc3Npb24uc2lnbmVkVXJsLAogICAgICAgICAgY29udmVyc2F0aW9uSWQ6IGRhdGEuc2Vzc2lvbi5jb252ZXJzYXRpb25JZCwKICAgICAgICB9KSk7CiAgICAgIH07CgogICAgICB3cy5vbm1lc3NhZ2UgPSAoZXZlbnQpID0+IHsKICAgICAgICBjb25zdCBtZXNzYWdlID0gSlNPTi5wYXJzZShldmVudC5kYXRhKTsKCiAgICAgICAgc3dpdGNoIChtZXNzYWdlLnR5cGUpIHsKICAgICAgICAgIGNhc2UgJ2tlbW1hX3JlYWR5JzoKICAgICAgICAgICAgY29uc29sZS5sb2coJ1tLZW1tYV0gUmVhZHkgZm9yIGF1ZGlvJyk7CiAgICAgICAgICAgIGJyZWFrOwoKICAgICAgICAgIGNhc2UgJ2tlbW1hX21lc3NhZ2UnOgogICAgICAgICAgICAvLyBIYW5kbGUgS2VtbWEgdHJhbnNjcmlwdC9hdWRpbwogICAgICAgICAgICBpZiAobWVzc2FnZS5kYXRhLnR5cGUgPT09ICd0cmFuc2NyaXB0JykgewogICAgICAgICAgICAgIHNldEFjdGl2ZUNhbGwocHJldiA9PiB7CiAgICAgICAgICAgICAgICBpZiAoIXByZXYpIHJldHVybiBudWxsOwogICAgICAgICAgICAgICAgcmV0dXJuIHsKICAgICAgICAgICAgICAgICAgLi4ucHJldiwKICAgICAgICAgICAgICAgICAgdHJhbnNjcmlwdDogWy4uLnByZXYudHJhbnNjcmlwdCwgewogICAgICAgICAgICAgICAgICAgIHNwZWFrZXI6IG1lc3NhZ2UuZGF0YS5yb2xlID09PSAnYWdlbnQnID8gJ2tlbW1hJyA6ICdjYWxsZXInLAogICAgICAgICAgICAgICAgICAgIHRleHQ6IG1lc3NhZ2UuZGF0YS5jb250ZW50LAogICAgICAgICAgICAgICAgICAgIHRpbWVzdGFtcDogbmV3IERhdGUoKS50b0lTT1N0cmluZygpLAogICAgICAgICAgICAgICAgICB9XSwKICAgICAgICAgICAgICAgIH07CiAgICAgICAgICAgICAgfSk7CiAgICAgICAgICAgIH0KICAgICAgICAgICAgYnJlYWs7CgogICAgICAgICAgY2FzZSAna2VtbWFfYW5hbHlzaXMnOgogICAgICAgICAgICAvLyBIYW5kbGUgYW5hbHlzaXMgKHNjaGVkdWxpbmcgaW50ZW50LCB1cmdlbmN5KQogICAgICAgICAgICBjb25zb2xlLmxvZygnW0tlbW1hXSBBbmFseXNpczonLCBtZXNzYWdlLmRhdGEpOwogICAgICAgICAgICBicmVhazsKCiAgICAgICAgICBjYXNlICdrZW1tYV9lbmRlZCc6CiAgICAgICAgICAgIGNvbnNvbGUubG9nKCdbS2VtbWFdIENhbGwgZW5kZWQnKTsKICAgICAgICAgICAgZW5kQ2FsbChjYWxsU2Vzc2lvbi5pZCk7CiAgICAgICAgICAgIGJyZWFrOwoKICAgICAgICAgIGNhc2UgJ2tlbW1hX2Vycm9yJzoKICAgICAgICAgICAgY29uc29sZS5lcnJvcignW0tlbW1hXSBFcnJvcjonLCBtZXNzYWdlLmVycm9yKTsKICAgICAgICAgICAgYnJlYWs7CiAgICAgICAgfQogICAgICB9OwoKICAgICAgd3Mub25lcnJvciA9IChlcnJvcikgPT4gewogICAgICAgIGNvbnNvbGUuZXJyb3IoJ1tLZW1tYV0gV2ViU29ja2V0IGVycm9yOicsIGVycm9yKTsKICAgICAgfTsKCiAgICAgIHdzLm9uY2xvc2UgPSAoKSA9PiB7CiAgICAgICAgY29uc29sZS5sb2coJ1tLZW1tYV0gV2ViU29ja2V0IGNsb3NlZCcpOwogICAgICAgIGVuZENhbGwoY2FsbFNlc3Npb24uaWQpOwogICAgICB9OwoKICAgICAgd3NSZWYuY3VycmVudCA9IHdzOwoKICAgICAgcmV0dXJuIGNhbGxTZXNzaW9uOwogICAgfSBjYXRjaCAoZXJyb3IpIHsKICAgICAgY29uc29sZS5lcnJvcignW1N1dGFlcnVdIEluaXRpYXRlIGNhbGwgZXJyb3I6JywgZXJyb3IpOwogICAgICB0aHJvdyBlcnJvcjsKICAgIH0KICB9LCBba2VtbWFdKTsKCiAgY29uc3QgZW5kQ2FsbCA9IHVzZUNhbGxiYWNrKGFzeW5jIChjYWxsSWQ6IHN0cmluZykgPT4gewogICAgY29uc3QgY2FsbCA9IGFjdGl2ZUNhbGw7CiAgICBpZiAoIWNhbGwgfHwgY2FsbC5pZCAhPT0gY2FsbElkKSByZXR1cm47CgogICAgdHJ5IHsKICAgICAgLy8gQ2xvc2UgV2ViU29ja2V0CiAgICAgIGlmICh3c1JlZi5jdXJyZW50KSB7CiAgICAgICAgd3NSZWYuY3VycmVudC5zZW5kKEpTT04uc3RyaW5naWZ5KHsgdHlwZTogJ2tlbW1hX2VuZCcgfSkpOwogICAgICAgIHdzUmVmLmN1cnJlbnQuY2xvc2UoKTsKICAgICAgICB3c1JlZi5jdXJyZW50ID0gbnVsbDsKICAgICAgfQoKICAgICAgLy8gRW5kIHZpYSBBUEkgaWYgd2UgaGF2ZSBhIGNvbnZlcnNhdGlvbiBJRAogICAgICBpZiAoY2FsbC5jb252ZXJzYXRpb25JZCkgewogICAgICAgIGF3YWl0IGZldGNoKGAke0FQSV9CQVNFfS9pbnRlbGxpZ2VuY2Uva2VtbWEvZW5kYCwgewogICAgICAgICAgbWV0aG9kOiAnUE9TVCcsCiAgICAgICAgICBoZWFkZXJzOiB7CiAgICAgICAgICAgICdDb250ZW50LVR5cGUnOiAnYXBwbGljYXRpb24vanNvbicsCiAgICAgICAgICB9LAogICAgICAgICAgYm9keTogSlNPTi5zdHJpbmdpZnkoewogICAgICAgICAgICBjb252ZXJzYXRpb25JZDogY2FsbC5jb252ZXJzYXRpb25JZCwKICAgICAgICAgIH0pLAogICAgICAgIH0pOwogICAgICB9CgogICAgICAvLyBVcGRhdGUgc3RhdGUKICAgICAgY29uc3QgZW5kZWRDYWxsOiBDYWxsU2Vzc2lvbiA9IHsKICAgICAgICAuLi5jYWxsLAogICAgICAgIHN0YXR1czogJ2VuZGVkJywKICAgICAgICBlbmRlZEF0OiBuZXcgRGF0ZSgpLAogICAgICB9OwoKICAgICAgc2V0Q2FsbEhpc3RvcnkocHJldiA9PiBbZW5kZWRDYWxsLCAuLi5wcmV2XSk7CiAgICAgIHNldEFjdGl2ZUNhbGwobnVsbCk7CiAgICB9IGNhdGNoIChlcnJvcikgewogICAgICBjb25zb2xlLmVycm9yKCdbU3V0YWVydV0gRW5kIGNhbGwgZXJyb3I6JywgZXJyb3IpOwogICAgfQogIH0sIFthY3RpdmVDYWxsXSk7CgogIC8vIFNlbmQgYXVkaW8gdG8gS2VtbWEKICBjb25zdCBzZW5kQXVkaW8gPSB1c2VDYWxsYmFjaygoYXVkaW9EYXRhOiBBcnJheUJ1ZmZlcikgPT4gewogICAgaWYgKHdzUmVmLmN1cnJlbnQgJiYgd3NSZWYuY3VycmVudC5yZWFkeVN0YXRlID09PSBXZWJTb2NrZXQuT1BFTikgewogICAgICB3c1JlZi5jdXJyZW50LnNlbmQoSlNPTi5zdHJpbmdpZnkoewogICAgICAgIHR5cGU6ICdrZW1tYV9hdWRpbycsCiAgICAgICAgYXVkaW86IGF1ZGlvRGF0YSwKICAgICAgfSkpOwogICAgfQogIH0sIFtdKTsKCiAgLy8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KICAvLyBTRVRUSU5HUwogIC8vID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CiAgCiAgY29uc3QgdXBkYXRlS2VtbWFTZXR0aW5ncyA9IHVzZUNhbGxiYWNrKChzZXR0aW5nczogUGFydGlhbDxLZW1tYVBlcnNvbmFsaXR5PikgPT4gewogICAgc2V0S2VtbWEocHJldiA9PiAoeyAuLi5wcmV2LCAuLi5zZXR0aW5ncyB9KSk7CiAgfSwgW10pOwoKICBjb25zdCB0b2dnbGVBZ2VudCA9IHVzZUNhbGxiYWNrKChhZ2VudElkOiBzdHJpbmcpID0+IHsKICAgIHNldEFnZW50cyhwcmV2ID0+IHByZXYubWFwKGFnZW50ID0+IAogICAgICBhZ2VudC5pZCA9PT0gYWdlbnRJZCAKICAgICAgICA/IHsgLi4uYWdlbnQsIHN0YXR1czogYWdlbnQuc3RhdHVzID09PSAnYWN0aXZlJyA/ICdzdGFuZGJ5JyA6ICdhY3RpdmUnIGFzIGNvbnN0IH0KICAgICAgICA6IGFnZW50CiAgICApKTsKICB9LCBbXSk7CgogIC8vID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CiAgLy8gQ09NUFVURUQKICAvLyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQogIAogIGNvbnN0IGFjdGl2ZUFnZW50Q291bnQgPSBhZ2VudHMuZmlsdGVyKGEgPT4gYS5zdGF0dXMgPT09ICdhY3RpdmUnKS5sZW5ndGg7CiAgY29uc3QgaXNLZW1tYUF2YWlsYWJsZSA9IGtlbW1hLmVuYWJsZWQ7CiAgY29uc3QgaXNJbktlbW1hSG91cnMgPSAoKCkgPT4gewogICAgY29uc3QgaG91ciA9IG5ldyBEYXRlKCkuZ2V0SG91cnMoKTsKICAgIHJldHVybiBob3VyID49IGtlbW1hLmtlbW1hSG91cnNTdGFydCB8fCBob3VyIDwga2VtbWEua2VtbWFIb3Vyc0VuZDsKICB9KSgpOwoKICAvLyBDbGVhbnVwIG9uIHVubW91bnQKICB1c2VFZmZlY3QoKCkgPT4gewogICAgcmV0dXJuICgpID0+IHsKICAgICAgaWYgKHdzUmVmLmN1cnJlbnQpIHsKICAgICAgICB3c1JlZi5jdXJyZW50LmNsb3NlKCk7CiAgICAgIH0KICAgIH07CiAgfSwgW10pOwoKICByZXR1cm4gewogICAgLy8gQ2hhdC9UZXh0CiAgICBzZW5kTWVzc2FnZSwKICAgIGlzUHJvY2Vzc2luZywKICAgIAogICAgLy8gVm9pY2UvQ2FsbHMKICAgIGluaXRpYXRlQ2FsbCwKICAgIGVuZENhbGwsCiAgICBzZW5kQXVkaW8sCiAgICBhY3RpdmVDYWxsLAogICAgY2FsbEhpc3RvcnksCiAgICAKICAgIC8vIFNldHRpbmdzCiAgICBrZW1tYSwKICAgIHVwZGF0ZUtlbW1hU2V0dGluZ3MsCiAgICAKICAgIC8vIEFnZW50cwogICAgYWdlbnRzLAogICAgYmxlbmRNb2RlLAogICAgc2V0QmxlbmRNb2RlLAogICAgdG9nZ2xlQWdlbnQsCiAgICBhY3RpdmVBZ2VudENvdW50LAogICAgCiAgICAvLyBTdGF0dXMKICAgIGlzS2VtbWFBdmFpbGFibGUsCiAgICBpc0luS2VtbWFIb3VycywKICB9Owp9CgovLyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09Ci8vIFBST1ZJREVSIChmb3IgUmVhY3QgQ29udGV4dCkKLy8gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQoKY29uc3QgSW50ZWxsaWdlbmNlQ29udGV4dCA9IGNyZWF0ZUNvbnRleHQ8UmV0dXJuVHlwZTx0eXBlb2YgdXNlU3V0YWVydUludGVsbGlnZW5jZT4gfCBudWxsPihudWxsKTsKCmV4cG9ydCBmdW5jdGlvbiBJbnRlbGxpZ2VuY2VQcm92aWRlcih7IGNoaWxkcmVuIH06IHsgY2hpbGRyZW46IFJlYWN0Tm9kZSB9KSB7CiAgY29uc3QgaW50ZWxsaWdlbmNlID0gdXNlU3V0YWVydUludGVsbGlnZW5jZSgpOwogIHJldHVybiAoCiAgICA8SW50ZWxsaWdlbmNlQ29udGV4dC5Qcm92aWRlciB2YWx1ZT17aW50ZWxsaWdlbmNlfT4KICAgICAge2NoaWxkcmVufQogICAgPC9JbnRlbGxpZ2VuY2VDb250ZXh0LlByb3ZpZGVyPgogICk7Cn0KCmV4cG9ydCBmdW5jdGlvbiB1c2VJbnRlbGxpZ2VuY2UoKSB7CiAgY29uc3QgY3R4ID0gdXNlQ29udGV4dChJbnRlbGxpZ2VuY2VDb250ZXh0KTsKICBpZiAoIWN0eCkgdGhyb3cgbmV3IEVycm9yKCd1c2VJbnRlbGxpZ2VuY2UgbXVzdCBiZSB1c2VkIHdpdGhpbiBJbnRlbGxpZ2VuY2VQcm92aWRlcicpOwogIHJldHVybiBjdHg7Cn0K
+// ============================================================================
+// SUTAERU INTELLIGENCE — Frontend Hook (Real API Integration)
+// ============================================================================
+
+import { useState, useCallback, useRef, useEffect, createContext, useContext } from 'react';
+import type { ReactNode } from 'react';
+
+const API_BASE = '/api';
+const WS_BASE = typeof window !== 'undefined'
+  ? `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`
+  : '';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface AgentResponse {
+  content: string;
+  model: string;
+  confidence: number;
+  latency: number;
+}
+
+export interface BlendedResponse {
+  content: string;
+  sources: AgentResponse[];
+  primaryModel: string;
+  blended: boolean;
+}
+
+export interface KemmaPersonality {
+  enabled: boolean;
+  style: 'warm' | 'professional' | 'mysterious' | 'playful';
+  voiceEnabled: boolean;
+  autoAnswerCalls: boolean;
+  kemmaHoursStart: number;
+  kemmaHoursEnd: number;
+  customInstructions?: string;
+}
+
+export interface CallSession {
+  id: string;
+  callerId: string;
+  status: 'ringing' | 'kemma_active' | 'connected' | 'ended' | 'scheduled';
+  transcript: Array<{ speaker: 'caller' | 'kemma' | 'target'; text: string; timestamp: string }>;
+  messageLeft?: string;
+  callbackScheduled?: { suggestedTimes: string[]; callerAccepted: boolean; scheduledAt: string };
+  startedAt: Date;
+  endedAt?: Date;
+  conversationId?: string;
+}
+
+interface Agent {
+  id: string;
+  name: string;
+  provider: 'kimi' | 'anthropic' | 'google';
+  status: 'active' | 'standby' | 'offline';
+  specialties: string[];
+  latency: number;
+}
+
+// ============================================================================
+// MAIN HOOK
+// ============================================================================
+
+export function useSutaeruIntelligence() {
+  // State
+  const [kemma, setKemma] = useState<KemmaPersonality>({
+    enabled: true,
+    style: 'warm',
+    voiceEnabled: true,
+    autoAnswerCalls: false,
+    kemmaHoursStart: 22,
+    kemmaHoursEnd: 8,
+  });
+  
+  const [agents, setAgents] = useState<Agent[]>([
+    { id: 'kimi', name: 'Kimi', provider: 'kimi', status: 'active', specialties: ['coding', 'analysis', 'reasoning', 'chinese', 'long-context'], latency: 700 },
+    { id: 'claude', name: 'Claude', provider: 'anthropic', status: 'active', specialties: ['long-context', 'nuanced-understanding', 'safety', 'instruction-following', 'creative-writing'], latency: 800 },
+    { id: 'gemini', name: 'Gemini', provider: 'google', status: 'active', specialties: ['multimodal', 'factual', 'research', 'summarization', 'speed'], latency: 500 },
+  ]);
+  
+  const [blendMode, setBlendMode] = useState<'smart' | 'ensemble' | 'fastest'>('smart');
+  const [activeCall, setActiveCall] = useState<CallSession | null>(null);
+  const [callHistory, setCallHistory] = useState<CallSession[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // WebSocket ref
+  const wsRef = useRef<WebSocket | null>(null);
+  
+  // ==========================================================================
+  // CHAT / TEXT MESSAGES
+  // ==========================================================================
+  
+  const sendMessage = useCallback(async (
+    message: string,
+    options?: { blend?: boolean; preferredModel?: string }
+  ): Promise<BlendedResponse & { herEnhanced?: boolean; queryType?: string }> => {
+    setIsProcessing(true);
+    
+    try {
+      const response = await fetch(`${API_BASE}/intelligence/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          options: {
+            blend: options?.blend ?? (blendMode === 'ensemble'),
+            preferredModel: options?.preferredModel,
+            activeAgentIds: agents.filter(a => a.status === 'active').map(a => a.id),
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to send message');
+      }
+
+      const data = await response.json();
+      
+      return {
+        content: data.content,
+        sources: data.sources,
+        primaryModel: data.primaryModel,
+        blended: data.blended,
+        herEnhanced: false,
+        queryType: data.queryType,
+      };
+    } catch (error) {
+      console.error('[Sutaeru] Chat error:', error);
+      throw error;
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [blendMode, agents]);
+
+  // ==========================================================================
+  // KEMMA VOICE CALLS
+  // ==========================================================================
+  
+  const initiateCall = useCallback(async (callerId: string, callerName: string): Promise<CallSession> => {
+    try {
+      // Create Kemma session via API
+      const response = await fetch(`${API_BASE}/intelligence/kemma/call`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          callerName,
+          context: {
+            targetName: 'me',
+            relationship: 'close',
+            targetStatus: 'unavailable',
+            personality: {
+              style: kemma.style,
+              customInstructions: kemma.customInstructions,
+            },
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to initiate call');
+      }
+
+      const data = await response.json();
+
+      // Create call session
+      const callSession: CallSession = {
+        id: `call-${Date.now()}`,
+        callerId,
+        status: 'kemma_active',
+        transcript: [],
+        startedAt: new Date(),
+        conversationId: data.session.conversationId,
+      };
+
+      setActiveCall(callSession);
+
+      // Connect WebSocket for real-time audio
+      const ws = new WebSocket(`${WS_BASE}/ws/intelligence?id=${callSession.id}&type=kemma`);
+
+      ws.onopen = () => {
+        console.log('[Kemma] WebSocket connected');
+        // Initialize Kemma with signed URL
+        ws.send(JSON.stringify({
+          type: 'kemma_init',
+          signedUrl: data.session.signedUrl,
+          conversationId: data.session.conversationId,
+        }));
+      };
+
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+
+        switch (message.type) {
+          case 'kemma_ready':
+            console.log('[Kemma] Ready for audio');
+            break;
+
+          case 'kemma_message':
+            // Handle Kemma transcript/audio
+            if (message.data.type === 'transcript') {
+              setActiveCall(prev => {
+                if (!prev) return null;
+                return {
+                  ...prev,
+                  transcript: [...prev.transcript, {
+                    speaker: message.data.role === 'agent' ? 'kemma' : 'caller',
+                    text: message.data.content,
+                    timestamp: new Date().toISOString(),
+                  }],
+                };
+              });
+            }
+            break;
+
+          case 'kemma_analysis':
+            // Handle analysis (scheduling intent, urgency)
+            console.log('[Kemma] Analysis:', message.data);
+            break;
+
+          case 'kemma_ended':
+            console.log('[Kemma] Call ended');
+            endCall(callSession.id);
+            break;
+
+          case 'kemma_error':
+            console.error('[Kemma] Error:', message.error);
+            break;
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('[Kemma] WebSocket error:', error);
+      };
+
+      ws.onclose = () => {
+        console.log('[Kemma] WebSocket closed');
+        endCall(callSession.id);
+      };
+
+      wsRef.current = ws;
+
+      return callSession;
+    } catch (error) {
+      console.error('[Sutaeru] Initiate call error:', error);
+      throw error;
+    }
+  }, [kemma]);
+
+  const endCall = useCallback(async (callId: string) => {
+    const call = activeCall;
+    if (!call || call.id !== callId) return;
+
+    try {
+      // Close WebSocket
+      if (wsRef.current) {
+        wsRef.current.send(JSON.stringify({ type: 'kemma_end' }));
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+
+      // End via API if we have a conversation ID
+      if (call.conversationId) {
+        await fetch(`${API_BASE}/intelligence/kemma/end`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            conversationId: call.conversationId,
+          }),
+        });
+      }
+
+      // Update state
+      const endedCall: CallSession = {
+        ...call,
+        status: 'ended',
+        endedAt: new Date(),
+      };
+
+      setCallHistory(prev => [endedCall, ...prev]);
+      setActiveCall(null);
+    } catch (error) {
+      console.error('[Sutaeru] End call error:', error);
+    }
+  }, [activeCall]);
+
+  // Send audio to Kemma
+  const sendAudio = useCallback((audioData: ArrayBuffer) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'kemma_audio',
+        audio: audioData,
+      }));
+    }
+  }, []);
+
+  // ==========================================================================
+  // SETTINGS
+  // ==========================================================================
+  
+  const updateKemmaSettings = useCallback((settings: Partial<KemmaPersonality>) => {
+    setKemma(prev => ({ ...prev, ...settings }));
+  }, []);
+
+  const toggleAgent = useCallback((agentId: string) => {
+    setAgents(prev => prev.map(agent => 
+      agent.id === agentId 
+        ? { ...agent, status: agent.status === 'active' ? 'standby' : 'active' as const }
+        : agent
+    ));
+  }, []);
+
+  // ==========================================================================
+  // COMPUTED
+  // ==========================================================================
+  
+  const activeAgentCount = agents.filter(a => a.status === 'active').length;
+  const isKemmaAvailable = kemma.enabled;
+  const isInKemmaHours = (() => {
+    const hour = new Date().getHours();
+    return hour >= kemma.kemmaHoursStart || hour < kemma.kemmaHoursEnd;
+  })();
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, []);
+
+  return {
+    // Chat/Text
+    sendMessage,
+    isProcessing,
+    
+    // Voice/Calls
+    initiateCall,
+    endCall,
+    sendAudio,
+    activeCall,
+    callHistory,
+    
+    // Settings
+    kemma,
+    updateKemmaSettings,
+    
+    // Agents
+    agents,
+    blendMode,
+    setBlendMode,
+    toggleAgent,
+    activeAgentCount,
+    
+    // Status
+    isKemmaAvailable,
+    isInKemmaHours,
+  };
+}
+
+// ============================================================================
+// PROVIDER (for React Context)
+// ============================================================================
+
+const IntelligenceContext = createContext<ReturnType<typeof useSutaeruIntelligence> | null>(null);
+
+export function IntelligenceProvider({ children }: { children: ReactNode }) {
+  const intelligence = useSutaeruIntelligence();
+  return (
+    <IntelligenceContext.Provider value={intelligence}>
+      {children}
+    </IntelligenceContext.Provider>
+  );
+}
+
+export function useIntelligence() {
+  const ctx = useContext(IntelligenceContext);
+  if (!ctx) throw new Error('useIntelligence must be used within IntelligenceProvider');
+  return ctx;
+}

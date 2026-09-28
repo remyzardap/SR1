@@ -1,1 +1,89 @@
-aW1wb3J0IHsgQXJyb3dVcCwgRmlsZVRleHQsIFBhcGVyY2xpcCwgWCB9IGZyb20gImx1Y2lkZS1yZWFjdCI7CmltcG9ydCB0eXBlIHsgRmlsZVVJUGFydCB9IGZyb20gImFpIjsKaW1wb3J0IHsgQnV0dG9uIH0gZnJvbSAiQC9jb21wb25lbnRzL3VpL2J1dHRvbiI7CmltcG9ydCB7CiAgUHJvbXB0SW5wdXQsCiAgUHJvbXB0SW5wdXRCdXR0b24sCiAgUHJvbXB0SW5wdXRGb290ZXIsCiAgUHJvbXB0SW5wdXRIZWFkZXIsCiAgUHJvbXB0SW5wdXRTdWJtaXQsCiAgUHJvbXB0SW5wdXRUZXh0YXJlYSwKICB1c2VQcm9tcHRJbnB1dEF0dGFjaG1lbnRzLAogIHR5cGUgUHJvbXB0SW5wdXRNZXNzYWdlLAp9IGZyb20gIkAvY29tcG9uZW50cy9haS1lbGVtZW50cy9wcm9tcHQtaW5wdXQiOwoKaW50ZXJmYWNlIENoYXRJbnB1dFByb3BzIHsKICB2YWx1ZTogc3RyaW5nOwogIGlzU3RyZWFtaW5nOiBib29sZWFuOwogIG9uQ2hhbmdlOiAodmFsdWU6IHN0cmluZykgPT4gdm9pZDsKICBvbktleURvd246IChldmVudDogUmVhY3QuS2V5Ym9hcmRFdmVudDxIVE1MVGV4dEFyZWFFbGVtZW50PikgPT4gdm9pZDsKICBvblNlbmQ6IChtZXNzYWdlPzogUHJvbXB0SW5wdXRNZXNzYWdlKSA9PiB2b2lkIHwgUHJvbWlzZTx2b2lkPjsKICBvblN0b3A/OiAoKSA9PiB2b2lkOwogIGFsbG93QXR0YWNobWVudHM/OiBib29sZWFuOwp9CgpmdW5jdGlvbiBBdHRhY2htZW50TGlzdCh7IGVuYWJsZWQgfTogeyBlbmFibGVkOiBib29sZWFuIH0pIHsKICBjb25zdCBhdHRhY2htZW50cyA9IHVzZVByb21wdElucHV0QXR0YWNobWVudHMoKTsKICBpZiAoIWVuYWJsZWQgfHwgYXR0YWNobWVudHMuZmlsZXMubGVuZ3RoID09PSAwKSByZXR1cm4gbnVsbDsKCiAgcmV0dXJuICgKICAgIDxQcm9tcHRJbnB1dEhlYWRlciBjbGFzc05hbWU9InN1dGFlcnUtYXR0YWNobWVudC1saXN0Ij4KICAgICAge2F0dGFjaG1lbnRzLmZpbGVzLm1hcCgoZmlsZSkgPT4gKAogICAgICAgIDxzcGFuIGNsYXNzTmFtZT0ic3V0YWVydS1hdHRhY2htZW50LWNoaXAiIGtleT17ZmlsZS5pZH0+CiAgICAgICAgICA8RmlsZVRleHQgYXJpYS1oaWRkZW49InRydWUiIC8+CiAgICAgICAgICA8c3Bhbj57ZmlsZS5maWxlbmFtZSB8fCAiUmVmZXJlbmNlIGZpbGUifTwvc3Bhbj4KICAgICAgICAgIDxCdXR0b24gdHlwZT0iYnV0dG9uIiB2YXJpYW50PSJnaG9zdCIgc2l6ZT0iaWNvbi1zbSIgb25DbGljaz17KCkgPT4gYXR0YWNobWVudHMucmVtb3ZlKGZpbGUuaWQpfSBhcmlhLWxhYmVsPXtgUmVtb3ZlICR7ZmlsZS5maWxlbmFtZSB8fCAiZmlsZSJ9YH0+CiAgICAgICAgICAgIDxYIGFyaWEtaGlkZGVuPSJ0cnVlIiAvPgogICAgICAgICAgPC9CdXR0b24+CiAgICAgICAgPC9zcGFuPgogICAgICApKX0KICAgIDwvUHJvbXB0SW5wdXRIZWFkZXI+CiAgKTsKfQoKZnVuY3Rpb24gQXR0YWNoQnV0dG9uKHsgZW5hYmxlZCB9OiB7IGVuYWJsZWQ6IGJvb2xlYW4gfSkgewogIGNvbnN0IGF0dGFjaG1lbnRzID0gdXNlUHJvbXB0SW5wdXRBdHRhY2htZW50cygpOwogIGlmICghZW5hYmxlZCkgcmV0dXJuIG51bGw7CiAgcmV0dXJuIDxQcm9tcHRJbnB1dEJ1dHRvbiBjbGFzc05hbWU9InN1dGFlcnUtYXR0YWNoLWJ1dHRvbiIgb25DbGljaz17YXR0YWNobWVudHMub3BlbkZpbGVEaWFsb2d9IHRvb2x0aXA9IkF0dGFjaCByZWZlcmVuY2UgZmlsZXMiIGFyaWEtbGFiZWw9IkF0dGFjaCByZWZlcmVuY2UgZmlsZXMiPjxQYXBlcmNsaXAgYXJpYS1oaWRkZW49InRydWUiIC8+PC9Qcm9tcHRJbnB1dEJ1dHRvbj47Cn0KCmV4cG9ydCBmdW5jdGlvbiBDaGF0SW5wdXQoeyB2YWx1ZSwgaXNTdHJlYW1pbmcsIG9uQ2hhbmdlLCBvbktleURvd24sIG9uU2VuZCwgb25TdG9wLCBhbGxvd0F0dGFjaG1lbnRzID0gZmFsc2UgfTogQ2hhdElucHV0UHJvcHMpIHsKICBjb25zdCBoYW5kbGVTdWJtaXQgPSBhc3luYyAobWVzc2FnZTogUHJvbXB0SW5wdXRNZXNzYWdlKSA9PiB7CiAgICBpZiAoaXNTdHJlYW1pbmcgfHwgKCFtZXNzYWdlLnRleHQudHJpbSgpICYmIG1lc3NhZ2UuZmlsZXMubGVuZ3RoID09PSAwKSkgcmV0dXJuOwogICAgYXdhaXQgb25TZW5kKG1lc3NhZ2UpOwogIH07CgogIHJldHVybiAoCiAgICA8ZGl2IGNsYXNzTmFtZT0ic3V0YWVydS1jaGF0LWlucHV0IHctZnVsbCI+CiAgICAgIDxQcm9tcHRJbnB1dAogICAgICAgIGNsYXNzTmFtZT0ic3V0YWVydS1pbnB1dC1ib3giCiAgICAgICAgYWNjZXB0PSJhcHBsaWNhdGlvbi9wZGYsdGV4dC9wbGFpbix0ZXh0L21hcmtkb3duLGFwcGxpY2F0aW9uL3ZuZC5vcGVueG1sZm9ybWF0cy1vZmZpY2Vkb2N1bWVudC53b3JkcHJvY2Vzc2luZ21sLmRvY3VtZW50IgogICAgICAgIG11bHRpcGxlCiAgICAgICAgbWF4RmlsZXM9ezV9CiAgICAgICAgbWF4RmlsZVNpemU9ezUgKiAxMDI0ICogMTAyNH0KICAgICAgICBvbkVycm9yPXsoZXJyb3IpID0+IHdpbmRvdy5kaXNwYXRjaEV2ZW50KG5ldyBDdXN0b21FdmVudCgic3V0YWVydTphdHRhY2htZW50LWVycm9yIiwgeyBkZXRhaWw6IGVycm9yLm1lc3NhZ2UgfSkpfQogICAgICAgIG9uU3VibWl0PXtoYW5kbGVTdWJtaXR9CiAgICAgID4KICAgICAgICA8QXR0YWNobWVudExpc3QgZW5hYmxlZD17YWxsb3dBdHRhY2htZW50c30gLz4KICAgICAgICA8UHJvbXB0SW5wdXRUZXh0YXJlYQogICAgICAgICAgdmFsdWU9e3ZhbHVlfQogICAgICAgICAgb25DaGFuZ2U9eyhldmVudCkgPT4gb25DaGFuZ2UoZXZlbnQudGFyZ2V0LnZhbHVlKX0KICAgICAgICAgIG9uS2V5RG93bj17b25LZXlEb3dufQogICAgICAgICAgcGxhY2Vob2xkZXI9IkFzayBLZW1tYSBhbnl0aGluZ+KApiIKICAgICAgICAgIGFyaWEtbGFiZWw9Ik1lc3NhZ2UgS2VtbWEiCiAgICAgICAgICBjbGFzc05hbWU9InN1dGFlcnUtY29tcG9zZXItdGV4dGFyZWEiCiAgICAgICAgLz4KICAgICAgICA8UHJvbXB0SW5wdXRGb290ZXIgY2xhc3NOYW1lPSJzdXRhZXJ1LWNvbXBvc2VyLWZvb3RlciBqdXN0aWZ5LWVuZCI+CiAgICAgICAgICA8QXR0YWNoQnV0dG9uIGVuYWJsZWQ9e2FsbG93QXR0YWNobWVudHN9IC8+CiAgICAgICAgICA8UHJvbXB0SW5wdXRTdWJtaXQKICAgICAgICAgICAgc3RhdHVzPXtpc1N0cmVhbWluZyA/ICJzdHJlYW1pbmciIDogInJlYWR5In0KICAgICAgICAgICAgb25TdG9wPXtvblN0b3B9CiAgICAgICAgICAgIGRpc2FibGVkPXshaXNTdHJlYW1pbmcgJiYgIXZhbHVlLnRyaW0oKX0KICAgICAgICAgICAgY2xhc3NOYW1lPSJzdXRhZXJ1LWNvbXBvc2VyLXNlbmQiCiAgICAgICAgICAgIHRpdGxlPXtpc1N0cmVhbWluZyA/ICJTdG9wIGdlbmVyYXRpb24iIDogIlNlbmQgbWVzc2FnZSJ9CiAgICAgICAgICA+eyFpc1N0cmVhbWluZyAmJiA8QXJyb3dVcCBjbGFzc05hbWU9InNpemUtNSIgLz59PC9Qcm9tcHRJbnB1dFN1Ym1pdD4KICAgICAgICA8L1Byb21wdElucHV0Rm9vdGVyPgogICAgICA8L1Byb21wdElucHV0PgogICAgPC9kaXY+CiAgKTsKfQ==
+import { ArrowUp, FileText, Paperclip, X } from "lucide-react";
+import type { FileUIPart } from "ai";
+import { Button } from "@/components/ui/button";
+import {
+  PromptInput,
+  PromptInputButton,
+  PromptInputFooter,
+  PromptInputHeader,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  usePromptInputAttachments,
+  type PromptInputMessage,
+} from "@/components/ai-elements/prompt-input";
+
+interface ChatInputProps {
+  value: string;
+  isStreaming: boolean;
+  onChange: (value: string) => void;
+  onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onSend: (message?: PromptInputMessage) => void | Promise<void>;
+  onStop?: () => void;
+  allowAttachments?: boolean;
+}
+
+function AttachmentList({ enabled }: { enabled: boolean }) {
+  const attachments = usePromptInputAttachments();
+  if (!enabled || attachments.files.length === 0) return null;
+
+  return (
+    <PromptInputHeader className="sutaeru-attachment-list">
+      {attachments.files.map((file) => (
+        <span className="sutaeru-attachment-chip" key={file.id}>
+          <FileText aria-hidden="true" />
+          <span>{file.filename || "Reference file"}</span>
+          <Button type="button" variant="ghost" size="icon-sm" onClick={() => attachments.remove(file.id)} aria-label={`Remove ${file.filename || "file"}`}>
+            <X aria-hidden="true" />
+          </Button>
+        </span>
+      ))}
+    </PromptInputHeader>
+  );
+}
+
+function AttachButton({ enabled }: { enabled: boolean }) {
+  const attachments = usePromptInputAttachments();
+  if (!enabled) return null;
+  return <PromptInputButton className="sutaeru-attach-button" onClick={attachments.openFileDialog} tooltip="Attach reference files" aria-label="Attach reference files"><Paperclip aria-hidden="true" /></PromptInputButton>;
+}
+
+export function ChatInput({ value, isStreaming, onChange, onKeyDown, onSend, onStop, allowAttachments = false }: ChatInputProps) {
+  const handleSubmit = async (message: PromptInputMessage) => {
+    if (isStreaming || (!message.text.trim() && message.files.length === 0)) return;
+    await onSend(message);
+  };
+
+  return (
+    <div className="sutaeru-chat-input w-full">
+      <PromptInput
+        className="sutaeru-input-box"
+        accept="application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        multiple
+        maxFiles={5}
+        maxFileSize={5 * 1024 * 1024}
+        onError={(error) => window.dispatchEvent(new CustomEvent("sutaeru:attachment-error", { detail: error.message }))}
+        onSubmit={handleSubmit}
+      >
+        <AttachmentList enabled={allowAttachments} />
+        <PromptInputTextarea
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder="Ask Kemma anything…"
+          aria-label="Message Kemma"
+          className="sutaeru-composer-textarea"
+        />
+        <PromptInputFooter className="sutaeru-composer-footer justify-end">
+          <AttachButton enabled={allowAttachments} />
+          <PromptInputSubmit
+            status={isStreaming ? "streaming" : "ready"}
+            onStop={onStop}
+            disabled={!isStreaming && !value.trim()}
+            className="sutaeru-composer-send"
+            title={isStreaming ? "Stop generation" : "Send message"}
+          >{!isStreaming && <ArrowUp className="size-5" />}</PromptInputSubmit>
+        </PromptInputFooter>
+      </PromptInput>
+    </div>
+  );
+}

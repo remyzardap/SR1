@@ -1,1 +1,6 @@
-aW1wb3J0IHsgY3JlYXRlVFJQQ1JlYWN0IH0gZnJvbSAiQHRycGMvcmVhY3QtcXVlcnkiOwovLyBUaGUgZnVsbCBTUjEgc2VydmVyIG5vdyBsaXZlcyBpbiAuL3NlcnZlciAoY29waWVkIGZyb20gdGhlIFNSMSByZXBvKSwgYnV0IGl0cwovLyBkZXBlbmRlbmNpZXMgKGRyaXp6bGUtb3JtLCBleHByZXNzLCBldGMuKSBhcmUgaW5zdGFsbGVkIG9ubHkgd2hlcmUgdGhlIHNlcnZlcgovLyBydW5zIOKAlCBzZWUgc3IxLXNlcnZlci5wYWNrYWdlLmpzb24uIFRoZSBwcmV2aWV3IGNvbnN1bWVzIHRoZSBBUEkgYXQgcnVudGltZSwKLy8gc28gdGhlIGNsaWVudCBrZWVwcyBhbiB1bnR5cGVkIHRSUEMgaGFuZGxlIHJhdGhlciB0aGFuIGltcG9ydGluZyB0aGUgcm91dGVyLgpleHBvcnQgY29uc3QgdHJwYzogYW55ID0gY3JlYXRlVFJQQ1JlYWN0PGFueT4oKTsK
+import { createTRPCReact } from "@trpc/react-query";
+// The full SR1 server now lives in ./server (copied from the SR1 repo), but its
+// dependencies (drizzle-orm, express, etc.) are installed only where the server
+// runs — see sr1-server.package.json. The preview consumes the API at runtime,
+// so the client keeps an untyped tRPC handle rather than importing the router.
+export const trpc: any = createTRPCReact<any>();

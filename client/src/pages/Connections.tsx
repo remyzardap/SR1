@@ -1,1 +1,489 @@
-aW1wb3J0IHsgUEFHRV9CRywgTk9JU0VfT1ZFUkxBWSwgQ1NTX0FOSU0gfSBmcm9tICdAL2xpYi9kZXNpZ24nOwppbXBvcnQgeyB1c2VTdGF0ZSwgdXNlRWZmZWN0IH0gZnJvbSAicmVhY3QiOwppbXBvcnQgeyB0cnBjIH0gZnJvbSAiQC9saWIvdHJwYyI7CmltcG9ydCB7IHVzZVNlYXJjaCB9IGZyb20gIndvdXRlciI7CmltcG9ydCB7IEJ1dHRvbiB9IGZyb20gIkAvY29tcG9uZW50cy91aS9idXR0b24iOwppbXBvcnQgeyBJbnB1dCB9IGZyb20gIkAvY29tcG9uZW50cy91aS9pbnB1dCI7CmltcG9ydCB7IExhYmVsIH0gZnJvbSAiQC9jb21wb25lbnRzL3VpL2xhYmVsIjsKaW1wb3J0IHsgQ2FyZCwgQ2FyZENvbnRlbnQsIENhcmRIZWFkZXIsIENhcmRUaXRsZSwgQ2FyZERlc2NyaXB0aW9uIH0gZnJvbSAiQC9jb21wb25lbnRzL3VpL2NhcmQiOwppbXBvcnQgeyBCYWRnZSB9IGZyb20gIkAvY29tcG9uZW50cy91aS9iYWRnZSI7CmltcG9ydCB7CiAgU2VsZWN0LAogIFNlbGVjdENvbnRlbnQsCiAgU2VsZWN0SXRlbSwKICBTZWxlY3RUcmlnZ2VyLAogIFNlbGVjdFZhbHVlLAp9IGZyb20gIkAvY29tcG9uZW50cy91aS9zZWxlY3QiOwppbXBvcnQgeyB0b2FzdCB9IGZyb20gInNvbm5lciI7CmltcG9ydCB7CiAgUGx1ZywKICBMb2FkZXIyLAogIFBsdXMsCiAgQmFuLAogIEtleSwKICBMb2NrLAogIEdsb2JlLAogIENwdSwKICBDaGVja0NpcmNsZTIsCiAgWENpcmNsZSwKICBDbG9jaywKICBFeWUsCiAgRXllT2ZmLAogIE1haWwsCiAgQ2FsZW5kYXIsCiAgSGFyZERyaXZlLAogIEV4dGVybmFsTGluaywKICBVbnBsdWcsCn0gZnJvbSAibHVjaWRlLXJlYWN0IjsKaW1wb3J0IHsgU2lHb29nbGUgfSBmcm9tICJyZWFjdC1pY29ucy9zaSI7CmltcG9ydCB7IGNuIH0gZnJvbSAiQC9saWIvdXRpbHMiOwppbXBvcnQgeyBmb3JtYXQgfSBmcm9tICJkYXRlLWZucyI7Cgpjb25zdCBjb25uZWN0aW9uVHlwZUljb25zID0gewogIGxsbV9hcGlfa2V5OiBDcHUsCiAgb2F1dGgyOiBHbG9iZSwKICBnZW5lcmljX2FwaV9rZXk6IEtleSwKfTsKY29uc3QgY29ubmVjdGlvblR5cGVMYWJlbHMgPSB7CiAgbGxtX2FwaV9rZXk6ICJMTE0gQVBJIEtleSIsCiAgb2F1dGgyOiAiT0F1dGggMi4wIiwKICBnZW5lcmljX2FwaV9rZXk6ICJBUEkgS2V5IiwKfTsKY29uc3QgY29ubmVjdGlvblR5cGVDb2xvcnMgPSB7CiAgbGxtX2FwaV9rZXk6ICJiZy12aW9sZXQtNTAwLzEwIHRleHQtdmlvbGV0LTYwMCBib3JkZXItdmlvbGV0LTUwMC8yMCIsCiAgb2F1dGgyOiAiYmctc2t5LTUwMC8xMCB0ZXh0LXNreS02MDAgYm9yZGVyLXNreS01MDAvMjAiLAogIGdlbmVyaWNfYXBpX2tleTogImJnLXNsYXRlLTUwMC8xMCB0ZXh0LXNsYXRlLTYwMCBib3JkZXItc2xhdGUtNTAwLzIwIiwKfTsKY29uc3Qgc3RhdHVzQ29uZmlnID0gewogIGFjdGl2ZTogeyBpY29uOiBDaGVja0NpcmNsZTIsIGNvbG9yOiAidGV4dC1lbWVyYWxkLTUwMCIsIGxhYmVsOiAiQWN0aXZlIiB9LAogIHJldm9rZWQ6IHsgaWNvbjogWENpcmNsZSwgY29sb3I6ICJ0ZXh0LXJlZC01MDAiLCBsYWJlbDogIlJldm9rZWQiIH0sCiAgZXhwaXJlZDogeyBpY29uOiBDbG9jaywgY29sb3I6ICJ0ZXh0LWFtYmVyLTUwMCIsIGxhYmVsOiAiRXhwaXJlZCIgfSwKfTsKCmZ1bmN0aW9uIEdvb2dsZVdvcmtzcGFjZUNhcmQoKSB7CiAgY29uc3QgdXRpbHMgPSB0cnBjLnVzZVV0aWxzKCk7CiAgY29uc3QgeyBkYXRhOiBjb25maWd1cmVkIH0gPSB0cnBjLmdvb2dsZS5jb25maWd1cmVkLnVzZVF1ZXJ5KCk7CiAgY29uc3QgeyBkYXRhOiBzdGF0dXMsIGlzTG9hZGluZzogc3RhdHVzTG9hZGluZyB9ID0gdHJwYy5nb29nbGUuc3RhdHVzLnVzZVF1ZXJ5KHVuZGVmaW5lZCwgewogICAgZW5hYmxlZDogISFjb25maWd1cmVkPy5jb25maWd1cmVkLAogIH0pOwogIGNvbnN0IHsgZGF0YTogYXV0aFVybERhdGEgfSA9IHRycGMuZ29vZ2xlLmdldEF1dGhVcmwudXNlUXVlcnkodW5kZWZpbmVkLCB7CiAgICBlbmFibGVkOiAhIWNvbmZpZ3VyZWQ/LmNvbmZpZ3VyZWQgJiYgIXN0YXR1cz8uY29ubmVjdGVkLAogIH0pOwoKICBjb25zdCBkaXNjb25uZWN0TXV0YXRpb24gPSB0cnBjLmdvb2dsZS5kaXNjb25uZWN0LnVzZU11dGF0aW9uKHsKICAgIG9uU3VjY2VzczogKCkgPT4gewogICAgICB0b2FzdC5zdWNjZXNzKCJHb29nbGUgYWNjb3VudCBkaXNjb25uZWN0ZWQiKTsKICAgICAgdXRpbHMuZ29vZ2xlLnN0YXR1cy5pbnZhbGlkYXRlKCk7CiAgICB9LAogICAgb25FcnJvcjogKGVycikgPT4gdG9hc3QuZXJyb3IoZXJyLm1lc3NhZ2UpLAogIH0pOwoKICBpZiAoIWNvbmZpZ3VyZWQ/LmNvbmZpZ3VyZWQpIHsKICAgIHJldHVybiAoCiAgICAgIDxDYXJkIGNsYXNzTmFtZT0ibWItNiBib3JkZXItZGFzaGVkIGJvcmRlci1tdXRlZC1mb3JlZ3JvdW5kLzMwIiBkYXRhLXRlc3RpZD0iY2FyZC1nb29nbGUtbm90LWNvbmZpZ3VyZWQiPgogICAgICAgPENhcmRDb250ZW50IGNsYXNzTmFtZT0iZmxleCBmbGV4LXdyYXAgaXRlbXMtY2VudGVyIGdhcC00IHB5LTYiPgogICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggaC0xMiB3LTEyIGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWNlbnRlciByb3VuZGVkLXhsIGJnLW11dGVkIj4KICAgICAgICAgICAgPFNpR29vZ2xlIGNsYXNzTmFtZT0iaC01IHctNSB0ZXh0LW11dGVkLWZvcmVncm91bmQiIC8+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4LTEiPgogICAgICAgICAgICA8aDMgY2xhc3NOYW1lPSJmb250LW1lZGl1bSB0ZXh0LWZvcmVncm91bmQiPkdvb2dsZSBXb3Jrc3BhY2U8L2gzPgogICAgICAgICAgICA8cCBjbGFzc05hbWU9InRleHQtc20gdGV4dC1tdXRlZC1mb3JlZ3JvdW5kIj4KICAgICAgICAgICAgICBTZXQgR09PR0xFX0NMSUVOVF9JRCBhbmQgR09PR0xFX0NMSUVOVF9TRUNSRVQgdG8gZW5hYmxlIEdtYWlsLCBDYWxlbmRhciAmIERyaXZlCiAgICAgICAgICAgIDwvcD4KICAgICAgICAgIDwvZGl2PgogICAgICAgICAgPEJhZGdlIHZhcmlhbnQ9Im91dGxpbmUiIGNsYXNzTmFtZT0idGV4dC1tdXRlZC1mb3JlZ3JvdW5kIj5Ob3QgQ29uZmlndXJlZDwvQmFkZ2U+CiAgICAgICAgPC9DYXJkQ29udGVudD4KICAgICAgPC9DYXJkPgogICAgKTsKICB9CgogIHJldHVybiAoCiAgICA8Q2FyZCBjbGFzc05hbWU9Im1iLTYiIGRhdGEtdGVzdGlkPSJjYXJkLWdvb2dsZS13b3Jrc3BhY2UiPgogICAgICA8Q2FyZEhlYWRlciBjbGFzc05hbWU9InBiLTMiPgogICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBmbGV4LXdyYXAgaXRlbXMtc3RhcnQganVzdGlmeS1iZXR3ZWVuIGdhcC0zIj4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMyI+CiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGgtMTIgdy0xMiBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgcm91bmRlZC14bCBiZy1ncmFkaWVudC10by1iciBmcm9tLWJsdWUtNTAwLzEwIHRvLXJlZC01MDAvMTAiPgogICAgICAgICAgICAgIDxTaUdvb2dsZSBjbGFzc05hbWU9ImgtNSB3LTUgdGV4dC1ibHVlLTYwMCIgLz4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgIDxkaXY+CiAgICAgICAgICAgICAgPENhcmRUaXRsZSBjbGFzc05hbWU9InRleHQtbGciPkdvb2dsZSBXb3Jrc3BhY2U8L0NhcmRUaXRsZT4KICAgICAgICAgICAgICA8Q2FyZERlc2NyaXB0aW9uPgogICAgICAgICAgICAgICAge3N0YXR1cz8uY29ubmVjdGVkCiAgICAgICAgICAgICAgICAgID8gYENvbm5lY3RlZCBhcyAke3N0YXR1cy5lbWFpbH1gCiAgICAgICAgICAgICAgICAgIDogIkNvbm5lY3QgR21haWwsIENhbGVuZGFyICYgRHJpdmUgdG8gUzEifQogICAgICAgICAgICAgIDwvQ2FyZERlc2NyaXB0aW9uPgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgIDwvZGl2PgogICAgICAgICAge3N0YXR1cz8uY29ubmVjdGVkID8gKAogICAgICAgICAgICA8QmFkZ2UgY2xhc3NOYW1lPSJiZy1lbWVyYWxkLTUwMC8xMCB0ZXh0LWVtZXJhbGQtNjAwIGJvcmRlci1lbWVyYWxkLTUwMC8yMCI+Q29ubmVjdGVkPC9CYWRnZT4KICAgICAgICAgICkgOiAoCiAgICAgICAgICAgIDxCYWRnZSB2YXJpYW50PSJvdXRsaW5lIiBjbGFzc05hbWU9InRleHQtbXV0ZWQtZm9yZWdyb3VuZCI+RGlzY29ubmVjdGVkPC9CYWRnZT4KICAgICAgICAgICl9CiAgICAgICAgPC9kaXY+CiAgICAgIDwvQ2FyZEhlYWRlcj4KICAgICAgPENhcmRDb250ZW50PgogICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZ3JpZCBncmlkLWNvbHMtMSBtaW4tWzQyMHB4XTpncmlkLWNvbHMtMyBnYXAtMyBtYi00Ij4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMiByb3VuZGVkLWxnIGJnLW11dGVkLzUwIHB4LTMgcHktMiI+CiAgICAgICAgICAgIDxNYWlsIGNsYXNzTmFtZT0iaC00IHctNCB0ZXh0LXJlZC01MDAiIC8+CiAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0idGV4dC1zbSI+R21haWw8L3NwYW4+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMiByb3VuZGVkLWxnIGJnLW11dGVkLzUwIHB4LTMgcHktMiI+CiAgICAgICAgICAgIDxDYWxlbmRhciBjbGFzc05hbWU9ImgtNCB3LTQgdGV4dC1ibHVlLTUwMCIgLz4KICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJ0ZXh0LXNtIj5DYWxlbmRhcjwvc3Bhbj4KICAgICAgICAgIDwvZGl2PgogICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggaXRlbXMtY2VudGVyIGdhcC0yIHJvdW5kZWQtbGcgYmctbXV0ZWQvNTAgcHgtMyBweS0yIj4KICAgICAgICAgICAgPEhhcmREcml2ZSBjbGFzc05hbWU9ImgtNCB3LTQgdGV4dC15ZWxsb3ctNTAwIiAvPgogICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9InRleHQtc20iPkRyaXZlPC9zcGFuPgogICAgICAgICAgPC9kaXY+CiAgICAgICAgPC9kaXY+CgogICAgICAgIHtzdGF0dXM/LmNvbm5lY3RlZCA/ICgKICAgICAgICAgIDxCdXR0b24KICAgICAgICAgICAgdmFyaWFudD0ib3V0bGluZSIKICAgICAgICAgICAgc2l6ZT0ic20iCiAgICAgICAgICAgIGNsYXNzTmFtZT0idy1mdWxsIHRleHQtZGVzdHJ1Y3RpdmUgaG92ZXI6YmctZGVzdHJ1Y3RpdmUvMTAiCiAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IGRpc2Nvbm5lY3RNdXRhdGlvbi5tdXRhdGUoKX0KICAgICAgICAgICAgZGlzYWJsZWQ9e2Rpc2Nvbm5lY3RNdXRhdGlvbi5pc1BlbmRpbmd9CiAgICAgICAgICAgIGRhdGEtdGVzdGlkPSJidXR0b24tZGlzY29ubmVjdC1nb29nbGUiCiAgICAgICAgICA+CiAgICAgICAgICAgIHtkaXNjb25uZWN0TXV0YXRpb24uaXNQZW5kaW5nID8gKAogICAgICAgICAgICAgIDxMb2FkZXIyIGNsYXNzTmFtZT0ibXItMiBoLTQgdy00IGFuaW1hdGUtc3BpbiIgLz4KICAgICAgICAgICAgKSA6ICgKICAgICAgICAgICAgICA8VW5wbHVnIGNsYXNzTmFtZT0ibXItMiBoLTQgdy00IiAvPgogICAgICAgICAgICApfQogICAgICAgICAgICBEaXNjb25uZWN0IEdvb2dsZQogICAgICAgICAgPC9CdXR0b24+CiAgICAgICAgKSA6ICgKICAgICAgICAgIDxCdXR0b24KICAgICAgICAgICAgY2xhc3NOYW1lPSJ3LWZ1bGwiCiAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHsKICAgICAgICAgICAgICBpZiAoYXV0aFVybERhdGE/LnVybCkgd2luZG93LmxvY2F0aW9uLmhyZWYgPSBhdXRoVXJsRGF0YS51cmw7CiAgICAgICAgICAgIH19CiAgICAgICAgICAgIGRpc2FibGVkPXtzdGF0dXNMb2FkaW5nIHx8ICFhdXRoVXJsRGF0YT8udXJsfQogICAgICAgICAgICBkYXRhLXRlc3RpZD0iYnV0dG9uLWNvbm5lY3QtZ29vZ2xlIgogICAgICAgICAgPgogICAgICAgICAgICB7c3RhdHVzTG9hZGluZyA/ICgKICAgICAgICAgICAgICA8TG9hZGVyMiBjbGFzc05hbWU9Im1yLTIgaC00IHctNCBhbmltYXRlLXNwaW4iIC8+CiAgICAgICAgICAgICkgOiAoCiAgICAgICAgICAgICAgPEV4dGVybmFsTGluayBjbGFzc05hbWU9Im1yLTIgaC00IHctNCIgLz4KICAgICAgICAgICAgKX0KICAgICAgICAgICAgQ29ubmVjdCBHb29nbGUgQWNjb3VudAogICAgICAgICAgPC9CdXR0b24+CiAgICAgICAgKX0KICAgICAgPC9DYXJkQ29udGVudD4KICAgIDwvQ2FyZD4KICApOwp9CgpleHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBDb25uZWN0aW9ucygpIHsKICBjb25zdCB1dGlscyA9IHRycGMudXNlVXRpbHMoKTsKICBjb25zdCBzZWFyY2hTdHJpbmcgPSB1c2VTZWFyY2goKTsKICBjb25zdCBbaXNBZGRpbmcsIHNldElzQWRkaW5nXSA9IHVzZVN0YXRlKGZhbHNlKTsKICBjb25zdCBbc2hvd0NyZWRlbnRpYWxzLCBzZXRTaG93Q3JlZGVudGlhbHNdID0gdXNlU3RhdGUoZmFsc2UpOwoKICBjb25zdCBbcHJvdmlkZXIsIHNldFByb3ZpZGVyXSA9IHVzZVN0YXRlKCIiKTsKICBjb25zdCBbdHlwZSwgc2V0VHlwZV0gPSB1c2VTdGF0ZTwibGxtX2FwaV9rZXkiIHwgIm9hdXRoMiIgfCAiZ2VuZXJpY19hcGlfa2V5Ij4oImdlbmVyaWNfYXBpX2tleSIpOwogIGNvbnN0IFtkaXNwbGF5TmFtZSwgc2V0RGlzcGxheU5hbWVdID0gdXNlU3RhdGUoIiIpOwogIGNvbnN0IFtjcmVkZW50aWFscywgc2V0Q3JlZGVudGlhbHNdID0gdXNlU3RhdGUoIiIpOwoKICB1c2VFZmZlY3QoKCkgPT4gewogICAgY29uc3QgcGFyYW1zID0gbmV3IFVSTFNlYXJjaFBhcmFtcyhzZWFyY2hTdHJpbmcpOwogICAgY29uc3QgZ29vZ2xlUmVzdWx0ID0gcGFyYW1zLmdldCgiZ29vZ2xlIik7CiAgICBpZiAoZ29vZ2xlUmVzdWx0ID09PSAic3VjY2VzcyIpIHsKICAgICAgY29uc3QgZW1haWwgPSBwYXJhbXMuZ2V0KCJlbWFpbCIpIHx8ICIiOwogICAgICB0b2FzdC5zdWNjZXNzKGBHb29nbGUgY29ubmVjdGVkJHtlbWFpbCA/IGAgYXMgJHtlbWFpbH1gIDogIiJ9YCk7CiAgICAgIHdpbmRvdy5oaXN0b3J5LnJlcGxhY2VTdGF0ZSh7fSwgIiIsICIvY29ubmVjdGlvbnMiKTsKICAgIH0gZWxzZSBpZiAoZ29vZ2xlUmVzdWx0ID09PSAiZXJyb3IiKSB7CiAgICAgIGNvbnN0IHJlYXNvbiA9IHBhcmFtcy5nZXQoInJlYXNvbiIpIHx8ICJ1bmtub3duIjsKICAgICAgdG9hc3QuZXJyb3IoYEdvb2dsZSBjb25uZWN0aW9uIGZhaWxlZDogJHtyZWFzb259YCk7CiAgICAgIHdpbmRvdy5oaXN0b3J5LnJlcGxhY2VTdGF0ZSh7fSwgIiIsICIvY29ubmVjdGlvbnMiKTsKICAgIH0KICB9LCBbc2VhcmNoU3RyaW5nXSk7CgogIGNvbnN0IHsgZGF0YTogY29ubmVjdGlvbnMsIGlzTG9hZGluZyB9ID0gdHJwYy5jb25uZWN0aW9ucy5saXN0LnVzZVF1ZXJ5KCk7CgogIGNvbnN0IGFkZE11dGF0aW9uID0gdHJwYy5jb25uZWN0aW9ucy5hZGQudXNlTXV0YXRpb24oewogICAgb25TdWNjZXNzOiAoKSA9PiB7CiAgICAgIHRvYXN0LnN1Y2Nlc3MoIkNvbm5lY3Rpb24gYWRkZWQhIik7CiAgICAgIHV0aWxzLmNvbm5lY3Rpb25zLmxpc3QuaW52YWxpZGF0ZSgpOwogICAgICBzZXRJc0FkZGluZyhmYWxzZSk7CiAgICAgIHJlc2V0Rm9ybSgpOwogICAgfSwKICAgIG9uRXJyb3I6IChlcnIpID0+IHsKICAgICAgdG9hc3QuZXJyb3IoZXJyLm1lc3NhZ2UpOwogICAgfSwKICB9KTsKCiAgY29uc3QgcmV2b2tlTXV0YXRpb24gPSB0cnBjLmNvbm5lY3Rpb25zLnJldm9rZS51c2VNdXRhdGlvbih7CiAgICBvblN1Y2Nlc3M6ICgpID0+IHsKICAgICAgdG9hc3Quc3VjY2VzcygiQ29ubmVjdGlvbiByZXZva2VkISIpOwogICAgICB1dGlscy5jb25uZWN0aW9ucy5saXN0LmludmFsaWRhdGUoKTsKICAgIH0sCiAgICBvbkVycm9yOiAoZXJyKSA9PiB7CiAgICAgIHRvYXN0LmVycm9yKGVyci5tZXNzYWdlKTsKICAgIH0sCiAgfSk7CgogIGNvbnN0IHJlc2V0Rm9ybSA9ICgpID0+IHsKICAgIHNldFByb3ZpZGVyKCIiKTsKICAgIHNldFR5cGUoImdlbmVyaWNfYXBpX2tleSIpOwogICAgc2V0RGlzcGxheU5hbWUoIiIpOwogICAgc2V0Q3JlZGVudGlhbHMoIiIpOwogICAgc2V0U2hvd0NyZWRlbnRpYWxzKGZhbHNlKTsKICB9OwoKICBjb25zdCBoYW5kbGVBZGQgPSAoKSA9PiB7CiAgICBhZGRNdXRhdGlvbi5tdXRhdGUoewogICAgICBwcm92aWRlciwKICAgICAgdHlwZSwKICAgICAgZGlzcGxheU5hbWU6IGRpc3BsYXlOYW1lIHx8IHVuZGVmaW5lZCwKICAgICAgZW5jcnlwdGVkQ3JlZGVudGlhbHM6IGNyZWRlbnRpYWxzLAogICAgfSk7CiAgfTsKCiAgY29uc3QgaGFuZGxlUmV2b2tlID0gKGlkOiBudW1iZXIpID0+IHsKICAgIGlmIChjb25maXJtKCJBcmUgeW91IHN1cmUgeW91IHdhbnQgdG8gcmV2b2tlIHRoaXMgY29ubmVjdGlvbj8iKSkgewogICAgICByZXZva2VNdXRhdGlvbi5tdXRhdGUoeyBpZCB9KTsKICAgIH0KICB9OwoKICBpZiAoaXNMb2FkaW5nKSB7CiAgICByZXR1cm4gKAogICAgIDxkaXYgY2xhc3NOYW1lPSJzdXRhZXJ1LWVkaXRvcmlhbC1wYWdlIG14LWF1dG8gbWF4LXctNHhsIHB4LTMgcHktNiBzbTpweC00IHNtOnB5LTgiPgogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMiI+CiAgICAgICAgICA8TG9hZGVyMiBjbGFzc05hbWU9ImgtNCB3LTQgYW5pbWF0ZS1zcGluIiAvPgogICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJ0ZXh0LXNtIHRleHQtbXV0ZWQtZm9yZWdyb3VuZCI+TG9hZGluZyBjb25uZWN0aW9ucy4uLjwvc3Bhbj4KICAgICAgICA8L2Rpdj4KICAgICAgPC9kaXY+CiAgICApOwogIH0KCiAgcmV0dXJuICgKICAgIDxkaXYgY2xhc3NOYW1lPSJteC1hdXRvIG1heC13LTR4bCBweC00IHB5LTgiPgogICAgICB7LyogUGFnZSBoZWFkZXIgKi99CiAgICAgICA8ZGl2IGNsYXNzTmFtZT0ibWItOCBmbGV4IGZsZXgtd3JhcCBpdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuIGdhcC0zIj4KICAgICAgICA8ZGl2PgogICAgICAgICAgPGgxIGNsYXNzTmFtZT0iZm9udC1kaXNwbGF5IHRleHQtMnhsIGZvbnQtNzAwIHRleHQtZm9yZWdyb3VuZCI+Q29ubmVjdGlvbnM8L2gxPgogICAgICAgICAgPHAgY2xhc3NOYW1lPSJtdC0xIHRleHQtc20gdGV4dC1tdXRlZC1mb3JlZ3JvdW5kIj4KICAgICAgICAgICAgTWFuYWdlIGV4dGVybmFsIHNlcnZpY2UgY29ubmVjdGlvbnMgZm9yIHlvdXIgYWdlbnQKICAgICAgICAgIDwvcD4KICAgICAgICA8L2Rpdj4KICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTIiPgogICAgICAgICAgPEJ1dHRvbgogICAgICAgICAgICB2YXJpYW50PXtpc0FkZGluZyA/ICJzZWNvbmRhcnkiIDogImRlZmF1bHQifQogICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRJc0FkZGluZyghaXNBZGRpbmcpfQogICAgICAgICAgPgogICAgICAgICAgICB7aXNBZGRpbmcgPyAiQ2FuY2VsIiA6IDw+PFBsdXMgY2xhc3NOYW1lPSJtci0yIGgtNCB3LTQiIC8+IEFkZCBDb25uZWN0aW9uPC8+fQogICAgICAgICAgPC9CdXR0b24+CiAgICAgICAgPC9kaXY+CiAgICAgIDwvZGl2PgoKICAgICAgey8qIEdvb2dsZSBXb3Jrc3BhY2UgKi99CiAgICAgIDxHb29nbGVXb3Jrc3BhY2VDYXJkIC8+CgogICAgICB7LyogQWRkIENvbm5lY3Rpb24gRm9ybSAqL30KICAgICAge2lzQWRkaW5nICYmICgKICAgICAgICA8Q2FyZCBjbGFzc05hbWU9Im1iLTYiPgogICAgICAgICAgPENhcmRIZWFkZXI+CiAgICAgICAgICAgIDxDYXJkVGl0bGUgY2xhc3NOYW1lPSJ0ZXh0LWxnIj5BZGQgTmV3IENvbm5lY3Rpb248L0NhcmRUaXRsZT4KICAgICAgICAgICAgPENhcmREZXNjcmlwdGlvbj4KICAgICAgICAgICAgICBDb25uZWN0IHlvdXIgYWdlbnQgdG8gZXh0ZXJuYWwgc2VydmljZXMgYW5kIEFQSXMKICAgICAgICAgICAgPC9DYXJkRGVzY3JpcHRpb24+CiAgICAgICAgICA8L0NhcmRIZWFkZXI+CiAgICAgICAgICA8Q2FyZENvbnRlbnQgY2xhc3NOYW1lPSJzcGFjZS15LTQiPgogICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZ3JpZCBnYXAtNCBzbTpncmlkLWNvbHMtMiI+CiAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9InNwYWNlLXktMiI+CiAgICAgICAgICAgICAgICA8TGFiZWwgaHRtbEZvcj0icHJvdmlkZXIiPlByb3ZpZGVyICo8L0xhYmVsPgogICAgICAgICAgICAgICAgPElucHV0CiAgICAgICAgICAgICAgICAgIGlkPSJwcm92aWRlciIKICAgICAgICAgICAgICAgICAgcGxhY2Vob2xkZXI9ImUuZy4sIE9wZW5BSSwgU2xhY2ssIEdpdEh1YiIKICAgICAgICAgICAgICAgICAgdmFsdWU9e3Byb3ZpZGVyfQogICAgICAgICAgICAgICAgICBvbkNoYW5nZT17KGUpID0+IHNldFByb3ZpZGVyKGUudGFyZ2V0LnZhbHVlKX0KICAgICAgICAgICAgICAgIC8+CiAgICAgICAgICAgICAgPC9kaXY+CgogICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJzcGFjZS15LTIiPgogICAgICAgICAgICAgICAgPExhYmVsIGh0bWxGb3I9ImNvbm5UeXBlIj5UeXBlICo8L0xhYmVsPgogICAgICAgICAgICAgICAgPFNlbGVjdCB2YWx1ZT17dHlwZX0gb25WYWx1ZUNoYW5nZT17KHY6IGFueSkgPT4gc2V0VHlwZSh2KX0+CiAgICAgICAgICAgICAgICAgIDxTZWxlY3RUcmlnZ2VyPgogICAgICAgICAgICAgICAgICAgIDxTZWxlY3RWYWx1ZSAvPgogICAgICAgICAgICAgICAgICA8L1NlbGVjdFRyaWdnZXI+CiAgICAgICAgICAgICAgICAgIDxTZWxlY3RDb250ZW50PgogICAgICAgICAgICAgICAgICAgIDxTZWxlY3RJdGVtIHZhbHVlPSJsbG1fYXBpX2tleSI+TExNIEFQSSBLZXk8L1NlbGVjdEl0ZW0+CiAgICAgICAgICAgICAgICAgICAgPFNlbGVjdEl0ZW0gdmFsdWU9Im9hdXRoMiI+T0F1dGggMi4wPC9TZWxlY3RJdGVtPgogICAgICAgICAgICAgICAgICAgIDxTZWxlY3RJdGVtIHZhbHVlPSJnZW5lcmljX2FwaV9rZXkiPkdlbmVyaWMgQVBJIEtleTwvU2VsZWN0SXRlbT4KICAgICAgICAgICAgICAgICAgPC9TZWxlY3RDb250ZW50PgogICAgICAgICAgICAgICAgPC9TZWxlY3Q+CiAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgIDwvZGl2PgoKICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9InNwYWNlLXktMiI+CiAgICAgICAgICAgICAgPExhYmVsIGh0bWxGb3I9ImNvbm5EaXNwbGF5TmFtZSI+RGlzcGxheSBOYW1lPC9MYWJlbD4KICAgICAgICAgICAgICA8SW5wdXQKICAgICAgICAgICAgICAgIGlkPSJjb25uRGlzcGxheU5hbWUiCiAgICAgICAgICAgICAgICBwbGFjZWhvbGRlcj0iTXkgT3BlbkFJIEtleSIKICAgICAgICAgICAgICAgIHZhbHVlPXtkaXNwbGF5TmFtZX0KICAgICAgICAgICAgICAgIG9uQ2hhbmdlPXsoZSkgPT4gc2V0RGlzcGxheU5hbWUoZS50YXJnZXQudmFsdWUpfQogICAgICAgICAgICAgIC8+CiAgICAgICAgICAgIDwvZGl2PgoKICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9InNwYWNlLXktMiI+CiAgICAgICAgICAgICAgPExhYmVsIGh0bWxGb3I9ImNyZWRlbnRpYWxzIj5DcmVkZW50aWFscyAqPC9MYWJlbD4KICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0icmVsYXRpdmUiPgogICAgICAgICAgICAgICAgPExvY2sgY2xhc3NOYW1lPSJhYnNvbHV0ZSBsZWZ0LTMgdG9wLTEvMiAtdHJhbnNsYXRlLXktMS8yIGgtNCB3LTQgdGV4dC1tdXRlZC1mb3JlZ3JvdW5kIiAvPgogICAgICAgICAgICAgICAgPElucHV0CiAgICAgICAgICAgICAgICAgIGlkPSJjcmVkZW50aWFscyIKICAgICAgICAgICAgICAgICAgdHlwZT17c2hvd0NyZWRlbnRpYWxzID8gInRleHQiIDogInBhc3N3b3JkIn0KICAgICAgICAgICAgICAgICAgY2xhc3NOYW1lPSJwbC05IHByLTEwIgogICAgICAgICAgICAgICAgICBwbGFjZWhvbGRlcj0iQVBJIGtleSwgdG9rZW4sIG9yIGNyZWRlbnRpYWxzIgogICAgICAgICAgICAgICAgICB2YWx1ZT17Y3JlZGVudGlhbHN9CiAgICAgICAgICAgICAgICAgIG9uQ2hhbmdlPXsoZSkgPT4gc2V0Q3JlZGVudGlhbHMoZS50YXJnZXQudmFsdWUpfQogICAgICAgICAgICAgICAgLz4KICAgICAgICAgICAgICAgIDxCdXR0b24KICAgICAgICAgICAgICAgICAgdHlwZT0iYnV0dG9uIgogICAgICAgICAgICAgICAgICB2YXJpYW50PSJnaG9zdCIKICAgICAgICAgICAgICAgICAgc2l6ZT0ic20iCiAgICAgICAgICAgICAgICAgICBjbGFzc05hbWU9ImFic29sdXRlIHJpZ2h0LTEgdG9wLTEvMiAtdHJhbnNsYXRlLXktMS8yIGgtMTAgdy0xMCBwLTAiCiAgICAgICAgICAgICAgICAgICBhcmlhLWxhYmVsPXtzaG93Q3JlZGVudGlhbHMgPyAiSGlkZSBjcmVkZW50aWFscyIgOiAiU2hvdyBjcmVkZW50aWFscyJ9CiAgICAgICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHNldFNob3dDcmVkZW50aWFscyghc2hvd0NyZWRlbnRpYWxzKX0KICAgICAgICAgICAgICAgID4KICAgICAgICAgICAgICAgICAge3Nob3dDcmVkZW50aWFscyA/ICgKICAgICAgICAgICAgICAgICAgICA8RXllT2ZmIGNsYXNzTmFtZT0iaC00IHctNCB0ZXh0LW11dGVkLWZvcmVncm91bmQiIC8+CiAgICAgICAgICAgICAgICAgICkgOiAoCiAgICAgICAgICAgICAgICAgICAgPEV5ZSBjbGFzc05hbWU9ImgtNCB3LTQgdGV4dC1tdXRlZC1mb3JlZ3JvdW5kIiAvPgogICAgICAgICAgICAgICAgICApfQogICAgICAgICAgICAgICAgPC9CdXR0b24+CiAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPSJ0ZXh0LXhzIHRleHQtbXV0ZWQtZm9yZWdyb3VuZCI+CiAgICAgICAgICAgICAgICBZb3VyIGNyZWRlbnRpYWxzIGFyZSBlbmNyeXB0ZWQgYmVmb3JlIHN0b3JhZ2UKICAgICAgICAgICAgICA8L3A+CiAgICAgICAgICAgIDwvZGl2PgoKICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXgganVzdGlmeS1lbmQgZ2FwLTIgcHQtMiI+CiAgICAgICAgICAgICAgPEJ1dHRvbiB2YXJpYW50PSJvdXRsaW5lIiBvbkNsaWNrPXsoKSA9PiBzZXRJc0FkZGluZyhmYWxzZSl9PgogICAgICAgICAgICAgICAgQ2FuY2VsCiAgICAgICAgICAgICAgPC9CdXR0b24+CiAgICAgICAgICAgICAgPEJ1dHRvbgogICAgICAgICAgICAgICAgb25DbGljaz17aGFuZGxlQWRkfQogICAgICAgICAgICAgICAgZGlzYWJsZWQ9eyFwcm92aWRlciB8fCAhY3JlZGVudGlhbHMgfHwgYWRkTXV0YXRpb24uaXNQZW5kaW5nfQogICAgICAgICAgICAgID4KICAgICAgICAgICAgICAgIHthZGRNdXRhdGlvbi5pc1BlbmRpbmcgJiYgKAogICAgICAgICAgICAgICAgICA8TG9hZGVyMiBjbGFzc05hbWU9Im1yLTIgaC00IHctNCBhbmltYXRlLXNwaW4iIC8+CiAgICAgICAgICAgICAgICApfQogICAgICAgICAgICAgICAgQWRkIENvbm5lY3Rpb24KICAgICAgICAgICAgICA8L0J1dHRvbj4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICA8L0NhcmRDb250ZW50PgogICAgICAgIDwvQ2FyZD4KICAgICAgKX0KCiAgICAgIHsvKiBDb25uZWN0aW9ucyBHcmlkICovfQogICAgICB7Y29ubmVjdGlvbnMgJiYgY29ubmVjdGlvbnMubGVuZ3RoID4gMCA/ICgKICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZ3JpZCBnYXAtNCBzbTpncmlkLWNvbHMtMiI+CiAgICAgICAgICB7Y29ubmVjdGlvbnMubWFwKChjb25uZWN0aW9uKSA9PiB7CiAgICAgICAgICAgIGNvbnN0IFR5cGVJY29uID0gY29ubmVjdGlvblR5cGVJY29uc1tjb25uZWN0aW9uLnR5cGVdOwogICAgICAgICAgICBjb25zdCBTdGF0dXNJY29uID0gc3RhdHVzQ29uZmlnW2Nvbm5lY3Rpb24uc3RhdHVzXS5pY29uOwogICAgICAgICAgICBjb25zdCBzdGF0dXNDb2xvciA9IHN0YXR1c0NvbmZpZ1tjb25uZWN0aW9uLnN0YXR1c10uY29sb3I7CiAgICAgICAgICAgIGNvbnN0IGlzQWN0aXZlID0gY29ubmVjdGlvbi5zdGF0dXMgPT09ICJhY3RpdmUiOwoKICAgICAgICAgICAgcmV0dXJuICgKICAgICAgICAgICAgICA8Q2FyZAogICAgICAgICAgICAgICAga2V5PXtjb25uZWN0aW9uLmlkfQogICAgICAgICAgICAgICAgY2xhc3NOYW1lPXtjbigKICAgICAgICAgICAgICAgICAgIWlzQWN0aXZlICYmICJvcGFjaXR5LTc1IgogICAgICAgICAgICAgICAgKX0KICAgICAgICAgICAgICA+CiAgICAgICAgICAgICAgICA8Q2FyZEhlYWRlciBjbGFzc05hbWU9InBiLTMiPgogICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggZmxleC13cmFwIGl0ZW1zLXN0YXJ0IGp1c3RpZnktYmV0d2VlbiBnYXAtMyI+CiAgICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IG1pbi13LTAgaXRlbXMtY2VudGVyIGdhcC0zIj4KICAgICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPXtjbigKICAgICAgICAgICAgICAgICAgICAgICAgImZsZXggaC0xMCB3LTEwIGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWNlbnRlciByb3VuZGVkLWxnIiwKICAgICAgICAgICAgICAgICAgICAgICAgY29ubmVjdGlvblR5cGVDb2xvcnNbY29ubmVjdGlvbi50eXBlXS5zcGxpdCgiICIpWzBdCiAgICAgICAgICAgICAgICAgICAgICApfT4KICAgICAgICAgICAgICAgICAgICAgICAgPFR5cGVJY29uIGNsYXNzTmFtZT0iaC01IHctNSIgLz4KICAgICAgICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJtaW4tdy0wIj4KICAgICAgICAgICAgICAgICAgICAgICAgIDxDYXJkVGl0bGUgY2xhc3NOYW1lPSJ0ZXh0LWJhc2UgYnJlYWstd29yZHMiPgogICAgICAgICAgICAgICAgICAgICAgICAgIHtjb25uZWN0aW9uLmRpc3BsYXlOYW1lIHx8IGNvbm5lY3Rpb24ucHJvdmlkZXJ9CiAgICAgICAgICAgICAgICAgICAgICAgIDwvQ2FyZFRpdGxlPgogICAgICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTIgbXQtMC41Ij4KICAgICAgICAgICAgICAgICAgICAgICAgICA8QmFkZ2UKICAgICAgICAgICAgICAgICAgICAgICAgICAgIHZhcmlhbnQ9Im91dGxpbmUiCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBjbGFzc05hbWU9e2NuKCJ0ZXh0LXhzIiwgY29ubmVjdGlvblR5cGVDb2xvcnNbY29ubmVjdGlvbi50eXBlXSl9CiAgICAgICAgICAgICAgICAgICAgICAgICAgPgogICAgICAgICAgICAgICAgICAgICAgICAgICAge2Nvbm5lY3Rpb25UeXBlTGFiZWxzW2Nvbm5lY3Rpb24udHlwZV19CiAgICAgICAgICAgICAgICAgICAgICAgICAgPC9CYWRnZT4KICAgICAgICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgICAgICA8L2Rpdj4KCiAgICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggaXRlbXMtY2VudGVyIGdhcC0xLjUiPgogICAgICAgICAgICAgICAgICAgICAgPFN0YXR1c0ljb24gY2xhc3NOYW1lPXtjbigiaC00IHctNCIsIHN0YXR1c0NvbG9yKX0gLz4KICAgICAgICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT17Y24oInRleHQteHMgZm9udC1tZWRpdW0iLCBzdGF0dXNDb2xvcil9PgogICAgICAgICAgICAgICAgICAgICAgICB7c3RhdHVzQ29uZmlnW2Nvbm5lY3Rpb24uc3RhdHVzXS5sYWJlbH0KICAgICAgICAgICAgICAgICAgICAgIDwvc3Bhbj4KICAgICAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICA8L0NhcmRIZWFkZXI+CgogICAgICAgICAgICAgICAgPENhcmRDb250ZW50IGNsYXNzTmFtZT0icHQtMCI+CiAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJzcGFjZS15LTIiPgogICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW4gdGV4dC1zbSI+CiAgICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9InRleHQtbXV0ZWQtZm9yZWdyb3VuZCI+UHJvdmlkZXI8L3NwYW4+CiAgICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9ImZvbnQtbWVkaXVtIGNhcGl0YWxpemUiPntjb25uZWN0aW9uLnByb3ZpZGVyfTwvc3Bhbj4KICAgICAgICAgICAgICAgICAgICA8L2Rpdj4KCiAgICAgICAgICAgICAgICAgICAge2Nvbm5lY3Rpb24ubGFzdFVzZWRBdCAmJiAoCiAgICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuIHRleHQtc20iPgogICAgICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9InRleHQtbXV0ZWQtZm9yZWdyb3VuZCI+TGFzdCBVc2VkPC9zcGFuPgogICAgICAgICAgICAgICAgICAgICAgICA8c3Bhbj57Zm9ybWF0KG5ldyBEYXRlKGNvbm5lY3Rpb24ubGFzdFVzZWRBdCksICJNTU0gZCwgeXl5eSIpfTwvc3Bhbj4KICAgICAgICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgICAgICl9CgogICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW4gdGV4dC1zbSI+CiAgICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9InRleHQtbXV0ZWQtZm9yZWdyb3VuZCI+QWRkZWQ8L3NwYW4+CiAgICAgICAgICAgICAgICAgICAgICA8c3Bhbj57Zm9ybWF0KG5ldyBEYXRlKGNvbm5lY3Rpb24uY3JlYXRlZEF0KSwgIk1NTSBkLCB5eXl5Iil9PC9zcGFuPgogICAgICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgICA8L2Rpdj4KCiAgICAgICAgICAgICAgICAgIHtpc0FjdGl2ZSAmJiAoCiAgICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9Im10LTQgcHQtMyBib3JkZXItdCI+CiAgICAgICAgICAgICAgICAgICAgICA8QnV0dG9uCiAgICAgICAgICAgICAgICAgICAgICAgIHZhcmlhbnQ9Im91dGxpbmUiCiAgICAgICAgICAgICAgICAgICAgICAgIHNpemU9InNtIgogICAgICAgICAgICAgICAgICAgICAgICBjbGFzc05hbWU9InctZnVsbCB0ZXh0LWRlc3RydWN0aXZlIGhvdmVyOmJnLWRlc3RydWN0aXZlLzEwIGhvdmVyOnRleHQtZGVzdHJ1Y3RpdmUiCiAgICAgICAgICAgICAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IGhhbmRsZVJldm9rZShjb25uZWN0aW9uLmlkKX0KICAgICAgICAgICAgICAgICAgICAgICAgZGlzYWJsZWQ9e3Jldm9rZU11dGF0aW9uLmlzUGVuZGluZ30KICAgICAgICAgICAgICAgICAgICAgID4KICAgICAgICAgICAgICAgICAgICAgICAgPEJhbiBjbGFzc05hbWU9Im1yLTIgaC00IHctNCIgLz4KICAgICAgICAgICAgICAgICAgICAgICAgUmV2b2tlIENvbm5lY3Rpb24KICAgICAgICAgICAgICAgICAgICAgIDwvQnV0dG9uPgogICAgICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgICApfQogICAgICAgICAgICAgICAgPC9DYXJkQ29udGVudD4KICAgICAgICAgICAgICA8L0NhcmQ+CiAgICAgICAgICAgICk7CiAgICAgICAgICB9KX0KICAgICAgICA8L2Rpdj4KICAgICAgKSA6ICgKICAgICAgICA8ZGl2IGNsYXNzTmFtZT0ic3BhY2UteS00Ij4KICAgICAgICAgIDxDYXJkIGNsYXNzTmFtZT0iYm9yZGVyLWRhc2hlZCI+CiAgICAgICAgICAgIDxDYXJkQ29udGVudCBjbGFzc05hbWU9ImZsZXggZmxleC1jb2wgaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHB5LTEyIj4KICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBoLTEyIHctMTIgaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHJvdW5kZWQtZnVsbCBiZy1tdXRlZCI+CiAgICAgICAgICAgICAgICA8UGx1ZyBjbGFzc05hbWU9ImgtNiB3LTYgdGV4dC1tdXRlZC1mb3JlZ3JvdW5kIiAvPgogICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgIDxoMyBjbGFzc05hbWU9Im10LTQgdGV4dC1sZyBmb250LW1lZGl1bSI+Tm8gY29ubmVjdGlvbnMgeWV0PC9oMz4KICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9Im10LTEgdGV4dC1zbSB0ZXh0LW11dGVkLWZvcmVncm91bmQgdGV4dC1jZW50ZXIgbWF4LXctc20iPgogICAgICAgICAgICAgICAgQWRkIGNvbm5lY3Rpb25zIHRvIGVuYWJsZSB5b3VyIFN1dGFlcnUgYWdlbnQgdG8gaW50ZXJhY3Qgd2l0aCBleHRlcm5hbCBzZXJ2aWNlcwogICAgICAgICAgICAgIDwvcD4KICAgICAgICAgICAgICA8QnV0dG9uIGNsYXNzTmFtZT0ibXQtNCIgb25DbGljaz17KCkgPT4gc2V0SXNBZGRpbmcodHJ1ZSl9PgogICAgICAgICAgICAgICAgPFBsdXMgY2xhc3NOYW1lPSJtci0yIGgtNCB3LTQiIC8+CiAgICAgICAgICAgICAgICBBZGQgQ29ubmVjdGlvbgogICAgICAgICAgICAgIDwvQnV0dG9uPgogICAgICAgICAgICA8L0NhcmRDb250ZW50PgogICAgICAgICAgPC9DYXJkPgogICAgICAgIDwvZGl2PgogICAgICApfQogICAgPC9kaXY+CiAgKTsKfQo=
+import { PAGE_BG, NOISE_OVERLAY, CSS_ANIM } from '@/lib/design';
+import { useState, useEffect } from "react";
+import { trpc } from "@/lib/trpc";
+import { useSearch } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import {
+  Plug,
+  Loader2,
+  Plus,
+  Ban,
+  Key,
+  Lock,
+  Globe,
+  Cpu,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Eye,
+  EyeOff,
+  Mail,
+  Calendar,
+  HardDrive,
+  ExternalLink,
+  Unplug,
+} from "lucide-react";
+import { SiGoogle } from "react-icons/si";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+
+const connectionTypeIcons = {
+  llm_api_key: Cpu,
+  oauth2: Globe,
+  generic_api_key: Key,
+};
+const connectionTypeLabels = {
+  llm_api_key: "LLM API Key",
+  oauth2: "OAuth 2.0",
+  generic_api_key: "API Key",
+};
+const connectionTypeColors = {
+  llm_api_key: "bg-violet-500/10 text-violet-600 border-violet-500/20",
+  oauth2: "bg-sky-500/10 text-sky-600 border-sky-500/20",
+  generic_api_key: "bg-slate-500/10 text-slate-600 border-slate-500/20",
+};
+const statusConfig = {
+  active: { icon: CheckCircle2, color: "text-emerald-500", label: "Active" },
+  revoked: { icon: XCircle, color: "text-red-500", label: "Revoked" },
+  expired: { icon: Clock, color: "text-amber-500", label: "Expired" },
+};
+
+function GoogleWorkspaceCard() {
+  const utils = trpc.useUtils();
+  const { data: configured } = trpc.google.configured.useQuery();
+  const { data: status, isLoading: statusLoading } = trpc.google.status.useQuery(undefined, {
+    enabled: !!configured?.configured,
+  });
+  const { data: authUrlData } = trpc.google.getAuthUrl.useQuery(undefined, {
+    enabled: !!configured?.configured && !status?.connected,
+  });
+
+  const disconnectMutation = trpc.google.disconnect.useMutation({
+    onSuccess: () => {
+      toast.success("Google account disconnected");
+      utils.google.status.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  if (!configured?.configured) {
+    return (
+      <Card className="mb-6 border-dashed border-muted-foreground/30" data-testid="card-google-not-configured">
+       <CardContent className="flex flex-wrap items-center gap-4 py-6">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
+            <SiGoogle className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-medium text-foreground">Google Workspace</h3>
+            <p className="text-sm text-muted-foreground">
+              Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable Gmail, Calendar & Drive
+            </p>
+          </div>
+          <Badge variant="outline" className="text-muted-foreground">Not Configured</Badge>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="mb-6" data-testid="card-google-workspace">
+      <CardHeader className="pb-3">
+         <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-red-500/10">
+              <SiGoogle className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Google Workspace</CardTitle>
+              <CardDescription>
+                {status?.connected
+                  ? `Connected as ${status.email}`
+                  : "Connect Gmail, Calendar & Drive to S1"}
+              </CardDescription>
+            </div>
+          </div>
+          {status?.connected ? (
+            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Connected</Badge>
+          ) : (
+            <Badge variant="outline" className="text-muted-foreground">Disconnected</Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+         <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-3 mb-4">
+          <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
+            <Mail className="h-4 w-4 text-red-500" />
+            <span className="text-sm">Gmail</span>
+          </div>
+          <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
+            <Calendar className="h-4 w-4 text-blue-500" />
+            <span className="text-sm">Calendar</span>
+          </div>
+          <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
+            <HardDrive className="h-4 w-4 text-yellow-500" />
+            <span className="text-sm">Drive</span>
+          </div>
+        </div>
+
+        {status?.connected ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-destructive hover:bg-destructive/10"
+            onClick={() => disconnectMutation.mutate()}
+            disabled={disconnectMutation.isPending}
+            data-testid="button-disconnect-google"
+          >
+            {disconnectMutation.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Unplug className="mr-2 h-4 w-4" />
+            )}
+            Disconnect Google
+          </Button>
+        ) : (
+          <Button
+            className="w-full"
+            onClick={() => {
+              if (authUrlData?.url) window.location.href = authUrlData.url;
+            }}
+            disabled={statusLoading || !authUrlData?.url}
+            data-testid="button-connect-google"
+          >
+            {statusLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <ExternalLink className="mr-2 h-4 w-4" />
+            )}
+            Connect Google Account
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function Connections() {
+  const utils = trpc.useUtils();
+  const searchString = useSearch();
+  const [isAdding, setIsAdding] = useState(false);
+  const [showCredentials, setShowCredentials] = useState(false);
+
+  const [provider, setProvider] = useState("");
+  const [type, setType] = useState<"llm_api_key" | "oauth2" | "generic_api_key">("generic_api_key");
+  const [displayName, setDisplayName] = useState("");
+  const [credentials, setCredentials] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchString);
+    const googleResult = params.get("google");
+    if (googleResult === "success") {
+      const email = params.get("email") || "";
+      toast.success(`Google connected${email ? ` as ${email}` : ""}`);
+      window.history.replaceState({}, "", "/connections");
+    } else if (googleResult === "error") {
+      const reason = params.get("reason") || "unknown";
+      toast.error(`Google connection failed: ${reason}`);
+      window.history.replaceState({}, "", "/connections");
+    }
+  }, [searchString]);
+
+  const { data: connections, isLoading } = trpc.connections.list.useQuery();
+
+  const addMutation = trpc.connections.add.useMutation({
+    onSuccess: () => {
+      toast.success("Connection added!");
+      utils.connections.list.invalidate();
+      setIsAdding(false);
+      resetForm();
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    },
+  });
+
+  const revokeMutation = trpc.connections.revoke.useMutation({
+    onSuccess: () => {
+      toast.success("Connection revoked!");
+      utils.connections.list.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    },
+  });
+
+  const resetForm = () => {
+    setProvider("");
+    setType("generic_api_key");
+    setDisplayName("");
+    setCredentials("");
+    setShowCredentials(false);
+  };
+
+  const handleAdd = () => {
+    addMutation.mutate({
+      provider,
+      type,
+      displayName: displayName || undefined,
+      encryptedCredentials: credentials,
+    });
+  };
+
+  const handleRevoke = (id: number) => {
+    if (confirm("Are you sure you want to revoke this connection?")) {
+      revokeMutation.mutate({ id });
+    }
+  };
+
+  if (isLoading) {
+    return (
+     <div className="sutaeru-editorial-page mx-auto max-w-4xl px-3 py-6 sm:px-4 sm:py-8">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm text-muted-foreground">Loading connections...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-8">
+      {/* Page header */}
+       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-700 text-foreground">Connections</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage external service connections for your agent
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={isAdding ? "secondary" : "default"}
+            onClick={() => setIsAdding(!isAdding)}
+          >
+            {isAdding ? "Cancel" : <><Plus className="mr-2 h-4 w-4" /> Add Connection</>}
+          </Button>
+        </div>
+      </div>
+
+      {/* Google Workspace */}
+      <GoogleWorkspaceCard />
+
+      {/* Add Connection Form */}
+      {isAdding && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Add New Connection</CardTitle>
+            <CardDescription>
+              Connect your agent to external services and APIs
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="provider">Provider *</Label>
+                <Input
+                  id="provider"
+                  placeholder="e.g., OpenAI, Slack, GitHub"
+                  value={provider}
+                  onChange={(e) => setProvider(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="connType">Type *</Label>
+                <Select value={type} onValueChange={(v: any) => setType(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="llm_api_key">LLM API Key</SelectItem>
+                    <SelectItem value="oauth2">OAuth 2.0</SelectItem>
+                    <SelectItem value="generic_api_key">Generic API Key</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="connDisplayName">Display Name</Label>
+              <Input
+                id="connDisplayName"
+                placeholder="My OpenAI Key"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="credentials">Credentials *</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="credentials"
+                  type={showCredentials ? "text" : "password"}
+                  className="pl-9 pr-10"
+                  placeholder="API key, token, or credentials"
+                  value={credentials}
+                  onChange={(e) => setCredentials(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                   className="absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10 p-0"
+                   aria-label={showCredentials ? "Hide credentials" : "Show credentials"}
+                  onClick={() => setShowCredentials(!showCredentials)}
+                >
+                  {showCredentials ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Your credentials are encrypted before storage
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setIsAdding(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAdd}
+                disabled={!provider || !credentials || addMutation.isPending}
+              >
+                {addMutation.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Add Connection
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Connections Grid */}
+      {connections && connections.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {connections.map((connection) => {
+            const TypeIcon = connectionTypeIcons[connection.type];
+            const StatusIcon = statusConfig[connection.status].icon;
+            const statusColor = statusConfig[connection.status].color;
+            const isActive = connection.status === "active";
+
+            return (
+              <Card
+                key={connection.id}
+                className={cn(
+                  !isActive && "opacity-75"
+                )}
+              >
+                <CardHeader className="pb-3">
+                   <div className="flex flex-wrap items-start justify-between gap-3">
+                     <div className="flex min-w-0 items-center gap-3">
+                      <div className={cn(
+                        "flex h-10 w-10 items-center justify-center rounded-lg",
+                        connectionTypeColors[connection.type].split(" ")[0]
+                      )}>
+                        <TypeIcon className="h-5 w-5" />
+                      </div>
+                       <div className="min-w-0">
+                         <CardTitle className="text-base break-words">
+                          {connection.displayName || connection.provider}
+                        </CardTitle>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Badge
+                            variant="outline"
+                            className={cn("text-xs", connectionTypeColors[connection.type])}
+                          >
+                            {connectionTypeLabels[connection.type]}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <StatusIcon className={cn("h-4 w-4", statusColor)} />
+                      <span className={cn("text-xs font-medium", statusColor)}>
+                        {statusConfig[connection.status].label}
+                      </span>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="pt-0">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Provider</span>
+                      <span className="font-medium capitalize">{connection.provider}</span>
+                    </div>
+
+                    {connection.lastUsedAt && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Last Used</span>
+                        <span>{format(new Date(connection.lastUsedAt), "MMM d, yyyy")}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Added</span>
+                      <span>{format(new Date(connection.createdAt), "MMM d, yyyy")}</span>
+                    </div>
+                  </div>
+
+                  {isActive && (
+                    <div className="mt-4 pt-3 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => handleRevoke(connection.id)}
+                        disabled={revokeMutation.isPending}
+                      >
+                        <Ban className="mr-2 h-4 w-4" />
+                        Revoke Connection
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                <Plug className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <h3 className="mt-4 text-lg font-medium">No connections yet</h3>
+              <p className="mt-1 text-sm text-muted-foreground text-center max-w-sm">
+                Add connections to enable your Sutaeru agent to interact with external services
+              </p>
+              <Button className="mt-4" onClick={() => setIsAdding(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Connection
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}

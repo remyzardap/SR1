@@ -1,1 +1,498 @@
-LyoqCiAqIFVuaXZlcnNhbCBCbG9jayBDb21wb25lbnQKICogUmVuZGVycyBhbnkgYmxvY2sgdHlwZSB3aXRoIGNvbnNpc3RlbnQgYWN0aW9uIGJhcjogcGluLCBmb3JrLCBsb2NrLCBhcmNoaXZlLCBwZXJtYWxpbmssIGNvcHkKICoKICog4pyoIE1vZGVybiBVWCBGZWF0dXJlczoKICogLSBTcHJpbmcgcGh5c2ljcyBhbmltYXRpb25zIChzbmFwcHkgY29sbGFwc2UvZXhwYW5kKQogKiAtIEFsd2F5cy12aXNpYmxlIGNvbGxhcHNlIGluZGljYXRvciAobGVmdCBzdHJpcCkKICogLSBQZWVrIHByZXZpZXcgb24gaG92ZXIgd2hlbiBjb2xsYXBzZWQKICogLSBIYXB0aWMtbGlrZSB2aXN1YWwgZmVlZGJhY2sgb24gaW50ZXJhY3Rpb25zCiAqIC0gS2V5Ym9hcmQgc2hvcnRjdXRzIChTcGFjZSB0byB0b2dnbGUsIGFycm93cyB0byBuYXZpZ2F0ZSkKICogLSBTbWFydCBjb250ZW50IHByZXZpZXcKICovCgppbXBvcnQgeyB1c2VTdGF0ZSwgdXNlUmVmLCB1c2VDYWxsYmFjaywgdXNlRWZmZWN0IH0gZnJvbSAicmVhY3QiOwppbXBvcnQgeyBtb3Rpb24sIEFuaW1hdGVQcmVzZW5jZSwgdXNlTW90aW9uVmFsdWUsIHVzZVNwcmluZywgdXNlVHJhbnNmb3JtIH0gZnJvbSAiZnJhbWVyLW1vdGlvbiI7CmltcG9ydCB7IHRycGMgfSBmcm9tICJAL2xpYi90cnBjIjsKaW1wb3J0IHsgdG9hc3QgfSBmcm9tICJzb25uZXIiOwppbXBvcnQgewogIFBpbiwgUGluT2ZmLCBHaXRGb3JrLCBMb2NrLCBVbmxvY2ssIEFyY2hpdmUsCiAgTGluazIsIENoZXZyb25Eb3duLCBDaGV2cm9uVXAsIE1lc3NhZ2VTcXVhcmUsCiAgRmlsZVRleHQsIEJvb2tPcGVuLCBDaGVja1NxdWFyZSwgUGxheSwgTWljLAogIExheW91dERhc2hib2FyZCwgU3RpY2t5Tm90ZSwgQ29weSwgU3BhcmtsZXMsCiAgRXllLAp9IGZyb20gImx1Y2lkZS1yZWFjdCI7CgpleHBvcnQgdHlwZSBCbG9ja1R5cGUgPSAiY2hhdCIgfCAiYXRlbGllciIgfCAibWVtb3J5IiB8ICJ0YXNrIiB8ICJtZWRpYSIgfCAidHJhbnNjcmlwdCIgfCAid2lkZ2V0IiB8ICJub3RlIjsKZXhwb3J0IHR5cGUgQmxvY2tTb3VyY2UgPSAiczEiIHwgImF0ZWxpZXIiIHwgImhlciIgfCAidXNlciIgfCAiZmVlZCIgfCAic3lzdGVtIjsKCmV4cG9ydCBpbnRlcmZhY2UgQmxvY2tEYXRhIHsKICBpZDogc3RyaW5nOwogIHR5cGU6IEJsb2NrVHlwZTsKICBzb3VyY2U6IEJsb2NrU291cmNlOwogIHBhcmVudElkPzogc3RyaW5nIHwgbnVsbDsKICBzZXNzaW9uSWQ/OiBzdHJpbmcgfCBudWxsOwogIHRpdGxlPzogc3RyaW5nIHwgbnVsbDsKICBjb250ZW50OiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPjsKICBhZ2VudElkPzogc3RyaW5nIHwgbnVsbDsKICBwaW5uZWQ6IGJvb2xlYW47CiAgbG9ja2VkOiBib29sZWFuOwogIGFyY2hpdmVkOiBib29sZWFuOwogIHRhZ3M6IHN0cmluZ1tdIHwgdW5rbm93bjsKICBwb3NpdGlvbjogbnVtYmVyOwogIGNyZWF0ZWRBdDogc3RyaW5nIHwgRGF0ZTsKICB1cGRhdGVkQXQ6IHN0cmluZyB8IERhdGU7Cn0KCmNvbnN0IFRZUEVfSUNPTjogUmVjb3JkPEJsb2NrVHlwZSwgUmVhY3QuRWxlbWVudFR5cGU+ID0gewogIGNoYXQ6IE1lc3NhZ2VTcXVhcmUsIGF0ZWxpZXI6IEZpbGVUZXh0LCBtZW1vcnk6IEJvb2tPcGVuLAogIHRhc2s6IENoZWNrU3F1YXJlLCBtZWRpYTogUGxheSwgdHJhbnNjcmlwdDogTWljLAogIHdpZGdldDogTGF5b3V0RGFzaGJvYXJkLCBub3RlOiBTdGlja3lOb3RlLAp9OwoKY29uc3QgVFlQRV9DT0xPUjogUmVjb3JkPEJsb2NrVHlwZSwgc3RyaW5nPiA9IHsKICBjaGF0OiAiI2YyZjJmMiIsIGF0ZWxpZXI6ICIjYTc4YmZhIiwgbWVtb3J5OiAiI2Y1OWUwYiIsCiAgdGFzazogIiMyZGQ0YmYiLCBtZWRpYTogIiNmOTczMTYiLCB0cmFuc2NyaXB0OiAiI2Y0M2Y1ZSIsCiAgd2lkZ2V0OiAiIzAwNjlmZiIsIG5vdGU6ICIjODRjYzE2IiwKfTsKCmNvbnN0IEFHRU5UX0NPTE9SUzogUmVjb3JkPHN0cmluZywgc3RyaW5nPiA9IHsKICBjbGF1ZGU6ICIjZjk3MzE2Iiwga2ltaTogIiNmNTllMGIiLCBzb25hcjogIiMyZGQ0YmYiLAogIGxpdGVsbG06ICIjOGI1Y2Y2IiwgczE6ICIjZjJmMmYyIiwKfTsKCi8vIOKUgOKUgOKUgCBDb250ZW50IHJlbmRlcmVycyDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKCmZ1bmN0aW9uIENoYXRDb250ZW50KHsgY29udGVudCB9OiB7IGNvbnRlbnQ6IFJlY29yZDxzdHJpbmcsIHVua25vd24+IH0pIHsKICByZXR1cm4gKAogICAgPHAgY2xhc3NOYW1lPSJ0ZXh0LVsxNHB4XSBsZWFkaW5nLXJlbGF4ZWQgd2hpdGVzcGFjZS1wcmUtd3JhcCBsaW5lLWNsYW1wLTYiCiAgICAgIHN0eWxlPXt7IGNvbG9yOiAicmdiYSgyNDIsMjQyLDI0MiwwLjgwKSIgfX0+CiAgICAgIHsoY29udGVudC50ZXh0IGFzIHN0cmluZykgPz8gIiJ9CiAgICA8L3A+CiAgKTsKfQoKZnVuY3Rpb24gQXRlbGllckNvbnRlbnQoeyBjb250ZW50IH06IHsgY29udGVudDogUmVjb3JkPHN0cmluZywgdW5rbm93bj4gfSkgewogIGNvbnN0IHNlY3Rpb25zID0gKGNvbnRlbnQuc2VjdGlvbnMgYXMgQXJyYXk8eyB0aXRsZT86IHN0cmluZzsgdHlwZT86IHN0cmluZyB9PikgPz8gW107CiAgcmV0dXJuICgKICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGZsZXgtY29sIGdhcC0yIj4KICAgICAge2NvbnRlbnQucmVwb3J0VGl0bGUgJiYgKAogICAgICAgIDxwIGNsYXNzTmFtZT0idGV4dC1zbSBmb250LXNlbWlib2xkIiBzdHlsZT17eyBjb2xvcjogIiNmMmYyZjIiIH19Pntjb250ZW50LnJlcG9ydFRpdGxlIGFzIHN0cmluZ308L3A+CiAgICAgICl9CiAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGZsZXgtd3JhcCBnYXAtMS41Ij4KICAgICAgICB7c2VjdGlvbnMuc2xpY2UoMCwgNSkubWFwKChzLCBpKSA9PiAoCiAgICAgICAgICA8c3BhbiBrZXk9e2l9IGNsYXNzTmFtZT0idGV4dC1bMTFweF0gcHgtMiBweS0wLjUgcm91bmRlZC1mdWxsIgogICAgICAgICAgICBzdHlsZT17eyBiYWNrZ3JvdW5kOiAicmdiYSgxNjcsMTM5LDI1MCwwLjEwKSIsIGJvcmRlcjogIjFweCBzb2xpZCByZ2JhKDE2NywxMzksMjUwLDAuMTgpIiwgY29sb3I6ICIjYTc4YmZhIiB9fT4KICAgICAgICAgICAge3MudGl0bGUgPz8gcy50eXBlID8/IGBTZWN0aW9uICR7aSArIDF9YH0KICAgICAgICAgIDwvc3Bhbj4KICAgICAgICApKX0KICAgICAgICB7c2VjdGlvbnMubGVuZ3RoID4gNSAmJiAoCiAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9InRleHQtWzExcHhdIiBzdHlsZT17eyBjb2xvcjogInJnYmEoMjQyLDI0MiwyNDIsMC4zKSIgfX0+K3tzZWN0aW9ucy5sZW5ndGggLSA1fSBtb3JlPC9zcGFuPgogICAgICAgICl9CiAgICAgIDwvZGl2PgogICAgICB7Y29udGVudC5wcmV2aWV3ICYmICgKICAgICAgICA8cCBjbGFzc05hbWU9InRleHQtWzEzcHhdIGxpbmUtY2xhbXAtMiIgc3R5bGU9e3sgY29sb3I6ICJyZ2JhKDI0MiwyNDIsMjQyLDAuNDUpIiB9fT57Y29udGVudC5wcmV2aWV3IGFzIHN0cmluZ308L3A+CiAgICAgICl9CiAgICA8L2Rpdj4KICApOwp9CgpmdW5jdGlvbiBNZW1vcnlDb250ZW50KHsgY29udGVudCB9OiB7IGNvbnRlbnQ6IFJlY29yZDxzdHJpbmcsIHVua25vd24+IH0pIHsKICByZXR1cm4gKAogICAgPGRpdj4KICAgICAge2NvbnRlbnQubWVtb3J5VHlwZSAmJiAoCiAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJ0ZXh0LVsxMHB4XSB1cHBlcmNhc2UgdHJhY2tpbmctd2lkZXN0IGZvbnQtc2VtaWJvbGQiCiAgICAgICAgICBzdHlsZT17eyBjb2xvcjogIiNmNTllMGIiIH19Pntjb250ZW50Lm1lbW9yeVR5cGUgYXMgc3RyaW5nfSDCtyA8L3NwYW4+CiAgICAgICl9CiAgICAgIDxzcGFuIGNsYXNzTmFtZT0idGV4dC1bMTRweF0gbGVhZGluZy1yZWxheGVkIiBzdHlsZT17eyBjb2xvcjogInJnYmEoMjQyLDI0MiwyNDIsMC43NSkiIH19PgogICAgICAgIHtjb250ZW50LnRleHQgYXMgc3RyaW5nID8/ICIifQogICAgICA8L3NwYW4+CiAgICA8L2Rpdj4KICApOwp9CgpmdW5jdGlvbiBUYXNrQ29udGVudCh7IGNvbnRlbnQgfTogeyBjb250ZW50OiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPiB9KSB7CiAgY29uc3QgZG9uZSA9IGNvbnRlbnQuc3RhdHVzID09PSAiZG9uZSI7CiAgcmV0dXJuICgKICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLXN0YXJ0IGdhcC0zIj4KICAgICAgPGRpdiBjbGFzc05hbWU9InctNSBoLTUgcm91bmRlZC1tZCBtdC0wLjUgc2hyaW5rLTAgZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIiCiAgICAgICAgc3R5bGU9e3sgYmFja2dyb3VuZDogZG9uZSA/ICJyZ2JhKDQ1LDIxMiwxOTEsMC4xMikiIDogInRyYW5zcGFyZW50IiwgYm9yZGVyOiBgMXB4IHNvbGlkICR7ZG9uZSA/ICJyZ2JhKDQ1LDIxMiwxOTEsMC4zKSIgOiAicmdiYSgyNTUsMjU1LDI1NSwwLjEyKSJ9YCB9fT4KICAgICAgICB7ZG9uZSAmJiA8c3BhbiBzdHlsZT17eyBjb2xvcjogIiMyZGQ0YmYiLCBmb250U2l6ZTogMTEgfX0+4pyTPC9zcGFuPn0KICAgICAgPC9kaXY+CiAgICAgIDxkaXY+CiAgICAgICAgPHAgY2xhc3NOYW1lPSJ0ZXh0LVsxNHB4XSIgc3R5bGU9e3sgY29sb3I6IGRvbmUgPyAicmdiYSgyNDIsMjQyLDI0MiwwLjQpIiA6ICJyZ2JhKDI0MiwyNDIsMjQyLDAuOCkiLCB0ZXh0RGVjb3JhdGlvbjogZG9uZSA/ICJsaW5lLXRocm91Z2giIDogIm5vbmUiIH19PgogICAgICAgICAge2NvbnRlbnQudGl0bGUgYXMgc3RyaW5nID8/ICJVbnRpdGxlZCB0YXNrIn0KICAgICAgICA8L3A+CiAgICAgICAge2NvbnRlbnQuZHVlRGF0ZSAmJiAoCiAgICAgICAgICA8cCBjbGFzc05hbWU9InRleHQtWzExcHhdIG10LTAuNSIgc3R5bGU9e3sgY29sb3I6ICJyZ2JhKDI0MiwyNDIsMjQyLDAuMykiIH19PkR1ZSB7Y29udGVudC5kdWVEYXRlIGFzIHN0cmluZ308L3A+CiAgICAgICAgKX0KICAgICAgPC9kaXY+CiAgICA8L2Rpdj4KICApOwp9CgpmdW5jdGlvbiBUcmFuc2NyaXB0Q29udGVudCh7IGNvbnRlbnQgfTogeyBjb250ZW50OiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPiB9KSB7CiAgcmV0dXJuICgKICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGZsZXgtY29sIGdhcC0yIj4KICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggaXRlbXMtY2VudGVyIGdhcC0yIj4KICAgICAgICA8ZGl2IGNsYXNzTmFtZT0idy0xLjUgaC0xLjUgcm91bmRlZC1mdWxsIiBzdHlsZT17eyBiYWNrZ3JvdW5kOiAiI2Y0M2Y1ZSIgfX0gLz4KICAgICAgICA8c3BhbiBjbGFzc05hbWU9InRleHQtWzExcHhdIHVwcGVyY2FzZSB0cmFja2luZy13aWRlc3QgZm9udC1zZW1pYm9sZCIgc3R5bGU9e3sgY29sb3I6ICIjZjQzZjVlIiB9fT4KICAgICAgICAgIHtjb250ZW50LmR1cmF0aW9uID8gYCR7Y29udGVudC5kdXJhdGlvbn1gIDogIkNhbGwifSDCtyB7Y29udGVudC5jYWxsZXIgYXMgc3RyaW5nID8/ICJVbmtub3duIn0KICAgICAgICA8L3NwYW4+CiAgICAgIDwvZGl2PgogICAgICA8cCBjbGFzc05hbWU9InRleHQtWzEzcHhdIGxpbmUtY2xhbXAtMyIgc3R5bGU9e3sgY29sb3I6ICJyZ2JhKDI0MiwyNDIsMjQyLDAuNTUpIiB9fT4KICAgICAgICB7Y29udGVudC5zdW1tYXJ5IGFzIHN0cmluZyA/PyBjb250ZW50LnRleHQgYXMgc3RyaW5nID8/ICJObyB0cmFuc2NyaXB0IGF2YWlsYWJsZSJ9CiAgICAgIDwvcD4KICAgICAge0FycmF5LmlzQXJyYXkoY29udGVudC5hY3Rpb25zKSAmJiBjb250ZW50LmFjdGlvbnMubGVuZ3RoID4gMCAmJiAoCiAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggZ2FwLTEuNSBmbGV4LXdyYXAiPgogICAgICAgICAgeyhjb250ZW50LmFjdGlvbnMgYXMgc3RyaW5nW10pLnNsaWNlKDAsIDMpLm1hcCgoYSwgaSkgPT4gKAogICAgICAgICAgICA8c3BhbiBrZXk9e2l9IGNsYXNzTmFtZT0idGV4dC1bMTFweF0gcHgtMiBweS0wLjUgcm91bmRlZC1mdWxsIgogICAgICAgICAgICAgIHN0eWxlPXt7IGJhY2tncm91bmQ6ICJyZ2JhKDI0NCw2Myw5NCwwLjA4KSIsIGJvcmRlcjogIjFweCBzb2xpZCByZ2JhKDI0NCw2Myw5NCwwLjE4KSIsIGNvbG9yOiAiI2Y0M2Y1ZSIgfX0+CiAgICAgICAgICAgICAge2F9CiAgICAgICAgICAgIDwvc3Bhbj4KICAgICAgICAgICkpfQogICAgICAgIDwvZGl2PgogICAgICApfQogICAgPC9kaXY+CiAgKTsKfQoKZnVuY3Rpb24gTm90ZUNvbnRlbnQoeyBjb250ZW50IH06IHsgY29udGVudDogUmVjb3JkPHN0cmluZywgdW5rbm93bj4gfSkgewogIHJldHVybiAoCiAgICA8cCBjbGFzc05hbWU9InRleHQtWzE0cHhdIGxlYWRpbmctcmVsYXhlZCB3aGl0ZXNwYWNlLXByZS13cmFwIGxpbmUtY2xhbXAtOCIKICAgICAgc3R5bGU9e3sgY29sb3I6ICJyZ2JhKDI0MiwyNDIsMjQyLDAuNzUpIiwgZm9udEZhbWlseTogIidNYW5yb3BlJywgc2Fucy1zZXJpZiIgfX0+CiAgICAgIHtjb250ZW50LnRleHQgYXMgc3RyaW5nID8/ICJFbXB0eSBub3RlIn0KICAgIDwvcD4KICApOwp9CgpmdW5jdGlvbiBHZW5lcmljQ29udGVudCh7IGNvbnRlbnQgfTogeyBjb250ZW50OiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPiB9KSB7CiAgY29uc3QgdGV4dCA9IGNvbnRlbnQudGV4dCA/PyBjb250ZW50LnN1bW1hcnkgPz8gY29udGVudC50aXRsZSA/PyBjb250ZW50LmJvZHk7CiAgcmV0dXJuICgKICAgIDxwIGNsYXNzTmFtZT0idGV4dC1bMTNweF0gbGVhZGluZy1yZWxheGVkIGxpbmUtY2xhbXAtNCIgc3R5bGU9e3sgY29sb3I6ICJyZ2JhKDI0MiwyNDIsMjQyLDAuNikiIH19PgogICAgICB7dHlwZW9mIHRleHQgPT09ICJzdHJpbmciID8gdGV4dCA6IEpTT04uc3RyaW5naWZ5KGNvbnRlbnQpLnNsaWNlKDAsIDIwMCl9CiAgICA8L3A+CiAgKTsKfQoKLy8g4pSA4pSA4pSAIEFjdGlvbiBidXR0b24g4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACgpmdW5jdGlvbiBBY3Rpb25CdG4oeyBpY29uOiBJY29uLCBsYWJlbCwgb25DbGljaywgYWN0aXZlLCBjb2xvciB9OiB7CiAgaWNvbjogUmVhY3QuRWxlbWVudFR5cGU7IGxhYmVsOiBzdHJpbmc7IG9uQ2xpY2s6ICgpID0+IHZvaWQ7CiAgYWN0aXZlPzogYm9vbGVhbjsgY29sb3I/OiBzdHJpbmc7Cn0pIHsKICByZXR1cm4gKAogICAgPGJ1dHRvbiBvbkNsaWNrPXtvbkNsaWNrfSB0aXRsZT17bGFiZWx9CiAgICAgIGNsYXNzTmFtZT0idy03IGgtNyByb3VuZGVkLWxnIGZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHRyYW5zaXRpb24tYWxsIGR1cmF0aW9uLTE1MCIKICAgICAgc3R5bGU9e3sKICAgICAgICBiYWNrZ3JvdW5kOiBhY3RpdmUgPyBgJHtjb2xvciA/PyAiI2YyZjJmMiJ9MTJgIDogInRyYW5zcGFyZW50IiwKICAgICAgICBib3JkZXI6IGFjdGl2ZSA/IGAxcHggc29saWQgJHtjb2xvciA/PyAiI2YyZjJmMiJ9MjVgIDogIjFweCBzb2xpZCB0cmFuc3BhcmVudCIsCiAgICAgICAgY29sb3I6IGFjdGl2ZSA/IChjb2xvciA/PyAiI2YyZjJmMiIpIDogInJnYmEoMjQyLDI0MiwyNDIsMC4yNSkiLAogICAgICB9fQogICAgICBvbk1vdXNlRW50ZXI9eyhlKSA9PiB7IChlLmN1cnJlbnRUYXJnZXQgYXMgSFRNTEJ1dHRvbkVsZW1lbnQpLnN0eWxlLmNvbG9yID0gY29sb3IgPz8gIiNmMmYyZjIiOyAoZS5jdXJyZW50VGFyZ2V0IGFzIEhUTUxCdXR0b25FbGVtZW50KS5zdHlsZS5iYWNrZ3JvdW5kID0gYCR7Y29sb3IgPz8gIiNmMmYyZjIifTEwYDsgfX0KICAgICAgb25Nb3VzZUxlYXZlPXsoZSkgPT4gewogICAgICAgIGlmICghYWN0aXZlKSB7IChlLmN1cnJlbnRUYXJnZXQgYXMgSFRNTEJ1dHRvbkVsZW1lbnQpLnN0eWxlLmNvbG9yID0gInJnYmEoMjQyLDI0MiwyNDIsMC4yNSkiOyAoZS5jdXJyZW50VGFyZ2V0IGFzIEhUTUxCdXR0b25FbGVtZW50KS5zdHlsZS5iYWNrZ3JvdW5kID0gInRyYW5zcGFyZW50IjsgfQogICAgICB9fQogICAgPgogICAgICA8SWNvbiBjbGFzc05hbWU9InctMy41IGgtMy41IiAvPgogICAgPC9idXR0b24+CiAgKTsKfQoKLy8g4pSA4pSA4pSAIE1haW4gQmxvY2sgY29tcG9uZW50IOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAoKZXhwb3J0IGZ1bmN0aW9uIEJsb2NrKHsKICBibG9jaywKICBjb21wYWN0ID0gZmFsc2UsCiAgb25VcGRhdGUsCn06IHsKICBibG9jazogQmxvY2tEYXRhOwogIGNvbXBhY3Q/OiBib29sZWFuOwogIG9uVXBkYXRlPzogKHVwZGF0ZWQ6IEJsb2NrRGF0YSkgPT4gdm9pZDsKfSkgewogIGNvbnN0IFtjb2xsYXBzZWQsIHNldENvbGxhcHNlZF0gPSB1c2VTdGF0ZShmYWxzZSk7CiAgY29uc3QgW2lzUGVla2luZywgc2V0SXNQZWVraW5nXSA9IHVzZVN0YXRlKGZhbHNlKTsKICBjb25zdCBbbG9jYWxCbG9jaywgc2V0TG9jYWxCbG9ja10gPSB1c2VTdGF0ZShibG9jayk7CiAgY29uc3QgYmxvY2tSZWYgPSB1c2VSZWY8SFRNTERpdkVsZW1lbnQ+KG51bGwpOwoKICAvLyBTcHJpbmcgcGh5c2ljcyBmb3Igc21vb3RoIGludGVyYWN0aW9ucwogIGNvbnN0IHNjYWxlID0gdXNlTW90aW9uVmFsdWUoMSk7CiAgY29uc3Qgc3ByaW5nU2NhbGUgPSB1c2VTcHJpbmcoc2NhbGUsIHsgc3RpZmZuZXNzOiA0MDAsIGRhbXBpbmc6IDI1IH0pOwoKICBjb25zdCB1dGlscyA9IHRycGMudXNlVXRpbHMoKTsKICBjb25zdCB1cGRhdGVNdXRhdGlvbiA9IHRycGMuYmxvY2tzLnVwZGF0ZS51c2VNdXRhdGlvbih7CiAgICBvblN1Y2Nlc3M6ICh1cGRhdGVkKSA9PiB7CiAgICAgIGlmICh1cGRhdGVkKSB7IHNldExvY2FsQmxvY2sodXBkYXRlZCBhcyB1bmtub3duIGFzIEJsb2NrRGF0YSk7IG9uVXBkYXRlPy4odXBkYXRlZCBhcyB1bmtub3duIGFzIEJsb2NrRGF0YSk7IH0KICAgICAgdm9pZCB1dGlscy5ibG9ja3MucGlubmVkLmludmFsaWRhdGUoKTsKICAgICAgdm9pZCB1dGlscy5ibG9ja3MubGlzdC5pbnZhbGlkYXRlKCk7CiAgICB9LAogIH0pOwogIGNvbnN0IGZvcmtNdXRhdGlvbiA9IHRycGMuYmxvY2tzLmZvcmsudXNlTXV0YXRpb24oewogICAgb25TdWNjZXNzOiAoKSA9PiB7IHRvYXN0LnN1Y2Nlc3MoIkJsb2NrIGZvcmtlZCIpOyB2b2lkIHV0aWxzLmJsb2Nrcy5saXN0LmludmFsaWRhdGUoKTsgfSwKICB9KTsKICBjb25zdCBkZWxldGVNdXRhdGlvbiA9IHRycGMuYmxvY2tzLmRlbGV0ZS51c2VNdXRhdGlvbih7CiAgICBvblN1Y2Nlc3M6ICgpID0+IHsgdG9hc3Quc3VjY2VzcygiQmxvY2sgYXJjaGl2ZWQiKTsgdm9pZCB1dGlscy5ibG9ja3MubGlzdC5pbnZhbGlkYXRlKCk7IHZvaWQgdXRpbHMuYmxvY2tzLnBpbm5lZC5pbnZhbGlkYXRlKCk7IH0sCiAgfSk7CgogIGNvbnN0IEljb24gPSBUWVBFX0lDT05bbG9jYWxCbG9jay50eXBlXSA/PyBTcGFya2xlczsKICBjb25zdCB0eXBlQ29sb3IgPSBUWVBFX0NPTE9SW2xvY2FsQmxvY2sudHlwZV0gPz8gIiNmMmYyZjIiOwogIGNvbnN0IGFnZW50Q29sb3IgPSBsb2NhbEJsb2NrLmFnZW50SWQgPyAoQUdFTlRfQ09MT1JTW2xvY2FsQmxvY2suYWdlbnRJZF0gPz8gIiNmMmYyZjIiKSA6IHR5cGVDb2xvcjsKCiAgLy8gSGFwdGljLWxpa2UgZmVlZGJhY2sKICBjb25zdCBoYW5kbGVQcmVzcyA9IHVzZUNhbGxiYWNrKCgpID0+IHsKICAgIHNjYWxlLnNldCgwLjk4KTsKICAgIHNldFRpbWVvdXQoKCkgPT4gc2NhbGUuc2V0KDEpLCAxMDApOwogIH0sIFtzY2FsZV0pOwoKICBjb25zdCB0b2dnbGUgPSAoZmllbGQ6ICJwaW5uZWQiIHwgImxvY2tlZCIpID0+IHsKICAgIGNvbnN0IHZhbCA9ICFsb2NhbEJsb2NrW2ZpZWxkXTsKICAgIHNldExvY2FsQmxvY2soKGIpID0+ICh7IC4uLmIsIFtmaWVsZF06IHZhbCB9KSk7CiAgICB1cGRhdGVNdXRhdGlvbi5tdXRhdGUoeyBpZDogbG9jYWxCbG9jay5pZCwgW2ZpZWxkXTogdmFsIH0pOwogICAgaGFuZGxlUHJlc3MoKTsKICAgIHRvYXN0LnN1Y2Nlc3MoZmllbGQgPT09ICJwaW5uZWQiID8gKHZhbCA/ICJQaW5uZWQgdG8gQm9hcmQiIDogIlVucGlubmVkIikgOiAodmFsID8gIkJsb2NrIGxvY2tlZCIgOiAiQmxvY2sgdW5sb2NrZWQiKSk7CiAgfTsKCiAgY29uc3QgY29weUxpbmsgPSAoKSA9PiB7CiAgICB2b2lkIG5hdmlnYXRvci5jbGlwYm9hcmQud3JpdGVUZXh0KGAke3dpbmRvdy5sb2NhdGlvbi5vcmlnaW59L2Jsb2NrLyR7bG9jYWxCbG9jay5pZH1gKTsKICAgIGhhbmRsZVByZXNzKCk7CiAgICB0b2FzdC5zdWNjZXNzKCJMaW5rIGNvcGllZCIpOwogIH07CgogIGNvbnN0IGNvcHlDb250ZW50ID0gKCkgPT4gewogICAgY29uc3QgdGV4dCA9IChsb2NhbEJsb2NrLmNvbnRlbnQudGV4dCBhcyBzdHJpbmcpID8/IEpTT04uc3RyaW5naWZ5KGxvY2FsQmxvY2suY29udGVudCwgbnVsbCwgMik7CiAgICB2b2lkIG5hdmlnYXRvci5jbGlwYm9hcmQud3JpdGVUZXh0KHRleHQpOwogICAgaGFuZGxlUHJlc3MoKTsKICAgIHRvYXN0LnN1Y2Nlc3MoIkNvcGllZCIpOwogIH07CgogIGNvbnN0IHRvZ2dsZUNvbGxhcHNlID0gKCkgPT4gewogICAgaGFuZGxlUHJlc3MoKTsKICAgIHNldENvbGxhcHNlZCgoYykgPT4gIWMpOwogIH07CgogIC8vIEtleWJvYXJkIHNob3J0Y3V0cwogIHVzZUVmZmVjdCgoKSA9PiB7CiAgICBjb25zdCBoYW5kbGVLZXlEb3duID0gKGU6IEtleWJvYXJkRXZlbnQpID0+IHsKICAgICAgaWYgKCFibG9ja1JlZi5jdXJyZW50IHx8IGRvY3VtZW50LmFjdGl2ZUVsZW1lbnQgIT09IGJsb2NrUmVmLmN1cnJlbnQpIHJldHVybjsKCiAgICAgIGlmIChlLmtleSA9PT0gIiAiIHx8IGUua2V5ID09PSAiRW50ZXIiKSB7CiAgICAgICAgZS5wcmV2ZW50RGVmYXVsdCgpOwogICAgICAgIHRvZ2dsZUNvbGxhcHNlKCk7CiAgICAgIH0KICAgIH07CgogICAgd2luZG93LmFkZEV2ZW50TGlzdGVuZXIoImtleWRvd24iLCBoYW5kbGVLZXlEb3duKTsKICAgIHJldHVybiAoKSA9PiB3aW5kb3cucmVtb3ZlRXZlbnRMaXN0ZW5lcigia2V5ZG93biIsIGhhbmRsZUtleURvd24pOwogIH0sIFt0b2dnbGVDb2xsYXBzZV0pOwoKICAvLyBTbWFydCBjb250ZW50IHByZXZpZXcgKGV4dHJhY3Qga2V5IGluZm8pCiAgY29uc3QgZ2V0UHJldmlld1RleHQgPSB1c2VDYWxsYmFjaygoKSA9PiB7CiAgICBjb25zdCBjb250ZW50ID0gbG9jYWxCbG9jay5jb250ZW50OwogICAgaWYgKHR5cGVvZiBjb250ZW50LnRleHQgPT09ICJzdHJpbmciKSByZXR1cm4gY29udGVudC50ZXh0LnNsaWNlKDAsIDgwKTsKICAgIGlmICh0eXBlb2YgY29udGVudC5zdW1tYXJ5ID09PSAic3RyaW5nIikgcmV0dXJuIGNvbnRlbnQuc3VtbWFyeS5zbGljZSgwLCA4MCk7CiAgICBpZiAodHlwZW9mIGNvbnRlbnQudGl0bGUgPT09ICJzdHJpbmciKSByZXR1cm4gY29udGVudC50aXRsZS5zbGljZSgwLCA4MCk7CiAgICByZXR1cm4gIiI7CiAgfSwgW2xvY2FsQmxvY2suY29udGVudF0pOwoKICBjb25zdCByZW5kZXJDb250ZW50ID0gKCkgPT4gewogICAgc3dpdGNoIChsb2NhbEJsb2NrLnR5cGUpIHsKICAgICAgY2FzZSAiY2hhdCI6ICAgICAgIHJldHVybiA8Q2hhdENvbnRlbnQgICAgICAgY29udGVudD17bG9jYWxCbG9jay5jb250ZW50fSAvPjsKICAgICAgY2FzZSAiYXRlbGllciI6ICAgIHJldHVybiA8QXRlbGllckNvbnRlbnQgICAgY29udGVudD17bG9jYWxCbG9jay5jb250ZW50fSAvPjsKICAgICAgY2FzZSAibWVtb3J5IjogICAgIHJldHVybiA8TWVtb3J5Q29udGVudCAgICAgY29udGVudD17bG9jYWxCbG9jay5jb250ZW50fSAvPjsKICAgICAgY2FzZSAidGFzayI6ICAgICAgIHJldHVybiA8VGFza0NvbnRlbnQgICAgICAgY29udGVudD17bG9jYWxCbG9jay5jb250ZW50fSAvPjsKICAgICAgY2FzZSAidHJhbnNjcmlwdCI6IHJldHVybiA8VHJhbnNjcmlwdENvbnRlbnQgY29udGVudD17bG9jYWxCbG9jay5jb250ZW50fSAvPjsKICAgICAgY2FzZSAibm90ZSI6ICAgICAgIHJldHVybiA8Tm90ZUNvbnRlbnQgICAgICAgY29udGVudD17bG9jYWxCbG9jay5jb250ZW50fSAvPjsKICAgICAgZGVmYXVsdDogICAgICAgICAgIHJldHVybiA8R2VuZXJpY0NvbnRlbnQgICAgY29udGVudD17bG9jYWxCbG9jay5jb250ZW50fSAvPjsKICAgIH0KICB9OwoKICBjb25zdCB0YWdzID0gQXJyYXkuaXNBcnJheShsb2NhbEJsb2NrLnRhZ3MpID8gbG9jYWxCbG9jay50YWdzIGFzIHN0cmluZ1tdIDogW107CiAgY29uc3QgY3JlYXRlZEF0ID0gbmV3IERhdGUobG9jYWxCbG9jay5jcmVhdGVkQXQpLnRvTG9jYWxlRGF0ZVN0cmluZygiZW4tR0IiLCB7IGRheTogIm51bWVyaWMiLCBtb250aDogInNob3J0IiB9KTsKICBjb25zdCBwcmV2aWV3VGV4dCA9IGdldFByZXZpZXdUZXh0KCk7CgogIHJldHVybiAoCiAgICA8bW90aW9uLmRpdgogICAgICByZWY9e2Jsb2NrUmVmfQogICAgICBsYXlvdXQKICAgICAgaW5pdGlhbD17eyBvcGFjaXR5OiAwLCB5OiA2IH19CiAgICAgIGFuaW1hdGU9e3sgb3BhY2l0eTogMSwgeTogMCB9fQogICAgICBleGl0PXt7IG9wYWNpdHk6IDAsIHNjYWxlOiAwLjk1IH19CiAgICAgIHRyYW5zaXRpb249e3sgZHVyYXRpb246IDAuMiwgZWFzZTogWzAuNCwgMCwgMC4yLCAxXSB9fQogICAgICB3aGlsZUhvdmVyPXt7IHNjYWxlOiAxLjAxIH19CiAgICAgIHdoaWxlVGFwPXt7IHNjYWxlOiAwLjk5IH19CiAgICAgIGNsYXNzTmFtZT0iZ3JvdXAgcmVsYXRpdmUgcm91bmRlZC0yeGwgb3ZlcmZsb3ctaGlkZGVuIGN1cnNvci1kZWZhdWx0IgogICAgICBzdHlsZT17ewogICAgICAgIGJhY2tncm91bmQ6IGxvY2FsQmxvY2sucGlubmVkID8gYCR7dHlwZUNvbG9yfTA3YCA6ICJ2YXIoLS1lbGV2LTEtYmcpIiwKICAgICAgICBib3JkZXI6IGxvY2FsQmxvY2sucGlubmVkID8gYDFweCBzb2xpZCAke3R5cGVDb2xvcn0xOGAgOiAiMXB4IHNvbGlkIHZhcigtLWVsZXYtMS1ib3JkZXIpIiwKICAgICAgICBib3hTaGFkb3c6ICJ2YXIoLS1lbGV2LTEtc2hhZG93KSIsCiAgICAgICAgb3BhY2l0eTogbG9jYWxCbG9jay5hcmNoaXZlZCA/IDAuNCA6IDEsCiAgICAgICAgc2NhbGU6IHNwcmluZ1NjYWxlLAogICAgICB9fQogICAgICB0YWJJbmRleD17MH0KICAgICAgcm9sZT0iYnV0dG9uIgogICAgICBhcmlhLWxhYmVsPXtgQmxvY2s6ICR7bG9jYWxCbG9jay50aXRsZSB8fCBsb2NhbEJsb2NrLnR5cGV9YH0KICAgICAgb25Nb3VzZUVudGVyPXsoKSA9PiBjb2xsYXBzZWQgJiYgc2V0SXNQZWVraW5nKHRydWUpfQogICAgICBvbk1vdXNlTGVhdmU9eygpID0+IHNldElzUGVla2luZyhmYWxzZSl9CiAgICA+CiAgICAgIHsvKiBDb2xsYXBzZSBJbmRpY2F0b3IgKExlZnQgU3RyaXApICovfQogICAgICA8bW90aW9uLmRpdgogICAgICAgIGNsYXNzTmFtZT0iYWJzb2x1dGUgbGVmdC0wIHRvcC0wIGJvdHRvbS0wIHctMSB6LTEwIgogICAgICAgIHN0eWxlPXt7IGJhY2tncm91bmQ6IGNvbGxhcHNlZCA/ICJ0cmFuc3BhcmVudCIgOiB0eXBlQ29sb3IgfX0KICAgICAgICBhbmltYXRlPXt7IG9wYWNpdHk6IGNvbGxhcHNlZCA/IDAuMyA6IDEgfX0KICAgICAgICB0cmFuc2l0aW9uPXt7IGR1cmF0aW9uOiAwLjE1IH19CiAgICAgIC8+CgogICAgICB7LyogUGVlayBQcmV2aWV3IChPbiBIb3ZlciBXaGVuIENvbGxhcHNlZCkgKi99CiAgICAgIDxBbmltYXRlUHJlc2VuY2U+CiAgICAgICAge2NvbGxhcHNlZCAmJiBpc1BlZWtpbmcgJiYgcHJldmlld1RleHQgJiYgKAogICAgICAgICAgPG1vdGlvbi5kaXYKICAgICAgICAgICAgaW5pdGlhbD17eyBvcGFjaXR5OiAwLCBoZWlnaHQ6IDAgfX0KICAgICAgICAgICAgYW5pbWF0ZT17eyBvcGFjaXR5OiAxLCBoZWlnaHQ6ICJhdXRvIiB9fQogICAgICAgICAgICBleGl0PXt7IG9wYWNpdHk6IDAsIGhlaWdodDogMCB9fQogICAgICAgICAgICB0cmFuc2l0aW9uPXt7IGR1cmF0aW9uOiAwLjIsIGVhc2U6IFswLjQsIDAsIDAuMiwgMV0gfX0KICAgICAgICAgICAgY2xhc3NOYW1lPSJweC00IHBiLTMgYm9yZGVyLXQgYm9yZGVyLVt2YXIoLS1saW5lLTEpXSIKICAgICAgICAgICAgc3R5bGU9e3sgYmFja2dyb3VuZDogInZhcigtLWVsZXYtMi1iZykiIH19CiAgICAgICAgICA+CiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMiBtYi0yIj4KICAgICAgICAgICAgICA8RXllIGNsYXNzTmFtZT0idy0zIGgtMyIgc3R5bGU9e3sgY29sb3I6ICJ2YXIoLS10MykiIH19IC8+CiAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJ0ZXh0LVsxMHB4XSB1cHBlcmNhc2UgdHJhY2tpbmctd2lkZXIiIHN0eWxlPXt7IGNvbG9yOiAidmFyKC0tdDMpIiB9fT5QcmV2aWV3PC9zcGFuPgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgPHAgY2xhc3NOYW1lPSJ0ZXh0LVsxMnB4XSBsZWFkaW5nLXJlbGF4ZWQgbGluZS1jbGFtcC0yIiBzdHlsZT17eyBjb2xvcjogInZhcigtLXQyKSIgfX0+CiAgICAgICAgICAgICAge3ByZXZpZXdUZXh0fQogICAgICAgICAgICA8L3A+CiAgICAgICAgICA8L21vdGlvbi5kaXY+CiAgICAgICAgKX0KICAgICAgPC9BbmltYXRlUHJlc2VuY2U+CiAgICAgIHsvKiBIZWFkZXIgKi99CiAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMi41IHB4LTQgcHQtMy41IHBiLTIiPgogICAgICAgIHsvKiBUeXBlIGljb24gKi99CiAgICAgICAgPG1vdGlvbi5kaXYKICAgICAgICAgIGNsYXNzTmFtZT0idy02IGgtNiByb3VuZGVkLWxnIGZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHNocmluay0wIgogICAgICAgICAgc3R5bGU9e3sgYmFja2dyb3VuZDogYCR7dHlwZUNvbG9yfTEyYCwgYm9yZGVyOiBgMXB4IHNvbGlkICR7dHlwZUNvbG9yfTIyYCB9fQogICAgICAgICAgd2hpbGVIb3Zlcj17eyBzY2FsZTogMS4wNSwgcm90YXRlOiA1IH19CiAgICAgICAgICB0cmFuc2l0aW9uPXt7IGR1cmF0aW9uOiAwLjE1IH19CiAgICAgICAgPgogICAgICAgICAgPEljb24gY2xhc3NOYW1lPSJ3LTMgaC0zIiBzdHlsZT17eyBjb2xvcjogdHlwZUNvbG9yIH19IC8+CiAgICAgICAgPC9tb3Rpb24uZGl2PgoKICAgICAgICB7LyogVGl0bGUgLyBtZXRhICovfQogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4LTEgbWluLXctMCI+CiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTIiPgogICAgICAgICAgICB7bG9jYWxCbG9jay50aXRsZSAmJiAoCiAgICAgICAgICAgICAgPHAgY2xhc3NOYW1lPSJ0ZXh0LVsxM3B4XSBmb250LW1lZGl1bSB0cnVuY2F0ZSIgc3R5bGU9e3sgY29sb3I6ICJyZ2JhKDI0MiwyNDIsMjQyLDAuODApIiB9fT4KICAgICAgICAgICAgICAgIHtsb2NhbEJsb2NrLnRpdGxlfQogICAgICAgICAgICAgIDwvcD4KICAgICAgICAgICAgKX0KICAgICAgICAgICAge2xvY2FsQmxvY2suYWdlbnRJZCAmJiAoCiAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJ0ZXh0LVsxMHB4XSBweC0xLjUgcHktMC41IHJvdW5kZWQtZnVsbCBzaHJpbmstMCIKICAgICAgICAgICAgICAgIHN0eWxlPXt7IGJhY2tncm91bmQ6IGAke2FnZW50Q29sb3J9MTJgLCBib3JkZXI6IGAxcHggc29saWQgJHthZ2VudENvbG9yfTIyYCwgY29sb3I6IGFnZW50Q29sb3IgfX0+CiAgICAgICAgICAgICAgICB7bG9jYWxCbG9jay5hZ2VudElkfQogICAgICAgICAgICAgIDwvc3Bhbj4KICAgICAgICAgICAgKX0KICAgICAgICAgICAge2xvY2FsQmxvY2suc291cmNlICE9PSAidXNlciIgJiYgIWxvY2FsQmxvY2suYWdlbnRJZCAmJiAoCiAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJ0ZXh0LVsxMHB4XSB1cHBlcmNhc2UgdHJhY2tpbmctd2lkZXN0IHNocmluay0wIiBzdHlsZT17eyBjb2xvcjogInJnYmEoMjQyLDI0MiwyNDIsMC4yNSkiIH19PgogICAgICAgICAgICAgICAge2xvY2FsQmxvY2suc291cmNlfQogICAgICAgICAgICAgIDwvc3Bhbj4KICAgICAgICAgICAgKX0KICAgICAgICAgIDwvZGl2PgogICAgICAgIDwvZGl2PgoKICAgICAgICB7LyogQ29sbGFwc2UgdG9nZ2xlIChhbHdheXMgdmlzaWJsZSwgc3VidGxlKSAqL30KICAgICAgICA8bW90aW9uLmJ1dHRvbgogICAgICAgICAgb25DbGljaz17dG9nZ2xlQ29sbGFwc2V9CiAgICAgICAgICBjbGFzc05hbWU9InNocmluay0wIHRyYW5zaXRpb24tb3BhY2l0eSIKICAgICAgICAgIHN0eWxlPXt7IGNvbG9yOiAicmdiYSgyNDIsMjQyLDI0MiwwLjI1KSIgfX0KICAgICAgICAgIHdoaWxlSG92ZXI9e3sgc2NhbGU6IDEuMSwgY29sb3I6ICJyZ2JhKDI0MiwyNDIsMjQyLDAuNSkiIH19CiAgICAgICAgICB3aGlsZVRhcD17eyBzY2FsZTogMC45NSB9fQogICAgICAgICAgYXJpYS1sYWJlbD17Y29sbGFwc2VkID8gIkV4cGFuZCIgOiAiQ29sbGFwc2UifQogICAgICAgID4KICAgICAgICAgIDxtb3Rpb24uZGl2CiAgICAgICAgICAgIGFuaW1hdGU9e3sgcm90YXRlOiBjb2xsYXBzZWQgPyAwIDogMTgwIH19CiAgICAgICAgICAgIHRyYW5zaXRpb249e3sgZHVyYXRpb246IDAuMywgZWFzZTogWzAuMzQsIDEuNTYsIDAuNjQsIDFdIH19CiAgICAgICAgICA+CiAgICAgICAgICAgIDxDaGV2cm9uRG93biBjbGFzc05hbWU9InctMy41IGgtMy41IiAvPgogICAgICAgICAgPC9tb3Rpb24uZGl2PgogICAgICAgIDwvbW90aW9uLmJ1dHRvbj4KICAgICAgPC9kaXY+CgogICAgICB7LyogQ29udGVudCAoU3ByaW5nIEFuaW1hdGlvbikgKi99CiAgICAgIDxBbmltYXRlUHJlc2VuY2UgaW5pdGlhbD17ZmFsc2V9IG1vZGU9IndhaXQiPgogICAgICAgIHshY29sbGFwc2VkICYmICgKICAgICAgICAgIDxtb3Rpb24uZGl2CiAgICAgICAgICAgIGluaXRpYWw9e3sgaGVpZ2h0OiAwLCBvcGFjaXR5OiAwIH19CiAgICAgICAgICAgIGFuaW1hdGU9e3sgaGVpZ2h0OiAiYXV0byIsIG9wYWNpdHk6IDEgfX0KICAgICAgICAgICAgZXhpdD17eyBoZWlnaHQ6IDAsIG9wYWNpdHk6IDAgfX0KICAgICAgICAgICAgdHJhbnNpdGlvbj17ewogICAgICAgICAgICAgIGR1cmF0aW9uOiAwLjMsCiAgICAgICAgICAgICAgZWFzZTogWzAuMzQsIDEuNTYsIDAuNjQsIDFdLCAvLyBTcHJpbmcgYm91bmNlCiAgICAgICAgICAgIH19CiAgICAgICAgICAgIGNsYXNzTmFtZT0ib3ZlcmZsb3ctaGlkZGVuIgogICAgICAgICAgPgogICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0icHgtNCBwYi0zIj57cmVuZGVyQ29udGVudCgpfTwvZGl2PgoKICAgICAgICAgICAgey8qIFRhZ3MgKi99CiAgICAgICAgICAgIHt0YWdzLmxlbmd0aCA+IDAgJiYgKAogICAgICAgICAgICAgIDxtb3Rpb24uZGl2CiAgICAgICAgICAgICAgICBjbGFzc05hbWU9ImZsZXggZmxleC13cmFwIGdhcC0xLjUgcHgtNCBwYi0zIgogICAgICAgICAgICAgICAgaW5pdGlhbD17eyBvcGFjaXR5OiAwIH19CiAgICAgICAgICAgICAgICBhbmltYXRlPXt7IG9wYWNpdHk6IDEgfX0KICAgICAgICAgICAgICAgIHRyYW5zaXRpb249e3sgZGVsYXk6IDAuMSB9fQogICAgICAgICAgICAgID4KICAgICAgICAgICAgICAgIHt0YWdzLm1hcCgodGFnLCBpKSA9PiAoCiAgICAgICAgICAgICAgICAgIDxtb3Rpb24uc3BhbgogICAgICAgICAgICAgICAgICAgIGtleT17dGFnfQogICAgICAgICAgICAgICAgICAgIGNsYXNzTmFtZT0idGV4dC1bMTBweF0gcHgtMiBweS0wLjUgcm91bmRlZC1mdWxsIgogICAgICAgICAgICAgICAgICAgIHN0eWxlPXt7CiAgICAgICAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kOiAicmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIsCiAgICAgICAgICAgICAgICAgICAgICBib3JkZXI6ICIxcHggc29saWQgcmdiYSgyNTUsMjU1LDI1NSwwLjA4KSIsCiAgICAgICAgICAgICAgICAgICAgICBjb2xvcjogInJnYmEoMjQyLDI0MiwyNDIsMC4zNSkiLAogICAgICAgICAgICAgICAgICAgIH19CiAgICAgICAgICAgICAgICAgICAgaW5pdGlhbD17eyBvcGFjaXR5OiAwLCBzY2FsZTogMC44IH19CiAgICAgICAgICAgICAgICAgICAgYW5pbWF0ZT17eyBvcGFjaXR5OiAxLCBzY2FsZTogMSB9fQogICAgICAgICAgICAgICAgICAgIHRyYW5zaXRpb249e3sgZGVsYXk6IGkgKiAwLjAzLCBkdXJhdGlvbjogMC4yIH19CiAgICAgICAgICAgICAgICAgICAgd2hpbGVIb3Zlcj17eyBzY2FsZTogMS4wNSwgYm9yZGVyQ29sb3I6ICJyZ2JhKDI1NSwyNTUsMjU1LDAuMTUpIiB9fQogICAgICAgICAgICAgICAgICA+CiAgICAgICAgICAgICAgICAgICAge3RhZ30KICAgICAgICAgICAgICAgICAgPC9tb3Rpb24uc3Bhbj4KICAgICAgICAgICAgICAgICkpfQogICAgICAgICAgICAgIDwvbW90aW9uLmRpdj4KICAgICAgICAgICAgKX0KICAgICAgICAgIDwvbW90aW9uLmRpdj4KICAgICAgICApfQogICAgICA8L0FuaW1hdGVQcmVzZW5jZT4KCiAgICAgIHsvKiBBY3Rpb24gYmFyICovfQogICAgICA8ZGl2IGNsYXNzTmFtZT17YGZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktYmV0d2VlbiBweC0zIHBiLTIuNSAke2NvbGxhcHNlZCA/ICJwdC0xIiA6ICIifWB9PgogICAgICAgIDxzcGFuIGNsYXNzTmFtZT0idGV4dC1bMTFweF0iIHN0eWxlPXt7IGNvbG9yOiAicmdiYSgyNDIsMjQyLDI0MiwwLjIpIiB9fT57Y3JlYXRlZEF0fTwvc3Bhbj4KICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTAuNSI+CiAgICAgICAgICA8QWN0aW9uQnRuIGljb249e2xvY2FsQmxvY2sucGlubmVkID8gUGluT2ZmIDogUGlufSBsYWJlbD17bG9jYWxCbG9jay5waW5uZWQgPyAiVW5waW4iIDogIlBpbiB0byBCb2FyZCJ9CiAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHRvZ2dsZSgicGlubmVkIil9IGFjdGl2ZT17bG9jYWxCbG9jay5waW5uZWR9IGNvbG9yPXt0eXBlQ29sb3J9IC8+CiAgICAgICAgICA8QWN0aW9uQnRuIGljb249e2xvY2FsQmxvY2subG9ja2VkID8gVW5sb2NrIDogTG9ja30gbGFiZWw9e2xvY2FsQmxvY2subG9ja2VkID8gIlVubG9jayIgOiAiTG9jayJ9CiAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHRvZ2dsZSgibG9ja2VkIil9IGFjdGl2ZT17bG9jYWxCbG9jay5sb2NrZWR9IGNvbG9yPSIjZjU5ZTBiIiAvPgogICAgICAgICAgPEFjdGlvbkJ0biBpY29uPXtHaXRGb3JrfSBsYWJlbD0iRm9yayIgb25DbGljaz17KCkgPT4gZm9ya011dGF0aW9uLm11dGF0ZSh7IGlkOiBsb2NhbEJsb2NrLmlkIH0pfSAvPgogICAgICAgICAgPEFjdGlvbkJ0biBpY29uPXtDb3B5fSBsYWJlbD0iQ29weSBjb250ZW50IiBvbkNsaWNrPXtjb3B5Q29udGVudH0gLz4KICAgICAgICAgIDxBY3Rpb25CdG4gaWNvbj17TGluazJ9IGxhYmVsPSJDb3B5IHBlcm1hbGluayIgb25DbGljaz17Y29weUxpbmt9IC8+CiAgICAgICAgICA8QWN0aW9uQnRuIGljb249e0FyY2hpdmV9IGxhYmVsPSJBcmNoaXZlIiBvbkNsaWNrPXsoKSA9PiBkZWxldGVNdXRhdGlvbi5tdXRhdGUoeyBpZDogbG9jYWxCbG9jay5pZCB9KX0gY29sb3I9IiNmNDNmNWUiIC8+CiAgICAgICAgPC9kaXY+CiAgICAgIDwvZGl2PgogICAgPC9tb3Rpb24uZGl2PgogICk7Cn0KCi8vIOKUgOKUgOKUgCBCbG9jayBza2VsZXRvbiDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKCmV4cG9ydCBmdW5jdGlvbiBCbG9ja1NrZWxldG9uKCkgewogIHJldHVybiAoCiAgICA8ZGl2IGNsYXNzTmFtZT0icm91bmRlZC0yeGwgcC00IGFuaW1hdGUtcHVsc2UiIHN0eWxlPXt7IGJhY2tncm91bmQ6ICJyZ2JhKDI1NSwyNTUsMjU1LDAuMDMpIiwgYm9yZGVyOiAiMXB4IHNvbGlkIHJnYmEoMjU1LDI1NSwyNTUsMC4wNikiIH19PgogICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTIuNSBtYi0zIj4KICAgICAgICA8ZGl2IGNsYXNzTmFtZT0idy02IGgtNiByb3VuZGVkLWxnIiBzdHlsZT17eyBiYWNrZ3JvdW5kOiAicmdiYSgyNTUsMjU1LDI1NSwwLjA2KSIgfX0gLz4KICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iaC0zIHctMzIgcm91bmRlZC1mdWxsIiBzdHlsZT17eyBiYWNrZ3JvdW5kOiAicmdiYSgyNTUsMjU1LDI1NSwwLjA2KSIgfX0gLz4KICAgICAgPC9kaXY+CiAgICAgIDxkaXYgY2xhc3NOYW1lPSJzcGFjZS15LTIiPgogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJoLTMgdy1mdWxsIHJvdW5kZWQtZnVsbCIgc3R5bGU9e3sgYmFja2dyb3VuZDogInJnYmEoMjU1LDI1NSwyNTUsMC4wNCkiIH19IC8+CiAgICAgICAgPGRpdiBjbGFzc05hbWU9ImgtMyB3LTQvNSByb3VuZGVkLWZ1bGwiIHN0eWxlPXt7IGJhY2tncm91bmQ6ICJyZ2JhKDI1NSwyNTUsMjU1LDAuMDQpIiB9fSAvPgogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJoLTMgdy0zLzUgcm91bmRlZC1mdWxsIiBzdHlsZT17eyBiYWNrZ3JvdW5kOiAicmdiYSgyNTUsMjU1LDI1NSwwLjA0KSIgfX0gLz4KICAgICAgPC9kaXY+CiAgICA8L2Rpdj4KICApOwp9Cg==
+/**
+ * Universal Block Component
+ * Renders any block type with consistent action bar: pin, fork, lock, archive, permalink, copy
+ *
+ * ✨ Modern UX Features:
+ * - Spring physics animations (snappy collapse/expand)
+ * - Always-visible collapse indicator (left strip)
+ * - Peek preview on hover when collapsed
+ * - Haptic-like visual feedback on interactions
+ * - Keyboard shortcuts (Space to toggle, arrows to navigate)
+ * - Smart content preview
+ */
+
+import { useState, useRef, useCallback, useEffect } from "react";
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import {
+  Pin, PinOff, GitFork, Lock, Unlock, Archive,
+  Link2, ChevronDown, ChevronUp, MessageSquare,
+  FileText, BookOpen, CheckSquare, Play, Mic,
+  LayoutDashboard, StickyNote, Copy, Sparkles,
+  Eye,
+} from "lucide-react";
+
+export type BlockType = "chat" | "atelier" | "memory" | "task" | "media" | "transcript" | "widget" | "note";
+export type BlockSource = "s1" | "atelier" | "her" | "user" | "feed" | "system";
+
+export interface BlockData {
+  id: string;
+  type: BlockType;
+  source: BlockSource;
+  parentId?: string | null;
+  sessionId?: string | null;
+  title?: string | null;
+  content: Record<string, unknown>;
+  agentId?: string | null;
+  pinned: boolean;
+  locked: boolean;
+  archived: boolean;
+  tags: string[] | unknown;
+  position: number;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+const TYPE_ICON: Record<BlockType, React.ElementType> = {
+  chat: MessageSquare, atelier: FileText, memory: BookOpen,
+  task: CheckSquare, media: Play, transcript: Mic,
+  widget: LayoutDashboard, note: StickyNote,
+};
+
+const TYPE_COLOR: Record<BlockType, string> = {
+  chat: "#f2f2f2", atelier: "#a78bfa", memory: "#f59e0b",
+  task: "#2dd4bf", media: "#f97316", transcript: "#f43f5e",
+  widget: "#0069ff", note: "#84cc16",
+};
+
+const AGENT_COLORS: Record<string, string> = {
+  claude: "#f97316", kimi: "#f59e0b", sonar: "#2dd4bf",
+  litellm: "#8b5cf6", s1: "#f2f2f2",
+};
+
+// ─── Content renderers ────────────────────────────────────────────────────────
+
+function ChatContent({ content }: { content: Record<string, unknown> }) {
+  return (
+    <p className="text-[14px] leading-relaxed whitespace-pre-wrap line-clamp-6"
+      style={{ color: "rgba(242,242,242,0.80)" }}>
+      {(content.text as string) ?? ""}
+    </p>
+  );
+}
+
+function AtelierContent({ content }: { content: Record<string, unknown> }) {
+  const sections = (content.sections as Array<{ title?: string; type?: string }>) ?? [];
+  return (
+    <div className="flex flex-col gap-2">
+      {content.reportTitle && (
+        <p className="text-sm font-semibold" style={{ color: "#f2f2f2" }}>{content.reportTitle as string}</p>
+      )}
+      <div className="flex flex-wrap gap-1.5">
+        {sections.slice(0, 5).map((s, i) => (
+          <span key={i} className="text-[11px] px-2 py-0.5 rounded-full"
+            style={{ background: "rgba(167,139,250,0.10)", border: "1px solid rgba(167,139,250,0.18)", color: "#a78bfa" }}>
+            {s.title ?? s.type ?? `Section ${i + 1}`}
+          </span>
+        ))}
+        {sections.length > 5 && (
+          <span className="text-[11px]" style={{ color: "rgba(242,242,242,0.3)" }}>+{sections.length - 5} more</span>
+        )}
+      </div>
+      {content.preview && (
+        <p className="text-[13px] line-clamp-2" style={{ color: "rgba(242,242,242,0.45)" }}>{content.preview as string}</p>
+      )}
+    </div>
+  );
+}
+
+function MemoryContent({ content }: { content: Record<string, unknown> }) {
+  return (
+    <div>
+      {content.memoryType && (
+        <span className="text-[10px] uppercase tracking-widest font-semibold"
+          style={{ color: "#f59e0b" }}>{content.memoryType as string} · </span>
+      )}
+      <span className="text-[14px] leading-relaxed" style={{ color: "rgba(242,242,242,0.75)" }}>
+        {content.text as string ?? ""}
+      </span>
+    </div>
+  );
+}
+
+function TaskContent({ content }: { content: Record<string, unknown> }) {
+  const done = content.status === "done";
+  return (
+    <div className="flex items-start gap-3">
+      <div className="w-5 h-5 rounded-md mt-0.5 shrink-0 flex items-center justify-center"
+        style={{ background: done ? "rgba(45,212,191,0.12)" : "transparent", border: `1px solid ${done ? "rgba(45,212,191,0.3)" : "rgba(255,255,255,0.12)"}` }}>
+        {done && <span style={{ color: "#2dd4bf", fontSize: 11 }}>✓</span>}
+      </div>
+      <div>
+        <p className="text-[14px]" style={{ color: done ? "rgba(242,242,242,0.4)" : "rgba(242,242,242,0.8)", textDecoration: done ? "line-through" : "none" }}>
+          {content.title as string ?? "Untitled task"}
+        </p>
+        {content.dueDate && (
+          <p className="text-[11px] mt-0.5" style={{ color: "rgba(242,242,242,0.3)" }}>Due {content.dueDate as string}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TranscriptContent({ content }: { content: Record<string, unknown> }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#f43f5e" }} />
+        <span className="text-[11px] uppercase tracking-widest font-semibold" style={{ color: "#f43f5e" }}>
+          {content.duration ? `${content.duration}` : "Call"} · {content.caller as string ?? "Unknown"}
+        </span>
+      </div>
+      <p className="text-[13px] line-clamp-3" style={{ color: "rgba(242,242,242,0.55)" }}>
+        {content.summary as string ?? content.text as string ?? "No transcript available"}
+      </p>
+      {Array.isArray(content.actions) && content.actions.length > 0 && (
+        <div className="flex gap-1.5 flex-wrap">
+          {(content.actions as string[]).slice(0, 3).map((a, i) => (
+            <span key={i} className="text-[11px] px-2 py-0.5 rounded-full"
+              style={{ background: "rgba(244,63,94,0.08)", border: "1px solid rgba(244,63,94,0.18)", color: "#f43f5e" }}>
+              {a}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NoteContent({ content }: { content: Record<string, unknown> }) {
+  return (
+    <p className="text-[14px] leading-relaxed whitespace-pre-wrap line-clamp-8"
+      style={{ color: "rgba(242,242,242,0.75)", fontFamily: "'Manrope', sans-serif" }}>
+      {content.text as string ?? "Empty note"}
+    </p>
+  );
+}
+
+function GenericContent({ content }: { content: Record<string, unknown> }) {
+  const text = content.text ?? content.summary ?? content.title ?? content.body;
+  return (
+    <p className="text-[13px] leading-relaxed line-clamp-4" style={{ color: "rgba(242,242,242,0.6)" }}>
+      {typeof text === "string" ? text : JSON.stringify(content).slice(0, 200)}
+    </p>
+  );
+}
+
+// ─── Action button ────────────────────────────────────────────────────────────
+
+function ActionBtn({ icon: Icon, label, onClick, active, color }: {
+  icon: React.ElementType; label: string; onClick: () => void;
+  active?: boolean; color?: string;
+}) {
+  return (
+    <button onClick={onClick} title={label}
+      className="w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-150"
+      style={{
+        background: active ? `${color ?? "#f2f2f2"}12` : "transparent",
+        border: active ? `1px solid ${color ?? "#f2f2f2"}25` : "1px solid transparent",
+        color: active ? (color ?? "#f2f2f2") : "rgba(242,242,242,0.25)",
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = color ?? "#f2f2f2"; (e.currentTarget as HTMLButtonElement).style.background = `${color ?? "#f2f2f2"}10`; }}
+      onMouseLeave={(e) => {
+        if (!active) { (e.currentTarget as HTMLButtonElement).style.color = "rgba(242,242,242,0.25)"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }
+      }}
+    >
+      <Icon className="w-3.5 h-3.5" />
+    </button>
+  );
+}
+
+// ─── Main Block component ─────────────────────────────────────────────────────
+
+export function Block({
+  block,
+  compact = false,
+  onUpdate,
+}: {
+  block: BlockData;
+  compact?: boolean;
+  onUpdate?: (updated: BlockData) => void;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [isPeeking, setIsPeeking] = useState(false);
+  const [localBlock, setLocalBlock] = useState(block);
+  const blockRef = useRef<HTMLDivElement>(null);
+
+  // Spring physics for smooth interactions
+  const scale = useMotionValue(1);
+  const springScale = useSpring(scale, { stiffness: 400, damping: 25 });
+
+  const utils = trpc.useUtils();
+  const updateMutation = trpc.blocks.update.useMutation({
+    onSuccess: (updated) => {
+      if (updated) { setLocalBlock(updated as unknown as BlockData); onUpdate?.(updated as unknown as BlockData); }
+      void utils.blocks.pinned.invalidate();
+      void utils.blocks.list.invalidate();
+    },
+  });
+  const forkMutation = trpc.blocks.fork.useMutation({
+    onSuccess: () => { toast.success("Block forked"); void utils.blocks.list.invalidate(); },
+  });
+  const deleteMutation = trpc.blocks.delete.useMutation({
+    onSuccess: () => { toast.success("Block archived"); void utils.blocks.list.invalidate(); void utils.blocks.pinned.invalidate(); },
+  });
+
+  const Icon = TYPE_ICON[localBlock.type] ?? Sparkles;
+  const typeColor = TYPE_COLOR[localBlock.type] ?? "#f2f2f2";
+  const agentColor = localBlock.agentId ? (AGENT_COLORS[localBlock.agentId] ?? "#f2f2f2") : typeColor;
+
+  // Haptic-like feedback
+  const handlePress = useCallback(() => {
+    scale.set(0.98);
+    setTimeout(() => scale.set(1), 100);
+  }, [scale]);
+
+  const toggle = (field: "pinned" | "locked") => {
+    const val = !localBlock[field];
+    setLocalBlock((b) => ({ ...b, [field]: val }));
+    updateMutation.mutate({ id: localBlock.id, [field]: val });
+    handlePress();
+    toast.success(field === "pinned" ? (val ? "Pinned to Board" : "Unpinned") : (val ? "Block locked" : "Block unlocked"));
+  };
+
+  const copyLink = () => {
+    void navigator.clipboard.writeText(`${window.location.origin}/block/${localBlock.id}`);
+    handlePress();
+    toast.success("Link copied");
+  };
+
+  const copyContent = () => {
+    const text = (localBlock.content.text as string) ?? JSON.stringify(localBlock.content, null, 2);
+    void navigator.clipboard.writeText(text);
+    handlePress();
+    toast.success("Copied");
+  };
+
+  const toggleCollapse = () => {
+    handlePress();
+    setCollapsed((c) => !c);
+  };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!blockRef.current || document.activeElement !== blockRef.current) return;
+
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        toggleCollapse();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [toggleCollapse]);
+
+  // Smart content preview (extract key info)
+  const getPreviewText = useCallback(() => {
+    const content = localBlock.content;
+    if (typeof content.text === "string") return content.text.slice(0, 80);
+    if (typeof content.summary === "string") return content.summary.slice(0, 80);
+    if (typeof content.title === "string") return content.title.slice(0, 80);
+    return "";
+  }, [localBlock.content]);
+
+  const renderContent = () => {
+    switch (localBlock.type) {
+      case "chat":       return <ChatContent       content={localBlock.content} />;
+      case "atelier":    return <AtelierContent    content={localBlock.content} />;
+      case "memory":     return <MemoryContent     content={localBlock.content} />;
+      case "task":       return <TaskContent       content={localBlock.content} />;
+      case "transcript": return <TranscriptContent content={localBlock.content} />;
+      case "note":       return <NoteContent       content={localBlock.content} />;
+      default:           return <GenericContent    content={localBlock.content} />;
+    }
+  };
+
+  const tags = Array.isArray(localBlock.tags) ? localBlock.tags as string[] : [];
+  const createdAt = new Date(localBlock.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  const previewText = getPreviewText();
+
+  return (
+    <motion.div
+      ref={blockRef}
+      layout
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+      className="group relative rounded-2xl overflow-hidden cursor-default"
+      style={{
+        background: localBlock.pinned ? `${typeColor}07` : "var(--elev-1-bg)",
+        border: localBlock.pinned ? `1px solid ${typeColor}18` : "1px solid var(--elev-1-border)",
+        boxShadow: "var(--elev-1-shadow)",
+        opacity: localBlock.archived ? 0.4 : 1,
+        scale: springScale,
+      }}
+      tabIndex={0}
+      role="button"
+      aria-label={`Block: ${localBlock.title || localBlock.type}`}
+      onMouseEnter={() => collapsed && setIsPeeking(true)}
+      onMouseLeave={() => setIsPeeking(false)}
+    >
+      {/* Collapse Indicator (Left Strip) */}
+      <motion.div
+        className="absolute left-0 top-0 bottom-0 w-1 z-10"
+        style={{ background: collapsed ? "transparent" : typeColor }}
+        animate={{ opacity: collapsed ? 0.3 : 1 }}
+        transition={{ duration: 0.15 }}
+      />
+
+      {/* Peek Preview (On Hover When Collapsed) */}
+      <AnimatePresence>
+        {collapsed && isPeeking && previewText && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            className="px-4 pb-3 border-t border-[var(--line-1)]"
+            style={{ background: "var(--elev-2-bg)" }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Eye className="w-3 h-3" style={{ color: "var(--t3)" }} />
+              <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--t3)" }}>Preview</span>
+            </div>
+            <p className="text-[12px] leading-relaxed line-clamp-2" style={{ color: "var(--t2)" }}>
+              {previewText}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Header */}
+      <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-2">
+        {/* Type icon */}
+        <motion.div
+          className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: `${typeColor}12`, border: `1px solid ${typeColor}22` }}
+          whileHover={{ scale: 1.05, rotate: 5 }}
+          transition={{ duration: 0.15 }}
+        >
+          <Icon className="w-3 h-3" style={{ color: typeColor }} />
+        </motion.div>
+
+        {/* Title / meta */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            {localBlock.title && (
+              <p className="text-[13px] font-medium truncate" style={{ color: "rgba(242,242,242,0.80)" }}>
+                {localBlock.title}
+              </p>
+            )}
+            {localBlock.agentId && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
+                style={{ background: `${agentColor}12`, border: `1px solid ${agentColor}22`, color: agentColor }}>
+                {localBlock.agentId}
+              </span>
+            )}
+            {localBlock.source !== "user" && !localBlock.agentId && (
+              <span className="text-[10px] uppercase tracking-widest shrink-0" style={{ color: "rgba(242,242,242,0.25)" }}>
+                {localBlock.source}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Collapse toggle (always visible, subtle) */}
+        <motion.button
+          onClick={toggleCollapse}
+          className="shrink-0 transition-opacity"
+          style={{ color: "rgba(242,242,242,0.25)" }}
+          whileHover={{ scale: 1.1, color: "rgba(242,242,242,0.5)" }}
+          whileTap={{ scale: 0.95 }}
+          aria-label={collapsed ? "Expand" : "Collapse"}
+        >
+          <motion.div
+            animate={{ rotate: collapsed ? 0 : 180 }}
+            transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+          >
+            <ChevronDown className="w-3.5 h-3.5" />
+          </motion.div>
+        </motion.button>
+      </div>
+
+      {/* Content (Spring Animation) */}
+      <AnimatePresence initial={false} mode="wait">
+        {!collapsed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{
+              duration: 0.3,
+              ease: [0.34, 1.56, 0.64, 1], // Spring bounce
+            }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-3">{renderContent()}</div>
+
+            {/* Tags */}
+            {tags.length > 0 && (
+              <motion.div
+                className="flex flex-wrap gap-1.5 px-4 pb-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+              >
+                {tags.map((tag, i) => (
+                  <motion.span
+                    key={tag}
+                    className="text-[10px] px-2 py-0.5 rounded-full"
+                    style={{
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      color: "rgba(242,242,242,0.35)",
+                    }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.03, duration: 0.2 }}
+                    whileHover={{ scale: 1.05, borderColor: "rgba(255,255,255,0.15)" }}
+                  >
+                    {tag}
+                  </motion.span>
+                ))}
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Action bar */}
+      <div className={`flex items-center justify-between px-3 pb-2.5 ${collapsed ? "pt-1" : ""}`}>
+        <span className="text-[11px]" style={{ color: "rgba(242,242,242,0.2)" }}>{createdAt}</span>
+        <div className="flex items-center gap-0.5">
+          <ActionBtn icon={localBlock.pinned ? PinOff : Pin} label={localBlock.pinned ? "Unpin" : "Pin to Board"}
+            onClick={() => toggle("pinned")} active={localBlock.pinned} color={typeColor} />
+          <ActionBtn icon={localBlock.locked ? Unlock : Lock} label={localBlock.locked ? "Unlock" : "Lock"}
+            onClick={() => toggle("locked")} active={localBlock.locked} color="#f59e0b" />
+          <ActionBtn icon={GitFork} label="Fork" onClick={() => forkMutation.mutate({ id: localBlock.id })} />
+          <ActionBtn icon={Copy} label="Copy content" onClick={copyContent} />
+          <ActionBtn icon={Link2} label="Copy permalink" onClick={copyLink} />
+          <ActionBtn icon={Archive} label="Archive" onClick={() => deleteMutation.mutate({ id: localBlock.id })} color="#f43f5e" />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Block skeleton ───────────────────────────────────────────────────────────
+
+export function BlockSkeleton() {
+  return (
+    <div className="rounded-2xl p-4 animate-pulse" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="w-6 h-6 rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }} />
+        <div className="h-3 w-32 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }} />
+      </div>
+      <div className="space-y-2">
+        <div className="h-3 w-full rounded-full" style={{ background: "rgba(255,255,255,0.04)" }} />
+        <div className="h-3 w-4/5 rounded-full" style={{ background: "rgba(255,255,255,0.04)" }} />
+        <div className="h-3 w-3/5 rounded-full" style={{ background: "rgba(255,255,255,0.04)" }} />
+      </div>
+    </div>
+  );
+}

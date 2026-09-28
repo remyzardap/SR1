@@ -1,1 +1,67 @@
-aW1wb3J0IHsganNQREYgfSBmcm9tICJqc3BkZiI7CgpleHBvcnQgaW50ZXJmYWNlIFJlc2VhcmNoU291cmNlIHsKICB0aXRsZTogc3RyaW5nOwogIHVybDogc3RyaW5nOwp9CgpleHBvcnQgaW50ZXJmYWNlIFJlc2VhcmNoUmVwb3J0IHsKICBxdWVzdGlvbjogc3RyaW5nOwogIGFuc3dlcjogc3RyaW5nOwogIHNvdXJjZXM6IFJlc2VhcmNoU291cmNlW107CiAgY3JlYXRlZEF0OiBEYXRlOwp9CgpmdW5jdGlvbiBzYWZlTmFtZShxdWVzdGlvbjogc3RyaW5nKSB7CiAgY29uc3Qgc3RlbSA9IHF1ZXN0aW9uLnRvTG93ZXJDYXNlKCkucmVwbGFjZSgvW15hLXowLTldKy9nLCAiLSIpLnJlcGxhY2UoLyheLXwtJCkvZywgIiIpLnNsaWNlKDAsIDQ4KTsKICByZXR1cm4gYHN1dGFlcnUtcmVzZWFyY2gtJHtzdGVtIHx8ICJyZXBvcnQifWA7Cn0KCmZ1bmN0aW9uIG1hcmtkb3duKHJlcG9ydDogUmVzZWFyY2hSZXBvcnQpIHsKICBjb25zdCBzb3VyY2VzID0gcmVwb3J0LnNvdXJjZXMubGVuZ3RoCiAgICA/IHJlcG9ydC5zb3VyY2VzLm1hcCgoc291cmNlLCBpbmRleCkgPT4gYCR7aW5kZXggKyAxfS4gWyR7c291cmNlLnRpdGxlfV0oJHtzb3VyY2UudXJsfSlgKS5qb2luKCJcbiIpCiAgICA6ICJObyBleHRlcm5hbCBzb3VyY2VzIHdlcmUgcmV0dXJuZWQuIjsKICByZXR1cm4gYCMgUmVzZWFyY2ggcmVwb3J0XG5cbioqUXVlc3Rpb246KiogJHtyZXBvcnQucXVlc3Rpb259XG5cbioqUHJlcGFyZWQ6KiogJHtyZXBvcnQuY3JlYXRlZEF0LnRvTG9jYWxlU3RyaW5nKCl9XG5cbi0tLVxuXG4ke3JlcG9ydC5hbnN3ZXJ9XG5cbiMjIFNvdXJjZXNcblxuJHtzb3VyY2VzfVxuYDsKfQoKZnVuY3Rpb24gZG93bmxvYWQoYmxvYjogQmxvYiwgZmlsZW5hbWU6IHN0cmluZykgewogIGNvbnN0IHVybCA9IFVSTC5jcmVhdGVPYmplY3RVUkwoYmxvYik7CiAgY29uc3QgYW5jaG9yID0gZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgiYSIpOwogIGFuY2hvci5ocmVmID0gdXJsOwogIGFuY2hvci5kb3dubG9hZCA9IGZpbGVuYW1lOwogIGFuY2hvci5jbGljaygpOwogIHdpbmRvdy5zZXRUaW1lb3V0KCgpID0+IFVSTC5yZXZva2VPYmplY3RVUkwodXJsKSwgMCk7Cn0KCmV4cG9ydCBmdW5jdGlvbiBkb3dubG9hZFJlc2VhcmNoTWFya2Rvd24ocmVwb3J0OiBSZXNlYXJjaFJlcG9ydCkgewogIGRvd25sb2FkKG5ldyBCbG9iKFttYXJrZG93bihyZXBvcnQpXSwgeyB0eXBlOiAidGV4dC9tYXJrZG93bjtjaGFyc2V0PXV0Zi04IiB9KSwgYCR7c2FmZU5hbWUocmVwb3J0LnF1ZXN0aW9uKX0ubWRgKTsKfQoKZXhwb3J0IGZ1bmN0aW9uIGRvd25sb2FkUmVzZWFyY2hQZGYocmVwb3J0OiBSZXNlYXJjaFJlcG9ydCkgewogIGNvbnN0IHBkZiA9IG5ldyBqc1BERih7IHVuaXQ6ICJwdCIsIGZvcm1hdDogImE0IiB9KTsKICBjb25zdCBtYXJnaW4gPSA1MjsKICBjb25zdCB3aWR0aCA9IHBkZi5pbnRlcm5hbC5wYWdlU2l6ZS5nZXRXaWR0aCgpIC0gbWFyZ2luICogMjsKICBjb25zdCBoZWlnaHQgPSBwZGYuaW50ZXJuYWwucGFnZVNpemUuZ2V0SGVpZ2h0KCk7CiAgbGV0IHkgPSBtYXJnaW47CiAgY29uc3QgYWRkVGV4dCA9ICh0ZXh0OiBzdHJpbmcsIHNpemU6IG51bWJlciwgZ2FwOiBudW1iZXIpID0+IHsKICAgIHBkZi5zZXRGb250U2l6ZShzaXplKTsKICAgIGNvbnN0IGxpbmVzID0gcGRmLnNwbGl0VGV4dFRvU2l6ZSh0ZXh0LCB3aWR0aCkgYXMgc3RyaW5nW107CiAgICBmb3IgKGNvbnN0IGxpbmUgb2YgbGluZXMpIHsKICAgICAgaWYgKHkgPiBoZWlnaHQgLSBtYXJnaW4pIHsgcGRmLmFkZFBhZ2UoKTsgeSA9IG1hcmdpbjsgfQogICAgICBwZGYudGV4dChsaW5lLCBtYXJnaW4sIHkpOwogICAgICB5ICs9IHNpemUgKiAxLjQ1OwogICAgfQogICAgeSArPSBnYXA7CiAgfTsKICBwZGYuc2V0Rm9udCgiaGVsdmV0aWNhIiwgImJvbGQiKTsKICBhZGRUZXh0KCJTdXRhZXJ1IFJlc2VhcmNoIFJlcG9ydCIsIDIwLCAxMik7CiAgcGRmLnNldEZvbnQoImhlbHZldGljYSIsICJub3JtYWwiKTsKICBhZGRUZXh0KGBRdWVzdGlvbjogJHtyZXBvcnQucXVlc3Rpb259YCwgMTEsIDgpOwogIGFkZFRleHQoYFByZXBhcmVkOiAke3JlcG9ydC5jcmVhdGVkQXQudG9Mb2NhbGVTdHJpbmcoKX1gLCA5LCAxOCk7CiAgYWRkVGV4dChyZXBvcnQuYW5zd2VyLnJlcGxhY2UoL1sjKl9gPl0vZywgIiIpLCAxMCwgMTgpOwogIHBkZi5zZXRGb250KCJoZWx2ZXRpY2EiLCAiYm9sZCIpOwogIGFkZFRleHQoIlNvdXJjZXMiLCAxNCwgOCk7CiAgcGRmLnNldEZvbnQoImhlbHZldGljYSIsICJub3JtYWwiKTsKICByZXBvcnQuc291cmNlcy5mb3JFYWNoKChzb3VyY2UsIGluZGV4KSA9PiBhZGRUZXh0KGAke2luZGV4ICsgMX0uICR7c291cmNlLnRpdGxlfVxuJHtzb3VyY2UudXJsfWAsIDksIDcpKTsKICBwZGYuc2F2ZShgJHtzYWZlTmFtZShyZXBvcnQucXVlc3Rpb24pfS5wZGZgKTsKfQ==
+import { jsPDF } from "jspdf";
+
+export interface ResearchSource {
+  title: string;
+  url: string;
+}
+
+export interface ResearchReport {
+  question: string;
+  answer: string;
+  sources: ResearchSource[];
+  createdAt: Date;
+}
+
+function safeName(question: string) {
+  const stem = question.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 48);
+  return `sutaeru-research-${stem || "report"}`;
+}
+
+function markdown(report: ResearchReport) {
+  const sources = report.sources.length
+    ? report.sources.map((source, index) => `${index + 1}. [${source.title}](${source.url})`).join("\n")
+    : "No external sources were returned.";
+  return `# Research report\n\n**Question:** ${report.question}\n\n**Prepared:** ${report.createdAt.toLocaleString()}\n\n---\n\n${report.answer}\n\n## Sources\n\n${sources}\n`;
+}
+
+function download(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+export function downloadResearchMarkdown(report: ResearchReport) {
+  download(new Blob([markdown(report)], { type: "text/markdown;charset=utf-8" }), `${safeName(report.question)}.md`);
+}
+
+export function downloadResearchPdf(report: ResearchReport) {
+  const pdf = new jsPDF({ unit: "pt", format: "a4" });
+  const margin = 52;
+  const width = pdf.internal.pageSize.getWidth() - margin * 2;
+  const height = pdf.internal.pageSize.getHeight();
+  let y = margin;
+  const addText = (text: string, size: number, gap: number) => {
+    pdf.setFontSize(size);
+    const lines = pdf.splitTextToSize(text, width) as string[];
+    for (const line of lines) {
+      if (y > height - margin) { pdf.addPage(); y = margin; }
+      pdf.text(line, margin, y);
+      y += size * 1.45;
+    }
+    y += gap;
+  };
+  pdf.setFont("helvetica", "bold");
+  addText("Sutaeru Research Report", 20, 12);
+  pdf.setFont("helvetica", "normal");
+  addText(`Question: ${report.question}`, 11, 8);
+  addText(`Prepared: ${report.createdAt.toLocaleString()}`, 9, 18);
+  addText(report.answer.replace(/[#*_`>]/g, ""), 10, 18);
+  pdf.setFont("helvetica", "bold");
+  addText("Sources", 14, 8);
+  pdf.setFont("helvetica", "normal");
+  report.sources.forEach((source, index) => addText(`${index + 1}. ${source.title}\n${source.url}`, 9, 7));
+  pdf.save(`${safeName(report.question)}.pdf`);
+}
