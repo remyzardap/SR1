@@ -31,3 +31,4 @@ jobs:
             cd /opt/sutaeru-lovable
             docker compose up -d --build --force-recreate caddy
             docker image prune -f
+            docker compose logs --tail=60 caddy
