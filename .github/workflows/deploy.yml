@@ -29,5 +29,5 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /opt/sutaeru-lovable
-            docker compose up -d --build
+            docker compose up -d --build --force-recreate caddy
             docker image prune -f
