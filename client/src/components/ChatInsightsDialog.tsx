@@ -1,1 +1,189 @@
-aW1wb3J0IHsgdXNlRWZmZWN0LCB1c2VSZWYsIHVzZVN0YXRlIH0gZnJvbSAicmVhY3QiOwppbXBvcnQgeyBBbGVydENpcmNsZSwgQ29weSwgRG93bmxvYWQsIEhlbHBDaXJjbGUsIExpc3RDaGVja3MsIExvYWRlcjIsIFJvdGF0ZUNjdywgU3F1YXJlIH0gZnJvbSAibHVjaWRlLXJlYWN0IjsKaW1wb3J0IHsgdG9hc3QgfSBmcm9tICJzb25uZXIiOwppbXBvcnQgeyBEaWFsb2csIERpYWxvZ0NvbnRlbnQsIERpYWxvZ0Rlc2NyaXB0aW9uLCBEaWFsb2dIZWFkZXIsIERpYWxvZ1RpdGxlIH0gZnJvbSAiQC9jb21wb25lbnRzL3VpL2RpYWxvZyI7CmltcG9ydCB7IEJ1dHRvbiB9IGZyb20gIkAvY29tcG9uZW50cy91aS9idXR0b24iOwppbXBvcnQgeyBNZXNzYWdlUmVzcG9uc2UgfSBmcm9tICJAL2NvbXBvbmVudHMvYWktZWxlbWVudHMvbWVzc2FnZSI7CmltcG9ydCB7IGdldEF1dGhUb2tlbiB9IGZyb20gIkAvbGliL2F1dGhTZXNzaW9uIjsKCmludGVyZmFjZSBQcm9wcyB7CiAgb3BlbjogYm9vbGVhbjsKICBvbk9wZW5DaGFuZ2U6IChvcGVuOiBib29sZWFuKSA9PiB2b2lkOwogIGluaXRpYWxDb252ZXJzYXRpb246IHN0cmluZzsKICBpbml0aWFsRm9jdXM/OiBJbnNpZ2h0Rm9jdXM7Cn0KCnR5cGUgU3RhdHVzID0gImlkbGUiIHwgImxvYWRpbmciIHwgImRvbmUiIHwgImVycm9yIjsKZXhwb3J0IHR5cGUgSW5zaWdodEZvY3VzID0gImRlY2lzaW9ucyIgfCAiZ2FwcyI7Cgpjb25zdCBGT0NVUyA9IHsKICBkZWNpc2lvbnM6IHsgdGl0bGU6ICJEZWNpc2lvbnMgJiBuZXh0IHN0ZXBzIiwgZmlsZTogImRlY2lzaW9ucy1hbmQtbmV4dC1zdGVwcy5tZCIsIGRlc2M6ICJ3aGF0IHdhcyBkZWNpZGVkIGFuZCB3aGF0IG5lZWRzIGRvaW5nIiB9LAogIGdhcHM6IHsgdGl0bGU6ICJPcGVuIHF1ZXN0aW9ucyAmIG1pc3NpbmcgaW5mbyIsIGZpbGU6ICJvcGVuLXF1ZXN0aW9ucy5tZCIsIGRlc2M6ICJ1bmFuc3dlcmVkIHF1ZXN0aW9ucyBhbmQgaW5mb3JtYXRpb24gc3RpbGwgbWlzc2luZyIgfSwKfSBhcyBjb25zdDsKCmV4cG9ydCBmdW5jdGlvbiBDaGF0SW5zaWdodHNEaWFsb2coeyBvcGVuLCBvbk9wZW5DaGFuZ2UsIGluaXRpYWxDb252ZXJzYXRpb24sIGluaXRpYWxGb2N1cyA9ICJkZWNpc2lvbnMiIH06IFByb3BzKSB7CiAgY29uc3QgW2ZvY3VzLCBzZXRGb2N1c10gPSB1c2VTdGF0ZTxJbnNpZ2h0Rm9jdXM+KGluaXRpYWxGb2N1cyk7CiAgY29uc3QgW2NvbnZlcnNhdGlvbiwgc2V0Q29udmVyc2F0aW9uXSA9IHVzZVN0YXRlKCIiKTsKICBjb25zdCBbcmVzdWx0LCBzZXRSZXN1bHRdID0gdXNlU3RhdGUoIiIpOwogIGNvbnN0IFtzdGF0dXMsIHNldFN0YXR1c10gPSB1c2VTdGF0ZTxTdGF0dXM+KCJpZGxlIik7CiAgY29uc3QgW2Vycm9yLCBzZXRFcnJvcl0gPSB1c2VTdGF0ZTx7IG1lc3NhZ2U6IHN0cmluZzsgcmV0cnlhYmxlOiBib29sZWFuIH0gfCBudWxsPihudWxsKTsKICBjb25zdCBhYm9ydFJlZiA9IHVzZVJlZjxBYm9ydENvbnRyb2xsZXIgfCBudWxsPihudWxsKTsKCiAgdXNlRWZmZWN0KCgpID0+IHsKICAgIGlmIChvcGVuKSB7CiAgICAgIHNldENvbnZlcnNhdGlvbihpbml0aWFsQ29udmVyc2F0aW9uKTsKICAgICAgc2V0Rm9jdXMoaW5pdGlhbEZvY3VzKTsKICAgICAgc2V0UmVzdWx0KCIiKTsKICAgICAgc2V0U3RhdHVzKCJpZGxlIik7CiAgICAgIHNldEVycm9yKG51bGwpOwogICAgfSBlbHNlIHsKICAgICAgYWJvcnRSZWYuY3VycmVudD8uYWJvcnQoKTsKICAgIH0KICB9LCBbb3BlbiwgaW5pdGlhbENvbnZlcnNhdGlvbiwgaW5pdGlhbEZvY3VzXSk7CgogIGNvbnN0IHJ1biA9IGFzeW5jICgpID0+IHsKICAgIGNvbnN0IHRleHQgPSBjb252ZXJzYXRpb24udHJpbSgpOwogICAgaWYgKHRleHQubGVuZ3RoIDwgMjApIHsKICAgICAgc2V0RXJyb3IoeyBtZXNzYWdlOiAiUGFzdGUgb3Iga2VlcCBhIGxvbmdlciBjb252ZXJzYXRpb24gdG8gYW5hbHlzZS4iLCByZXRyeWFibGU6IGZhbHNlIH0pOwogICAgICBzZXRTdGF0dXMoImVycm9yIik7CiAgICAgIHJldHVybjsKICAgIH0KICAgIGNvbnN0IHRva2VuID0gZ2V0QXV0aFRva2VuKCk7CiAgICBpZiAoIXRva2VuKSB7CiAgICAgIHNldEVycm9yKHsgbWVzc2FnZTogIlNpZ24gaW4gdG8geW91ciBTdXRhZXJ1IGFjY291bnQgdG8gdXNlIHRoaXMuIiwgcmV0cnlhYmxlOiBmYWxzZSB9KTsKICAgICAgc2V0U3RhdHVzKCJlcnJvciIpOwogICAgICByZXR1cm47CiAgICB9CiAgICBhYm9ydFJlZi5jdXJyZW50Py5hYm9ydCgpOwogICAgY29uc3QgY29udHJvbGxlciA9IG5ldyBBYm9ydENvbnRyb2xsZXIoKTsKICAgIGFib3J0UmVmLmN1cnJlbnQgPSBjb250cm9sbGVyOwogICAgc2V0U3RhdHVzKCJsb2FkaW5nIik7CiAgICBzZXRFcnJvcihudWxsKTsKICAgIHNldFJlc3VsdCgiIik7CiAgICB0cnkgewogICAgICBjb25zdCByZXMgPSBhd2FpdCBmZXRjaChgJHtpbXBvcnQubWV0YS5lbnYuVklURV9TVVBBQkFTRV9VUkx9L2Z1bmN0aW9ucy92MS9jaGF0LWluc2lnaHRzYCwgewogICAgICAgIG1ldGhvZDogIlBPU1QiLAogICAgICAgIGhlYWRlcnM6IHsgIkNvbnRlbnQtVHlwZSI6ICJhcHBsaWNhdGlvbi9qc29uIiwgQXV0aG9yaXphdGlvbjogYEJlYXJlciAke3Rva2VufWAgfSwKICAgICAgICBib2R5OiBKU09OLnN0cmluZ2lmeSh7IGNvbnZlcnNhdGlvbjogdGV4dCwgZm9jdXMgfSksCiAgICAgICAgc2lnbmFsOiBjb250cm9sbGVyLnNpZ25hbCwKICAgICAgfSk7CiAgICAgIGlmICghcmVzLm9rIHx8ICFyZXMuYm9keSkgewogICAgICAgIGNvbnN0IGJvZHkgPSAoYXdhaXQgcmVzLmpzb24oKS5jYXRjaCgoKSA9PiAoe30pKSkgYXMgeyBlcnJvcj86IHN0cmluZyB9OwogICAgICAgIHRocm93IE9iamVjdC5hc3NpZ24obmV3IEVycm9yKGJvZHkuZXJyb3IgfHwgYFJlcXVlc3QgZmFpbGVkICgke3Jlcy5zdGF0dXN9KWApLCB7IHJldHJ5YWJsZTogcmVzLnN0YXR1cyA9PT0gNDI5IHx8IHJlcy5zdGF0dXMgPj0gNTAwIH0pOwogICAgICB9CiAgICAgIGNvbnN0IHJlYWRlciA9IHJlcy5ib2R5LmdldFJlYWRlcigpOwogICAgICBjb25zdCBkZWNvZGVyID0gbmV3IFRleHREZWNvZGVyKCk7CiAgICAgIGxldCBidWZmZXIgPSAiIjsKICAgICAgbGV0IGZhaWxlZDogeyBtZXNzYWdlOiBzdHJpbmc7IHJldHJ5YWJsZTogYm9vbGVhbiB9IHwgbnVsbCA9IG51bGw7CiAgICAgIGZvciAoOzspIHsKICAgICAgICBjb25zdCB7IGRvbmUsIHZhbHVlIH0gPSBhd2FpdCByZWFkZXIucmVhZCgpOwogICAgICAgIGlmIChkb25lKSBicmVhazsKICAgICAgICBidWZmZXIgKz0gZGVjb2Rlci5kZWNvZGUodmFsdWUsIHsgc3RyZWFtOiB0cnVlIH0pOwogICAgICAgIGNvbnN0IGJsb2NrcyA9IGJ1ZmZlci5zcGxpdCgiXG5cbiIpOwogICAgICAgIGJ1ZmZlciA9IGJsb2Nrcy5wb3AoKSA/PyAiIjsKICAgICAgICBmb3IgKGNvbnN0IGJsb2NrIG9mIGJsb2NrcykgewogICAgICAgICAgY29uc3QgZXZlbnQgPSBibG9jay5tYXRjaCgvXmV2ZW50OiAoLiopJC9tKT8uWzFdOwogICAgICAgICAgY29uc3QgZGF0YSA9IGJsb2NrLm1hdGNoKC9eZGF0YTogKC4qKSQvbSk/LlsxXTsKICAgICAgICAgIGlmICghZGF0YSkgY29udGludWU7CiAgICAgICAgICBpZiAoZXZlbnQgPT09ICJ0b2tlbiIpIHNldFJlc3VsdCgocHJldikgPT4gcHJldiArIChKU09OLnBhcnNlKGRhdGEpIGFzIHN0cmluZykpOwogICAgICAgICAgZWxzZSBpZiAoZXZlbnQgPT09ICJlcnJvciIpIGZhaWxlZCA9IEpTT04ucGFyc2UoZGF0YSk7CiAgICAgICAgfQogICAgICB9CiAgICAgIGlmIChmYWlsZWQpIHsKICAgICAgICBzZXRFcnJvcihmYWlsZWQpOwogICAgICAgIHNldFN0YXR1cygiZXJyb3IiKTsKICAgICAgfSBlbHNlIHNldFN0YXR1cygiZG9uZSIpOwogICAgfSBjYXRjaCAoZXJyKSB7CiAgICAgIGlmICgoZXJyIGFzIEVycm9yKS5uYW1lID09PSAiQWJvcnRFcnJvciIpIHsKICAgICAgICBzZXRTdGF0dXMoKHMpID0+IChzID09PSAibG9hZGluZyIgPyAiaWRsZSIgOiBzKSk7CiAgICAgICAgcmV0dXJuOwogICAgICB9CiAgICAgIGNvbnN0IGUgPSBlcnIgYXMgRXJyb3IgJiB7IHJldHJ5YWJsZT86IGJvb2xlYW4gfTsKICAgICAgc2V0RXJyb3IoeyBtZXNzYWdlOiBlLm1lc3NhZ2UgfHwgIk5ldHdvcmsgZXJyb3Ig4oCUIGNoZWNrIHlvdXIgY29ubmVjdGlvbi4iLCByZXRyeWFibGU6IGUucmV0cnlhYmxlID8/IHRydWUgfSk7CiAgICAgIHNldFN0YXR1cygiZXJyb3IiKTsKICAgIH0KICB9OwoKICBjb25zdCBkb3dubG9hZCA9ICgpID0+IHsKICAgIGNvbnN0IHVybCA9IFVSTC5jcmVhdGVPYmplY3RVUkwobmV3IEJsb2IoW3Jlc3VsdF0sIHsgdHlwZTogInRleHQvbWFya2Rvd24iIH0pKTsKICAgIGNvbnN0IGEgPSBkb2N1bWVudC5jcmVhdGVFbGVtZW50KCJhIik7CiAgICBhLmhyZWYgPSB1cmw7CiAgICBhLmRvd25sb2FkID0gRk9DVVNbZm9jdXNdLmZpbGU7CiAgICBhLmNsaWNrKCk7CiAgICBVUkwucmV2b2tlT2JqZWN0VVJMKHVybCk7CiAgfTsKCiAgY29uc3QgbG9hZGluZyA9IHN0YXR1cyA9PT0gImxvYWRpbmciOwoKICByZXR1cm4gKAogICAgPERpYWxvZyBvcGVuPXtvcGVufSBvbk9wZW5DaGFuZ2U9e29uT3BlbkNoYW5nZX0+CiAgICAgIDxEaWFsb2dDb250ZW50IGNsYXNzTmFtZT0ibWF4LWgtWzkydmhdIHctW21pbig3MjBweCxjYWxjKDEwMHZ3LTEuNXJlbSkpXSBtYXgtdy1ub25lIG92ZXJmbG93LXktYXV0byI+CiAgICAgICAgPERpYWxvZ0hlYWRlcj4KICAgICAgICAgIDxEaWFsb2dUaXRsZSBjbGFzc05hbWU9ImZsZXggaXRlbXMtY2VudGVyIGdhcC0yIj57Zm9jdXMgPT09ICJnYXBzIiA/IDxIZWxwQ2lyY2xlIGNsYXNzTmFtZT0iaC01IHctNSIgLz4gOiA8TGlzdENoZWNrcyBjbGFzc05hbWU9ImgtNSB3LTUiIC8+fSB7Rk9DVVNbZm9jdXNdLnRpdGxlfTwvRGlhbG9nVGl0bGU+CiAgICAgICAgICA8RGlhbG9nRGVzY3JpcHRpb24+VXNlIHRoaXMgY2hhdCBvciBwYXN0ZSBhbnkgY29udmVyc2F0aW9uLiBLZW1tYSBmaW5kcyB7Rk9DVVNbZm9jdXNdLmRlc2N9LjwvRGlhbG9nRGVzY3JpcHRpb24+CiAgICAgICAgPC9EaWFsb2dIZWFkZXI+CgogICAgICAgIDxkaXYgcm9sZT0idGFibGlzdCIgYXJpYS1sYWJlbD0iQW5hbHlzaXMgdHlwZSIgY2xhc3NOYW1lPSJncmlkIGdyaWQtY29scy0yIGdhcC0xIHJvdW5kZWQtZnVsbCBib3JkZXIgYm9yZGVyLWJvcmRlciBwLTEiPgogICAgICAgICAgeyhbImRlY2lzaW9ucyIsICJnYXBzIl0gYXMgY29uc3QpLm1hcCgoa2V5KSA9PiAoCiAgICAgICAgICAgIDxidXR0b24KICAgICAgICAgICAgICBrZXk9e2tleX0KICAgICAgICAgICAgICByb2xlPSJ0YWIiCiAgICAgICAgICAgICAgYXJpYS1zZWxlY3RlZD17Zm9jdXMgPT09IGtleX0KICAgICAgICAgICAgICBkaXNhYmxlZD17bG9hZGluZ30KICAgICAgICAgICAgICBvbkNsaWNrPXsoKSA9PiB7IHNldEZvY3VzKGtleSk7IHNldFJlc3VsdCgiIik7IHNldFN0YXR1cygiaWRsZSIpOyBzZXRFcnJvcihudWxsKTsgfX0KICAgICAgICAgICAgICBjbGFzc05hbWU9e2BtaW4taC0xMCByb3VuZGVkLWZ1bGwgcHgtMyB0ZXh0LXhzIGZvbnQtc2VtaWJvbGQgdHJhbnNpdGlvbi1jb2xvcnMgJHtmb2N1cyA9PT0ga2V5ID8gImJnLXByaW1hcnkgdGV4dC1wcmltYXJ5LWZvcmVncm91bmQiIDogInRleHQtbXV0ZWQtZm9yZWdyb3VuZCBob3ZlcjpiZy1tdXRlZCJ9YH0KICAgICAgICAgICAgPgogICAgICAgICAgICAgIHtrZXkgPT09ICJkZWNpc2lvbnMiID8gIkRlY2lzaW9ucyAmIG5leHQgc3RlcHMiIDogIk9wZW4gcXVlc3Rpb25zIn0KICAgICAgICAgICAgPC9idXR0b24+CiAgICAgICAgICApKX0KICAgICAgICA8L2Rpdj4KCiAgICAgICAgPGxhYmVsIGNsYXNzTmFtZT0idGV4dC14cyBmb250LW1lZGl1bSB0ZXh0LW11dGVkLWZvcmVncm91bmQiIGh0bWxGb3I9Imluc2lnaHRzLWNvbnZlcnNhdGlvbiI+Q29udmVyc2F0aW9uPC9sYWJlbD4KICAgICAgICA8dGV4dGFyZWEKICAgICAgICAgIGlkPSJpbnNpZ2h0cy1jb252ZXJzYXRpb24iCiAgICAgICAgICB2YWx1ZT17Y29udmVyc2F0aW9ufQogICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiBzZXRDb252ZXJzYXRpb24oZS50YXJnZXQudmFsdWUpfQogICAgICAgICAgZGlzYWJsZWQ9e2xvYWRpbmd9CiAgICAgICAgICByb3dzPXs3fQogICAgICAgICAgcGxhY2Vob2xkZXI9IlBhc3RlIGEgY29udmVyc2F0aW9uIGhlcmXigKYiCiAgICAgICAgICBjbGFzc05hbWU9InctZnVsbCByZXNpemUteSByb3VuZGVkLXhsIGJvcmRlciBib3JkZXItaW5wdXQgYmctYmFja2dyb3VuZCBwLTMgdGV4dC1zbSBsZWFkaW5nLXJlbGF4ZWQgZm9jdXM6b3V0bGluZS1ub25lIGZvY3VzOnJpbmctMiBmb2N1czpyaW5nLXJpbmcgZGlzYWJsZWQ6b3BhY2l0eS02MCIKICAgICAgICAvPgoKICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBmbGV4LXdyYXAgZ2FwLTIiPgogICAgICAgICAge2xvYWRpbmcgPyAoCiAgICAgICAgICAgIDxCdXR0b24gdmFyaWFudD0ib3V0bGluZSIgY2xhc3NOYW1lPSJtaW4taC0xMSIgb25DbGljaz17KCkgPT4gYWJvcnRSZWYuY3VycmVudD8uYWJvcnQoKX0+PFNxdWFyZSBjbGFzc05hbWU9Im1yLTIgaC00IHctNCIgLz4gU3RvcDwvQnV0dG9uPgogICAgICAgICAgKSA6ICgKICAgICAgICAgICAgPEJ1dHRvbiBjbGFzc05hbWU9Im1pbi1oLTExIHJvdW5kZWQtZnVsbCIgb25DbGljaz17KCkgPT4gdm9pZCBydW4oKX0gZGlzYWJsZWQ9eyFjb252ZXJzYXRpb24udHJpbSgpfT4KICAgICAgICAgICAgICA8TGlzdENoZWNrcyBjbGFzc05hbWU9Im1yLTIgaC00IHctNCIgLz4ge3N0YXR1cyA9PT0gImRvbmUiID8gIkV4dHJhY3QgYWdhaW4iIDogIkV4dHJhY3QifQogICAgICAgICAgICA8L0J1dHRvbj4KICAgICAgICAgICl9CiAgICAgICAgICB7c3RhdHVzID09PSAiZG9uZSIgJiYgcmVzdWx0ICYmICgKICAgICAgICAgICAgPD4KICAgICAgICAgICAgICA8QnV0dG9uIHZhcmlhbnQ9Im91dGxpbmUiIGNsYXNzTmFtZT0ibWluLWgtMTEiIG9uQ2xpY2s9eygpID0+IHsgdm9pZCBuYXZpZ2F0b3IuY2xpcGJvYXJkLndyaXRlVGV4dChyZXN1bHQpOyB0b2FzdC5zdWNjZXNzKCJDb3BpZWQiKTsgfX0+PENvcHkgY2xhc3NOYW1lPSJtci0yIGgtNCB3LTQiIC8+IENvcHk8L0J1dHRvbj4KICAgICAgICAgICAgICA8QnV0dG9uIHZhcmlhbnQ9Im91dGxpbmUiIGNsYXNzTmFtZT0ibWluLWgtMTEiIG9uQ2xpY2s9e2Rvd25sb2FkfT48RG93bmxvYWQgY2xhc3NOYW1lPSJtci0yIGgtNCB3LTQiIC8+IE1hcmtkb3duPC9CdXR0b24+CiAgICAgICAgICAgIDwvPgogICAgICAgICAgKX0KICAgICAgICA8L2Rpdj4KCiAgICAgICAge2xvYWRpbmcgJiYgIXJlc3VsdCAmJiAoCiAgICAgICAgICA8ZGl2IHJvbGU9InN0YXR1cyIgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMiByb3VuZGVkLXhsIGJvcmRlciBib3JkZXItYm9yZGVyIHAtNCB0ZXh0LXNtIHRleHQtbXV0ZWQtZm9yZWdyb3VuZCI+CiAgICAgICAgICAgIDxMb2FkZXIyIGNsYXNzTmFtZT0iaC00IHctNCBhbmltYXRlLXNwaW4gbW90aW9uLXJlZHVjZTphbmltYXRlLW5vbmUiIC8+IFJlYWRpbmcgdGhlIGNvbnZlcnNhdGlvbuKApgogICAgICAgICAgPC9kaXY+CiAgICAgICAgKX0KCiAgICAgICAge2Vycm9yICYmICgKICAgICAgICAgIDxkaXYgcm9sZT0iYWxlcnQiIGNsYXNzTmFtZT0iZmxleCBpdGVtcy1zdGFydCBqdXN0aWZ5LWJldHdlZW4gZ2FwLTMgcm91bmRlZC14bCBib3JkZXIgYm9yZGVyLWRlc3RydWN0aXZlLzMwIGJnLWRlc3RydWN0aXZlLzUgcC00IHRleHQtc20gdGV4dC1kZXN0cnVjdGl2ZSI+CiAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0iZmxleCBnYXAtMiI+PEFsZXJ0Q2lyY2xlIGNsYXNzTmFtZT0ibXQtMC41IGgtNCB3LTQgc2hyaW5rLTAiIC8+e2Vycm9yLm1lc3NhZ2V9PC9zcGFuPgogICAgICAgICAgICB7ZXJyb3IucmV0cnlhYmxlICYmIDxCdXR0b24gc2l6ZT0ic20iIHZhcmlhbnQ9Im91dGxpbmUiIG9uQ2xpY2s9eygpID0+IHZvaWQgcnVuKCl9PjxSb3RhdGVDY3cgY2xhc3NOYW1lPSJtci0xIGgtMy41IHctMy41IiAvPiBSZXRyeTwvQnV0dG9uPn0KICAgICAgICAgIDwvZGl2PgogICAgICAgICl9CgogICAgICAgIHtyZXN1bHQgJiYgKAogICAgICAgICAgPGRpdiBjbGFzc05hbWU9InJvdW5kZWQteGwgYm9yZGVyIGJvcmRlci1ib3JkZXIgcC00IHRleHQtc20iIGFyaWEtYnVzeT17bG9hZGluZ30+CiAgICAgICAgICAgIDxNZXNzYWdlUmVzcG9uc2U+e3Jlc3VsdH08L01lc3NhZ2VSZXNwb25zZT4KICAgICAgICAgIDwvZGl2PgogICAgICAgICl9CiAgICAgIDwvRGlhbG9nQ29udGVudD4KICAgIDwvRGlhbG9nPgogICk7Cn0K
+import { useEffect, useRef, useState } from "react";
+import { AlertCircle, Copy, Download, HelpCircle, ListChecks, Loader2, RotateCcw, Square } from "lucide-react";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { MessageResponse } from "@/components/ai-elements/message";
+import { getAuthToken } from "@/lib/authSession";
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initialConversation: string;
+  initialFocus?: InsightFocus;
+}
+
+type Status = "idle" | "loading" | "done" | "error";
+export type InsightFocus = "decisions" | "gaps";
+
+const FOCUS = {
+  decisions: { title: "Decisions & next steps", file: "decisions-and-next-steps.md", desc: "what was decided and what needs doing" },
+  gaps: { title: "Open questions & missing info", file: "open-questions.md", desc: "unanswered questions and information still missing" },
+} as const;
+
+export function ChatInsightsDialog({ open, onOpenChange, initialConversation, initialFocus = "decisions" }: Props) {
+  const [focus, setFocus] = useState<InsightFocus>(initialFocus);
+  const [conversation, setConversation] = useState("");
+  const [result, setResult] = useState("");
+  const [status, setStatus] = useState<Status>("idle");
+  const [error, setError] = useState<{ message: string; retryable: boolean } | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setConversation(initialConversation);
+      setFocus(initialFocus);
+      setResult("");
+      setStatus("idle");
+      setError(null);
+    } else {
+      abortRef.current?.abort();
+    }
+  }, [open, initialConversation, initialFocus]);
+
+  const run = async () => {
+    const text = conversation.trim();
+    if (text.length < 20) {
+      setError({ message: "Paste or keep a longer conversation to analyse.", retryable: false });
+      setStatus("error");
+      return;
+    }
+    const token = getAuthToken();
+    if (!token) {
+      setError({ message: "Sign in to your Sutaeru account to use this.", retryable: false });
+      setStatus("error");
+      return;
+    }
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setStatus("loading");
+    setError(null);
+    setResult("");
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-insights`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ conversation: text, focus }),
+        signal: controller.signal,
+      });
+      if (!res.ok || !res.body) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw Object.assign(new Error(body.error || `Request failed (${res.status})`), { retryable: res.status === 429 || res.status >= 500 });
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let failed: { message: string; retryable: boolean } | null = null;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const blocks = buffer.split("\n\n");
+        buffer = blocks.pop() ?? "";
+        for (const block of blocks) {
+          const event = block.match(/^event: (.*)$/m)?.[1];
+          const data = block.match(/^data: (.*)$/m)?.[1];
+          if (!data) continue;
+          if (event === "token") setResult((prev) => prev + (JSON.parse(data) as string));
+          else if (event === "error") failed = JSON.parse(data);
+        }
+      }
+      if (failed) {
+        setError(failed);
+        setStatus("error");
+      } else setStatus("done");
+    } catch (err) {
+      if ((err as Error).name === "AbortError") {
+        setStatus((s) => (s === "loading" ? "idle" : s));
+        return;
+      }
+      const e = err as Error & { retryable?: boolean };
+      setError({ message: e.message || "Network error — check your connection.", retryable: e.retryable ?? true });
+      setStatus("error");
+    }
+  };
+
+  const download = () => {
+    const url = URL.createObjectURL(new Blob([result], { type: "text/markdown" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = FOCUS[focus].file;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const loading = status === "loading";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92vh] w-[min(720px,calc(100vw-1.5rem))] max-w-none overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">{focus === "gaps" ? <HelpCircle className="h-5 w-5" /> : <ListChecks className="h-5 w-5" />} {FOCUS[focus].title}</DialogTitle>
+          <DialogDescription>Use this chat or paste any conversation. Kemma finds {FOCUS[focus].desc}.</DialogDescription>
+        </DialogHeader>
+
+        <div role="tablist" aria-label="Analysis type" className="grid grid-cols-2 gap-1 rounded-full border border-border p-1">
+          {(["decisions", "gaps"] as const).map((key) => (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={focus === key}
+              disabled={loading}
+              onClick={() => { setFocus(key); setResult(""); setStatus("idle"); setError(null); }}
+              className={`min-h-10 rounded-full px-3 text-xs font-semibold transition-colors ${focus === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+            >
+              {key === "decisions" ? "Decisions & next steps" : "Open questions"}
+            </button>
+          ))}
+        </div>
+
+        <label className="text-xs font-medium text-muted-foreground" htmlFor="insights-conversation">Conversation</label>
+        <textarea
+          id="insights-conversation"
+          value={conversation}
+          onChange={(e) => setConversation(e.target.value)}
+          disabled={loading}
+          rows={7}
+          placeholder="Paste a conversation here…"
+          className="w-full resize-y rounded-xl border border-input bg-background p-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+        />
+
+        <div className="flex flex-wrap gap-2">
+          {loading ? (
+            <Button variant="outline" className="min-h-11" onClick={() => abortRef.current?.abort()}><Square className="mr-2 h-4 w-4" /> Stop</Button>
+          ) : (
+            <Button className="min-h-11 rounded-full" onClick={() => void run()} disabled={!conversation.trim()}>
+              <ListChecks className="mr-2 h-4 w-4" /> {status === "done" ? "Extract again" : "Extract"}
+            </Button>
+          )}
+          {status === "done" && result && (
+            <>
+              <Button variant="outline" className="min-h-11" onClick={() => { void navigator.clipboard.writeText(result); toast.success("Copied"); }}><Copy className="mr-2 h-4 w-4" /> Copy</Button>
+              <Button variant="outline" className="min-h-11" onClick={download}><Download className="mr-2 h-4 w-4" /> Markdown</Button>
+            </>
+          )}
+        </div>
+
+        {loading && !result && (
+          <div role="status" className="flex items-center gap-2 rounded-xl border border-border p-4 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" /> Reading the conversation…
+          </div>
+        )}
+
+        {error && (
+          <div role="alert" className="flex items-start justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+            <span className="flex gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error.message}</span>
+            {error.retryable && <Button size="sm" variant="outline" onClick={() => void run()}><RotateCcw className="mr-1 h-3.5 w-3.5" /> Retry</Button>}
+          </div>
+        )}
+
+        {result && (
+          <div className="rounded-xl border border-border p-4 text-sm" aria-busy={loading}>
+            <MessageResponse>{result}</MessageResponse>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

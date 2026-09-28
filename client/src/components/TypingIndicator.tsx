@@ -1,1 +1,5 @@
-aW1wb3J0IHsgU2hpbW1lciB9IGZyb20gIkAvY29tcG9uZW50cy9haS1lbGVtZW50cy9zaGltbWVyIjsKCmV4cG9ydCBmdW5jdGlvbiBUeXBpbmdJbmRpY2F0b3IoKSB7CiAgcmV0dXJuIDxkaXYgY2xhc3NOYW1lPSJzdXRhZXJ1LXR5cGluZy1pbmRpY2F0b3IiIHJvbGU9InN0YXR1cyI+PFNoaW1tZXI+VGhpbmtpbmfigKY8L1NoaW1tZXI+PC9kaXY+Owp9
+import { Shimmer } from "@/components/ai-elements/shimmer";
+
+export function TypingIndicator() {
+  return <div className="sutaeru-typing-indicator" role="status"><Shimmer>Thinking…</Shimmer></div>;
+}

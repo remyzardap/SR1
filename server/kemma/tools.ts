@@ -232,6 +232,40 @@ const generateFileTool: ToolDefinition = {
 };
 
 /**
+ * Tool 5b: generate_image
+ * Batch text-to-image generation. One call can render several images at
+ * once via the `count` parameter — use this instead of calling the tool
+ * repeatedly when the user asks for multiple images in a single request
+ * (e.g. "render 15 photos of X").
+ */
+const generateImageTool: ToolDefinition = {
+  name: "generate_image",
+  description: "Generate one or more images from a text prompt in a single call. To render several images from one request (e.g. 'give me 15 photos of X'), set count to that number instead of calling this tool multiple times — up to 20 images render in one batch call. Optionally give each image in the batch its own prompt via 'variations'.",
+  parameters: {
+    type: "object",
+    properties: {
+      prompt: {
+        type: "string",
+        description: "The base image prompt describing what to generate"
+      },
+      count: {
+        type: "number",
+        description: "How many images to render in this single call (default 1, max 20). Set this to the number the user asked for instead of calling generate_image repeatedly."
+      },
+      variations: {
+        type: "array",
+        description: "Optional per-image prompt overrides, one per image in the batch (index-aligned). Any image beyond the given variations reuses 'prompt'.",
+        items: {
+          type: "string",
+          description: "Prompt variation for one image in the batch"
+        }
+      }
+    },
+    required: ["prompt"]
+  }
+};
+
+/**
  * Tool 6: phone_scan
  * Bridge tool for phone file operations
  */
@@ -418,6 +452,7 @@ export const KEMMA_TOOLS: ToolDefinition[] = [
   browseTool,
   runCodeTool,
   generateFileTool,
+  generateImageTool,
   phoneScanTool,
   driveSearchTool,
   driveReadTool,

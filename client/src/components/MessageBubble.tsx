@@ -1,1 +1,90 @@
-aW1wb3J0IHsgdXNlU3RhdGUgfSBmcm9tICJyZWFjdCI7CmltcG9ydCB7IEJvb2ttYXJrUGx1cywgQ2hlY2ssIENvcHksIERvd25sb2FkLCBGaWxlVGV4dCwgUGluIH0gZnJvbSAibHVjaWRlLXJlYWN0IjsKaW1wb3J0IHsgdHJwYyB9IGZyb20gIkAvbGliL3RycGMiOwppbXBvcnQgeyB0b2FzdCB9IGZyb20gInNvbm5lciI7CmltcG9ydCB7IE1lc3NhZ2UsIE1lc3NhZ2VDb250ZW50LCBNZXNzYWdlUmVzcG9uc2UsIE1lc3NhZ2VBY3Rpb25zLCBNZXNzYWdlQWN0aW9uIH0gZnJvbSAiQC9jb21wb25lbnRzL2FpLWVsZW1lbnRzL21lc3NhZ2UiOwppbXBvcnQgeyBUb29sLCBUb29sSGVhZGVyLCBUb29sQ29udGVudCB9IGZyb20gIkAvY29tcG9uZW50cy9haS1lbGVtZW50cy90b29sIjsKaW1wb3J0IHsgU2hpbW1lciB9IGZyb20gIkAvY29tcG9uZW50cy9haS1lbGVtZW50cy9zaGltbWVyIjsKaW1wb3J0IHsgZG93bmxvYWRSZXNlYXJjaE1hcmtkb3duLCBkb3dubG9hZFJlc2VhcmNoUGRmIH0gZnJvbSAiQC9saWIvcmVzZWFyY2hSZXBvcnRzIjsKCmludGVyZmFjZSBNZXNzYWdlRGF0YSB7CiAgaWQ6IHN0cmluZzsKICByb2xlOiAidXNlciIgfCAiYXNzaXN0YW50IjsKICBjb250ZW50OiBzdHJpbmc7CiAgbW9kZWw/OiBzdHJpbmc7CiAgc3RyZWFtaW5nPzogYm9vbGVhbjsKICBjcmVhdGVkQXQ6IERhdGU7CiAgc291cmNlcz86IEFycmF5PHsgdGl0bGU6IHN0cmluZzsgdXJsOiBzdHJpbmcgfT47CiAgcXVlc3Rpb24/OiBzdHJpbmc7CiAgcmVmZXJlbmNlcz86IHN0cmluZ1tdOwp9CgppbnRlcmZhY2UgTWVzc2FnZUJ1YmJsZVByb3BzIHsKICBtZXNzYWdlOiBNZXNzYWdlRGF0YTsKICBvblNhdmU/OiAoY29udGVudDogc3RyaW5nKSA9PiB2b2lkOwogIHRvb2xzPzogQXJyYXk8eyBpZDogc3RyaW5nOyBsYWJlbDogc3RyaW5nOyBkZXRhaWw/OiBzdHJpbmcgfT47CiAgaXNSdW5uaW5nPzogYm9vbGVhbjsKICBzb3VyY2VzPzogQXJyYXk8eyB0aXRsZTogc3RyaW5nOyB1cmw6IHN0cmluZyB9PjsKICBxdWVzdGlvbj86IHN0cmluZzsKICByZWZlcmVuY2VzPzogc3RyaW5nW107Cn0KCmV4cG9ydCBmdW5jdGlvbiBNZXNzYWdlQnViYmxlKHsgbWVzc2FnZSwgb25TYXZlLCB0b29scyA9IFtdLCBpc1J1bm5pbmcgPSBmYWxzZSwgc291cmNlcyA9IFtdLCBxdWVzdGlvbiwgcmVmZXJlbmNlcyA9IFtdIH06IE1lc3NhZ2VCdWJibGVQcm9wcykgewogIGNvbnN0IFtjb3BpZWQsIHNldENvcGllZF0gPSB1c2VTdGF0ZShmYWxzZSk7CiAgY29uc3QgdXRpbHMgPSB0cnBjLnVzZVV0aWxzKCk7CiAgY29uc3QgY3JlYXRlQmxvY2sgPSB0cnBjLmJsb2Nrcy5jcmVhdGUudXNlTXV0YXRpb24oewogICAgb25TdWNjZXNzOiAoKSA9PiB7IHRvYXN0LnN1Y2Nlc3MoIlBpbm5lZCB0byBCb2FyZCIpOyB2b2lkIHV0aWxzLmJsb2Nrcy5waW5uZWQuaW52YWxpZGF0ZSgpOyB9LAogICAgb25FcnJvcjogKGVycm9yKSA9PiB0b2FzdC5lcnJvcihlcnJvci5tZXNzYWdlKSwKICB9KTsKICBjb25zdCBpc1VzZXIgPSBtZXNzYWdlLnJvbGUgPT09ICJ1c2VyIjsKCiAgcmV0dXJuICgKICAgIDxNZXNzYWdlIGZyb209e21lc3NhZ2Uucm9sZX0gY2xhc3NOYW1lPSJzdXRhZXJ1LWVkaXRvcmlhbC1tZXNzYWdlIG1heC13LWZ1bGwiPgogICAgICA8ZGl2IGNsYXNzTmFtZT0ic3V0YWVydS1tZXNzYWdlLWxhYmVsIj4KICAgICAgICA8c3Ryb25nPntpc1VzZXIgPyAiWW91IiA6ICJLZW1tYSJ9PC9zdHJvbmc+CiAgICAgICAgPHNwYW4+e21lc3NhZ2UuY3JlYXRlZEF0LnRvTG9jYWxlVGltZVN0cmluZyhbXSwgeyBob3VyOiAibnVtZXJpYyIsIG1pbnV0ZTogIjItZGlnaXQiIH0pfTwvc3Bhbj4KICAgICAgICB7IWlzVXNlciAmJiBtZXNzYWdlLm1vZGVsICYmIDxzcGFuPnttZXNzYWdlLm1vZGVsfTwvc3Bhbj59CiAgICAgIDwvZGl2PgogICAgICA8TWVzc2FnZUNvbnRlbnQgY2xhc3NOYW1lPXtpc1VzZXIgPyAic3V0YWVydS11c2VyLWNvbnRlbnQiIDogInN1dGFlcnUtYXNzaXN0YW50LWNvbnRlbnQifT4KICAgICAgICB7bWVzc2FnZS5zdHJlYW1pbmcgJiYgIW1lc3NhZ2UuY29udGVudCA/IDxTaGltbWVyPlRoaW5raW5n4oCmPC9TaGltbWVyPiA6CiAgICAgICAgICBpc1VzZXIgPyA8c3BhbiBjbGFzc05hbWU9IndoaXRlc3BhY2UtcHJlLXdyYXAiPnttZXNzYWdlLmNvbnRlbnR9PC9zcGFuPiA6CiAgICAgICAgICA8TWVzc2FnZVJlc3BvbnNlIGlzQW5pbWF0aW5nPXttZXNzYWdlLnN0cmVhbWluZ30+e21lc3NhZ2UuY29udGVudH08L01lc3NhZ2VSZXNwb25zZT59CiAgICAgIDwvTWVzc2FnZUNvbnRlbnQ+CiAgICAgIHtpc1VzZXIgJiYgcmVmZXJlbmNlcy5sZW5ndGggPiAwICYmIDxkaXYgY2xhc3NOYW1lPSJzdXRhZXJ1LW1lc3NhZ2UtcmVmZXJlbmNlcyI+e3JlZmVyZW5jZXMubWFwKChuYW1lKSA9PiA8c3BhbiBrZXk9e25hbWV9PjxGaWxlVGV4dCAvPntuYW1lfTwvc3Bhbj4pfTwvZGl2Pn0KICAgICAgeyFpc1VzZXIgJiYgc291cmNlcy5sZW5ndGggPiAwICYmICgKICAgICAgICA8c2VjdGlvbiBjbGFzc05hbWU9InN1dGFlcnUtbWVzc2FnZS1zb3VyY2VzIiBhcmlhLWxhYmVsPSJTb3VyY2VzIGZvciB0aGlzIGFuc3dlciI+CiAgICAgICAgICA8c3Ryb25nPlNvdXJjZXMgLyB7c291cmNlcy5sZW5ndGh9PC9zdHJvbmc+CiAgICAgICAgICA8b2w+e3NvdXJjZXMubWFwKChzb3VyY2UsIGluZGV4KSA9PiA8bGkga2V5PXtgJHtzb3VyY2UudXJsfS0ke2luZGV4fWB9PjxhIGhyZWY9e3NvdXJjZS51cmx9IHRhcmdldD0iX2JsYW5rIiByZWw9Im5vcmVmZXJyZXIiPjxzcGFuPntTdHJpbmcoaW5kZXggKyAxKS5wYWRTdGFydCgyLCAiMCIpfTwvc3Bhbj57c291cmNlLnRpdGxlfTwvYT48L2xpPil9PC9vbD4KICAgICAgICA8L3NlY3Rpb24+CiAgICAgICl9CiAgICAgIHshaXNVc2VyICYmIHRvb2xzLmxlbmd0aCA+IDAgJiYgKAogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJzdXRhZXJ1LW1lc3NhZ2UtdG9vbHMiPgogICAgICAgICAge3Rvb2xzLm1hcCgodG9vbCkgPT4gKAogICAgICAgICAgICA8VG9vbCBrZXk9e3Rvb2wuaWR9IGRlZmF1bHRPcGVuPXtmYWxzZX0+CiAgICAgICAgICAgICAgPFRvb2xIZWFkZXIgdHlwZT0iZHluYW1pYy10b29sIiB0b29sTmFtZT17dG9vbC5kZXRhaWwgPz8gdG9vbC5sYWJlbH0gdGl0bGU9e3Rvb2wubGFiZWx9IHN0YXRlPXtpc1J1bm5pbmcgPyAiaW5wdXQtYXZhaWxhYmxlIiA6ICJvdXRwdXQtYXZhaWxhYmxlIn0gLz4KICAgICAgICAgICAgICA8VG9vbENvbnRlbnQ+e3Rvb2wuZGV0YWlsICYmIDxwPnt0b29sLmRldGFpbH08L3A+fTwvVG9vbENvbnRlbnQ+CiAgICAgICAgICAgIDwvVG9vbD4KICAgICAgICAgICkpfQogICAgICAgIDwvZGl2PgogICAgICApfQogICAgICB7IWlzVXNlciAmJiAhbWVzc2FnZS5zdHJlYW1pbmcgJiYgbWVzc2FnZS5jb250ZW50ICYmICgKICAgICAgICA8TWVzc2FnZUFjdGlvbnMgY2xhc3NOYW1lPSJzdXRhZXJ1LW1lc3NhZ2UtYWN0aW9ucyI+CiAgICAgICAgICA8TWVzc2FnZUFjdGlvbiB0b29sdGlwPXtjb3BpZWQgPyAiQ29waWVkIiA6ICJDb3B5IGFuc3dlciJ9IGxhYmVsPSJDb3B5IGFuc3dlciIgb25DbGljaz17KCkgPT4gewogICAgICAgICAgICB2b2lkIG5hdmlnYXRvci5jbGlwYm9hcmQud3JpdGVUZXh0KG1lc3NhZ2UuY29udGVudCkudGhlbigoKSA9PiB7CiAgICAgICAgICAgICAgc2V0Q29waWVkKHRydWUpOyB3aW5kb3cuc2V0VGltZW91dCgoKSA9PiBzZXRDb3BpZWQoZmFsc2UpLCAxNTAwKTsKICAgICAgICAgICAgfSk7CiAgICAgICAgICB9fT57Y29waWVkID8gPENoZWNrIC8+IDogPENvcHkgLz59PC9NZXNzYWdlQWN0aW9uPgogICAgICAgICAgPE1lc3NhZ2VBY3Rpb24gdG9vbHRpcD0iUGluIHRvIEJvYXJkIiBsYWJlbD0iUGluIHRvIEJvYXJkIiBvbkNsaWNrPXsoKSA9PiBjcmVhdGVCbG9jay5tdXRhdGUoewogICAgICAgICAgICB0eXBlOiAiY2hhdCIsIHNvdXJjZTogInMxIiwgY29udGVudDogeyB0ZXh0OiBtZXNzYWdlLmNvbnRlbnQgfSwgcGlubmVkOiB0cnVlLCB0YWdzOiBbXSwKICAgICAgICAgIH0pfT48UGluIC8+PC9NZXNzYWdlQWN0aW9uPgogICAgICAgICAge29uU2F2ZSAmJiA8TWVzc2FnZUFjdGlvbiB0b29sdGlwPSJTYXZlIHRvIG1lbW9yeSIgbGFiZWw9IlNhdmUgdG8gbWVtb3J5IiBvbkNsaWNrPXsoKSA9PiBvblNhdmUobWVzc2FnZS5jb250ZW50KX0+PEJvb2ttYXJrUGx1cyAvPjwvTWVzc2FnZUFjdGlvbj59CiAgICAgICAgICB7cXVlc3Rpb24gJiYgPE1lc3NhZ2VBY3Rpb24gdG9vbHRpcD0iRG93bmxvYWQgUERGIHJlcG9ydCIgbGFiZWw9IkRvd25sb2FkIFBERiByZXBvcnQiIG9uQ2xpY2s9eygpID0+IGRvd25sb2FkUmVzZWFyY2hQZGYoeyBxdWVzdGlvbiwgYW5zd2VyOiBtZXNzYWdlLmNvbnRlbnQsIHNvdXJjZXMsIGNyZWF0ZWRBdDogbWVzc2FnZS5jcmVhdGVkQXQgfSl9PjxEb3dubG9hZCAvPjwvTWVzc2FnZUFjdGlvbj59CiAgICAgICAgICB7cXVlc3Rpb24gJiYgPE1lc3NhZ2VBY3Rpb24gdG9vbHRpcD0iRG93bmxvYWQgTWFya2Rvd24gcmVwb3J0IiBsYWJlbD0iRG93bmxvYWQgTWFya2Rvd24gcmVwb3J0IiBvbkNsaWNrPXsoKSA9PiBkb3dubG9hZFJlc2VhcmNoTWFya2Rvd24oeyBxdWVzdGlvbiwgYW5zd2VyOiBtZXNzYWdlLmNvbnRlbnQsIHNvdXJjZXMsIGNyZWF0ZWRBdDogbWVzc2FnZS5jcmVhdGVkQXQgfSl9PjxGaWxlVGV4dCAvPjwvTWVzc2FnZUFjdGlvbj59CiAgICAgICAgPC9NZXNzYWdlQWN0aW9ucz4KICAgICAgKX0KICAgIDwvTWVzc2FnZT4KICApOwp9
+import { useState } from "react";
+import { BookmarkPlus, Check, Copy, Download, FileText, Pin } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import { Message, MessageContent, MessageResponse, MessageActions, MessageAction } from "@/components/ai-elements/message";
+import { Tool, ToolHeader, ToolContent } from "@/components/ai-elements/tool";
+import { Shimmer } from "@/components/ai-elements/shimmer";
+import { downloadResearchMarkdown, downloadResearchPdf } from "@/lib/researchReports";
+import { GeneratedImageGallery, type GeneratedImage } from "@/components/GeneratedImageGallery";
+
+interface MessageData {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  model?: string;
+  streaming?: boolean;
+  createdAt: Date;
+  sources?: Array<{ title: string; url: string }>;
+  question?: string;
+  references?: string[];
+  images?: GeneratedImage[];
+}
+
+interface MessageBubbleProps {
+  message: MessageData;
+  onSave?: (content: string) => void;
+  tools?: Array<{ id: string; label: string; detail?: string }>;
+  isRunning?: boolean;
+  sources?: Array<{ title: string; url: string }>;
+  question?: string;
+  references?: string[];
+}
+
+export function MessageBubble({ message, onSave, tools = [], isRunning = false, sources = [], question, references = [] }: MessageBubbleProps) {
+  const [copied, setCopied] = useState(false);
+  const utils = trpc.useUtils();
+  const createBlock = trpc.blocks.create.useMutation({
+    onSuccess: () => { toast.success("Pinned to Board"); void utils.blocks.pinned.invalidate(); },
+    onError: (error) => toast.error(error.message),
+  });
+  const isUser = message.role === "user";
+
+  return (
+    <Message from={message.role} className="sutaeru-editorial-message max-w-full">
+      <div className="sutaeru-message-label">
+        <strong>{isUser ? "You" : "Kemma"}</strong>
+        <span>{message.createdAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
+        {!isUser && message.model && <span>{message.model}</span>}
+      </div>
+      <MessageContent className={isUser ? "sutaeru-user-content" : "sutaeru-assistant-content"}>
+        {message.streaming && !message.content ? <Shimmer>Thinking…</Shimmer> :
+          isUser ? <span className="whitespace-pre-wrap">{message.content}</span> :
+          <MessageResponse isAnimating={message.streaming}>{message.content}</MessageResponse>}
+      </MessageContent>
+      {!isUser && message.images && message.images.length > 0 && <GeneratedImageGallery images={message.images} />}
+      {isUser && references.length > 0 && <div className="sutaeru-message-references">{references.map((name) => <span key={name}><FileText />{name}</span>)}</div>}
+      {!isUser && sources.length > 0 && (
+        <section className="sutaeru-message-sources" aria-label="Sources for this answer">
+          <strong>Sources / {sources.length}</strong>
+          <ol>{sources.map((source, index) => <li key={`${source.url}-${index}`}><a href={source.url} target="_blank" rel="noreferrer"><span>{String(index + 1).padStart(2, "0")}</span>{source.title}</a></li>)}</ol>
+        </section>
+      )}
+      {!isUser && tools.length > 0 && (
+        <div className="sutaeru-message-tools">
+          {tools.map((tool) => (
+            <Tool key={tool.id} defaultOpen={false}>
+              <ToolHeader type="dynamic-tool" toolName={tool.detail ?? tool.label} title={tool.label} state={isRunning ? "input-available" : "output-available"} />
+              <ToolContent>{tool.detail && <p>{tool.detail}</p>}</ToolContent>
+            </Tool>
+          ))}
+        </div>
+      )}
+      {!isUser && !message.streaming && message.content && (
+        <MessageActions className="sutaeru-message-actions">
+          <MessageAction tooltip={copied ? "Copied" : "Copy answer"} label="Copy answer" onClick={() => {
+            void navigator.clipboard.writeText(message.content).then(() => {
+              setCopied(true); window.setTimeout(() => setCopied(false), 1500);
+            });
+          }}>{copied ? <Check /> : <Copy />}</MessageAction>
+          <MessageAction tooltip="Pin to Board" label="Pin to Board" onClick={() => createBlock.mutate({
+            type: "chat", source: "s1", content: { text: message.content }, pinned: true, tags: [],
+          })}><Pin /></MessageAction>
+          {onSave && <MessageAction tooltip="Save to memory" label="Save to memory" onClick={() => onSave(message.content)}><BookmarkPlus /></MessageAction>}
+          {question && <MessageAction tooltip="Download PDF report" label="Download PDF report" onClick={() => downloadResearchPdf({ question, answer: message.content, sources, createdAt: message.createdAt })}><Download /></MessageAction>}
+          {question && <MessageAction tooltip="Download Markdown report" label="Download Markdown report" onClick={() => downloadResearchMarkdown({ question, answer: message.content, sources, createdAt: message.createdAt })}><FileText /></MessageAction>}
+        </MessageActions>
+      )}
+    </Message>
+  );
+}

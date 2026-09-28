@@ -96,6 +96,7 @@ import {
 } from "./executors/safeFiles";
 import { webSearch } from "./executors/webSearch";
 import { generateAndSaveFile as generateFile } from "./executors/generateFile";
+import { generateAndSaveImages } from "./executors/generateImages";
 import { phoneScan, type ScanAction, type ScanOptions } from "./executors/phoneScan";
 import { STYLE_DEFINITIONS, type StructuredContent, type StyleOption } from "../fileGenerator";
 import { BrowserUse } from "browser-use-sdk";
@@ -413,7 +414,7 @@ export async function browse(url: string, options: BrowseOptions = {}): Promise<
 // 3. TOOL DISPATCHER — replaces executor.ts, with 3 bugs fixed
 // ═══════════════════════════════════════════════════════════════════════════
 
-type ToolName = "safe_files" | "web_search" | "browse" | "run_code" | "generate_file" | "phone_scan" | "drive_search" | "drive_read" | "drive_create" | "drive_edit" | "drive_move";
+type ToolName = "safe_files" | "web_search" | "browse" | "run_code" | "generate_file" | "generate_image" | "phone_scan" | "drive_search" | "drive_read" | "drive_create" | "drive_edit" | "drive_move";
 
 type SafeFilesAction = "create" | "read" | "edit" | "list" | "versions";
 
@@ -436,7 +437,7 @@ function createErrorResult(error: string, code: string): ErrorResult {
 }
 
 function isValidToolName(value: unknown): value is ToolName {
-  const valid: ToolName[] = ["safe_files", "web_search", "browse", "run_code", "generate_file", "phone_scan", "drive_search", "drive_read", "drive_create", "drive_edit", "drive_move"];
+  const valid: ToolName[] = ["safe_files", "web_search", "browse", "run_code", "generate_file", "generate_image", "phone_scan", "drive_search", "drive_read", "drive_create", "drive_edit", "drive_move"];
   return typeof value === "string" && valid.includes(value as ToolName);
 }
 
@@ -587,6 +588,22 @@ export async function executeToolCall(userId: number, toolName: string, args: un
 
         return createSuccessResult(
           await generateFile(userId, name, structuredContent, format, resolvedStyle)
+        );
+      }
+
+      case "generate_image": {
+        // Batch fan-out: one call renders `count` images in parallel instead
+        // of needing `count` separate tool calls. See executors/generateImages.ts.
+        const { prompt, count, variations } = safeArgs;
+        if (typeof prompt !== "string" || !prompt.trim()) {
+          return createErrorResult('Missing or invalid "prompt" parameter', "INVALID_PARAMS");
+        }
+        const parsedCount = typeof count === "number" && Number.isFinite(count) ? Math.floor(count) : 1;
+        const parsedVariations = Array.isArray(variations)
+          ? variations.filter((v): v is string => typeof v === "string")
+          : undefined;
+        return createSuccessResult(
+          await generateAndSaveImages(userId, { prompt, count: parsedCount, variations: parsedVariations })
         );
       }
 

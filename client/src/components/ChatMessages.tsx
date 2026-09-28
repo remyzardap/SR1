@@ -1,1 +1,82 @@
-aW1wb3J0IHsgRXh0ZXJuYWxMaW5rIH0gZnJvbSAibHVjaWRlLXJlYWN0IjsKaW1wb3J0IHsgQ29udmVyc2F0aW9uLCBDb252ZXJzYXRpb25Db250ZW50LCBDb252ZXJzYXRpb25TY3JvbGxCdXR0b24gfSBmcm9tICJAL2NvbXBvbmVudHMvYWktZWxlbWVudHMvY29udmVyc2F0aW9uIjsKaW1wb3J0IHsgTWVzc2FnZUJ1YmJsZSB9IGZyb20gIi4vTWVzc2FnZUJ1YmJsZSI7CmltcG9ydCB7IFR5cGluZ0luZGljYXRvciB9IGZyb20gIi4vVHlwaW5nSW5kaWNhdG9yIjsKaW1wb3J0IHsgQ2hhdEVtcHR5U3RhdGUgfSBmcm9tICIuL0NoYXRFbXB0eVN0YXRlIjsKCmludGVyZmFjZSBNZXNzYWdlRGF0YSB7CiAgaWQ6IHN0cmluZzsKICByb2xlOiAidXNlciIgfCAiYXNzaXN0YW50IjsKICBjb250ZW50OiBzdHJpbmc7CiAgbW9kZWw/OiBzdHJpbmc7CiAgc3RyZWFtaW5nPzogYm9vbGVhbjsKICBjcmVhdGVkQXQ6IERhdGU7CiAgc291cmNlcz86IEFycmF5PHsgdGl0bGU6IHN0cmluZzsgdXJsOiBzdHJpbmcgfT47CiAgcXVlc3Rpb24/OiBzdHJpbmc7CiAgcmVmZXJlbmNlcz86IHN0cmluZ1tdOwp9CgppbnRlcmZhY2UgQ2hhdE1lc3NhZ2VzUHJvcHMgewogIG1lc3NhZ2VzOiBNZXNzYWdlRGF0YVtdOwogIGlzU3RyZWFtaW5nOiBib29sZWFuOwogIGFnZW50TmFtZT86IHN0cmluZzsKICBtZXNzYWdlc0VuZFJlZjogUmVhY3QuUmVmT2JqZWN0PEhUTUxEaXZFbGVtZW50PjsKICBvblNhdmVNZW1vcnk/OiAoY29udGVudDogc3RyaW5nKSA9PiB2b2lkOwogIG9uU3VnZ2VzdGlvbjogKHRleHQ6IHN0cmluZykgPT4gdm9pZDsKICBzb3VyY2VzPzogQXJyYXk8eyB0aXRsZTogc3RyaW5nOyB1cmw6IHN0cmluZyB9PjsKICBzdGVwcz86IEFycmF5PHsgaWQ6IHN0cmluZzsgbGFiZWw6IHN0cmluZzsgZGV0YWlsPzogc3RyaW5nIH0+Owp9CgpleHBvcnQgZnVuY3Rpb24gQ2hhdE1lc3NhZ2VzKHsgbWVzc2FnZXMsIGlzU3RyZWFtaW5nLCBhZ2VudE5hbWUsIG1lc3NhZ2VzRW5kUmVmLCBvblNhdmVNZW1vcnksIG9uU3VnZ2VzdGlvbiwgc291cmNlcyA9IFtdLCBzdGVwcyA9IFtdIH06IENoYXRNZXNzYWdlc1Byb3BzKSB7CiAgY29uc3QgbGFzdEFzc2lzdGFudEluZGV4ID0gbWVzc2FnZXMubGVuZ3RoIC0gMSAtIFsuLi5tZXNzYWdlc10ucmV2ZXJzZSgpLmZpbmRJbmRleCgobWVzc2FnZSkgPT4gbWVzc2FnZS5yb2xlID09PSAiYXNzaXN0YW50Iik7CiAgY29uc3QgdG9vbFN0ZXBzID0gc3RlcHMuZmlsdGVyKChzdGVwKSA9PiBzdGVwLmRldGFpbCk7CgogIHJldHVybiAoCiAgICA8Q29udmVyc2F0aW9uIGNsYXNzTmFtZT0ic3V0YWVydS1jaGF0LXRyYW5zY3JpcHQgbWluLXctMCI+CiAgICAgIDxDb252ZXJzYXRpb25Db250ZW50IGNsYXNzTmFtZT0ic3V0YWVydS1jaGF0LWNvbnRlbnQgbXgtYXV0byB3LWZ1bGwgbWF4LXctWzgwMHB4XSI+CiAgICAgICAge21lc3NhZ2VzLmxlbmd0aCA9PT0gMCAmJiAhaXNTdHJlYW1pbmcgPyA8Q2hhdEVtcHR5U3RhdGUgYWdlbnROYW1lPXthZ2VudE5hbWV9IG9uU3VnZ2VzdGlvbj17b25TdWdnZXN0aW9ufSAvPiA6ICgKICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJzdXRhZXJ1LWFuc3dlci1mbG93Ij4KICAgICAgICAgICAge21lc3NhZ2VzLm1hcCgobWVzc2FnZSwgaW5kZXgpID0+ICgKICAgICAgICAgICAgICA8TWVzc2FnZUJ1YmJsZQogICAgICAgICAgICAgICAga2V5PXttZXNzYWdlLmlkfQogICAgICAgICAgICAgICAgbWVzc2FnZT17bWVzc2FnZX0KICAgICAgICAgICAgICAgIG9uU2F2ZT17IW1lc3NhZ2Uuc3RyZWFtaW5nICYmIG1lc3NhZ2Uucm9sZSA9PT0gImFzc2lzdGFudCIgPyBvblNhdmVNZW1vcnkgOiB1bmRlZmluZWR9CiAgICAgICAgICAgICAgICB0b29scz17aW5kZXggPT09IGxhc3RBc3Npc3RhbnRJbmRleCA/IHRvb2xTdGVwcyA6IHVuZGVmaW5lZH0KICAgICAgICAgICAgICAgIGlzUnVubmluZz17aXNTdHJlYW1pbmcgJiYgaW5kZXggPT09IGxhc3RBc3Npc3RhbnRJbmRleH0KICAgICAgICAgICAgICAgIHNvdXJjZXM9e21lc3NhZ2Uuc291cmNlc30KICAgICAgICAgICAgICAgIHF1ZXN0aW9uPXttZXNzYWdlLnF1ZXN0aW9ufQogICAgICAgICAgICAgICAgcmVmZXJlbmNlcz17bWVzc2FnZS5yZWZlcmVuY2VzfQogICAgICAgICAgICAgIC8+CiAgICAgICAgICAgICkpfQogICAgICAgICAgICB7aXNTdHJlYW1pbmcgJiYgbWVzc2FnZXMuYXQoLTEpPy5yb2xlICE9PSAiYXNzaXN0YW50IiAmJiA8VHlwaW5nSW5kaWNhdG9yIC8+fQogICAgICAgICAgICB7c291cmNlcy5sZW5ndGggPiAwICYmICFtZXNzYWdlcy5zb21lKChtZXNzYWdlKSA9PiBtZXNzYWdlLnNvdXJjZXM/Lmxlbmd0aCkgJiYgKAogICAgICAgICAgICAgIDxzZWN0aW9uIGNsYXNzTmFtZT0ic3V0YWVydS1hbnN3ZXItc291cmNlcyIgYXJpYS1sYWJlbD0iUmVzZWFyY2ggc291cmNlcyI+CiAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9InN1dGFlcnUtZWRpdG9yaWFsLWtpY2tlciI+U291cmNlcyAvIHtzb3VyY2VzLmxlbmd0aH08L3NwYW4+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0ic3V0YWVydS1hbnN3ZXItc291cmNlLWxpc3QiPgogICAgICAgICAgICAgICAgICB7c291cmNlcy5tYXAoKHNvdXJjZSwgaW5kZXgpID0+ICgKICAgICAgICAgICAgICAgICAgICA8YSBrZXk9e2Ake3NvdXJjZS51cmx9LSR7aW5kZXh9YH0gaHJlZj17c291cmNlLnVybH0gdGFyZ2V0PSJfYmxhbmsiIHJlbD0ibm9yZWZlcnJlciI+CiAgICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9InN1dGFlcnUtc291cmNlLW51bWJlciI+e1N0cmluZyhpbmRleCArIDEpLnBhZFN0YXJ0KDIsICIwIil9PC9zcGFuPgogICAgICAgICAgICAgICAgICAgICAgPHNwYW4+e3NvdXJjZS50aXRsZX08L3NwYW4+PEV4dGVybmFsTGluayBzaXplPXsxNH0gYXJpYS1oaWRkZW49InRydWUiIC8+CiAgICAgICAgICAgICAgICAgICAgPC9hPgogICAgICAgICAgICAgICAgICApKX0KICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgIDwvc2VjdGlvbj4KICAgICAgICAgICAgKX0KICAgICAgICAgIDwvZGl2PgogICAgICAgICl9CiAgICAgICAgPGRpdiByZWY9e21lc3NhZ2VzRW5kUmVmfSAvPgogICAgICA8L0NvbnZlcnNhdGlvbkNvbnRlbnQ+CiAgICAgIDxDb252ZXJzYXRpb25TY3JvbGxCdXR0b24gYXJpYS1sYWJlbD0iU2Nyb2xsIHRvIGxhdGVzdCBtZXNzYWdlIiAvPgogICAgPC9Db252ZXJzYXRpb24+CiAgKTsKfQ==
+import { ExternalLink } from "lucide-react";
+import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
+import { MessageBubble } from "./MessageBubble";
+import { TypingIndicator } from "./TypingIndicator";
+import { ChatEmptyState } from "./ChatEmptyState";
+
+interface GeneratedImage {
+  index: number;
+  prompt: string;
+  url?: string;
+  fileId?: number;
+  mimeType?: string;
+  error?: string;
+}
+
+interface MessageData {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  model?: string;
+  streaming?: boolean;
+  createdAt: Date;
+  sources?: Array<{ title: string; url: string }>;
+  question?: string;
+  references?: string[];
+  images?: GeneratedImage[];
+}
+
+interface ChatMessagesProps {
+  messages: MessageData[];
+  isStreaming: boolean;
+  agentName?: string;
+  messagesEndRef: React.RefObject<HTMLDivElement>;
+  onSaveMemory?: (content: string) => void;
+  onSuggestion: (text: string) => void;
+  sources?: Array<{ title: string; url: string }>;
+  steps?: Array<{ id: string; label: string; detail?: string }>;
+}
+
+export function ChatMessages({ messages, isStreaming, agentName, messagesEndRef, onSaveMemory, onSuggestion, sources = [], steps = [] }: ChatMessagesProps) {
+  const lastAssistantIndex = messages.length - 1 - [...messages].reverse().findIndex((message) => message.role === "assistant");
+  const toolSteps = steps.filter((step) => step.detail);
+
+  return (
+    <Conversation className="sutaeru-chat-transcript min-w-0">
+      <ConversationContent className="sutaeru-chat-content mx-auto w-full max-w-[800px]">
+        {messages.length === 0 && !isStreaming ? <ChatEmptyState agentName={agentName} onSuggestion={onSuggestion} /> : (
+          <div className="sutaeru-answer-flow">
+            {messages.map((message, index) => (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                onSave={!message.streaming && message.role === "assistant" ? onSaveMemory : undefined}
+                tools={index === lastAssistantIndex ? toolSteps : undefined}
+                isRunning={isStreaming && index === lastAssistantIndex}
+                sources={message.sources}
+                question={message.question}
+                references={message.references}
+              />
+            ))}
+            {isStreaming && messages.at(-1)?.role !== "assistant" && <TypingIndicator />}
+            {sources.length > 0 && !messages.some((message) => message.sources?.length) && (
+              <section className="sutaeru-answer-sources" aria-label="Research sources">
+                <span className="sutaeru-editorial-kicker">Sources / {sources.length}</span>
+                <div className="sutaeru-answer-source-list">
+                  {sources.map((source, index) => (
+                    <a key={`${source.url}-${index}`} href={source.url} target="_blank" rel="noreferrer">
+                      <span className="sutaeru-source-number">{String(index + 1).padStart(2, "0")}</span>
+                      <span>{source.title}</span><ExternalLink size={14} aria-hidden="true" />
+                    </a>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </ConversationContent>
+      <ConversationScrollButton aria-label="Scroll to latest message" />
+    </Conversation>
+  );
+}

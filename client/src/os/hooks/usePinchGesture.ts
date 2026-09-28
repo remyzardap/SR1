@@ -1,1 +1,100 @@
-aW1wb3J0IHsgdXNlUmVmLCB1c2VFZmZlY3QsIHVzZUNhbGxiYWNrIH0gZnJvbSAncmVhY3QnOwoKaW50ZXJmYWNlIFBpbmNoT3B0aW9ucyB7CiAgb25QaW5jaD86ICgpID0+IHZvaWQ7CiAgb25Mb25nUHJlc3M/OiAoKSA9PiB2b2lkOwogIGVuYWJsZWQ/OiBib29sZWFuOwogIHBpbmNoVGhyZXNob2xkPzogbnVtYmVyOwogIGxvbmdQcmVzc01zPzogbnVtYmVyOwp9CgpleHBvcnQgZnVuY3Rpb24gdXNlUGluY2hHZXN0dXJlKAogIHJlZjogUmVhY3QuUmVmT2JqZWN0PEhUTUxFbGVtZW50PiwKICBvcHRpb25zOiBQaW5jaE9wdGlvbnMgPSB7fQopIHsKICBjb25zdCB7CiAgICBvblBpbmNoLAogICAgb25Mb25nUHJlc3MsCiAgICBlbmFibGVkID0gdHJ1ZSwKICAgIHBpbmNoVGhyZXNob2xkID0gMC43LAogICAgbG9uZ1ByZXNzTXMgPSA1MDAsCiAgfSA9IG9wdGlvbnM7CgogIGNvbnN0IGluaXRpYWxEaXN0YW5jZSA9IHVzZVJlZjxudW1iZXIgfCBudWxsPihudWxsKTsKICBjb25zdCBsb25nUHJlc3NUaW1lciA9IHVzZVJlZjxSZXR1cm5UeXBlPHR5cGVvZiBzZXRUaW1lb3V0PiB8IG51bGw+KG51bGwpOwogIGNvbnN0IGRpZEZpcmUgPSB1c2VSZWYoZmFsc2UpOwoKICAvLyBTdG9yZSBjYWxsYmFja3MgaW4gcmVmcyB0byBhdm9pZCByZS1ydW5uaW5nIHRoZSBlZmZlY3Qgb24gZXZlcnkgcmVuZGVyCiAgY29uc3Qgb25QaW5jaFJlZiA9IHVzZVJlZihvblBpbmNoKTsKICBvblBpbmNoUmVmLmN1cnJlbnQgPSBvblBpbmNoOwogIGNvbnN0IG9uTG9uZ1ByZXNzUmVmID0gdXNlUmVmKG9uTG9uZ1ByZXNzKTsKICBvbkxvbmdQcmVzc1JlZi5jdXJyZW50ID0gb25Mb25nUHJlc3M7CgogIGNvbnN0IGdldERpc3RhbmNlID0gdXNlQ2FsbGJhY2soKHQxOiBUb3VjaCwgdDI6IFRvdWNoKSA9PiB7CiAgICBjb25zdCBkeCA9IHQxLmNsaWVudFggLSB0Mi5jbGllbnRYOwogICAgY29uc3QgZHkgPSB0MS5jbGllbnRZIC0gdDIuY2xpZW50WTsKICAgIHJldHVybiBNYXRoLnNxcnQoZHggKiBkeCArIGR5ICogZHkpOwogIH0sIFtdKTsKCiAgdXNlRWZmZWN0KCgpID0+IHsKICAgIGNvbnN0IGVsID0gcmVmLmN1cnJlbnQ7CiAgICBpZiAoIWVsIHx8ICFlbmFibGVkKSByZXR1cm47CgogICAgY29uc3Qgb25Ub3VjaFN0YXJ0ID0gKGU6IFRvdWNoRXZlbnQpID0+IHsKICAgICAgZGlkRmlyZS5jdXJyZW50ID0gZmFsc2U7CgogICAgICAvLyBUd28tZmluZ2VyIHBpbmNoCiAgICAgIGlmIChlLnRvdWNoZXMubGVuZ3RoID09PSAyKSB7CiAgICAgICAgaW5pdGlhbERpc3RhbmNlLmN1cnJlbnQgPSBnZXREaXN0YW5jZShlLnRvdWNoZXNbMF0sIGUudG91Y2hlc1sxXSk7CiAgICAgICAgY2xlYXJUaW1lb3V0KGxvbmdQcmVzc1RpbWVyLmN1cnJlbnQhKTsKICAgICAgICByZXR1cm47CiAgICAgIH0KCiAgICAgIC8vIFNpbmdsZS1maW5nZXIgbG9uZyBwcmVzcwogICAgICBpZiAoZS50b3VjaGVzLmxlbmd0aCA9PT0gMSkgewogICAgICAgIGxvbmdQcmVzc1RpbWVyLmN1cnJlbnQgPSBzZXRUaW1lb3V0KCgpID0+IHsKICAgICAgICAgIGlmICghZGlkRmlyZS5jdXJyZW50KSB7CiAgICAgICAgICAgIGRpZEZpcmUuY3VycmVudCA9IHRydWU7CiAgICAgICAgICAgIGlmIChuYXZpZ2F0b3IudmlicmF0ZSkgbmF2aWdhdG9yLnZpYnJhdGUoMTApOwogICAgICAgICAgICBvbkxvbmdQcmVzc1JlZi5jdXJyZW50Py4oKTsKICAgICAgICAgIH0KICAgICAgICB9LCBsb25nUHJlc3NNcyk7CiAgICAgIH0KICAgIH07CgogICAgY29uc3Qgb25Ub3VjaE1vdmUgPSAoZTogVG91Y2hFdmVudCkgPT4gewogICAgICAvLyBDYW5jZWwgbG9uZyBwcmVzcyBvbiBhbnkgbW92ZQogICAgICBjbGVhclRpbWVvdXQobG9uZ1ByZXNzVGltZXIuY3VycmVudCEpOwoKICAgICAgaWYgKGUudG91Y2hlcy5sZW5ndGggPT09IDIgJiYgaW5pdGlhbERpc3RhbmNlLmN1cnJlbnQgIT09IG51bGwpIHsKICAgICAgICBjb25zdCBjdXJyZW50ID0gZ2V0RGlzdGFuY2UoZS50b3VjaGVzWzBdLCBlLnRvdWNoZXNbMV0pOwogICAgICAgIGNvbnN0IHJhdGlvID0gY3VycmVudCAvIGluaXRpYWxEaXN0YW5jZS5jdXJyZW50OwoKICAgICAgICBpZiAocmF0aW8gPCBwaW5jaFRocmVzaG9sZCAmJiAhZGlkRmlyZS5jdXJyZW50KSB7CiAgICAgICAgICBkaWRGaXJlLmN1cnJlbnQgPSB0cnVlOwogICAgICAgICAgaWYgKG5hdmlnYXRvci52aWJyYXRlKSBuYXZpZ2F0b3IudmlicmF0ZSgxMCk7CiAgICAgICAgICBvblBpbmNoUmVmLmN1cnJlbnQ/LigpOwogICAgICAgICAgaW5pdGlhbERpc3RhbmNlLmN1cnJlbnQgPSBudWxsOwogICAgICAgIH0KICAgICAgfQogICAgfTsKCiAgICBjb25zdCBvblRvdWNoRW5kID0gKCkgPT4gewogICAgICBjbGVhclRpbWVvdXQobG9uZ1ByZXNzVGltZXIuY3VycmVudCEpOwogICAgICBpbml0aWFsRGlzdGFuY2UuY3VycmVudCA9IG51bGw7CiAgICB9OwoKICAgIGVsLmFkZEV2ZW50TGlzdGVuZXIoJ3RvdWNoc3RhcnQnLCBvblRvdWNoU3RhcnQsIHsgcGFzc2l2ZTogdHJ1ZSB9KTsKICAgIGVsLmFkZEV2ZW50TGlzdGVuZXIoJ3RvdWNobW92ZScsIG9uVG91Y2hNb3ZlLCB7IHBhc3NpdmU6IHRydWUgfSk7CiAgICBlbC5hZGRFdmVudExpc3RlbmVyKCd0b3VjaGVuZCcsIG9uVG91Y2hFbmQsIHsgcGFzc2l2ZTogdHJ1ZSB9KTsKICAgIGVsLmFkZEV2ZW50TGlzdGVuZXIoJ3RvdWNoY2FuY2VsJywgb25Ub3VjaEVuZCwgeyBwYXNzaXZlOiB0cnVlIH0pOwoKICAgIHJldHVybiAoKSA9PiB7CiAgICAgIGVsLnJlbW92ZUV2ZW50TGlzdGVuZXIoJ3RvdWNoc3RhcnQnLCBvblRvdWNoU3RhcnQpOwogICAgICBlbC5yZW1vdmVFdmVudExpc3RlbmVyKCd0b3VjaG1vdmUnLCBvblRvdWNoTW92ZSk7CiAgICAgIGVsLnJlbW92ZUV2ZW50TGlzdGVuZXIoJ3RvdWNoZW5kJywgb25Ub3VjaEVuZCk7CiAgICAgIGVsLnJlbW92ZUV2ZW50TGlzdGVuZXIoJ3RvdWNoY2FuY2VsJywgb25Ub3VjaEVuZCk7CiAgICAgIGNsZWFyVGltZW91dChsb25nUHJlc3NUaW1lci5jdXJyZW50ISk7CiAgICB9OwogIH0sIFtyZWYsIGVuYWJsZWQsIHBpbmNoVGhyZXNob2xkLCBsb25nUHJlc3NNcywgZ2V0RGlzdGFuY2VdKTsKfQo=
+import { useRef, useEffect, useCallback } from 'react';
+
+interface PinchOptions {
+  onPinch?: () => void;
+  onLongPress?: () => void;
+  enabled?: boolean;
+  pinchThreshold?: number;
+  longPressMs?: number;
+}
+
+export function usePinchGesture(
+  ref: React.RefObject<HTMLElement>,
+  options: PinchOptions = {}
+) {
+  const {
+    onPinch,
+    onLongPress,
+    enabled = true,
+    pinchThreshold = 0.7,
+    longPressMs = 500,
+  } = options;
+
+  const initialDistance = useRef<number | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didFire = useRef(false);
+
+  // Store callbacks in refs to avoid re-running the effect on every render
+  const onPinchRef = useRef(onPinch);
+  onPinchRef.current = onPinch;
+  const onLongPressRef = useRef(onLongPress);
+  onLongPressRef.current = onLongPress;
+
+  const getDistance = useCallback((t1: Touch, t2: Touch) => {
+    const dx = t1.clientX - t2.clientX;
+    const dy = t1.clientY - t2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }, []);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !enabled) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      didFire.current = false;
+
+      // Two-finger pinch
+      if (e.touches.length === 2) {
+        initialDistance.current = getDistance(e.touches[0], e.touches[1]);
+        clearTimeout(longPressTimer.current!);
+        return;
+      }
+
+      // Single-finger long press
+      if (e.touches.length === 1) {
+        longPressTimer.current = setTimeout(() => {
+          if (!didFire.current) {
+            didFire.current = true;
+            if (navigator.vibrate) navigator.vibrate(10);
+            onLongPressRef.current?.();
+          }
+        }, longPressMs);
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      // Cancel long press on any move
+      clearTimeout(longPressTimer.current!);
+
+      if (e.touches.length === 2 && initialDistance.current !== null) {
+        const current = getDistance(e.touches[0], e.touches[1]);
+        const ratio = current / initialDistance.current;
+
+        if (ratio < pinchThreshold && !didFire.current) {
+          didFire.current = true;
+          if (navigator.vibrate) navigator.vibrate(10);
+          onPinchRef.current?.();
+          initialDistance.current = null;
+        }
+      }
+    };
+
+    const onTouchEnd = () => {
+      clearTimeout(longPressTimer.current!);
+      initialDistance.current = null;
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: true });
+    el.addEventListener('touchend', onTouchEnd, { passive: true });
+    el.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
+      clearTimeout(longPressTimer.current!);
+    };
+  }, [ref, enabled, pinchThreshold, longPressMs, getDistance]);
+}

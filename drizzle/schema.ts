@@ -14,7 +14,7 @@ import {
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 export const roleEnum = pgEnum("role", ["user", "admin"]);
-export const fileFormatEnum = pgEnum("file_format", ["pdf", "docx", "xlsx", "pptx", "md"]);
+export const fileFormatEnum = pgEnum("file_format", ["pdf", "docx", "xlsx", "pptx", "md", "png", "jpg", "webp"]);
 export const fileKindEnum = pgEnum("file_kind", ["document", "image", "video", "audio", "other"]);
 export const apiKeyProviderEnum = pgEnum("api_key_provider", ["kimi", "openai", "gemini", "anthropic"]);
 export const receiptStatusEnum = pgEnum("receipt_status", ["auto", "needs_review", "approved", "rejected"]);

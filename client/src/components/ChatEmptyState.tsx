@@ -1,1 +1,83 @@
-aW1wb3J0IHsgbW90aW9uIH0gZnJvbSAiZnJhbWVyLW1vdGlvbiI7CmltcG9ydCB7IEdsb2JlLCBDb2RlMiwgUGVuTGluZSwgWmFwIH0gZnJvbSAibHVjaWRlLXJlYWN0IjsKaW1wb3J0IHsgTkVPTiwgTkVPTl9GRCwgTkVPTl9GTSB9IGZyb20gIkAvbGliL2Rlc2lnbiI7CmltcG9ydCB7IEJ1dHRvbiB9IGZyb20gIkAvY29tcG9uZW50cy91aS9idXR0b24iOwoKY29uc3QgU1VHR0VTVElPTlMgPSBbCiAgeyBpY29uOiBHbG9iZSwgbGFiZWw6ICJTZWFyY2giLCBwcm9tcHQ6ICJXaGF0J3MgaGFwcGVuaW5nIGluIEluZG9uZXNpYW4gcmVuZXdhYmxlIGVuZXJneSB0aGlzIHdlZWs/IiB9LAogIHsgaWNvbjogQ29kZTIsIGxhYmVsOiAiQ29kZSIsIHByb21wdDogIlJldmlldyB0aGlzIGNvZGUgYW5kIHN1Z2dlc3QgaW1wcm92ZW1lbnRzIiB9LAogIHsgaWNvbjogUGVuTGluZSwgbGFiZWw6ICJXcml0ZSIsIHByb21wdDogIkRyYWZ0IGEgcHJvZmVzc2lvbmFsIG1lbW8gYWJvdXQgb3VyIFEyIHN0cmF0ZWd5IiB9LAogIHsgaWNvbjogWmFwLCBsYWJlbDogIlRoaW5rIiwgcHJvbXB0OiAiU3VtbWFyaXNlIHRoZSBrZXkgcG9pbnRzIGZyb20gbXkgbGFzdCBjb252ZXJzYXRpb24iIH0sCl07CgppbnRlcmZhY2UgQ2hhdEVtcHR5U3RhdGVQcm9wcyB7CiAgYWdlbnROYW1lPzogc3RyaW5nOwogIG9uU3VnZ2VzdGlvbjogKHM6IHN0cmluZykgPT4gdm9pZDsKfQoKZXhwb3J0IGZ1bmN0aW9uIENoYXRFbXB0eVN0YXRlKHsgYWdlbnROYW1lLCBvblN1Z2dlc3Rpb24gfTogQ2hhdEVtcHR5U3RhdGVQcm9wcykgewogIHJldHVybiAoCiAgICA8bW90aW9uLmRpdgogICAgICBpbml0aWFsPXt7IG9wYWNpdHk6IDAgfX0KICAgICAgYW5pbWF0ZT17eyBvcGFjaXR5OiAxIH19CiAgICAgIGV4aXQ9e3sgb3BhY2l0eTogMCB9fQogICAgICBjbGFzc05hbWU9InN1dGFlcnUtZWRpdG9yaWFsLWVtcHR5IGZsZXggZmxleC1jb2wganVzdGlmeS1jZW50ZXIgaC1mdWxsIGdhcC04IHB4LTQgc206cHgtNiBweS0xMiIKICAgID4KICAgICAgPGRpdiBjbGFzc05hbWU9InN1dGFlcnUtZWRpdG9yaWFsLWludHJvIj4KICAgICAgICA8c3BhbiBjbGFzc05hbWU9InN1dGFlcnUtZWRpdG9yaWFsLWtpY2tlciI+WW91ciB3b3Jrc3BhY2UgLyAwMTwvc3Bhbj4KICAgICAgICA8bW90aW9uLmgyCiAgICAgICAgICBpbml0aWFsPXt7IG9wYWNpdHk6IDAsIHk6IDYgfX0KICAgICAgICAgIGFuaW1hdGU9e3sgb3BhY2l0eTogMSwgeTogMCB9fQogICAgICAgICAgdHJhbnNpdGlvbj17eyBkZWxheTogMC4wNSB9fQogICAgICAgICAgY2xhc3NOYW1lPSJzdXRhZXJ1LWVkaXRvcmlhbC10aXRsZSBtYi0yIgogICAgICAgICAgc3R5bGU9e3sgY29sb3I6IE5FT04uaW5rLCBmb250RmFtaWx5OiBORU9OX0ZEIH19CiAgICAgICAgPgogICAgICAgICAge2FnZW50TmFtZSA/IGAke2FnZW50TmFtZX0ncyBBZ2VudGAgOiAiS2VtbWEifQogICAgICAgIDwvbW90aW9uLmgyPgogICAgICAgIDxtb3Rpb24ucAogICAgICAgICAgaW5pdGlhbD17eyBvcGFjaXR5OiAwIH19CiAgICAgICAgICBhbmltYXRlPXt7IG9wYWNpdHk6IDEgfX0KICAgICAgICAgIHRyYW5zaXRpb249e3sgZGVsYXk6IDAuMSB9fQogICAgICAgICAgY2xhc3NOYW1lPSJ0ZXh0LVsxMXB4XSB0cmFja2luZy13aWRlc3QgdXBwZXJjYXNlIGZvbnQtbW9ubyIKICAgICAgICAgIHN0eWxlPXt7IGNvbG9yOiBORU9OLm11dGVkLCBmb250RmFtaWx5OiBORU9OX0ZNIH19CiAgICAgICAgPgogICAgICAgICAgT25lIG1pbmQuIEV2ZXJ5IG1vZGVsLgogICAgICAgIDwvbW90aW9uLnA+CiAgICAgIDwvZGl2PgoKICAgICAgPGRpdiBjbGFzc05hbWU9InN1dGFlcnUtZWRpdG9yaWFsLXByb21wdHMgZ3JpZCBncmlkLWNvbHMtMSBzbTpncmlkLWNvbHMtMiBnYXAtMi41IHctZnVsbCBtYXgtdy1sZyI+CiAgICAgICAge1NVR0dFU1RJT05TLm1hcCgocywgaSkgPT4gewogICAgICAgICAgY29uc3QgSWNvbiA9IHMuaWNvbjsKICAgICAgICAgIHJldHVybiAoCiAgICAgICAgICAgIDxtb3Rpb24uZGl2CiAgICAgICAgICAgICAga2V5PXtpfQogICAgICAgICAgICAgIGRhdGEtdGVzdGlkPXtgYnV0dG9uLXN1Z2dlc3Rpb24tJHtpfWB9CiAgICAgICAgICAgICAgaW5pdGlhbD17eyBvcGFjaXR5OiAwLCB5OiAxMCB9fQogICAgICAgICAgICAgIGFuaW1hdGU9e3sgb3BhY2l0eTogMSwgeTogMCB9fQogICAgICAgICAgICAgIHRyYW5zaXRpb249e3sgZGVsYXk6IDAuMTIgKyBpICogMC4wNyB9fQogICAgICAgICAgICAgIGNsYXNzTmFtZT0iZ3JvdXAiCiAgICAgICAgICAgID4KICAgICAgICAgICAgIDxCdXR0b24gdHlwZT0iYnV0dG9uIiB2YXJpYW50PSJnaG9zdCIgb25DbGljaz17KCkgPT4gb25TdWdnZXN0aW9uKHMucHJvbXB0KX0gY2xhc3NOYW1lPSJzdXRhZXJ1LWVkaXRvcmlhbC1wcm9tcHQgdGV4dC1sZWZ0IHctZnVsbCBoLWZ1bGwgYmxvY2siPgogICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMiBtYi0yIj4KICAgICAgICAgICAgICAgIDxkaXYKICAgICAgICAgICAgICAgICAgY2xhc3NOYW1lPSJ3LTYgaC02IHJvdW5kZWQtbGcgZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgc2hyaW5rLTAiCiAgICAgICAgICAgICAgICAgIHN0eWxlPXt7IGJhY2tncm91bmQ6IE5FT04ub3JhbmdlRGltLCBib3JkZXI6IGAxcHggc29saWQgJHtORU9OLm9yYW5nZX0yNWAgfX0KICAgICAgICAgICAgICAgID4KICAgICAgICAgICAgICAgICAgPEljb24gY2xhc3NOYW1lPSJ3LTMgaC0zIiBzdHlsZT17eyBjb2xvcjogTkVPTi5vcmFuZ2UgfX0gLz4KICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJ0ZXh0LVsxMHB4XSBmb250LXNlbWlib2xkIHRyYWNraW5nLXdpZGVzdCB1cHBlcmNhc2UiIHN0eWxlPXt7IGNvbG9yOiBORU9OLm11dGVkLCBmb250RmFtaWx5OiBORU9OX0ZEIH19PgogICAgICAgICAgICAgICAgICB7cy5sYWJlbH0KICAgICAgICAgICAgICAgIDwvc3Bhbj4KICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9InRleHQtWzEzcHhdIGxlYWRpbmctc251ZyIgc3R5bGU9e3sgY29sb3I6IE5FT04uaW5rIH19PgogICAgICAgICAgICAgICAge3MucHJvbXB0fQogICAgICAgICAgICAgIDwvcD4KICAgICAgICAgICAgIDwvQnV0dG9uPgogICAgICAgICAgICAgPC9tb3Rpb24uZGl2PgogICAgICAgICAgKTsKICAgICAgICB9KX0KICAgICAgPC9kaXY+CgogICAgPC9tb3Rpb24uZGl2PgogICk7Cn0K
+import { motion } from "framer-motion";
+import { Globe, Code2, PenLine, Zap } from "lucide-react";
+import { NEON, NEON_FD, NEON_FM } from "@/lib/design";
+import { Button } from "@/components/ui/button";
+
+const SUGGESTIONS = [
+  { icon: Globe, label: "Search", prompt: "What's happening in Indonesian renewable energy this week?" },
+  { icon: Code2, label: "Code", prompt: "Review this code and suggest improvements" },
+  { icon: PenLine, label: "Write", prompt: "Draft a professional memo about our Q2 strategy" },
+  { icon: Zap, label: "Think", prompt: "Summarise the key points from my last conversation" },
+];
+
+interface ChatEmptyStateProps {
+  agentName?: string;
+  onSuggestion: (s: string) => void;
+}
+
+export function ChatEmptyState({ agentName, onSuggestion }: ChatEmptyStateProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="sutaeru-editorial-empty flex flex-col justify-center h-full gap-8 px-4 sm:px-6 py-12"
+    >
+      <div className="sutaeru-editorial-intro">
+        <span className="sutaeru-editorial-kicker">Your workspace / 01</span>
+        <motion.h2
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="sutaeru-editorial-title mb-2"
+          style={{ color: NEON.ink, fontFamily: NEON_FD }}
+        >
+          {agentName ? `${agentName}'s Agent` : "Kemma"}
+        </motion.h2>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="text-[11px] tracking-widest uppercase font-mono"
+          style={{ color: NEON.muted, fontFamily: NEON_FM }}
+        >
+          One mind. Every model.
+        </motion.p>
+      </div>
+
+      <div className="sutaeru-editorial-prompts grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-lg">
+        {SUGGESTIONS.map((s, i) => {
+          const Icon = s.icon;
+          return (
+            <motion.div
+              key={i}
+              data-testid={`button-suggestion-${i}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.12 + i * 0.07 }}
+              className="group"
+            >
+             <Button type="button" variant="ghost" onClick={() => onSuggestion(s.prompt)} className="sutaeru-editorial-prompt text-left w-full h-full block">
+              <div className="flex items-center gap-2 mb-2">
+                <div
+                  className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ background: NEON.orangeDim, border: `1px solid ${NEON.orange}25` }}
+                >
+                  <Icon className="w-3 h-3" style={{ color: NEON.orange }} />
+                </div>
+                <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: NEON.muted, fontFamily: NEON_FD }}>
+                  {s.label}
+                </span>
+              </div>
+              <p className="text-[13px] leading-snug" style={{ color: NEON.ink }}>
+                {s.prompt}
+              </p>
+             </Button>
+             </motion.div>
+          );
+        })}
+      </div>
+
+    </motion.div>
+  );
+}

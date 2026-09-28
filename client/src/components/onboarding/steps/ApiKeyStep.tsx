@@ -1,1 +1,145 @@
-aW1wb3J0IHsgdXNlU3RhdGUgfSBmcm9tICJyZWFjdCI7CmltcG9ydCB7IG1vdGlvbiB9IGZyb20gImZyYW1lci1tb3Rpb24iOwppbXBvcnQgeyBLZXksIEV5ZSwgRXllT2ZmLCBTaGllbGQsIEFycm93UmlnaHQsIEFycm93TGVmdCwgU2tpcEZvcndhcmQgfSBmcm9tICJsdWNpZGUtcmVhY3QiOwoKZXhwb3J0IGludGVyZmFjZSBBcGlLZXlEYXRhIHsKICBwcm92aWRlcjogIm9wZW5haSIgfCAiYW50aHJvcGljIiB8ICJraW1pIiB8ICJnZW1pbmkiOwogIGFwaUtleTogc3RyaW5nOwp9CgppbnRlcmZhY2UgQXBpS2V5U3RlcFByb3BzIHsKICBpbml0aWFsRGF0YT86IEFwaUtleURhdGE7CiAgb25OZXh0OiAoZGF0YTogQXBpS2V5RGF0YSkgPT4gdm9pZDsKICBvbkJhY2s6ICgpID0+IHZvaWQ7CiAgb25Ta2lwOiAoKSA9PiB2b2lkOwp9Cgpjb25zdCBQUk9WSURFUlMgPSBbCiAgeyB2YWx1ZTogImtpbWkiLCBsYWJlbDogIktpbWkgKE1vb25zaG90IEFJKSIsIHBsYWNlaG9sZGVyOiAic2stLi4uIiB9LAogIHsgdmFsdWU6ICJvcGVuYWkiLCBsYWJlbDogIk9wZW5BSSIsIHBsYWNlaG9sZGVyOiAic2stLi4uIiB9LAogIHsgdmFsdWU6ICJhbnRocm9waWMiLCBsYWJlbDogIkFudGhyb3BpYyBDbGF1ZGUiLCBwbGFjZWhvbGRlcjogInNrLWFudC0uLi4iIH0sCiAgeyB2YWx1ZTogImdlbWluaSIsIGxhYmVsOiAiR29vZ2xlIEdlbWluaSIsIHBsYWNlaG9sZGVyOiAiQUl6YS4uLiIgfSwKXSBhcyBjb25zdDsKCmV4cG9ydCBmdW5jdGlvbiBBcGlLZXlTdGVwKHsgaW5pdGlhbERhdGEsIG9uTmV4dCwgb25CYWNrLCBvblNraXAgfTogQXBpS2V5U3RlcFByb3BzKSB7CiAgY29uc3QgW3Byb3ZpZGVyLCBzZXRQcm92aWRlcl0gPSB1c2VTdGF0ZTxBcGlLZXlEYXRhWyJwcm92aWRlciJdPihpbml0aWFsRGF0YT8ucHJvdmlkZXIgPz8gImtpbWkiKTsKICBjb25zdCBbYXBpS2V5LCBzZXRBcGlLZXldID0gdXNlU3RhdGUoaW5pdGlhbERhdGE/LmFwaUtleSA/PyAiIik7CiAgY29uc3QgW3Nob3dLZXksIHNldFNob3dLZXldID0gdXNlU3RhdGUoZmFsc2UpOwogIGNvbnN0IFtlcnJvciwgc2V0RXJyb3JdID0gdXNlU3RhdGUoIiIpOwoKICBjb25zdCBzZWxlY3RlZFByb3ZpZGVyID0gUFJPVklERVJTLmZpbmQoKHApID0+IHAudmFsdWUgPT09IHByb3ZpZGVyKSE7CgogIGNvbnN0IGhhbmRsZU5leHQgPSAoKSA9PiB7CiAgICBpZiAoIWFwaUtleS50cmltKCkpIHsKICAgICAgc2V0RXJyb3IoIkFQSSBrZXkgaXMgcmVxdWlyZWQsIG9yIHNraXAgdGhpcyBzdGVwIik7CiAgICAgIHJldHVybjsKICAgIH0KICAgIGlmIChhcGlLZXkudHJpbSgpLmxlbmd0aCA8IDEwKSB7CiAgICAgIHNldEVycm9yKCJUaGF0IGRvZXNuJ3QgbG9vayBsaWtlIGEgdmFsaWQgQVBJIGtleSIpOwogICAgICByZXR1cm47CiAgICB9CiAgICBvbk5leHQoeyBwcm92aWRlciwgYXBpS2V5OiBhcGlLZXkudHJpbSgpIH0pOwogIH07CgogIHJldHVybiAoCiAgICA8bW90aW9uLmRpdgogICAgICBpbml0aWFsPXt7IG9wYWNpdHk6IDAsIHk6IDIwIH19CiAgICAgIGFuaW1hdGU9e3sgb3BhY2l0eTogMSwgeTogMCB9fQogICAgICBleGl0PXt7IG9wYWNpdHk6IDAsIHk6IC0yMCB9fQogICAgICB0cmFuc2l0aW9uPXt7IGR1cmF0aW9uOiAwLjMgfX0KICAgID4KICAgICAgPGRpdiBjbGFzc05hbWU9Im1iLTgiPgogICAgICAgIDxoMiBjbGFzc05hbWU9InRleHQtMnhsIGZvbnQtYm9sZCB0ZXh0LWZvcmVncm91bmQgbWItMiI+Q29ubmVjdCB5b3VyIEFJPC9oMj4KICAgICAgICA8cCBjbGFzc05hbWU9InRleHQtbXV0ZWQtZm9yZWdyb3VuZCI+CiAgICAgICAgICBBZGQgeW91ciBvd24gQVBJIGtleSB0byB1c2UgeW91ciBwcmVmZXJyZWQgQUkgbW9kZWwuIFN1dGFlcnUgYWxyZWFkeSBoYXMgS2ltaSBidWlsdCBpbiDigJQgdGhpcyBpcyBvcHRpb25hbC4KICAgICAgICA8L3A+CiAgICAgIDwvZGl2PgoKICAgICAgPGRpdiBjbGFzc05hbWU9InNwYWNlLXktNSI+CiAgICAgICAgey8qIFByb3ZpZGVyIHNlbGVjdG9yICovfQogICAgICAgIDxkaXY+CiAgICAgICAgICA8bGFiZWwgY2xhc3NOYW1lPSJibG9jayB0ZXh0LXNtIGZvbnQtbWVkaXVtIHRleHQtZm9yZWdyb3VuZCBtYi0yIj5BSSBQcm92aWRlcjwvbGFiZWw+CiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZ3JpZCBncmlkLWNvbHMtMiBnYXAtMiI+CiAgICAgICAgICAgIHtQUk9WSURFUlMubWFwKChwKSA9PiAoCiAgICAgICAgICAgICAgPGJ1dHRvbgogICAgICAgICAgICAgICAga2V5PXtwLnZhbHVlfQogICAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gc2V0UHJvdmlkZXIocC52YWx1ZSl9CiAgICAgICAgICAgICAgICBjbGFzc05hbWU9e2BweC00IHB5LTMgYm9yZGVyIHJvdW5kZWQteGwgdGV4dC1zbSBmb250LW1lZGl1bSB0ZXh0LWxlZnQgdHJhbnNpdGlvbi1hbGwgZHVyYXRpb24tMjAwICR7CiAgICAgICAgICAgICAgICAgIHByb3ZpZGVyID09PSBwLnZhbHVlCiAgICAgICAgICAgICAgICAgICAgPyAiYm9yZGVyLWZvcmVncm91bmQgYmctc2Vjb25kYXJ5IHRleHQtZm9yZWdyb3VuZCIKICAgICAgICAgICAgICAgICAgICA6ICJib3JkZXItYm9yZGVyIHRleHQtbXV0ZWQtZm9yZWdyb3VuZCBob3Zlcjpib3JkZXItZm9yZWdyb3VuZCBob3Zlcjp0ZXh0LWZvcmVncm91bmQiCiAgICAgICAgICAgICAgICB9YH0KICAgICAgICAgICAgICA+CiAgICAgICAgICAgICAgICB7cC5sYWJlbH0KICAgICAgICAgICAgICA8L2J1dHRvbj4KICAgICAgICAgICAgKSl9CiAgICAgICAgICA8L2Rpdj4KICAgICAgICA8L2Rpdj4KCiAgICAgICAgey8qIEFQSSBLZXkgaW5wdXQgKi99CiAgICAgICAgPGRpdj4KICAgICAgICAgIDxsYWJlbCBjbGFzc05hbWU9ImZsZXggaXRlbXMtY2VudGVyIGdhcC0yIHRleHQtc20gZm9udC1tZWRpdW0gdGV4dC1mb3JlZ3JvdW5kIG1iLTIiPgogICAgICAgICAgICA8S2V5IGNsYXNzTmFtZT0idy00IGgtNCIgLz4KICAgICAgICAgICAgQVBJIEtleQogICAgICAgICAgPC9sYWJlbD4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJyZWxhdGl2ZSI+CiAgICAgICAgICAgIDxpbnB1dAogICAgICAgICAgICAgIHR5cGU9e3Nob3dLZXkgPyAidGV4dCIgOiAicGFzc3dvcmQifQogICAgICAgICAgICAgIHZhbHVlPXthcGlLZXl9CiAgICAgICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiB7IHNldEFwaUtleShlLnRhcmdldC52YWx1ZSk7IHNldEVycm9yKCIiKTsgfX0KICAgICAgICAgICAgICBwbGFjZWhvbGRlcj17c2VsZWN0ZWRQcm92aWRlci5wbGFjZWhvbGRlcn0KICAgICAgICAgICAgICBjbGFzc05hbWU9InctZnVsbCBweC00IHB5LTMgcHItMTIgYmctY2FyZCBib3JkZXIgYm9yZGVyLWJvcmRlciByb3VuZGVkLWxnIHRleHQtZm9yZWdyb3VuZAogICAgICAgICAgICAgICAgICAgICAgICAgcGxhY2Vob2xkZXI6dGV4dC1tdXRlZC1mb3JlZ3JvdW5kIGZvY3VzOm91dGxpbmUtbm9uZSBmb2N1czpyaW5nLTIgZm9jdXM6cmluZy1mb3JlZ3JvdW5kLzIwCiAgICAgICAgICAgICAgICAgICAgICAgICBmb2N1czpib3JkZXItZm9yZWdyb3VuZCB0cmFuc2l0aW9uLWFsbCBkdXJhdGlvbi0yMDAgZm9udC1tb25vIHRleHQtc20iCiAgICAgICAgICAgIC8+CiAgICAgICAgICAgIDxidXR0b24KICAgICAgICAgICAgICB0eXBlPSJidXR0b24iCiAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gc2V0U2hvd0tleSgodikgPT4gIXYpfQogICAgICAgICAgICAgIGFyaWEtbGFiZWw9e3Nob3dLZXkgPyAiSGlkZSBBUEkga2V5IiA6ICJTaG93IEFQSSBrZXkifQogICAgICAgICAgICAgIGNsYXNzTmFtZT0iYWJzb2x1dGUgcmlnaHQtMSB0b3AtMS8yIC10cmFuc2xhdGUteS0xLzIgdy0xMSBoLTExIGZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHRleHQtbXV0ZWQtZm9yZWdyb3VuZCBob3Zlcjp0ZXh0LWZvcmVncm91bmQgdHJhbnNpdGlvbi1jb2xvcnMiCiAgICAgICAgICAgID4KICAgICAgICAgICAgICB7c2hvd0tleSA/IDxFeWVPZmYgY2xhc3NOYW1lPSJ3LTQgaC00IiAvPiA6IDxFeWUgY2xhc3NOYW1lPSJ3LTQgaC00IiAvPn0KICAgICAgICAgICAgPC9idXR0b24+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICAgIHtlcnJvciAmJiA8cCBjbGFzc05hbWU9Im10LTEgdGV4dC1zbSB0ZXh0LWRlc3RydWN0aXZlIj57ZXJyb3J9PC9wPn0KICAgICAgICA8L2Rpdj4KCiAgICAgICAgey8qIFNlY3VyaXR5IG5vdGUgKi99CiAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggaXRlbXMtc3RhcnQgZ2FwLTMgcC0zIGJvcmRlciBib3JkZXItYm9yZGVyIHJvdW5kZWQtbGcgYmctY2FyZCI+CiAgICAgICAgICA8U2hpZWxkIGNsYXNzTmFtZT0idy00IGgtNCB0ZXh0LW11dGVkLWZvcmVncm91bmQgZmxleC1zaHJpbmstMCBtdC0wLjUiIC8+CiAgICAgICAgICA8cCBjbGFzc05hbWU9InRleHQteHMgdGV4dC1tdXRlZC1mb3JlZ3JvdW5kIj4KICAgICAgICAgICAgWW91ciBBUEkga2V5IGlzIGVuY3J5cHRlZCBiZWZvcmUgc3RvcmFnZSBhbmQgbmV2ZXIgbG9nZ2VkIG9yIHNoYXJlZC4gSXQgaXMgb25seSB1c2VkIHRvIG1ha2UgcmVxdWVzdHMgb24geW91ciBiZWhhbGYuCiAgICAgICAgICA8L3A+CiAgICAgICAgPC9kaXY+CiAgICAgIDwvZGl2PgoKICAgICAgey8qIE5hdmlnYXRpb24gKi99CiAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBmbGV4LXdyYXAgZ2FwLTMgbXQtOCI+CiAgICAgICAgPGJ1dHRvbgogICAgICAgICAgb25DbGljaz17b25CYWNrfQogICAgICAgICAgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMiBweC02IHB5LTMgYm9yZGVyIGJvcmRlci1ib3JkZXIgcm91bmRlZC14bCB0ZXh0LWZvcmVncm91bmQKICAgICAgICAgICAgICAgICAgICAgaG92ZXI6Ym9yZGVyLWZvcmVncm91bmQgaG92ZXI6dGV4dC1mb3JlZ3JvdW5kIHRyYW5zaXRpb24tY29sb3JzIGR1cmF0aW9uLTIwMCIKICAgICAgICA+CiAgICAgICAgICA8QXJyb3dMZWZ0IGNsYXNzTmFtZT0idy00IGgtNCIgLz4KICAgICAgICAgIEJhY2sKICAgICAgICA8L2J1dHRvbj4KICAgICAgICA8YnV0dG9uCiAgICAgICAgICBvbkNsaWNrPXtvblNraXB9CiAgICAgICAgICBjbGFzc05hbWU9ImZsZXggaXRlbXMtY2VudGVyIGdhcC0yIHB4LTQgcHktMyBib3JkZXIgYm9yZGVyLWJvcmRlciByb3VuZGVkLXhsIHRleHQtbXV0ZWQtZm9yZWdyb3VuZAogICAgICAgICAgICAgICAgICAgICBob3Zlcjpib3JkZXItZm9yZWdyb3VuZCBob3Zlcjp0ZXh0LWZvcmVncm91bmQgdHJhbnNpdGlvbi1jb2xvcnMgZHVyYXRpb24tMjAwIHRleHQtc20iCiAgICAgICAgPgogICAgICAgICAgU2tpcAogICAgICAgICAgPFNraXBGb3J3YXJkIGNsYXNzTmFtZT0idy00IGgtNCIgLz4KICAgICAgICA8L2J1dHRvbj4KICAgICAgICA8YnV0dG9uCiAgICAgICAgICBvbkNsaWNrPXtoYW5kbGVOZXh0fQogICAgICAgICAgIGNsYXNzTmFtZT0iZmxleC0xIG1pbi13LWZ1bGwgc206bWluLXctMCBmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWNlbnRlciBnYXAtMiBweC02IHB5LTMgYmctcHJpbWFyeSB0ZXh0LXByaW1hcnktZm9yZWdyb3VuZAogICAgICAgICAgICAgICAgICAgICBmb250LXNlbWlib2xkIHJvdW5kZWQteGwgaG92ZXI6YmctWyMzYTM5MzZdIHRyYW5zaXRpb24tY29sb3JzIGR1cmF0aW9uLTIwMCIKICAgICAgICA+CiAgICAgICAgICBTYXZlICYgQ29udGludWUKICAgICAgICAgIDxBcnJvd1JpZ2h0IGNsYXNzTmFtZT0idy00IGgtNCIgLz4KICAgICAgICA8L2J1dHRvbj4KICAgICAgPC9kaXY+CiAgICA8L21vdGlvbi5kaXY+CiAgKTsKfQo=
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Key, Eye, EyeOff, Shield, ArrowRight, ArrowLeft, SkipForward } from "lucide-react";
+
+export interface ApiKeyData {
+  provider: "openai" | "anthropic" | "kimi" | "gemini";
+  apiKey: string;
+}
+
+interface ApiKeyStepProps {
+  initialData?: ApiKeyData;
+  onNext: (data: ApiKeyData) => void;
+  onBack: () => void;
+  onSkip: () => void;
+}
+
+const PROVIDERS = [
+  { value: "kimi", label: "Kimi (Moonshot AI)", placeholder: "sk-..." },
+  { value: "openai", label: "OpenAI", placeholder: "sk-..." },
+  { value: "anthropic", label: "Anthropic Claude", placeholder: "sk-ant-..." },
+  { value: "gemini", label: "Google Gemini", placeholder: "AIza..." },
+] as const;
+
+export function ApiKeyStep({ initialData, onNext, onBack, onSkip }: ApiKeyStepProps) {
+  const [provider, setProvider] = useState<ApiKeyData["provider"]>(initialData?.provider ?? "kimi");
+  const [apiKey, setApiKey] = useState(initialData?.apiKey ?? "");
+  const [showKey, setShowKey] = useState(false);
+  const [error, setError] = useState("");
+
+  const selectedProvider = PROVIDERS.find((p) => p.value === provider)!;
+
+  const handleNext = () => {
+    if (!apiKey.trim()) {
+      setError("API key is required, or skip this step");
+      return;
+    }
+    if (apiKey.trim().length < 10) {
+      setError("That doesn't look like a valid API key");
+      return;
+    }
+    onNext({ provider, apiKey: apiKey.trim() });
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-foreground mb-2">Connect your AI</h2>
+        <p className="text-muted-foreground">
+          Add your own API key to use your preferred AI model. Sutaeru already has Kimi built in — this is optional.
+        </p>
+      </div>
+
+      <div className="space-y-5">
+        {/* Provider selector */}
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-2">AI Provider</label>
+          <div className="grid grid-cols-2 gap-2">
+            {PROVIDERS.map((p) => (
+              <button
+                key={p.value}
+                onClick={() => setProvider(p.value)}
+                className={`px-4 py-3 border rounded-xl text-sm font-medium text-left transition-all duration-200 ${
+                  provider === p.value
+                    ? "border-foreground bg-secondary text-foreground"
+                    : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* API Key input */}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+            <Key className="w-4 h-4" />
+            API Key
+          </label>
+          <div className="relative">
+            <input
+              type={showKey ? "text" : "password"}
+              value={apiKey}
+              onChange={(e) => { setApiKey(e.target.value); setError(""); }}
+              placeholder={selectedProvider.placeholder}
+              className="w-full px-4 py-3 pr-12 bg-card border border-border rounded-lg text-foreground
+                         placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20
+                         focus:border-foreground transition-all duration-200 font-mono text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => setShowKey((v) => !v)}
+              aria-label={showKey ? "Hide API key" : "Show API key"}
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          {error && <p className="mt-1 text-sm text-destructive">{error}</p>}
+        </div>
+
+        {/* Security note */}
+        <div className="flex items-start gap-3 p-3 border border-border rounded-lg bg-card">
+          <Shield className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-muted-foreground">
+            Your API key is encrypted before storage and never logged or shared. It is only used to make requests on your behalf.
+          </p>
+        </div>
+      </div>
+
+      {/* Navigation */}
+       <div className="flex flex-wrap gap-3 mt-8">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 px-6 py-3 border border-border rounded-xl text-foreground
+                     hover:border-foreground hover:text-foreground transition-colors duration-200"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
+        <button
+          onClick={onSkip}
+          className="flex items-center gap-2 px-4 py-3 border border-border rounded-xl text-muted-foreground
+                     hover:border-foreground hover:text-foreground transition-colors duration-200 text-sm"
+        >
+          Skip
+          <SkipForward className="w-4 h-4" />
+        </button>
+        <button
+          onClick={handleNext}
+           className="flex-1 min-w-full sm:min-w-0 flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground
+                     font-semibold rounded-xl hover:bg-[#3a3936] transition-colors duration-200"
+        >
+          Save & Continue
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
