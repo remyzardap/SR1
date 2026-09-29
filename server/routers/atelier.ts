@@ -1,16 +1,23 @@
 /**
  * Atelier — AI Report Builder
  *
- * Two SSE endpoints:
+ * Interview and generation stream over SSE:
  *   POST /api/atelier/interview  — S1 interviews user, emits [READY_TO_GENERATE] when confident
  *   POST /api/atelier/generate   — Builds structured report JSON from conversation context
  *
- * Upload parsing handled separately via POST /api/atelier/parse (multipart)
+ * Upload parsing handled separately via POST /api/atelier/parse (multipart),
+ * file downloads via POST /api/atelier/export (pdf, docx, xlsx, md).
  */
 
 import type { Express } from "express";
 import { s1Blend } from "./s1Router";
 import multer from "multer";
+import {
+  MAX_REPORT_BYTES,
+  exportAtelierReport,
+  exportRequestSchema,
+  reportByteSize,
+} from "../lib/atelierExport";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
@@ -209,6 +216,36 @@ export function registerAtelierRoutes(app: Express) {
       sse(res, "error", (err as Error).message);
     }
     res.end();
+  });
+
+  // ── Export endpoint ──────────────────────────────────────────────────────────
+  app.post("/api/atelier/export", async (req: any, res: any) => {
+    const { report } = req.body as { report?: unknown };
+    if (reportByteSize(report) > MAX_REPORT_BYTES) {
+      return res.status(413).json({ error: "Report too large" });
+    }
+
+    const parsed = exportRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid export request" });
+    }
+
+    try {
+      const { report: validReport, format } = parsed.data;
+      const { file, filename } = await exportAtelierReport(
+        validReport,
+        format,
+        parsed.data.theme ?? validReport.theme
+      );
+
+      res.setHeader("Content-Type", file.mimeType);
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.setHeader("X-Filename", filename);
+      return res.send(file.buffer);
+    } catch (err) {
+      console.error("[atelier/export] error:", err);
+      return res.status(500).json({ error: "Export failed" });
+    }
   });
 
   // ── File parse endpoint ─────────────────────────────────────────────────────

@@ -1,13 +1,13 @@
 import { motion } from "framer-motion";
-import { Globe, Code2, PenLine, Zap } from "lucide-react";
 import { NEON, NEON_FD, NEON_FM } from "@/lib/design";
 import { Button } from "@/components/ui/button";
+import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
 
-const SUGGESTIONS = [
-  { icon: Globe, label: "Search", prompt: "What's happening in Indonesian renewable energy this week?" },
-  { icon: Code2, label: "Code", prompt: "Review this code and suggest improvements" },
-  { icon: PenLine, label: "Write", prompt: "Draft a professional memo about our Q2 strategy" },
-  { icon: Zap, label: "Think", prompt: "Summarise the key points from my last conversation" },
+const SUGGESTIONS: Array<{ icon: SutaeruIconName; label: string; prompt: string }> = [
+  { icon: "search", label: "Search", prompt: "What's happening in Indonesian renewable energy this week?" },
+  { icon: "make", label: "Code", prompt: "Review this code and suggest improvements" },
+  { icon: "report", label: "Write", prompt: "Draft a professional memo about our Q2 strategy" },
+  { icon: "agent", label: "Think", prompt: "Summarise the key points from my last conversation" },
 ];
 
 interface ChatEmptyStateProps {
@@ -47,7 +47,6 @@ export function ChatEmptyState({ agentName, onSuggestion }: ChatEmptyStateProps)
 
       <div className="sutaeru-editorial-prompts grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-lg">
         {SUGGESTIONS.map((s, i) => {
-          const Icon = s.icon;
           return (
             <motion.div
               key={i}
@@ -63,7 +62,7 @@ export function ChatEmptyState({ agentName, onSuggestion }: ChatEmptyStateProps)
                   className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
                   style={{ background: NEON.orangeDim, border: `1px solid ${NEON.orange}25` }}
                 >
-                  <Icon className="w-3 h-3" style={{ color: NEON.orange }} />
+                   <SutaeruIcon name={s.icon} className="w-4 h-4" />
                 </div>
                 <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: NEON.muted, fontFamily: NEON_FD }}>
                   {s.label}

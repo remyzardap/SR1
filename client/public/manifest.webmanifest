@@ -1,11 +1,12 @@
 {
   "name": "Sutaeru",
   "short_name": "Sutaeru",
-  "description": "Your persistent AI identity and memory in the cloud",
+  "id": "/",
+  "description": "Research, create, manage, and review work in your Sutaeru workspace.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#050505",
-  "theme_color": "#050505",
+  "background_color": "#242320",
+  "theme_color": "#242320",
   "orientation": "portrait-primary",
   "scope": "/",
   "icons": [
@@ -13,37 +14,35 @@
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "screenshots": [],
   "categories": ["productivity", "utilities"],
   "shortcuts": [
     {
-      "name": "Chat with S1",
-      "short_name": "S1 Chat",
-      "description": "Open S1 AI chat",
+      "name": "Chat with Sutaeru",
+      "short_name": "Chat",
+      "description": "Open your Sutaeru chat",
       "url": "/chat",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Atelier",
-      "short_name": "Atelier",
-      "description": "Create a document",
-      "url": "/generate",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Dashboard",
-      "short_name": "Dashboard",
-      "description": "Open your dashboard",
-      "url": "/dashboard",
+      "name": "My Files",
+      "short_name": "Files",
+      "description": "Open your files",
+      "url": "/files",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]

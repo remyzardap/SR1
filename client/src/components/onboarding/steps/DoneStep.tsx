@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { CheckCircle, User, Wrench, Key, Sparkles, ArrowRight, Loader2 } from "lucide-react";
+import { CheckCircle, User, Wrench, Key, ArrowRight, Loader2 } from "lucide-react";
+import { Sparkles } from "@/components/brandIcons";
 import type { IdentityData } from "./IdentityStep";
 import type { SkillData } from "./SkillsStep";
 import type { ApiKeyData } from "./ApiKeyStep";

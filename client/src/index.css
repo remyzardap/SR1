@@ -42,15 +42,11 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* SUTAERU — Mocha Mousse Design System
-   Warm cream backgrounds with mocha accents
-   Glassmorphism cards, Inter + DM Serif typography
-   Themeable via CSS custom properties
-*/
+/* SUTAERU — editorial signal system. Warm paper, carbon ink, one orange cue. */
 
 :root {
   --radius: 8px;
-  /* ── Mocha Design System Tokens ── */
+  /* ── Sutaeru system tokens ── */
   --font-d: 'Urbanist', sans-serif;
   --font-b: 'Epilogue', sans-serif;
   --font-m: 'JetBrains Mono', monospace;
@@ -246,7 +242,7 @@ body::after {
     font-family: var(--font-d);
     font-weight: 600;
     font-size: 56px;
-    letter-spacing: -0.03em;
+    letter-spacing: 0;
     line-height: 1.05;
   }
   button:not(:disabled),
@@ -256,6 +252,83 @@ body::after {
   a[href], select:not(:disabled),
   input[type="checkbox"]:not(:disabled),
   input[type="radio"]:not(:disabled) { cursor: pointer; }
+}
+
+.sutaeru-preview-exit {
+  position: fixed;
+  right: 12px;
+  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+  z-index: 9999;
+  height: 34px;
+  gap: 6px;
+  border-radius: 4px;
+  box-shadow: var(--elev-2-shadow);
+  font-family: var(--font-m);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.sutaeru-preview-exit svg { width: 15px; height: 15px; }
+
+.sutaeru-plan {
+  width: 100%;
+  margin: 18px 0 4px;
+  border-top: 1px solid var(--line-2);
+  padding-top: 16px;
+  color: var(--foreground);
+  opacity: 1;
+}
+
+.sutaeru-plan-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.sutaeru-plan-heading span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--t3);
+  font-family: var(--font-m);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.sutaeru-plan-heading h3 { margin: 0; font-size: 22px; }
+.sutaeru-plan-heading > svg { color: var(--t2); }
+.sutaeru-plan-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.sutaeru-plan-card { overflow: hidden; border: 1px solid var(--line-2); border-radius: 4px; background: var(--bg-raise); box-shadow: var(--elev-1-shadow); opacity: 1; }
+.sutaeru-plan-card[data-selected] { border-color: var(--foreground); box-shadow: var(--elev-focus-ring); }
+.sutaeru-plan-preview { position: relative; height: 132px; overflow: hidden; background: var(--bg-raise2); border-bottom: 1px solid var(--line-1); }
+.sutaeru-plan-preview-2 { background: var(--art-grey); }
+.sutaeru-plan-preview-3 { background: var(--foreground); color: var(--background); }
+.sutaeru-plan-preview::after { content: ""; position: absolute; inset: 12px; border: 1px solid currentColor; opacity: .16; }
+.sutaeru-plan-preview-mark { position: absolute; left: 16px; top: 17px; width: 46px; height: 46px; }
+.sutaeru-plan-preview-mark svg { width: 100%; height: 100%; }
+.sutaeru-plan-preview-copy { position: absolute; left: 16px; right: 16px; bottom: 18px; display: grid; gap: 5px; }
+.sutaeru-plan-preview-copy i { display: block; width: 72%; height: 5px; background: currentColor; opacity: .72; }
+.sutaeru-plan-preview-copy i:nth-child(2) { width: 92%; height: 2px; opacity: .28; }
+.sutaeru-plan-preview-copy i:nth-child(3) { width: 55%; height: 2px; opacity: .28; }
+.sutaeru-plan-preview-index { position: absolute; right: 18px; top: 17px; color: var(--neon-orange); font-family: var(--font-m); font-size: 10px; }
+.sutaeru-plan-card-copy { padding: 14px; }
+.sutaeru-plan-card-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.sutaeru-plan-card-title h4 { margin: 0; font-size: 15px; }
+.sutaeru-plan-card-title span { color: var(--neon-orange); font-family: var(--font-m); font-size: 8px; text-transform: uppercase; }
+.sutaeru-plan-card-copy > p { min-height: 66px; margin: 8px 0 12px; color: var(--t2); font-size: 11px; line-height: 1.55; }
+.sutaeru-plan-palette { display: flex; align-items: center; min-height: 20px; }
+.sutaeru-plan-palette i { width: 18px; height: 18px; border: 1px solid var(--line-2); border-radius: 50%; margin-right: -4px; }
+.sutaeru-plan-palette span { margin-left: 10px; color: var(--t3); font-family: var(--font-m); font-size: 8px; text-transform: uppercase; }
+.sutaeru-plan-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0; }
+.sutaeru-plan-tags span { border: 1px solid var(--line-1); border-radius: 999px; padding: 3px 6px; color: var(--t2); font-size: 8px; }
+.sutaeru-plan-select { width: 100%; min-height: 36px; border-radius: 3px; font-size: 10px; }
+.sutaeru-plan-select svg { width: 17px; height: 17px; }
+
+@media (max-width: 760px) {
+  .sutaeru-plan-grid { grid-template-columns: 1fr; }
+  .sutaeru-plan-preview { height: 114px; }
+  .sutaeru-plan-card-copy > p { min-height: 0; }
 }
 
 @layer components {

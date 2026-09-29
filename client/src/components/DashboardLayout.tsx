@@ -21,12 +21,12 @@ import {
 import { useIsMobile } from "@/hooks/useMobile";
 import { useSwipeToClose } from "@/hooks/useSwipeToClose";
 import {
-  Brain, FolderOpen, Sparkles, Settings, LogOut, PanelLeft,
+  LogOut, PanelLeft,
   LayoutDashboard, Receipt, ClipboardCheck, CheckSquare, ShoppingCart,
   BarChart3, MessageCircle, CreditCard, Shield,
   MessageSquare, Layers, CloudLightning, Plug, Compass, Rss, Heart,
   Building2, ChevronDown, Image, TrendingUp, Activity, Phone,
-  LayoutGrid, Palette, GitBranch
+  LayoutGrid, GitBranch
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -37,21 +37,23 @@ import { FloatingVideoPlayer } from './FloatingVideoPlayer';
 import { Button } from "./ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { LandingMark } from "@/components/LandingMark";
+import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
 
-const menuItems = [
+const menuItems: Array<{ icon: SutaeruIconName; label: string; path: string; group: string }> = [
   // ── Sutaeru core ──
-  { icon: MessageSquare, label: "Chat", path: "/chat", group: "sutaeru" },
-  { icon: Brain, label: "Identity", path: "/identity", group: "sutaeru" },
-  { icon: Layers, label: "Skills", path: "/skills", group: "sutaeru" },
-  { icon: CloudLightning, label: "Memories", path: "/memories", group: "sutaeru" },
-  { icon: Plug, label: "Connections", path: "/connections", group: "sutaeru" },
+  { icon: "ask", label: "Chat", path: "/chat", group: "sutaeru" },
+  { icon: "agent", label: "Identity", path: "/identity", group: "sutaeru" },
+  { icon: "models", label: "Skills", path: "/skills", group: "sutaeru" },
+  { icon: "memory", label: "Memories", path: "/memories", group: "sutaeru" },
+  { icon: "schedule", label: "Monitors", path: "/monitors", group: "sutaeru" },
+  { icon: "connections", label: "Connections", path: "/connections", group: "sutaeru" },
   // ── File generation ──
-  { icon: Palette, label: "Atelier", path: "/atelier", group: "forge" },
-  { icon: Sparkles, label: "Generate", path: "/generate", group: "forge" },
-  { icon: FolderOpen, label: "My Files", path: "/files", group: "forge" },
+  { icon: "make", label: "Atelier", path: "/atelier", group: "forge" },
+  { icon: "report", label: "Generate", path: "/generate", group: "forge" },
+  { icon: "files", label: "My Files", path: "/files", group: "forge" },
   // ── Back Office ──
   // ── Settings ──
-  { icon: Settings, label: "Settings", path: "/settings", group: "settings" },
+  { icon: "settings", label: "Settings", path: "/settings", group: "settings" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -357,8 +359,8 @@ function DashboardLayoutContent({
                       tooltip={item.label}
                       className="sutaeru-nav-item min-h-11 transition-all font-normal"
                     >
-                      <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
+                      <SutaeruIcon name={item.icon}
+                        className={`h-5 w-5 ${isActive ? "text-primary" : ""}`}
                       />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
@@ -382,8 +384,8 @@ function DashboardLayoutContent({
                       tooltip={item.label}
                       className="sutaeru-nav-item min-h-11 transition-all font-normal"
                     >
-                      <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
+                      <SutaeruIcon name={item.icon}
+                        className={`h-5 w-5 ${isActive ? "text-primary" : ""}`}
                       />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
@@ -429,8 +431,8 @@ function DashboardLayoutContent({
                       tooltip={item.label}
                      className="sutaeru-nav-item min-h-11 transition-all font-normal"
                     >
-                      <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
+                      <SutaeruIcon name={item.icon}
+                        className={`h-5 w-5 ${isActive ? "text-primary" : ""}`}
                       />
                       <span>{item.label}</span>
                     </SidebarMenuButton>

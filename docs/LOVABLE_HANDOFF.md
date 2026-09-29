@@ -14,15 +14,44 @@ Lovable owns UI. Claude Code owns backend, build, deploy and the VPS. Both read 
 - Icons: match Sutaeru's organic look. No sparkle, wand, brain or robot icons.
 - Every push to `main` auto-deploys to the VPS (brief downtime). Keep pushes meaningful; docs-only commits should include `[skip ci]`.
 
+## Shared workspace and sync
+
+`/opt/sutaeru-lovable` on the VPS is the shared workspace. Lovable edits there; Claude Code works in `/root/sr1` (git). `scripts/lovable-sync.sh` moves code between them:
+
+- `status`: what differs, split by owner.
+- `to-lovable [--client]`: repo to workspace. Backend, docs and config always; `client/` only with `--client`.
+- `from-lovable`: workspace to repo. `client/`, `package.json`, `package-lock.json` and this doc. Must be run on a branch, never on `main`.
+
+Ownership: Lovable owns `client/`. Claude Code owns everything else. Secrets and `.env` never travel (only git-tracked files go to the workspace).
+
+Two directions, same loop:
+1. Lovable builds a feature (UI or add-on): Claude Code runs `from-lovable`, builds, wires or adds any backend it needs, commits, then `to-lovable` so the workspace is current.
+2. Claude Code builds a backend feature: `to-lovable`, then Lovable wires it into `client/` and logs it below. Claude Code then runs `from-lovable`, builds, commits.
+3. Whoever needs something from the other writes it under the "Requests" headings above. Never edit the other side's files directly.
+4. Merging to `main` (which deploys) is Claude Code's step and needs Remy's go-ahead.
+
 ## Requests for Lovable (Claude Code writes here)
 
 - Restyle `client/src/components/AgentSkillsPanel.tsx` (owner-only panel on the Skills page: list of skill folders with Review, Turn on/off, and a report). Functional and unstyled beyond existing tokens; keep the tRPC calls (`kemma.agentSkills`, `kemma.reviewAgentSkill`, `kemma.setAgentSkillEnabled`) as they are. No sparkle/wand/brain/robot icons.
 
+- Wire the Lovable-designed screens to the real backend. The backend is tRPC (types via `AppRouter` from `server/routers.ts`; routers in `server/routers/` and `server/kemma/`). Go screen by screen (chat and threads, Deep Research, Review panel, exports, Skills page, connectors/settings): replace mock or static data with tRPC hooks (`trpc.<router>.<procedure>.useQuery/useMutation`), add loading, empty and error states, and keep existing procedure names and inputs as they are. If a screen needs a procedure that does not exist, do not invent one: write it under "Requests for Claude Code" with the exact input and output shape you want. Do not touch `server/`. Connectors are server-side config (`mcp.config.json`); the UI should only show status, not tokens.
+
 ## Requests for Claude Code (Lovable writes here)
 
-_None open._
+- Build env: `client/src/lib/kemmaCloud.ts` (Memories extraction, Monitors, document briefs, voice, Deep Research) calls Lovable Cloud functions at `${VITE_SUPABASE_URL}/functions/v1`. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` at build time (values from the Lovable project `.env`; publishable, not secret) or those features show a connection error.
+- Atelier export: the "Export" button is a placeholder. Wanted: `atelier.export` mutation, input `{ id: string, format: "pdf" | "docx" | "xlsx" | "md" }`, output `{ url: string, filename: string }`.
+- `client/src/lib/trpc.ts` is kept typed against `AppRouter`; a few older screens call procedures through untyped casts, so run `tsc` on your side and tell me any procedure-name mismatches rather than renaming on the server.
+
+- Type errors from the 2026-09-29 pull (`npx tsc --noEmit`: 0 errors before, 18 after; `npm run build` passes since vite does not type check). Please fix in `client/`, do not rename on the server:
+  - `pages/Atelier.tsx:242`, `pages/Identity.tsx:121`: `trpc.agent` does not exist; the router is `trpc.agents`.
+  - `pages/Login.tsx:133`: `auth.founderLogin` was removed from the server (founder-login flow deleted). Remove that call. Also line 143: type the `e` parameter.
+  - `pages/Files.tsx` (5 errors around lines 316-369): server returns `spaceId: string | null`, local `FileRecord` type expects `number | null`. Change the client type to `string | null`.
+  - `components/Block.tsx` (4), `os/Block.tsx`, `os/BlockWidgets.tsx`, `components/CommandPalette.tsx`: `unknown` not assignable to `ReactNode`, `RefObject<HTMLDivElement | null>` and `BlockData` callback type mismatches.
+  - `lib/kemmaCloud.ts`: `res.body` possibly null (2 places); add a null check.
 
 ## Log (newest first; date, who, what)
 
+- 2026-09-29 Claude Code: pulled Lovable client (icons, Monitors, Settings, skills panel) into `claude/lovable-wiring`. Build passes; 18 type errors listed under Requests for Lovable. Not deployed.
+- 2026-09-29 Lovable: synced full Lovable client into `client/` (branded icons, visual direction cards, Monitors page, voice, briefs). Restyled `AgentSkillsPanel` (tRPC calls unchanged) and mounted it on Skills. Wired Settings to `auth.me`, `kemma.quota`, `kemma.activateTrial`, `kemma.availableModels`, `kemma.hasPurgePassword`, `kemma.setPurgePassword` with loading/empty/error states. Replaced banned sparkle/wand/brain/robot icons app-wide. Kept Claude Code `trpc.ts` and `main.tsx` (service worker). No `server/` or package changes; `vite build` passes. Backup: `/root/backups/workspace-client-20260929-133601-pre-lovable.tgz`.
 - 2026-09-29 Claude Code: PWA wired (manifest link, service worker registration). Lovable: no action needed; do not remove `client/public/manifest.webmanifest` or `sw.js`.
 - 2026-09-29 Claude Code: repaired base64-corrupted files from Lovable sync, added missing deps. Build now passes with `npm run build`.

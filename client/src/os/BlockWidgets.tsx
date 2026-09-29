@@ -4,11 +4,8 @@
 // ============================================
 
 import { trpc } from '../lib/trpc';
-import {
-  MessageSquare, CheckSquare, Brain, FolderOpen,
-  Compass, Terminal, Users, ArrowUpRight, TrendingUp,
-  Zap,
-} from 'lucide-react';
+import { MessageSquare, CheckSquare, FolderOpen, Compass, Terminal, Users, ArrowUpRight, TrendingUp, Zap } from "lucide-react";
+import { Brain } from "@/components/brandIcons";
 
 // ==============================
 // CHAT — Main card, like MagicDraft "Welcome back" banner

@@ -29,6 +29,7 @@ export const connectionTypeEnum = pgEnum("connection_type", ["llm_api_key", "oau
 export const connectionStatusEnum = pgEnum("connection_status", ["active", "revoked", "expired"]);
 export const skillTypeEnum = pgEnum("skill_type", ["prompt", "workflow", "tool_definition", "behavior"]);
 export const memoryTypeEnum = pgEnum("memory_type", ["preference", "project", "document", "interaction", "fact"]);
+export const monitorFrequencyEnum = pgEnum("monitor_frequency", ["daily", "weekly"]);
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 export const users = pgTable("users", {
@@ -530,6 +531,43 @@ export const usageLogs = pgTable("usage_logs", {
 });
 export type UsageLog = typeof usageLogs.$inferSelect;
 export type InsertUsageLog = typeof usageLogs.$inferInsert;
+
+// ─── Per-user app settings (living memory switch) ─────────────────────────────
+export const userSettings = pgTable("user_settings", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: integer("user_id").notNull().references(() => users.id).unique(),
+  settings: json("settings").$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+export type UserSettingsRow = typeof userSettings.$inferSelect;
+export type InsertUserSettings = typeof userSettings.$inferInsert;
+
+// ─── Research monitors: recurring topics that file a cited briefing ───────────
+export const monitors = pgTable("monitors", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  topic: text("topic").notNull(),
+  frequency: monitorFrequencyEnum("frequency").notNull().default("weekly"),
+  active: boolean("active").notNull().default(true),
+  lastRunAt: timestamp("last_run_at"),
+  nextRunAt: timestamp("next_run_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+export type MonitorRow = typeof monitors.$inferSelect;
+export type InsertMonitor = typeof monitors.$inferInsert;
+
+export const monitorRuns = pgTable("monitor_runs", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  monitorId: varchar("monitor_id", { length: 36 }).notNull().references(() => monitors.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  report: text("report").notNull(),
+  sources: json("sources").$type<Array<{ title: string; url: string }>>().notNull().default([]),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export type MonitorRunRow = typeof monitorRuns.$inferSelect;
+export type InsertMonitorRun = typeof monitorRuns.$inferInsert;
 
 // ─── Agent skills: one review per content hash, usable only after approval ────
 export const skillReviews = pgTable(

@@ -20,6 +20,7 @@ import { ENV } from './env';
 import { sdk } from './sdk';
 import { generalApiRateLimiter } from './rateLimiter';
 import { registerFileRoutes } from '../routes/files';
+import { fnRouter } from '../routes/fn';
 import { registerExportRoutes } from '../routes/export';
 
 // Load secrets from Secret Manager before starting
@@ -92,6 +93,7 @@ app.use('/api/atelier', requireSession);
 registerAtelierRoutes(app);
 app.use('/api/intelligence', requireSession, intelligenceRouter);
 app.post('/api/kemma/stream', requireSession, kemmaStreamRoute);
+app.use('/api/fn', requireSession, fnRouter);
 registerJobsTick(app);
 registerFileRoutes(app);
 registerExportRoutes(app);

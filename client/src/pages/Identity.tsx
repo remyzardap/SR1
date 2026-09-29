@@ -13,21 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import {
-  User,
-  Loader2,
-  Save,
-  AtSign,
-  Plus,
-  X,
-  Globe,
-  Sparkles,
-  Brain,
-  MessageSquare,
-  Users,
-  Upload,
-  Camera,
-} from "lucide-react";
+import { User, Loader2, Save, AtSign, Plus, X, Globe, MessageSquare, Users, Upload, Camera } from "lucide-react";
+import { Sparkles, Brain } from "@/components/brandIcons";
 
 const LANGUAGES = [
   { value: "en", label: "English" },
@@ -131,7 +118,6 @@ export default function Identity() {
     onSuccess: () => {
       toast.success("Identity saved successfully!");
       utils.identity.get.invalidate();
-      (utils as any).agent.context.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "Failed to save identity.");

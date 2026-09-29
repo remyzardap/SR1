@@ -15,16 +15,11 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import {
-  Pin, PinOff, GitFork, Lock, Unlock, Archive,
-  Link2, ChevronDown, ChevronUp, MessageSquare,
-  FileText, BookOpen, CheckSquare, Play, Mic,
-  LayoutDashboard, StickyNote, Copy, Sparkles,
-  Eye,
-} from "lucide-react";
+import { Pin, PinOff, GitFork, Lock, Unlock, Archive, Link2, ChevronDown, ChevronUp, MessageSquare, FileText, BookOpen, CheckSquare, Play, Mic, LayoutDashboard, StickyNote, Copy, Eye } from "lucide-react";
+import { Sparkles } from "@/components/brandIcons";
 
 export type BlockType = "chat" | "atelier" | "memory" | "task" | "media" | "transcript" | "widget" | "note";
-export type BlockSource = "s1" | "atelier" | "her" | "kemma" | "user" | "feed" | "system";
+export type BlockSource = "s1" | "atelier" | "kemma" | "her" | "user" | "feed" | "system";
 
 export interface BlockData {
   id: string;

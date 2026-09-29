@@ -4,12 +4,201 @@
       "enabled": false,
       "transport": "stdio",
       "command": "npx",
-      "args": ["--no-install", "mcp-server-everything"],
+      "args": [
+        "--no-install",
+        "mcp-server-everything"
+      ],
       "envVars": [],
       "tools": {
         "echo": "read",
         "get-sum": "read"
       }
+    },
+    "notion": {
+      "enabled": false,
+      "transport": "http",
+      "url": "https://mcp.notion.com/mcp",
+      "args": [],
+      "envVars": [
+        "MCP_NOTION_TOKEN"
+      ],
+      "tools": {
+        "notion-search": "read",
+        "notion-fetch": "read",
+        "notion-get-comments": "read",
+        "notion-get-users": "read",
+        "notion-get-teams": "read",
+        "notion-list-recent-pages": "read"
+      },
+      "_note": "Claude connector uses OAuth; Sutaeru sends only a static bearer token from the env var. Set a token/PAT if the vendor offers one."
+    },
+    "figma": {
+      "enabled": false,
+      "transport": "http",
+      "url": "https://mcp.figma.com/mcp",
+      "args": [],
+      "envVars": [
+        "MCP_FIGMA_TOKEN"
+      ],
+      "tools": {
+        "get_design_context": "read",
+        "get_metadata": "read",
+        "get_screenshot": "read",
+        "get_variable_defs": "read",
+        "get_figjam": "read",
+        "search_design_system": "read",
+        "whoami": "read"
+      },
+      "_note": "Claude connector uses OAuth; Sutaeru sends only a static bearer token from the env var. Set a token/PAT if the vendor offers one."
+    },
+    "canva": {
+      "enabled": false,
+      "transport": "http",
+      "url": "https://mcp.canva.com/mcp",
+      "args": [],
+      "envVars": [
+        "MCP_CANVA_TOKEN"
+      ],
+      "tools": {
+        "search-designs": "read",
+        "read-design": "read",
+        "list-comments": "read",
+        "list-brand-kits": "read",
+        "get-assets": "read",
+        "list-folder-items": "read",
+        "search-folders": "read"
+      },
+      "_note": "Claude connector uses OAuth; Sutaeru sends only a static bearer token from the env var. Set a token/PAT if the vendor offers one."
+    },
+    "dropbox": {
+      "enabled": false,
+      "transport": "http",
+      "url": "https://example.invalid/REPLACE-with-real-MCP-url",
+      "args": [],
+      "envVars": [
+        "MCP_DROPBOX_TOKEN"
+      ],
+      "tools": {
+        "search": "read",
+        "fetch": "read",
+        "list_folder": "read",
+        "get_file_metadata": "read",
+        "who_am_i": "read",
+        "file_preview": "read"
+      },
+      "_note": "Claude connector uses OAuth; Sutaeru sends only a static bearer token from the env var. Set a token/PAT if the vendor offers one. URL unverified."
+    },
+    "google-drive": {
+      "enabled": false,
+      "transport": "http",
+      "url": "https://example.invalid/REPLACE-with-real-MCP-url",
+      "args": [],
+      "envVars": [
+        "MCP_GDRIVE_TOKEN"
+      ],
+      "tools": {
+        "search_files": "read",
+        "read_file_content": "read",
+        "get_file_metadata": "read",
+        "list_recent_files": "read",
+        "download_file_content": "read"
+      },
+      "_note": "Claude connector uses OAuth; Sutaeru sends only a static bearer token from the env var. Set a token/PAT if the vendor offers one. URL unverified."
+    },
+    "gamma": {
+      "enabled": false,
+      "transport": "http",
+      "url": "https://mcp.gamma.app/mcp",
+      "args": [],
+      "envVars": [
+        "MCP_GAMMA_TOKEN"
+      ],
+      "tools": {
+        "get_gammas": "read",
+        "read_gamma": "read",
+        "search_gammas": "read",
+        "get_themes": "read",
+        "get_folders": "read"
+      },
+      "_note": "Claude connector uses OAuth; Sutaeru sends only a static bearer token from the env var. Set a token/PAT if the vendor offers one. URL unverified."
+    },
+    "twelve-data": {
+      "enabled": false,
+      "transport": "http",
+      "url": "https://example.invalid/REPLACE-with-real-MCP-url",
+      "args": [],
+      "envVars": [
+        "MCP_TWELVEDATA_TOKEN"
+      ],
+      "tools": {
+        "get_quote": "read",
+        "get_price": "read",
+        "get_time_series": "read",
+        "get_technical_indicator": "read",
+        "get_financials": "read",
+        "get_earnings": "read",
+        "get_company_info": "read",
+        "get_company_news": "read",
+        "search_symbol": "read",
+        "currency_conversion": "read",
+        "get_market_state": "read"
+      },
+      "_note": "Claude connector uses OAuth; Sutaeru sends only a static bearer token from the env var. Set a token/PAT if the vendor offers one. URL unverified."
+    },
+    "docfarm": {
+      "enabled": false,
+      "transport": "http",
+      "url": "https://example.invalid/REPLACE-with-real-MCP-url",
+      "args": [],
+      "envVars": [
+        "MCP_DOCFARM_TOKEN"
+      ],
+      "tools": {
+        "list_docs": "read",
+        "get_doc_html": "read",
+        "get_doc_status": "read",
+        "list_accounts": "read"
+      },
+      "_note": "Claude connector uses OAuth; Sutaeru sends only a static bearer token from the env var. Set a token/PAT if the vendor offers one. URL unverified."
+    },
+    "moda": {
+      "enabled": false,
+      "transport": "http",
+      "url": "https://example.invalid/REPLACE-with-real-MCP-url",
+      "args": [],
+      "envVars": [
+        "MCP_MODA_TOKEN"
+      ],
+      "tools": {
+        "canvas_list": "read",
+        "canvas_read": "read",
+        "canvas_search": "read",
+        "canvas_screenshot": "read",
+        "file_list": "read",
+        "file_read": "read",
+        "drive_tree": "read",
+        "brand_list": "read",
+        "brand_show": "read",
+        "template_search": "read"
+      },
+      "_note": "Claude connector uses OAuth; Sutaeru sends only a static bearer token from the env var. Set a token/PAT if the vendor offers one. URL unverified."
+    },
+    "zapier": {
+      "enabled": false,
+      "transport": "http",
+      "url": "https://example.invalid/REPLACE-with-real-MCP-url",
+      "args": [],
+      "envVars": [
+        "MCP_ZAPIER_TOKEN"
+      ],
+      "tools": {
+        "list_zapier_connections": "read",
+        "list_zapier_skills": "read",
+        "get_zapier_skill": "read",
+        "inspect_zapier_actions": "read",
+        "execute_zapier_read_action": "read"
+      },
+      "_note": "URL is per-user from Zapier MCP settings."
     }
   }
 }

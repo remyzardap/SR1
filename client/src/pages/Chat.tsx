@@ -12,9 +12,13 @@ import { ChatInsightsDialog } from "@/components/ChatInsightsDialog";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/authSession";
+import { callFunction } from "@/lib/kemmaCloud";
 import { NEON_PAGE_BG, NOISE_OVERLAY, NEON, NEON_FD, NEON_FM } from "@/lib/design";
-import { Settings, X, Cpu, Wrench, Sparkles, Download, PanelRightOpen, PanelRightClose, Zap, Search, FileText, Image as ImageIcon, ExternalLink } from "lucide-react";
+import { Settings, X, Cpu, Wrench, Download, PanelRightOpen, PanelRightClose, Zap, Search, FileText, Image as ImageIcon, ExternalLink } from "lucide-react";
+import { Sparkles } from "@/components/brandIcons";
 import { Button } from "@/components/ui/button";
+import { SutaeruIcon } from "@/components/SutaeruIcon";
+import type { ChatMessageData as Message, PlanDirection } from "@/types/chat";
 import {
   Select,
   SelectContent,
@@ -24,19 +28,6 @@ import {
 } from "@/components/ui/select";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  model?: string;
-  streaming?: boolean;
-  skills?: Array<{ id: number; name: string }>;
-  createdAt: Date;
-  sources?: Source[];
-  question?: string;
-  references?: string[];
-}
-
 interface StreamSettings {
   model?: string;
   taggedSkills?: number[];
@@ -75,6 +66,18 @@ const MODE_META: Record<string, { icon: React.ElementType; label: string; desc: 
   document: { icon: FileText, label: "Document", desc: "Files and generation" },
   image: { icon: ImageIcon, label: "Image", desc: "Image generation" },
 };
+
+const PLAN_REQUEST = /\b(design|build|create|make|redesign|website|page|screen|interface|dashboard|brand|visual|layout|app)\b/i;
+const PLAN_SKIP = /\b(fix|bug|error|broken|not working|change the text|rename)\b/i;
+
+function createPlanDirections(prompt: string): PlanDirection[] {
+  const subject = prompt.replace(/\s+/g, " ").trim().slice(0, 92);
+  return [
+    { id: "editorial", title: "Editorial Signal", concept: `A calm, publication-led approach to ${subject}, with decisive hierarchy and generous breathing room.`, emphasis: "Clarity first", palette: ["#F7F6F2", "#242320", "#F4511E"], tags: ["Editorial", "Precise", "Quiet motion"], recommended: true },
+    { id: "technical", title: "Technical Field", concept: `A denser, instrument-like direction for ${subject}, pairing compact data with annotated visual details.`, emphasis: "Information rich", palette: ["#ECEAE4", "#171715", "#B6BBC3"], tags: ["Technical", "Structured", "Interactive"] },
+    { id: "cinematic", title: "Cinematic Object", concept: `A bolder presentation of ${subject}, led by one memorable object, dramatic scale, and controlled transitions.`, emphasis: "High impact", palette: ["#171715", "#F7F6F2", "#F4511E"], tags: ["Immersive", "Focused", "Expressive"] },
+  ];
+}
 
 // ─── SSE parser ───────────────────────────────────────────────────────────
 function parseSseChunk(
@@ -127,6 +130,7 @@ export default function Chat() {
     sessionStorage.setItem("sutaeru_chat_session", id);
     return id;
   });
+  const [hasPersistedHistory, setHasPersistedHistory] = useState(() => sessionStorage.getItem("sutaeru_chat_has_history") === "1");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [agentPanelOpen, setAgentPanelOpen] = useState(true);
@@ -166,6 +170,9 @@ export default function Chat() {
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const messagesRef = useRef<Message[]>([]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+  const createMemoryMutation = trpc.memories.create.useMutation();
 
   // ─── tRPC ──────────────────────────────────────────────────────────────────
   const utils = trpc.useUtils();
@@ -217,6 +224,8 @@ export default function Chat() {
       if (isStreaming) return;
       abortRef.current?.abort();
       sessionStorage.setItem("sutaeru_chat_session", sid);
+      sessionStorage.setItem("sutaeru_chat_has_history", "1");
+      setHasPersistedHistory(true);
       setSessionId(sid);
       setMessages([]);
       setInput("");
@@ -239,6 +248,8 @@ export default function Chat() {
     abortRef.current?.abort();
     const newId = crypto.randomUUID();
     sessionStorage.setItem("sutaeru_chat_session", newId);
+    sessionStorage.setItem("sutaeru_chat_has_history", "0");
+    setHasPersistedHistory(false);
     setSessionId(newId);
     setMessages([]);
     setInput("");
@@ -257,6 +268,10 @@ export default function Chat() {
   // ─── Load persisted history on mount ───────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
+    if (!hasPersistedHistory) {
+      setHistoryState("ready");
+      return () => { cancelled = true; };
+    }
     setHistoryState("loading");
     fetch(`${import.meta.env.VITE_SR1_API_ORIGIN || ""}/api/chat/history?sessionId=${sessionId}`, { credentials: "include", headers: getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {} })
       .then((r) => {
@@ -282,7 +297,7 @@ export default function Chat() {
       .catch(() => { if (!cancelled) setHistoryState("error"); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, historyAttempt]);
+  }, [sessionId, historyAttempt, hasPersistedHistory]);
 
   // ─── Send message ─────────────────────────────────────────────────────────
   const handleSend = useCallback(
@@ -300,6 +315,8 @@ export default function Chat() {
       };
 
       setMessages((prev) => [...prev, userMsg]);
+      sessionStorage.setItem("sutaeru_chat_has_history", "1");
+      setHasPersistedHistory(true);
       setInput("");
       setLastInput(messageText);
       setLastFiles(attachedFiles);
@@ -311,6 +328,20 @@ export default function Chat() {
       setUsedSkills([]);
       setUsage(null);
       setSources([]);
+
+      if (PLAN_REQUEST.test(messageText) && !PLAN_SKIP.test(messageText)) {
+        const planMessage: Message = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: "I’ve translated your brief into three distinct visual directions. Each keeps Sutaeru’s core language while changing the emphasis.",
+          createdAt: new Date(),
+          planOptions: createPlanDirections(messageText),
+        };
+        setMessages((prev) => [...prev, planMessage]);
+        setIsStreaming(false);
+        setStartedAt(null);
+        return;
+      }
 
       const assistantId = crypto.randomUUID();
       setMessages((prev) => [
@@ -335,10 +366,8 @@ export default function Chat() {
       abortRef.current = controller;
 
       try {
-        const cloudUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-        const requestUrl = mode === "deep"
-          ? `${cloudUrl || ""}/functions/v1/research`
-          : `${import.meta.env.VITE_SR1_API_ORIGIN || ""}/api/kemma/stream`;
+        const apiOrigin = import.meta.env.VITE_SR1_API_ORIGIN || "";
+        const requestUrl = mode === "deep" ? `${apiOrigin}/api/fn/research` : `${apiOrigin}/api/kemma/stream`;
         const response = await fetch(requestUrl, {
           method: "POST",
            headers: { "Content-Type": "application/json", ...(getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {}) },
@@ -436,6 +465,27 @@ export default function Chat() {
               : m
           )
         );
+
+        // Living memory: quietly extract anything worth remembering (honors the
+        // Memories page master switch; the Cloud function only proposes items).
+        void (async () => {
+          try {
+            const latest = messagesRef.current;
+            const assistantText = latest.find((m) => m.id === assistantId)?.content ?? "";
+            if (!assistantText.trim()) return;
+            const conversation = [...latest.filter((m) => m.id !== assistantId), { role: "assistant" as const, content: assistantText }]
+              .slice(-8)
+              .map((m) => `${m.role === "user" ? "User" : "Kemma"}: ${m.content}`)
+              .join("\n\n")
+              .slice(0, 30000);
+            const result = await callFunction<{ memories: Array<{ type: string; content: string }> }>("memories", { action: "extract", conversation, source: "chat" });
+            for (const item of result.memories ?? []) {
+              await createMemoryMutation.mutateAsync({ type: item.type as never, content: item.content, sourceApp: "kemma-auto" }).catch(() => undefined);
+            }
+          } catch {
+            // Memory extraction is best-effort; never disturb the chat.
+          }
+        })();
       } catch (err) {
         if ((err as Error).name === "AbortError") return;
         const raw = (err as Error).message ?? "";
@@ -457,6 +507,12 @@ export default function Chat() {
       void handleSend();
     }
   };
+
+  const handleSelectPlan = useCallback((messageId: string, option: PlanDirection) => {
+    setMessages((prev) => prev.map((message) => message.id === messageId ? { ...message, selectedOptionId: option.id } : message));
+    setInput(`Use “${option.title}” for this build. Keep the ${option.emphasis.toLowerCase()} emphasis and these qualities: ${option.tags.join(", ")}.`);
+    toast.success(`${option.title} selected`);
+  }, []);
 
   const retry = () => void handleSend(lastFiles.length ? { text: lastInput, files: lastFiles } : lastInput);
   const stopRun = () => {
@@ -580,6 +636,7 @@ export default function Chat() {
               onSuggestion={(s) => void handleSend(s)}
               sources={sources}
               steps={agentSteps}
+              onSelectPlan={handleSelectPlan}
             />
 
             {historyState === "loading" && messages.length === 0 && (
@@ -698,34 +755,14 @@ export default function Chat() {
 
             <div className="sutaeru-run-controls">
               <div className="sutaeru-run-actions">
-                <Button size="icon" variant="outline" onClick={() => setSettingsOpen((o) => !o)} aria-label="Run settings" title="Run settings"><Settings className="h-5 w-5" /></Button>
-                <Button size="icon" variant="outline" onClick={() => setMobileDetailsOpen((o) => !o)} aria-label="Run details" title="Run details"><PanelRightOpen className="h-5 w-5" /></Button>
-                <Button size="icon" variant="outline" onClick={exportThread} disabled={messages.length === 0} aria-label="Export conversation" title="Export conversation"><Download className="h-5 w-5" /></Button>
+                <Button size="icon" variant="outline" onClick={() => setSettingsOpen((o) => !o)} aria-label="Run settings" title="Run settings"><SutaeruIcon name="settings" className="h-5 w-5" /></Button>
+                <Button size="icon" variant="outline" onClick={() => setMobileDetailsOpen((o) => !o)} aria-label="Run details" title="Run details"><SutaeruIcon name="review" className="h-5 w-5" /></Button>
+                <Button size="icon" variant="outline" onClick={exportThread} disabled={messages.length === 0} aria-label="Export conversation" title="Export conversation"><SutaeruIcon name="download" className="h-5 w-5" /></Button>
                 {isStreaming && <Button variant="outline" className="sutaeru-stop-run" onClick={stopRun}>Stop run</Button>}
               </div>
               {mobileDetailsOpen && <div className="sutaeru-mobile-details"><strong>Run details</strong><p>{isStreaming ? currentStep || "Thinking…" : error ? "Run failed" : "No active run"}</p>{agentSteps.map(step => <p key={step.id}>{step.label}</p>)}{sources.length > 0 && <div className="sutaeru-inline-sources"><strong>Sources</strong>{sources.map((source, index) => <a key={`${source.url}-${index}`} href={source.url} target="_blank" rel="noreferrer"><span>{index + 1}. {source.title}</span><ExternalLink size={14} /></a>)}</div>}</div>}
               <div className="sutaeru-run-composer">
               <div className="mx-auto flex max-w-2xl items-center gap-2">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setSettingsOpen((o) => !o)}
-                   className={cn("shrink-0 rounded-full", settingsOpen && "bg-secondary")}
-                   aria-label="Run settings"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={exportThread}
-                  disabled={messages.length === 0}
-                  className="shrink-0 rounded-full"
-                  title="Export thread to Markdown"
-                   aria-label="Export thread to Markdown"
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
                 <div className="flex-1">
                    <ChatInput
                     value={input}

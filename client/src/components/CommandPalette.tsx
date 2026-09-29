@@ -12,12 +12,8 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import {
-  Search, LayoutDashboard, MessageSquare, Brain, Zap, FolderOpen,
-  Layers, Rss, LayoutGrid, Receipt, CheckSquare, ShoppingCart, BarChart3,
-  TrendingUp, Image, Phone, Plug, Sparkles, Plus, ArrowRight,
-  FileText, BookOpen, Mic, StickyNote, X,
-} from "lucide-react";
+import { Search, LayoutDashboard, MessageSquare, Zap, FolderOpen, Layers, Rss, LayoutGrid, Receipt, CheckSquare, ShoppingCart, BarChart3, TrendingUp, Image, Phone, Plug, Plus, ArrowRight, FileText, BookOpen, Mic, StickyNote, X } from "lucide-react";
+import { Brain, Sparkles } from "@/components/brandIcons";
 import { F, FM, MOCHA, AMBER, TEXT_PRIMARY, TEXT_MUTED, TEXT_SOFT } from "@/lib/design";
 import type { BlockData } from "@/components/Block";
 
@@ -191,8 +187,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     });
     
     // Blocks
-    blocks.forEach((raw) => {
-      const block = raw as unknown as BlockData;
+    blocks.forEach((block) => {
       const titleScore = block.title ? fuzzyScore(query, block.title) : 0;
       const contentText = JSON.stringify(block.content);
       const contentScore = fuzzyScore(query, contentText) * 0.3;

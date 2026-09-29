@@ -2,11 +2,12 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { MessageSquare, Plus, Trash2, Pencil, Check, X, Loader2, PanelLeftClose } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { NEON, NEON_FD, NEON_FM } from "@/lib/design";
 import { LandingMark } from "@/components/LandingMark";
+import { SutaeruIcon } from "@/components/SutaeruIcon";
 
 interface ChatSessionListProps {
   activeSessionId: string | null;
@@ -53,24 +54,17 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
 
   return (
     <div className="flex flex-col h-full" style={{ background: "transparent", position: "relative" }}>
-      <div className="sutaeru-history-mark"><LandingMark className="sutaeru-nav-mark" /><span>SUTAERU</span>{onClose && <Button variant="ghost" size="icon" className="sutaeru-history-close" onClick={onClose} aria-label="Close history" title="Close history"><PanelLeftClose className="h-5 w-5" /></Button>}</div>
+      <div className="sutaeru-history-mark"><LandingMark className="sutaeru-nav-mark" /><span>SUTAERU</span>{onClose && <Button variant="ghost" size="icon" className="sutaeru-history-close" onClick={onClose} aria-label="Close history" title="Close history"><SutaeruIcon name="close" className="h-5 w-5" /></Button>}</div>
 
       {/* Header */}
       <div className="p-3 pb-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.10)" }}>
-        <button
+        <Button
           onClick={onNewSession}
-          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-full text-sm font-semibold transition-all duration-200"
-          style={{
-            background: NEON.orange,
-            color: "#fff",
-            fontFamily: NEON_FD,
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.filter = "brightness(1.08)"; e.currentTarget.style.transform = "scale(1.02)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.filter = "brightness(1)"; e.currentTarget.style.transform = "scale(1)"; }}
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-sm text-sm font-semibold"
         >
-          <Plus className="h-4 w-4" />
+          <SutaeruIcon name="plus" className="h-4 w-4" />
           New chat
-        </button>
+        </Button>
       </div>
 
       {/* Session list */}
@@ -81,7 +75,7 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
           </div>
         ) : sessions.length === 0 ? (
           <div className="px-3 py-10 text-center">
-            <MessageSquare className="h-7 w-7 mx-auto mb-3" style={{ color: "rgba(255,255,255,0.4)" }} />
+            <SutaeruIcon name="ask" className="h-7 w-7 mx-auto mb-3 text-background/40" />
             <p className="text-xs" style={{ color: "rgba(255,255,255,0.55)", fontFamily: NEON_FD }}>
               No chat history yet
             </p>
@@ -103,7 +97,7 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
                 onMouseEnter={(e) => { if (activeSessionId !== session.id) e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
                 onMouseLeave={(e) => { if (activeSessionId !== session.id) e.currentTarget.style.background = "transparent"; }}
               >
-                <MessageSquare className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: "rgba(255,255,255,0.55)" }} />
+                <SutaeruIcon name="ask" className="h-4 w-4 mt-0.5 shrink-0 text-background/55" />
 
                 {editingId === session.id ? (
                   <div className="flex-1 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
@@ -111,20 +105,15 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") confirmEdit(session.id); if (e.key === "Escape") cancelEdit(); }}
-                      className="flex-1 min-w-0 bg-transparent text-xs outline-none border-b"
-                      style={{ color: "#fff", borderColor: "rgba(255,255,255,0.3)" }}
+                      className="flex-1 min-w-0 bg-transparent text-xs outline-none border-b text-background border-background/30"
                       autoFocus
                     />
-                    <button onClick={() => confirmEdit(session.id)} className="p-0.5" style={{ color: "#7abe8e" }}>
-                      <Check className="h-3 w-3" />
-                    </button>
-                    <button onClick={cancelEdit} className="p-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>
-                      <X className="h-3 w-3" />
-                    </button>
+                    <Button variant="ghost" size="icon" onClick={() => confirmEdit(session.id)} className="h-6 w-6 text-background"><SutaeruIcon name="check" className="h-3 w-3" /></Button>
+                    <Button variant="ghost" size="icon" onClick={cancelEdit} className="h-6 w-6 text-background/50"><SutaeruIcon name="close" className="h-3 w-3" /></Button>
                   </div>
                 ) : (
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] truncate leading-snug" style={{ color: activeSessionId === session.id ? "#fff" : "rgba(255,255,255,0.88)", fontFamily: NEON_FD, fontWeight: activeSessionId === session.id ? 700 : 500 }}>
+                    <p className={cn("text-[13px] truncate leading-snug text-background/85", activeSessionId === session.id && "text-background font-bold")} style={{ fontFamily: NEON_FD }}>
                       {session.title || "Untitled"}
                     </p>
                     <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.45)", fontFamily: NEON_FM }}>
@@ -135,24 +124,16 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
 
                 {editingId !== session.id && (
                   <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      className="p-1 rounded-md transition-colors"
-                      style={{ color: "rgba(255,255,255,0.45)" }}
-                      onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "#fff")}
-                      onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.45)")}
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-background/45 hover:text-background"
                       onClick={(e) => { e.stopPropagation(); startEdit(session.id, session.title || ""); }}
                     >
-                      <Pencil className="h-3 w-3" />
-                    </button>
-                    <button
-                      className="p-1 rounded-md transition-colors"
-                      style={{ color: "rgba(255,255,255,0.45)" }}
-                      onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = NEON.orange)}
-                      onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.45)")}
+                      <SutaeruIcon name="edit" className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-background/45 hover:text-[var(--neon-orange)]"
                       onClick={(e) => { e.stopPropagation(); if (confirm("Delete this chat session?")) deleteSession.mutate({ sessionId: session.id }); }}
                     >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
+                      <SutaeruIcon name="delete" className="h-3 w-3" />
+                    </Button>
                   </div>
                 )}
               </motion.div>
