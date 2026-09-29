@@ -28,7 +28,8 @@ interface PerplexityResponse {
   model: string;
   object: string;
   created: number;
-  citations?: PerplexityCitation[];
+  citations?: Array<PerplexityCitation | string>;
+  search_results?: Array<{ title?: string; url?: string; date?: string; snippet?: string }>;
   choices: PerplexityChoice[];
 }
 
@@ -36,6 +37,7 @@ interface SearchResult {
   title: string;
   url: string;
   snippet: string;
+  date?: string;
 }
 
 interface PerplexityErrorResponse {
@@ -84,20 +86,27 @@ function extractTitleFromUrl(url: string): string {
 
 function parseSearchResults(response: PerplexityResponse): SearchResult[] {
   const results: SearchResult[] = [];
-  const citations = response.citations || [];
-  const assistantMessage = response.choices.find(
-    (choice) => choice.message.role === 'assistant'
-  );
+  const seen = new Set<string>();
+  const assistantMessage = response.choices.find((choice) => choice.message.role === 'assistant');
   const content = assistantMessage?.message.content || '';
 
-  for (const citation of citations) {
-    if (citation.url) {
-      results.push({
-        title: extractTitleFromUrl(citation.url),
-        url: citation.url,
-        snippet: content.slice(0, 500),
-      });
-    }
+  const add = (url: string | undefined, title: string | undefined, snippet: string, date?: string) => {
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    results.push({ title: title?.trim() || extractTitleFromUrl(url), url, snippet, ...(date ? { date } : {}) });
+  };
+
+  // Sonar returns per-source metadata in search_results and bare URL strings in citations.
+  for (const r of response.search_results ?? []) {
+    add(r.url, r.title, (r.snippet ?? '').slice(0, 500), r.date);
+  }
+  for (const c of response.citations ?? []) {
+    add(typeof c === 'string' ? c : c?.url, undefined, '');
+  }
+
+  // The synthesized answer carries the facts the [n] markers point at; keep it on the first result.
+  if (results.length > 0 && content) {
+    results[0].snippet = `SEARCH ANSWER (markers [n] refer to the numbered sources in order):\n${content.slice(0, 6000)}\n\n${results[0].snippet}`.slice(0, 7000);
   }
 
   return results;

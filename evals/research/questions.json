@@ -1,0 +1,162 @@
+[
+  {
+    "id": "solar-01",
+    "domain": "C&I solar PPA",
+    "time_sensitive": true,
+    "question": "What is the current regulatory framework in Indonesia for commercial and industrial rooftop solar (PLTS Atap) connected to the PLN grid? Cover capacity limits, export and import treatment of electricity, and the permit path.",
+    "must_cover": ["governing ministerial regulation and its amendments", "capacity limit relative to PLN connected power", "export and import energy treatment", "required permits and who issues them"],
+    "primary_sources": ["peraturan.go.id", "jdih.esdm.go.id", "esdm.go.id", "pln.co.id"]
+  },
+  {
+    "id": "solar-02",
+    "domain": "C&I solar PPA",
+    "time_sensitive": true,
+    "question": "Which PLN tariff classes apply to industrial and business customers, what are the current per kWh rates, and how should a rooftop solar PPA price be positioned against them?",
+    "must_cover": ["tariff class names for business and industry", "current rates with the effective date", "how a PPA discount is usually structured against the PLN tariff", "the date of the source"],
+    "primary_sources": ["pln.co.id", "esdm.go.id", "jdih.esdm.go.id"]
+  },
+  {
+    "id": "solar-03",
+    "domain": "C&I solar PPA",
+    "time_sensitive": true,
+    "question": "Under Indonesian rules, can a private company own a rooftop solar system on a customer's building and sell the electricity to that customer directly under a PPA or lease, and what licence or structure does it need?",
+    "must_cover": ["electricity business licensing requirement (izin usaha penyediaan tenaga listrik) and any exemptions", "lease versus PPA legal distinction", "role of PLN and the interconnection agreement", "risks the analysis flags as unresolved"],
+    "primary_sources": ["peraturan.go.id", "jdih.esdm.go.id", "esdm.go.id"]
+  },
+  {
+    "id": "solar-04",
+    "domain": "C&I solar PPA",
+    "time_sensitive": true,
+    "question": "What is the typical installed cost per kWp for commercial rooftop solar in Indonesia, how has it moved over the last 24 months, and how do local content (TKDN) requirements affect module choice?",
+    "must_cover": ["cost range in IDR or USD per kWp with the year", "trend direction and drivers", "TKDN rule for modules and its status", "distinction between quotes and published benchmarks"],
+    "primary_sources": ["esdm.go.id", "iea-pvps.org", "irena.org", "worldbank.org"]
+  },
+  {
+    "id": "solar-05",
+    "domain": "C&I solar PPA",
+    "time_sensitive": true,
+    "question": "What tax and customs treatment applies to solar PV equipment and projects in Indonesia today (import duty, VAT, income tax facilities)?",
+    "must_cover": ["import duty and VAT position for modules and inverters", "tax holiday or allowance schemes and eligibility", "the regulation each point comes from", "what changed recently"],
+    "primary_sources": ["peraturan.go.id", "kemenkeu.go.id", "pajak.go.id", "jdih.kemenkeu.go.id"]
+  },
+  {
+    "id": "pln-01",
+    "domain": "PLN rooftop rules",
+    "time_sensitive": true,
+    "question": "What steps and timeline does a 750 kWp rooftop solar project follow to get PLN interconnection approval and an operating certificate (SLO) in Indonesia?",
+    "must_cover": ["ordered list of steps", "documents required", "typical durations and which are official versus anecdotal", "who performs SLO inspection"],
+    "primary_sources": ["esdm.go.id", "pln.co.id", "jdih.esdm.go.id"]
+  },
+  {
+    "id": "pln-02",
+    "domain": "PLN rooftop rules",
+    "time_sensitive": true,
+    "question": "What changed in Indonesia's rooftop solar rules over the last 24 months? List each regulation with its date, what it changed, and whether earlier rules were revoked.",
+    "must_cover": ["dated list of regulations", "what each changed", "revocation status of earlier rules", "practical effect on a new C&I project"],
+    "primary_sources": ["peraturan.go.id", "jdih.esdm.go.id", "esdm.go.id"]
+  },
+  {
+    "id": "pln-03",
+    "domain": "PLN rooftop rules",
+    "time_sensitive": true,
+    "question": "Does PLN apply a quota or capacity allocation system for rooftop solar on its grid, and how does that interact with captive or self-consumption systems that do not export?",
+    "must_cover": ["existence and current status of any quota", "treatment of non-exporting systems", "who decides allocation", "how recent the sources are"],
+    "primary_sources": ["esdm.go.id", "pln.co.id", "jdih.esdm.go.id"]
+  },
+  {
+    "id": "bali-01",
+    "domain": "Bali construction rates",
+    "time_sensitive": true,
+    "question": "What are current construction cost benchmarks in Bali per square metre for a mid-range villa built with a steel frame, and how do they compare with concrete frame construction?",
+    "must_cover": ["IDR per m2 ranges with year and source type", "steel frame versus concrete comparison", "what is usually excluded (land, permits, furniture, landscaping)", "warning where sources are contractor marketing"],
+    "primary_sources": ["pu.go.id", "bps.go.id", "badungkab.go.id"]
+  },
+  {
+    "id": "bali-02",
+    "domain": "Bali construction rates",
+    "time_sensitive": true,
+    "question": "What are the current minimum wages in Badung and Gianyar regencies and typical daily rates for skilled construction labour (tukang) and labourers in Bali?",
+    "must_cover": ["official UMK figures with year", "typical tukang and labourer day rates with source type", "difference between official minimum and market rate", "date of each figure"],
+    "primary_sources": ["bps.go.id", "disnaker.baliprov.go.id", "peraturan.go.id"]
+  },
+  {
+    "id": "bali-03",
+    "domain": "Bali construction rates",
+    "time_sensitive": true,
+    "question": "What building permit steps (PBG, SLF), zoning limits (KDB, KLB) and coastal setback rules apply to building a villa in Badung, Bali, and what ownership structure can a foreigner use?",
+    "must_cover": ["PBG and SLF process", "typical KDB and KLB and where they are set", "coastal or river setback rules", "ownership structures available to foreigners and their legal basis"],
+    "primary_sources": ["peraturan.go.id", "pu.go.id", "badungkab.go.id", "atrbpn.go.id"]
+  },
+  {
+    "id": "settle-01",
+    "domain": "Settlement math",
+    "time_sensitive": false,
+    "question": "Four partners are winding down a joint venture. Partner A paid IDR 400 million capital and IDR 50 million of expenses, B paid IDR 300 million and IDR 120 million, C paid IDR 200 million and IDR 0, D paid IDR 100 million and IDR 30 million. Agreed profit shares are 40, 30, 20 and 10 percent. The venture ends with IDR 620 million cash and IDR 80 million of unpaid supplier bills. Compute what each partner receives or owes after netting, show the formulas, and verify that totals reconcile.",
+    "must_cover": ["net position per partner computed with code or explicit arithmetic", "handling of unpaid supplier bills", "reconciliation check that total paid out equals total available", "stated assumptions where the brief is ambiguous"],
+    "primary_sources": []
+  },
+  {
+    "id": "settle-02",
+    "domain": "Settlement math",
+    "time_sensitive": true,
+    "question": "Under Indonesian law, how are capital contributions and liabilities settled when a Persekutuan Perdata, a CV or a PT is dissolved, and in what order are creditors and partners or shareholders paid?",
+    "must_cover": ["applicable statutes for each entity type with article references", "order of settlement", "liquidator role", "differences between the three entity types"],
+    "primary_sources": ["peraturan.go.id", "jdih.kemenkumham.go.id", "peraturan.bpk.go.id"]
+  },
+  {
+    "id": "family-01",
+    "domain": "Family law",
+    "time_sensitive": true,
+    "question": "What does Indonesian law say about a child's right to adequate nutrition and financial support (nafkah anak) from parents, including after divorce? Cite the statutes and the Compilation of Islamic Law where relevant.",
+    "must_cover": ["Child Protection Law provisions", "Marriage Law provisions on parental obligations", "Kompilasi Hukum Islam provisions where applicable", "how courts decide amounts"],
+    "primary_sources": ["peraturan.go.id", "peraturan.bpk.go.id", "mahkamahagung.go.id", "putusan3.mahkamahagung.go.id"]
+  },
+  {
+    "id": "family-02",
+    "domain": "Family law",
+    "time_sensitive": true,
+    "question": "How is child support enforced in Indonesia after divorce through Pengadilan Agama or Pengadilan Negeri, and what remedies exist if a parent stops paying?",
+    "must_cover": ["execution procedure", "available remedies", "difference between the two court tracks", "known practical obstacles"],
+    "primary_sources": ["mahkamahagung.go.id", "peraturan.go.id", "putusan3.mahkamahagung.go.id"]
+  },
+  {
+    "id": "family-03",
+    "domain": "Family law",
+    "time_sensitive": true,
+    "question": "What is the legal basis, budget and targeting of the Indonesian government's free nutritious meal programme and stunting reduction programmes as of today?",
+    "must_cover": ["legal basis such as presidential or ministerial regulation", "budget with year", "target groups", "implementing agency and current status"],
+    "primary_sources": ["peraturan.go.id", "kemenkeu.go.id", "bappenas.go.id", "kemenkes.go.id"]
+  },
+  {
+    "id": "village-01",
+    "domain": "Off-grid village solar",
+    "time_sensitive": true,
+    "question": "What government programmes and regulations support off-grid or mini-grid solar electrification of Indonesian villages, and who is eligible?",
+    "must_cover": ["main programmes and responsible agencies", "eligibility criteria", "current status or budget where published", "relationship with PLN service areas"],
+    "primary_sources": ["esdm.go.id", "peraturan.go.id", "pln.co.id", "kemendesa.go.id"]
+  },
+  {
+    "id": "village-02",
+    "domain": "Off-grid village solar",
+    "time_sensitive": true,
+    "question": "What are realistic capital cost per household, cost per kWp and levelised cost of electricity for off-grid solar with batteries in eastern Indonesia, and what battery replacement assumptions are standard?",
+    "must_cover": ["cost ranges with year and source", "LCOE range and method", "battery chemistry and replacement cycle assumptions", "logistics premium for remote islands"],
+    "primary_sources": ["irena.org", "esdm.go.id", "adb.org", "worldbank.org"]
+  },
+  {
+    "id": "village-03",
+    "domain": "Off-grid village solar",
+    "time_sensitive": true,
+    "question": "Can Dana Desa be used to fund a village solar mini-grid, under which regulation, and how would a BUMDes procure and operate it?",
+    "must_cover": ["the current regulation on Dana Desa priority use", "whether energy infrastructure is permitted", "BUMDes role and procurement path", "limits and audit risks"],
+    "primary_sources": ["kemendesa.go.id", "kemenkeu.go.id", "peraturan.go.id"]
+  },
+  {
+    "id": "village-04",
+    "domain": "Off-grid village solar",
+    "time_sensitive": true,
+    "question": "Compare business models for village solar in Indonesia: BUMDes owned, PLN operated, and private IPP with a village tariff. Include subsidy mechanisms and documented project examples.",
+    "must_cover": ["three models compared on ownership, tariff, subsidy and risk", "named documented project examples with sources", "tariff level evidence", "which model the sources favour and why"],
+    "primary_sources": ["esdm.go.id", "irena.org", "adb.org", "worldbank.org", "kemendesa.go.id"]
+  }
+]

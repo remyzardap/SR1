@@ -9,7 +9,12 @@ export interface QuotaResult {
   allowed: boolean; remaining: number; limit: number; resetAt: Date; reason?: string;
 }
 
+function isUnlimitedUser(userId: number): boolean {
+  return (process.env.KEMMA_UNLIMITED_USER_IDS ?? "").split(",").some((v) => Number(v.trim()) === userId);
+}
+
 export async function checkQuota(userId: number, action: QuotaAction, amount = 1): Promise<QuotaResult> {
+  if (isUnlimitedUser(userId)) return { allowed: true, remaining: 999999, limit: 999999, resetAt: new Date() };
   const db = await getDb();
   if (!db) return { allowed: true, remaining: 999, limit: 999, resetAt: new Date() };
   let quota = await getOrCreateQuota(userId);
