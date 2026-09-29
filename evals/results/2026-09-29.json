@@ -1,0 +1,837 @@
+{
+  "summary": {
+    "date": "2026-09-29",
+    "questions": 20,
+    "succeeded": 20,
+    "failed": 0,
+    "avg": {
+      "overall": 73,
+      "citation_validity": 84,
+      "claim_coverage": 73,
+      "recency": 75,
+      "contradictions": 64,
+      "formatting": 67,
+      "urlOkPct": 90,
+      "primarySourcePct": 18
+    },
+    "writerModels": [
+      "qwen3.8-max (qwen)",
+      "sub-agent synthesis"
+    ],
+    "judgeModel": "gemini-3.8-flash"
+  },
+  "results": [
+    {
+      "id": "solar-01",
+      "domain": "C&I solar PPA",
+      "ok": true,
+      "durationSec": 164,
+      "writerModels": [
+        "qwen3.8-max (qwen)"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 15,
+      "urlsChecked": 15,
+      "urlOkPct": 100,
+      "primarySourcePct": 33,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 0,
+      "scores": {
+        "citation_validity": 100,
+        "claim_coverage": 100,
+        "recency": 100,
+        "contradictions": 80,
+        "formatting": 80,
+        "overall": 92
+      },
+      "judge": {
+        "citation_support": 5,
+        "claim_coverage": 5,
+        "recency": 5,
+        "contradictions": 4,
+        "formatting": 3,
+        "covered": [
+          "governing ministerial regulation and its amendments",
+          "capacity limit relative to PLN connected power",
+          "export and import energy treatment",
+          "required permits and who issues them"
+        ],
+        "missing": [],
+        "notes": "The answer provides exceptional, highly accurate legal coverage supported by primary regulatory texts. Points were deducted in formatting for using dash punctuation and missing dates on several listed sources."
+      }
+    },
+    {
+      "id": "solar-02",
+      "domain": "C&I solar PPA",
+      "ok": true,
+      "durationSec": 176,
+      "writerModels": [
+        "qwen3.8-max (qwen)"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 5,
+      "urlsChecked": 5,
+      "urlOkPct": 100,
+      "primarySourcePct": 40,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 0,
+      "scores": {
+        "citation_validity": 70,
+        "claim_coverage": 20,
+        "recency": 40,
+        "contradictions": 20,
+        "formatting": 60,
+        "overall": 42
+      },
+      "judge": {
+        "citation_support": 2,
+        "claim_coverage": 1,
+        "recency": 2,
+        "contradictions": 1,
+        "formatting": 1,
+        "covered": [
+          "how a PPA discount is usually structured against the PLN tariff"
+        ],
+        "missing": [
+          "tariff class names for business and industry",
+          "current rates with the effective date",
+          "the date of the source"
+        ],
+        "notes": "The response is abruptly truncated mid-sentence and fails to list the specific business/industrial tariff classes or any per-kWh electricity rates. It only briefly addresses the PPA discount positioning before cutting off completely."
+      }
+    },
+    {
+      "id": "solar-03",
+      "domain": "C&I solar PPA",
+      "ok": true,
+      "durationSec": 329,
+      "writerModels": [
+        "sub-agent synthesis"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 22,
+      "urlsChecked": 24,
+      "urlOkPct": 79,
+      "primarySourcePct": 5,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 1,
+      "scores": {
+        "citation_validity": 60,
+        "claim_coverage": 80,
+        "recency": 60,
+        "contradictions": 60,
+        "formatting": 65,
+        "overall": 65
+      },
+      "judge": {
+        "citation_support": 2,
+        "claim_coverage": 4,
+        "recency": 3,
+        "contradictions": 3,
+        "formatting": 2,
+        "covered": [
+          "electricity business licensing requirement (izin usaha penyediaan tenaga listrik) and any exemptions",
+          "lease versus PPA legal distinction",
+          "role of PLN and the interconnection agreement",
+          "risks the analysis flags as unresolved"
+        ],
+        "missing": [],
+        "notes": "Citations are severely mismatched, attributing MEMR Reg 2/2024 rules to 2009 statutes and court cases. Formatting failed the strict ban on dash punctuation and omitted dates on multiple cited sources."
+      }
+    },
+    {
+      "id": "solar-04",
+      "domain": "C&I solar PPA",
+      "ok": true,
+      "durationSec": 234,
+      "writerModels": [
+        "sub-agent synthesis"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 55,
+      "urlsChecked": 40,
+      "urlOkPct": 90,
+      "primarySourcePct": 7,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 15,
+      "scores": {
+        "citation_validity": 85,
+        "claim_coverage": 100,
+        "recency": 100,
+        "contradictions": 80,
+        "formatting": 65,
+        "overall": 86
+      },
+      "judge": {
+        "citation_support": 4,
+        "claim_coverage": 5,
+        "recency": 5,
+        "contradictions": 4,
+        "formatting": 4,
+        "covered": [
+          "cost range in IDR or USD per kWp with the year",
+          "trend direction and drivers",
+          "TKDN rule for modules and its status",
+          "distinction between quotes and published benchmarks"
+        ],
+        "missing": [],
+        "notes": "The response covers all required topics in thorough detail with accurate references to 2024–2026 regulations and pricing dynamics. It loses a formatting mark for using en-dashes and em-dashes throughout despite the prompt instruction to avoid dash punctuation."
+      }
+    },
+    {
+      "id": "solar-05",
+      "domain": "C&I solar PPA",
+      "ok": true,
+      "durationSec": 176,
+      "writerModels": [
+        "qwen3.8-max (qwen)"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 23,
+      "urlsChecked": 23,
+      "urlOkPct": 83,
+      "primarySourcePct": 13,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 0,
+      "scores": {
+        "citation_validity": 81,
+        "claim_coverage": 80,
+        "recency": 80,
+        "contradictions": 80,
+        "formatting": 80,
+        "overall": 80
+      },
+      "judge": {
+        "citation_support": 4,
+        "claim_coverage": 4,
+        "recency": 4,
+        "contradictions": 4,
+        "formatting": 3,
+        "covered": [
+          "import duty and VAT position for modules and inverters",
+          "tax holiday or allowance schemes and eligibility",
+          "the regulation each point comes from",
+          "what changed recently"
+        ],
+        "missing": [],
+        "notes": "The response cuts off mid-sentence under the VAT section, which damages formatting and completeness. However, the existing content thoroughly details the regulations, import duties, VAT rules, CIT incentives, and recent TKDN changes with solid citations."
+      }
+    },
+    {
+      "id": "pln-01",
+      "domain": "PLN rooftop rules",
+      "ok": true,
+      "durationSec": 159,
+      "writerModels": [
+        "qwen3.8-max (qwen)"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 17,
+      "urlsChecked": 17,
+      "urlOkPct": 82,
+      "primarySourcePct": 41,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 1,
+      "scores": {
+        "citation_validity": 91,
+        "claim_coverage": 100,
+        "recency": 100,
+        "contradictions": 80,
+        "formatting": 85,
+        "overall": 91
+      },
+      "judge": {
+        "citation_support": 5,
+        "claim_coverage": 5,
+        "recency": 5,
+        "contradictions": 4,
+        "formatting": 4,
+        "covered": [
+          "ordered list of steps",
+          "documents required",
+          "typical durations and which are official versus anecdotal",
+          "who performs SLO inspection"
+        ],
+        "missing": [],
+        "notes": "The response is comprehensive, highly accurate under Permen ESDM 2/2024, and clearly distinguishes statutory deadlines from practical timelines. Formatting loses a point because several source entries omit publication dates."
+      }
+    },
+    {
+      "id": "pln-02",
+      "domain": "PLN rooftop rules",
+      "ok": true,
+      "durationSec": 145,
+      "writerModels": [
+        "qwen3.8-max (qwen)"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 26,
+      "urlsChecked": 26,
+      "urlOkPct": 100,
+      "primarySourcePct": 23,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 0,
+      "scores": {
+        "citation_validity": 90,
+        "claim_coverage": 60,
+        "recency": 80,
+        "contradictions": 40,
+        "formatting": 70,
+        "overall": 68
+      },
+      "judge": {
+        "citation_support": 4,
+        "claim_coverage": 3,
+        "recency": 4,
+        "contradictions": 2,
+        "formatting": 2,
+        "covered": [
+          "dated list of regulations",
+          "what each changed",
+          "revocation status of earlier rules"
+        ],
+        "missing": [
+          "practical effect on a new C&I project"
+        ],
+        "notes": "The response omits a dedicated analysis of the practical effect on a new C&I project, though it touches on industrial charges in passing. It contains formatting violations including hyphens, dashes, a truncated citation at the end, and no mention of source consensus or contradictions."
+      }
+    },
+    {
+      "id": "pln-03",
+      "domain": "PLN rooftop rules",
+      "ok": true,
+      "durationSec": 245,
+      "writerModels": [
+        "sub-agent synthesis"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 28,
+      "urlsChecked": 28,
+      "urlOkPct": 96,
+      "primarySourcePct": 11,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 6,
+      "scores": {
+        "citation_validity": 98,
+        "claim_coverage": 80,
+        "recency": 60,
+        "contradictions": 60,
+        "formatting": 45,
+        "overall": 69
+      },
+      "judge": {
+        "citation_support": 5,
+        "claim_coverage": 4,
+        "recency": 3,
+        "contradictions": 3,
+        "formatting": 2,
+        "covered": [
+          "existence and current status of any quota",
+          "treatment of non-exporting systems",
+          "who decides allocation"
+        ],
+        "missing": [
+          "how recent the sources are"
+        ],
+        "notes": "The answer provides accurate, well-cited legal details on MEMR 2/2024, but it fails to evaluate source recency as required by the prompt. It also violates the formatting rule against dash punctuation by repeatedly using em dashes."
+      }
+    },
+    {
+      "id": "bali-01",
+      "domain": "Bali construction rates",
+      "ok": true,
+      "durationSec": 272,
+      "writerModels": [
+        "sub-agent synthesis"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 26,
+      "urlsChecked": 26,
+      "urlOkPct": 85,
+      "primarySourcePct": 4,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 11,
+      "scores": {
+        "citation_validity": 82,
+        "claim_coverage": 60,
+        "recency": 80,
+        "contradictions": 60,
+        "formatting": 65,
+        "overall": 69
+      },
+      "judge": {
+        "citation_support": 4,
+        "claim_coverage": 3,
+        "recency": 4,
+        "contradictions": 3,
+        "formatting": 4,
+        "covered": [
+          "IDR per m2 ranges with year and source type",
+          "steel frame versus concrete comparison",
+          "what is usually excluded (land, permits, furniture, landscaping)"
+        ],
+        "missing": [
+          "warning where sources are contractor marketing"
+        ],
+        "notes": "The response fails to explicitly warn the user that many quoted figures stem from contractor marketing websites rather than independent quantity surveying benchmarks. It also uses banned dash/hyphen punctuation in several places."
+      }
+    },
+    {
+      "id": "bali-02",
+      "domain": "Bali construction rates",
+      "ok": true,
+      "durationSec": 88,
+      "writerModels": [
+        "qwen3.8-max (qwen)"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 24,
+      "urlsChecked": 24,
+      "urlOkPct": 88,
+      "primarySourcePct": 0,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 0,
+      "scores": {
+        "citation_validity": 94,
+        "claim_coverage": 80,
+        "recency": 100,
+        "contradictions": 100,
+        "formatting": 100,
+        "overall": 95
+      },
+      "judge": {
+        "citation_support": 5,
+        "claim_coverage": 4,
+        "recency": 5,
+        "contradictions": 5,
+        "formatting": 5,
+        "covered": [
+          "official UMK figures with year",
+          "typical tukang and labourer day rates with source type",
+          "date of each figure"
+        ],
+        "missing": [
+          "difference between official minimum and market rate"
+        ],
+        "notes": "The answer is exceptionally timely and meticulously cited, including up-to-date September 2026 UMK determinations. It only misses an explicit mathematical or qualitative comparison contrasting the prorated daily UMK against informal construction day rates."
+      }
+    },
+    {
+      "id": "bali-03",
+      "domain": "Bali construction rates",
+      "ok": true,
+      "durationSec": 248,
+      "writerModels": [
+        "sub-agent synthesis"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 44,
+      "urlsChecked": 40,
+      "urlOkPct": 83,
+      "primarySourcePct": 27,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 9,
+      "scores": {
+        "citation_validity": 91,
+        "claim_coverage": 100,
+        "recency": 80,
+        "contradictions": 80,
+        "formatting": 65,
+        "overall": 83
+      },
+      "judge": {
+        "citation_support": 5,
+        "claim_coverage": 5,
+        "recency": 4,
+        "contradictions": 4,
+        "formatting": 4,
+        "covered": [
+          "PBG and SLF process",
+          "typical KDB and KLB and where they are set",
+          "coastal or river setback rules",
+          "ownership structures available to foreigners and their legal basis"
+        ],
+        "missing": [],
+        "notes": "The response covers all required topics comprehensively with detailed local regulatory citations and technical steps. Minor formatting penalty for using em-dashes and dash punctuation despite the negative constraint."
+      }
+    },
+    {
+      "id": "settle-01",
+      "domain": "Settlement math",
+      "ok": true,
+      "durationSec": 56,
+      "writerModels": [
+        "sub-agent synthesis"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 5,
+      "urlsChecked": 5,
+      "urlOkPct": 100,
+      "primarySourcePct": 0,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 0,
+      "scores": {
+        "citation_validity": 90,
+        "claim_coverage": 80,
+        "recency": 80,
+        "contradictions": 60,
+        "formatting": 80,
+        "overall": 78
+      },
+      "judge": {
+        "citation_support": 4,
+        "claim_coverage": 4,
+        "recency": 4,
+        "contradictions": 3,
+        "formatting": 3,
+        "covered": [
+          "net position per partner computed with code or explicit arithmetic",
+          "handling of unpaid supplier bills",
+          "reconciliation check that total paid out equals total available"
+        ],
+        "missing": [
+          "stated assumptions where the brief is ambiguous"
+        ],
+        "notes": "The mathematical computations and reconciliation are flawless and well structured. However, it does not explicitly state or explore alternative assumptions regarding ambiguity (e.g., whether expenses were already accounted for), and several entries in the source list omit publication dates."
+      }
+    },
+    {
+      "id": "settle-02",
+      "domain": "Settlement math",
+      "ok": true,
+      "durationSec": 91,
+      "writerModels": [
+        "qwen3.8-max (qwen)"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 12,
+      "urlsChecked": 12,
+      "urlOkPct": 92,
+      "primarySourcePct": 0,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 0,
+      "scores": {
+        "citation_validity": 76,
+        "claim_coverage": 20,
+        "recency": 40,
+        "contradictions": 40,
+        "formatting": 70,
+        "overall": 49
+      },
+      "judge": {
+        "citation_support": 3,
+        "claim_coverage": 1,
+        "recency": 2,
+        "contradictions": 2,
+        "formatting": 2,
+        "covered": [
+          "applicable statutes for Persekutuan Perdata with article references"
+        ],
+        "missing": [
+          "applicable statutes and articles for CV (KUHD) and PT (UU 40/2007)",
+          "detailed order of settlement among creditor classes and equity holders",
+          "role and obligations of liquidators",
+          "comprehensive differences between the three entity types"
+        ],
+        "notes": "The answer cuts off prematurely after briefly discussing Persekutuan Perdata, entirely omitting CV and PT. Consequently, it fails almost all required topics including liquidator roles and comparative distinctions."
+      }
+    },
+    {
+      "id": "family-01",
+      "domain": "Family law",
+      "ok": true,
+      "durationSec": 179,
+      "writerModels": [
+        "qwen3.8-max (qwen)"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 34,
+      "urlsChecked": 34,
+      "urlOkPct": 94,
+      "primarySourcePct": 24,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 3,
+      "scores": {
+        "citation_validity": 87,
+        "claim_coverage": 100,
+        "recency": 80,
+        "contradictions": 80,
+        "formatting": 55,
+        "overall": 80
+      },
+      "judge": {
+        "citation_support": 4,
+        "claim_coverage": 5,
+        "recency": 4,
+        "contradictions": 4,
+        "formatting": 2,
+        "covered": [
+          "Child Protection Law provisions",
+          "Marriage Law provisions on parental obligations",
+          "Kompilasi Hukum Islam provisions where applicable",
+          "how courts decide amounts"
+        ],
+        "missing": [],
+        "notes": "The answer thoroughly covers all required statutory and Islamic legal provisions alongside court determination standards. However, formatting suffers because the text abruptly truncates mid-sentence at the end, relies on dash punctuation and bullet dashes, and omits dates for several sources."
+      }
+    },
+    {
+      "id": "family-02",
+      "domain": "Family law",
+      "ok": true,
+      "durationSec": 165,
+      "writerModels": [
+        "qwen3.8-max (qwen)"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 31,
+      "urlsChecked": 32,
+      "urlOkPct": 78,
+      "primarySourcePct": 19,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 0,
+      "scores": {
+        "citation_validity": 79,
+        "claim_coverage": 60,
+        "recency": 80,
+        "contradictions": 80,
+        "formatting": 70,
+        "overall": 74
+      },
+      "judge": {
+        "citation_support": 4,
+        "claim_coverage": 3,
+        "recency": 4,
+        "contradictions": 4,
+        "formatting": 2,
+        "covered": [
+          "execution procedure",
+          "available remedies",
+          "difference between the two court tracks"
+        ],
+        "missing": [
+          "known practical obstacles"
+        ],
+        "notes": "The response abruptly cuts off mid-sentence under 'Practical Implementation Challenges' without detailing any practical obstacles. While legal citations and recent case law are thoroughly documented, the truncation severely harms coverage and formatting."
+      }
+    },
+    {
+      "id": "family-03",
+      "domain": "Family law",
+      "ok": true,
+      "durationSec": 168,
+      "writerModels": [
+        "qwen3.8-max (qwen)"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 46,
+      "urlsChecked": 40,
+      "urlOkPct": 93,
+      "primarySourcePct": 7,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 0,
+      "scores": {
+        "citation_validity": 86,
+        "claim_coverage": 100,
+        "recency": 80,
+        "contradictions": 80,
+        "formatting": 70,
+        "overall": 83
+      },
+      "judge": {
+        "citation_support": 4,
+        "claim_coverage": 5,
+        "recency": 4,
+        "contradictions": 4,
+        "formatting": 2,
+        "covered": [
+          "legal basis such as presidential or ministerial regulation",
+          "budget with year",
+          "target groups",
+          "implementing agency and current status"
+        ],
+        "missing": [],
+        "notes": "The answer provides exhaustive detail and solid citation backing across all required topics. However, it abruptly cuts off mid-sentence at the very end and repeatedly uses dash punctuation and markdown divider dashes."
+      }
+    },
+    {
+      "id": "village-01",
+      "domain": "Off-grid village solar",
+      "ok": true,
+      "durationSec": 238,
+      "writerModels": [
+        "qwen3.8-max (qwen)"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 37,
+      "urlsChecked": 37,
+      "urlOkPct": 92,
+      "primarySourcePct": 46,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 2,
+      "scores": {
+        "citation_validity": 86,
+        "claim_coverage": 80,
+        "recency": 80,
+        "contradictions": 60,
+        "formatting": 60,
+        "overall": 73
+      },
+      "judge": {
+        "citation_support": 4,
+        "claim_coverage": 4,
+        "recency": 4,
+        "contradictions": 3,
+        "formatting": 2,
+        "covered": [
+          "main programmes and responsible agencies",
+          "eligibility criteria",
+          "current status or budget where published",
+          "relationship with PLN service areas"
+        ],
+        "missing": [],
+        "notes": "The answer cuts off abruptly after the Dedieselisasi section heading before completing its content. Furthermore, it extensively uses forbidden em/en dashes and hyphens throughout."
+      }
+    },
+    {
+      "id": "village-02",
+      "domain": "Off-grid village solar",
+      "ok": true,
+      "durationSec": 125,
+      "writerModels": [
+        "qwen3.8-max (qwen)"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 29,
+      "urlsChecked": 31,
+      "urlOkPct": 90,
+      "primarySourcePct": 7,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 2,
+      "scores": {
+        "citation_validity": 85,
+        "claim_coverage": 60,
+        "recency": 60,
+        "contradictions": 60,
+        "formatting": 60,
+        "overall": 65
+      },
+      "judge": {
+        "citation_support": 4,
+        "claim_coverage": 3,
+        "recency": 3,
+        "contradictions": 3,
+        "formatting": 2,
+        "covered": [
+          "cost ranges with year and source",
+          "battery chemistry and replacement cycle assumptions",
+          "logistics premium for remote islands"
+        ],
+        "missing": [
+          "LCOE range and method"
+        ],
+        "notes": "The answer cuts off abruptly mid-sentence at the end of section 4 and fails to explain the specific LCOE calculation methodology or discount rate assumptions. It also uses prohibited dash punctuation and blends decade-old World Bank figures without flagging their age."
+      }
+    },
+    {
+      "id": "village-03",
+      "domain": "Off-grid village solar",
+      "ok": true,
+      "durationSec": 130,
+      "writerModels": [
+        "qwen3.8-max (qwen)"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 28,
+      "urlsChecked": 28,
+      "urlOkPct": 86,
+      "primarySourcePct": 25,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 4,
+      "scores": {
+        "citation_validity": 83,
+        "claim_coverage": 60,
+        "recency": 80,
+        "contradictions": 60,
+        "formatting": 50,
+        "overall": 67
+      },
+      "judge": {
+        "citation_support": 4,
+        "claim_coverage": 3,
+        "recency": 4,
+        "contradictions": 3,
+        "formatting": 2,
+        "covered": [
+          "the current regulation on Dana Desa priority use",
+          "whether energy infrastructure is permitted",
+          "BUMDes role and procurement path"
+        ],
+        "missing": [
+          "limits and audit risks"
+        ],
+        "notes": "The response cuts off mid-sentence at the end, completely missing the required coverage of limits and audit risks. Formatting is heavily penalized due to truncation, and dash punctuation rules were not observed."
+      }
+    },
+    {
+      "id": "village-04",
+      "domain": "Off-grid village solar",
+      "ok": true,
+      "durationSec": 186,
+      "writerModels": [
+        "sub-agent synthesis"
+      ],
+      "judgeModel": "gemini-3.8-flash",
+      "sourceCount": 45,
+      "urlsChecked": 40,
+      "urlOkPct": 88,
+      "primarySourcePct": 18,
+      "danglingCitations": 0,
+      "emojiCount": 0,
+      "dashCount": 4,
+      "scores": {
+        "citation_validity": 74,
+        "claim_coverage": 40,
+        "recency": 40,
+        "contradictions": 20,
+        "formatting": 50,
+        "overall": 45
+      },
+      "judge": {
+        "citation_support": 3,
+        "claim_coverage": 2,
+        "recency": 2,
+        "contradictions": 1,
+        "formatting": 2,
+        "covered": [
+          "three models compared on ownership, tariff, subsidy and risk",
+          "named documented project examples with sources"
+        ],
+        "missing": [
+          "tariff level evidence",
+          "which model the sources favour and why"
+        ],
+        "notes": "The answer cuts off mid-sentence under the private model, entirely omitting which model sources favor and specific numerical tariff levels. It also violates formatting constraints by using dash punctuation and fails to flag dated regulations or evaluate source disagreements."
+      }
+    }
+  ]
+}

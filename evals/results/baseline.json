@@ -1,0 +1,21 @@
+{
+  "date": "2026-09-29",
+  "questions": 20,
+  "succeeded": 20,
+  "failed": 0,
+  "avg": {
+    "overall": 73,
+    "citation_validity": 84,
+    "claim_coverage": 73,
+    "recency": 75,
+    "contradictions": 64,
+    "formatting": 67,
+    "urlOkPct": 90,
+    "primarySourcePct": 18
+  },
+  "writerModels": [
+    "qwen3.8-max (qwen)",
+    "sub-agent synthesis"
+  ],
+  "judgeModel": "gemini-3.8-flash"
+}
