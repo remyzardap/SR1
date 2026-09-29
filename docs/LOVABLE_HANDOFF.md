@@ -14,6 +14,22 @@ Lovable owns UI. Claude Code owns backend, build, deploy and the VPS. Both read 
 - Icons: match Sutaeru's organic look. No sparkle, wand, brain or robot icons.
 - Every push to `main` auto-deploys to the VPS (brief downtime). Keep pushes meaningful; docs-only commits should include `[skip ci]`.
 
+## Shared workspace and sync
+
+`/opt/sutaeru-lovable` on the VPS is the shared workspace. Lovable edits there; Claude Code works in `/root/sr1` (git). `scripts/lovable-sync.sh` moves code between them:
+
+- `status`: what differs, split by owner.
+- `to-lovable [--client]`: repo to workspace. Backend, docs and config always; `client/` only with `--client`.
+- `from-lovable`: workspace to repo. `client/`, `package.json`, `package-lock.json` and this doc. Must be run on a branch, never on `main`.
+
+Ownership: Lovable owns `client/`. Claude Code owns everything else. Secrets and `.env` never travel (only git-tracked files go to the workspace).
+
+Two directions, same loop:
+1. Lovable builds a feature (UI or add-on): Claude Code runs `from-lovable`, builds, wires or adds any backend it needs, commits, then `to-lovable` so the workspace is current.
+2. Claude Code builds a backend feature: `to-lovable`, then Lovable wires it into `client/` and logs it below. Claude Code then runs `from-lovable`, builds, commits.
+3. Whoever needs something from the other writes it under the "Requests" headings above. Never edit the other side's files directly.
+4. Merging to `main` (which deploys) is Claude Code's step and needs Remy's go-ahead.
+
 ## Requests for Lovable (Claude Code writes here)
 
 - Restyle `client/src/components/AgentSkillsPanel.tsx` (owner-only panel on the Skills page: list of skill folders with Review, Turn on/off, and a report). Functional and unstyled beyond existing tokens; keep the tRPC calls (`kemma.agentSkills`, `kemma.reviewAgentSkill`, `kemma.setAgentSkillEnabled`) as they are. No sparkle/wand/brain/robot icons.
