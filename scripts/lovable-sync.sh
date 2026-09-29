@@ -29,7 +29,7 @@ case "$cmd" in
     echo "Lovable-owned (client, package files, handoff doc):"
     for p in "${LOVABLE_PATHS[@]}"; do
       if differs "$p"; then
-        echo "  DIFFERS  $p"; diff -rq -x node_modules -x dist "$REPO/$p" "$WS/$p" 2>&1 | sed 's/^/           /' | head -8
+        echo "  DIFFERS  $p"; { diff -rq -x node_modules -x dist "$REPO/$p" "$WS/$p" 2>&1 || true; } | sed 's/^/           /' | sed -n '1,8p'
       else echo "  same     $p"; fi
     done
     echo "Claude-owned (everything else, tracked files only):"

@@ -14,16 +14,19 @@ interface Props {
 }
 
 type Status = "idle" | "loading" | "done" | "error";
-export type InsightFocus = "decisions" | "gaps";
+export type InsightFocus = "decisions" | "gaps" | "brief" | "followups";
 
 const FOCUS = {
   decisions: { title: "Decisions & next steps", file: "decisions-and-next-steps.md", desc: "what was decided and what needs doing" },
   gaps: { title: "Open questions & missing info", file: "open-questions.md", desc: "unanswered questions and information still missing" },
+  brief: { title: "Executive brief", file: "executive-brief.md", desc: "a short brief tailored to your audience" },
+  followups: { title: "Ask next", file: "follow-up-questions.md", desc: "the sharpest questions to ask next, and where to dig deeper" },
 } as const;
 
 export function ChatInsightsDialog({ open, onOpenChange, initialConversation, initialFocus = "decisions" }: Props) {
   const [focus, setFocus] = useState<InsightFocus>(initialFocus);
   const [conversation, setConversation] = useState("");
+  const [audience, setAudience] = useState("");
   const [result, setResult] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<{ message: string; retryable: boolean } | null>(null);
@@ -48,6 +51,11 @@ export function ChatInsightsDialog({ open, onOpenChange, initialConversation, in
       setStatus("error");
       return;
     }
+    if (focus === "brief" && audience.trim().length < 2) {
+      setError({ message: "Describe who the brief is for, e.g. \"Board of directors\".", retryable: false });
+      setStatus("error");
+      return;
+    }
     const token = getAuthToken();
     if (!token) {
       setError({ message: "Sign in to your Sutaeru account to use this.", retryable: false });
@@ -64,7 +72,7 @@ export function ChatInsightsDialog({ open, onOpenChange, initialConversation, in
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-insights`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ conversation: text, focus }),
+        body: JSON.stringify(focus === "brief" ? { conversation: text, focus, audience: audience.trim() } : { conversation: text, focus }),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {
@@ -119,12 +127,12 @@ export function ChatInsightsDialog({ open, onOpenChange, initialConversation, in
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] w-[min(720px,calc(100vw-1.5rem))] max-w-none overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">{focus === "gaps" ? <HelpCircle className="h-5 w-5" /> : <ListChecks className="h-5 w-5" />} {FOCUS[focus].title}</DialogTitle>
-          <DialogDescription>Use this chat or paste any conversation. Kemma finds {FOCUS[focus].desc}.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2">{focus === "gaps" || focus === "followups" ? <HelpCircle className="h-5 w-5" /> : <ListChecks className="h-5 w-5" />} {FOCUS[focus].title}</DialogTitle>
+          <DialogDescription>{focus === "brief" ? "Use this chat or paste a research report. Kemma writes a short brief for your audience, using only the report." : <>Use this chat or paste any conversation. Kemma finds {FOCUS[focus].desc}.</>}</DialogDescription>
         </DialogHeader>
 
-        <div role="tablist" aria-label="Analysis type" className="grid grid-cols-2 gap-1 rounded-full border border-border p-1">
-          {(["decisions", "gaps"] as const).map((key) => (
+        <div role="tablist" aria-label="Analysis type" className="grid grid-cols-2 gap-1 rounded-2xl border border-border p-1 sm:grid-cols-4 sm:rounded-full">
+          {(["decisions", "gaps", "followups", "brief"] as const).map((key) => (
             <button
               key={key}
               role="tab"
@@ -133,19 +141,33 @@ export function ChatInsightsDialog({ open, onOpenChange, initialConversation, in
               onClick={() => { setFocus(key); setResult(""); setStatus("idle"); setError(null); }}
               className={`min-h-10 rounded-full px-3 text-xs font-semibold transition-colors ${focus === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
             >
-              {key === "decisions" ? "Decisions & next steps" : "Open questions"}
+              {key === "decisions" ? "Decisions" : key === "gaps" ? "Open questions" : key === "followups" ? "Ask next" : "Executive brief"}
             </button>
           ))}
         </div>
 
-        <label className="text-xs font-medium text-muted-foreground" htmlFor="insights-conversation">Conversation</label>
+        {focus === "brief" && (
+          <>
+            <label className="text-xs font-medium text-muted-foreground" htmlFor="insights-audience">Target audience</label>
+            <input
+              id="insights-audience"
+              value={audience}
+              onChange={(e) => setAudience(e.target.value)}
+              disabled={loading}
+              maxLength={300}
+              placeholder="e.g. Board of directors, non-technical investors"
+              className="min-h-11 w-full rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+            />
+          </>
+        )}
+        <label className="text-xs font-medium text-muted-foreground" htmlFor="insights-conversation">{focus === "brief" ? "Research report" : "Conversation"}</label>
         <textarea
           id="insights-conversation"
           value={conversation}
           onChange={(e) => setConversation(e.target.value)}
           disabled={loading}
           rows={7}
-          placeholder="Paste a conversation here…"
+          placeholder={focus === "brief" ? "Paste a research report here…" : "Paste a conversation here…"}
           className="w-full resize-y rounded-xl border border-input bg-background p-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
         />
 
@@ -154,7 +176,7 @@ export function ChatInsightsDialog({ open, onOpenChange, initialConversation, in
             <Button variant="outline" className="min-h-11" onClick={() => abortRef.current?.abort()}><Square className="mr-2 h-4 w-4" /> Stop</Button>
           ) : (
             <Button className="min-h-11 rounded-full" onClick={() => void run()} disabled={!conversation.trim()}>
-              <ListChecks className="mr-2 h-4 w-4" /> {status === "done" ? "Extract again" : "Extract"}
+              <ListChecks className="mr-2 h-4 w-4" /> {focus === "brief" ? (status === "done" ? "Write again" : "Write brief") : focus === "followups" ? (status === "done" ? "Suggest again" : "Suggest questions") : status === "done" ? "Extract again" : "Extract"}
             </Button>
           )}
           {status === "done" && result && (
@@ -167,7 +189,7 @@ export function ChatInsightsDialog({ open, onOpenChange, initialConversation, in
 
         {loading && !result && (
           <div role="status" className="flex items-center gap-2 rounded-xl border border-border p-4 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" /> Reading the conversation…
+            <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" /> {focus === "brief" ? "Writing the brief…" : focus === "followups" ? "Thinking of what to ask next…" : "Reading the conversation…"}
           </div>
         )}
 

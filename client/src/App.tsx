@@ -18,6 +18,7 @@ import Onboarding from "./pages/Onboarding";
 import Identity from "./pages/Identity";
 import Skills from "./pages/Skills";
 import Memories from "./pages/Memories";
+import Monitors from "./pages/Monitors";
 import Connections from "./pages/Connections";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
@@ -27,22 +28,17 @@ import { IntelligenceProvider } from "./_core/hooks/useSutaeruIntelligence";
 import { exitDesignPreview, isDesignPreview } from "./lib/designPreview";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { SutaeruIcon } from "@/components/SutaeruIcon";
 
 function DesignPreviewBadge() {
   if (!isDesignPreview()) return null;
   return (
-    <button
+    <Button
       data-testid="button-exit-design-preview"
       onClick={() => { exitDesignPreview(); window.location.href = "/login"; }}
-      style={{
-        position: 'fixed', bottom: '14px', left: '14px', zIndex: 9999,
-        padding: '8px 14px', borderRadius: '100px',
-        background: 'var(--btn-fill, #E8500F)', color: 'var(--btn-ink, #050505)',
-        border: 'none', fontFamily: 'var(--font-d)', fontSize: '10px',
-        fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase',
-        cursor: 'pointer', boxShadow: '0 6px 18px rgba(0,0,0,.35)',
-      }}
-    >Design preview · Exit</button>
+      className="sutaeru-preview-exit"
+    ><SutaeruIcon name="close" /> Preview</Button>
   );
 }
 
@@ -160,6 +156,15 @@ function AppRoutes() {
           </DashboardLayout>
         ) : (
           <ProtectedRoute component={Memories} />
+        )}
+      </Route>
+      <Route path="/monitors">
+        {isAuthenticated ? (
+          <DashboardLayout>
+            <Monitors />
+          </DashboardLayout>
+        ) : (
+          <ProtectedRoute component={Monitors} />
         )}
       </Route>
       <Route path="/connections">

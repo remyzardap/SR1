@@ -8,13 +8,13 @@ import { trpc } from "@/lib/trpc";
 
 const SEVERITY_STYLES: Record<string, string> = {
   info: "bg-secondary text-foreground border-border",
-  warn: "bg-secondary text-[#8b6f43] border-border",
+  warn: "bg-secondary text-[var(--state-warning)] border-border",
   error: "bg-destructive/10 text-destructive border-destructive/20",
   critical: "bg-destructive/15 text-destructive border-destructive/30",
 };
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
-  success: <CheckCircle className="h-3.5 w-3.5 text-[#4f6b4f]" />,
+  success: <CheckCircle className="h-3.5 w-3.5 text-[var(--state-success)]" />,
   failure: <XCircle className="h-3.5 w-3.5 text-destructive" />,
 };
 
@@ -65,8 +65,8 @@ export default function AuditLogs() {
           {[
             { label: "Total Events", value: stats.total, icon: <ClipboardList className="h-5 w-5 text-foreground" /> },
             { label: "Failures", value: stats.failures, icon: <XCircle className="h-5 w-5 text-destructive" /> },
-            { label: "Critical", value: stats.critical, icon: <AlertTriangle className="h-5 w-5 text-[#8b6f43]" /> },
-            { label: "Last 24h", value: stats.last24h, icon: <Info className="h-5 w-5 text-[#4f6b4f]" /> },
+            { label: "Critical", value: stats.critical, icon: <AlertTriangle className="h-5 w-5 text-[var(--state-warning)]" /> },
+            { label: "Last 24h", value: stats.last24h, icon: <Info className="h-5 w-5 text-[var(--state-success)]" /> },
           ].map((s) => (
             <Card key={s.label}>
               <CardContent className="p-4 flex items-center gap-3">

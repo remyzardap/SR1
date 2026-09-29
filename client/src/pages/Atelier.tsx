@@ -1,12 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
-import {
-  ArrowUp, Square, Upload, FileText, Download,
-  Palette, Sparkles, ChevronRight, X, BarChart3,
-  Table as TableIcon, BookOpen, Image as ImageIcon,
-  RefreshCw, Check, Pen, LayoutTemplate,
-} from "lucide-react";
+import { ArrowUp, Square, Upload, FileText, Download, Palette, ChevronRight, X, BarChart3, Table as TableIcon, BookOpen, Image as ImageIcon, RefreshCw, Check, Pen, LayoutTemplate } from "lucide-react";
+import { Sparkles } from "@/components/brandIcons";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
@@ -243,7 +239,7 @@ function ReportPreview({ report }: { report: ReportStructure }) {
 
 export default function Atelier() {
   useSeoMeta({ title: "Atelier", path: "/atelier" });
-  const { data: agentCtx } = (trpc as any).agent.context.useQuery();
+  const { data: agentCtx } = trpc.agent.context.useQuery();
 
   // Phase management
   const [phase, setPhase] = useState<Phase>("select");

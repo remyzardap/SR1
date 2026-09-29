@@ -37,10 +37,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
+import { BriefDialog } from "@/components/BriefDialog";
+import { SutaeruIcon } from "@/components/SutaeruIcon";
 type FileRecord = {
   id: number; name: string; format: string; kind: string; originalPrompt: string;
   styleLabel?: string | null; createdAt: Date | string; fileSizeBytes?: number | null;
-  threadId?: string | null; fileUrl: string; trashed?: boolean; spaceId?: string | null;
+  threadId?: string | null; fileUrl: string; trashed?: boolean; spaceId?: number | null;
 };
 
 const FORMAT_ICON: Record<string, React.ElementType> = {
@@ -52,11 +54,8 @@ const FORMAT_ICON: Record<string, React.ElementType> = {
 };
 
 const FORMAT_COLOR: Record<string, string> = {
-  pdf: "bg-red-100 text-red-700",
-  docx: "bg-blue-100 text-blue-700",
-  xlsx: "bg-green-100 text-green-700",
-  pptx: "bg-orange-100 text-orange-700",
-  md: "bg-purple-100 text-purple-700",
+  pdf: "bg-secondary text-foreground", docx: "bg-secondary text-foreground",
+  xlsx: "bg-secondary text-foreground", pptx: "bg-secondary text-foreground", md: "bg-secondary text-foreground",
 };
 
 function formatBytes(bytes: number | null | undefined): string {
@@ -82,6 +81,31 @@ export default function Files() {
     open: false,
     file: null,
   });
+  const [brief, setBrief] = useState<{ open: boolean; document: { filename: string; text?: string; file?: string; mediaType?: string } | null }>({ open: false, document: null });
+
+  async function openAsBrief(file: FileRecord) {
+    try {
+      const res = await fetch(file.fileUrl);
+      if (!res.ok) throw new Error(`Could not load the file (${res.status}).`);
+      const blob = await res.blob();
+      if (blob.size > 15 * 1024 * 1024) throw new Error("Files up to 15 MB are supported.");
+      if (file.format === "md" || blob.type.startsWith("text/")) {
+        const text = await blob.text();
+        setBrief({ open: true, document: { filename: file.name, text } });
+      } else {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error("Could not read the file."));
+          reader.readAsDataURL(blob);
+        });
+        const mediaType = blob.type || (file.format === "docx" ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : "application/pdf");
+        setBrief({ open: true, document: { filename: file.name, file: dataUrl, mediaType } });
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not open the brief.");
+    }
+  }
   const [newName, setNewName] = useState("");
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; file: FileRecord | null }>({
     open: false,
@@ -181,14 +205,14 @@ export default function Files() {
           </p>
         </div>
         <Button onClick={() => navigate("/generate")}>
-          <Plus className="mr-2 h-4 w-4" />
+          <SutaeruIcon name="plus" className="mr-2 h-4 w-4" />
           New File
         </Button>
       </div>
 
       {/* Search */}
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <SutaeruIcon name="search" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -231,7 +255,7 @@ export default function Files() {
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-4 py-24 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <FolderOpen className="h-8 w-8" />
+             <SutaeruIcon name="files" className="h-8 w-8" />
           </div>
           <div>
             <p className="font-medium text-foreground">
@@ -245,7 +269,7 @@ export default function Files() {
           </div>
           {!search && (
             <Button onClick={() => navigate("/generate")}>
-              <Plus className="mr-2 h-4 w-4" />
+               <SutaeruIcon name="plus" className="mr-2 h-4 w-4" />
               Generate a File
             </Button>
           )}
@@ -254,7 +278,7 @@ export default function Files() {
         <div className="space-y-3">
           {filtered.map((file) => {
             const Icon = FORMAT_ICON[file.format] ?? FileText;
-            const colorClass = FORMAT_COLOR[file.format] ?? "bg-gray-100 text-gray-700";
+            const colorClass = FORMAT_COLOR[file.format] ?? "bg-secondary text-foreground";
             return (
               <div
                 key={file.id}
@@ -290,22 +314,22 @@ export default function Files() {
                 {/* Actions */}
                  <div className="flex w-full shrink-0 items-center justify-end gap-1 border-t border-border pt-2 sm:w-auto sm:border-0 sm:pt-0 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
                    <Button size="icon" variant="ghost" aria-label={`Preview ${file.name}`} title="Preview" onClick={() => setPreviewFile(file)}>
-                    <Eye className="h-4 w-4" />
+                     <SutaeruIcon name="review" className="h-4 w-4" />
                   </Button>
                   {file.threadId && (
                      <Button size="icon" variant="ghost" aria-label={`Open chat for ${file.name}`} title="Open chat" onClick={() => navigate(`/chat/${file.threadId}`)}>
-                      <MessageSquare className="h-4 w-4" />
+                       <SutaeruIcon name="ask" className="h-4 w-4" />
                     </Button>
                   )}
                    <Button asChild size="icon" variant="ghost">
                      <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" download aria-label={`Download ${file.name}`} title="Download">
-                      <Download className="h-4 w-4" />
+                       <SutaeruIcon name="download" className="h-4 w-4" />
                     </a>
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                        <Button size="icon" variant="ghost" aria-label={`More actions for ${file.name}`} title="More actions">
-                        <MoreVertical className="h-4 w-4" />
+                         <SutaeruIcon name="more" className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -315,6 +339,12 @@ export default function Files() {
                             <Pencil className="mr-2 h-4 w-4" />
                             Rename
                           </DropdownMenuItem>
+                          {(file.format === "pdf" || file.format === "docx" || file.format === "md") && (
+                            <DropdownMenuItem onClick={() => void openAsBrief(file)}>
+                              <FileText className="mr-2 h-4 w-4" />
+                              Open as brief
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => setMoveDialog({ open: true, file })}>
                             <Folder className="mr-2 h-4 w-4" />
                             Move to Space
@@ -351,6 +381,13 @@ export default function Files() {
           })}
         </div>
       )}
+
+      {/* Document brief */}
+      <BriefDialog
+        open={brief.open}
+        onOpenChange={(open) => setBrief((prev) => ({ ...prev, open }))}
+        initialDocument={brief.document}
+      />
 
       {/* Rename Dialog */}
       <Dialog

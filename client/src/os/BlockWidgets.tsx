@@ -4,11 +4,8 @@
 // ============================================
 
 import { trpc } from '../lib/trpc';
-import {
-  MessageSquare, CheckSquare, Brain, FolderOpen,
-  Compass, Terminal, Users, ArrowUpRight, TrendingUp,
-  Zap,
-} from 'lucide-react';
+import { MessageSquare, CheckSquare, FolderOpen, Compass, Terminal, Users, ArrowUpRight, TrendingUp, Zap } from "lucide-react";
+import { Brain } from "@/components/brandIcons";
 
 // ==============================
 // CHAT — Main card, like MagicDraft "Welcome back" banner
@@ -66,7 +63,7 @@ export function ChatWidget() {
 // TASKS — Debtrix-style stat card with big number + delta
 // ==============================
 export function TasksWidget() {
-  const { data: allTasks = [] } = trpc.tasks.list.useQuery({}, { staleTime: 30_000 });
+  const { data: allTasks = [] } = trpc.tasks.list.useQuery(undefined, { staleTime: 30_000 });
   const open = allTasks.filter((t) => t.status === 'open' || t.status === 'in_progress');
   const doneThisWeek = allTasks.filter((t) => {
     if (t.status !== 'done') return false;

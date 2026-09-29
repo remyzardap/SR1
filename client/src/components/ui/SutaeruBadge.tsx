@@ -64,75 +64,10 @@ export function SutaeruBadge({
   };
 
   const getTypeClasses = (type: BadgeType, variant: BadgeVariant): string => {
-    const typeStyles: Record<BadgeType, Record<BadgeVariant, string>> = {
-      prompt: {
-        default: 'bg-white text-black border-transparent',
-        subtle: 'bg-white/10 text-white border-transparent',
-        outline: 'bg-transparent text-white border-white',
-      },
-      workflow: {
-        default: 'bg-black text-white border border-white',
-        subtle: 'bg-white/5 text-white border-transparent',
-        outline: 'bg-transparent text-white border-white/50',
-      },
-      tool_definition: {
-        default: 'bg-[#222222] text-[#888888] border-transparent',
-        subtle: 'bg-[#1a1a1a] text-[#666666] border-transparent',
-        outline: 'bg-transparent text-[#888888] border-[#444444]',
-      },
-      behavior: {
-        default: 'bg-[#111111] text-[#cccccc] border border-[#444444]',
-        subtle: 'bg-[#0d0d0d] text-[#888888] border-transparent',
-        outline: 'bg-transparent text-[#cccccc] border-[#666666]',
-      },
-      preference: {
-        default: 'bg-[#1a1a1a] text-[#aaaaaa] border border-[#333333]',
-        subtle: 'bg-[#111111] text-[#777777] border-transparent',
-        outline: 'bg-transparent text-[#aaaaaa] border-[#444444]',
-      },
-      fact: {
-        default: 'bg-[#222222] text-[#999999] border-transparent',
-        subtle: 'bg-[#1a1a1a] text-[#666666] border-transparent',
-        outline: 'bg-transparent text-[#999999] border-[#555555]',
-      },
-      project: {
-        default: 'bg-[#0f0f0f] text-[#bbbbbb] border border-[#333333]',
-        subtle: 'bg-[#0a0a0a] text-[#777777] border-transparent',
-        outline: 'bg-transparent text-[#bbbbbb] border-[#444444]',
-      },
-      document: {
-        default: 'bg-[#1a1a1a] text-[#888888] border border-[#2a2a2a]',
-        subtle: 'bg-[#111111] text-[#555555] border-transparent',
-        outline: 'bg-transparent text-[#888888] border-[#444444]',
-      },
-      interaction: {
-        default: 'bg-[#222222] text-[#aaaaaa] border-transparent',
-        subtle: 'bg-[#1a1a1a] text-[#666666] border-transparent',
-        outline: 'bg-transparent text-[#aaaaaa] border-[#555555]',
-      },
-      skill: {
-        default: 'bg-white text-black border-transparent',
-        subtle: 'bg-white/10 text-white border-transparent',
-        outline: 'bg-transparent text-white border-white',
-      },
-      memory: {
-        default: 'bg-[#111111] text-[#cccccc] border border-[#444444]',
-        subtle: 'bg-[#0d0d0d] text-[#888888] border-transparent',
-        outline: 'bg-transparent text-[#cccccc] border-[#666666]',
-      },
-      agent: {
-        default: 'bg-black text-white border border-white',
-        subtle: 'bg-white/5 text-white border-transparent',
-        outline: 'bg-transparent text-white border-white/50',
-      },
-      default: {
-        default: 'bg-[#222222] text-[#cccccc] border-transparent',
-        subtle: 'bg-[#1a1a1a] text-[#888888] border-transparent',
-        outline: 'bg-transparent text-[#cccccc] border-[#444444]',
-      },
-    };
-
-    return typeStyles[type]?.[variant] || typeStyles.default[variant];
+    const isSignal = type === 'prompt' || type === 'skill' || type === 'agent';
+    if (variant === 'outline') return 'bg-transparent text-foreground border-border';
+    if (variant === 'subtle') return 'bg-secondary text-muted-foreground border-transparent';
+    return isSignal ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary text-foreground border-border';
   };
 
   return (
@@ -227,10 +162,10 @@ export function SutaeruStatusBadge({
   className,
 }: SutaeruStatusBadgeProps) {
   const statusDotColors = {
-    active: 'bg-white',
-    inactive: 'bg-[#444444]',
-    pending: 'bg-[#888888] animate-pulse',
-    error: 'bg-[#666666]',
+    active: 'bg-[var(--neon-orange)]',
+    inactive: 'bg-muted-foreground',
+    pending: 'bg-[var(--state-warning)] animate-pulse',
+    error: 'bg-destructive',
   };
 
   const sizeClasses = {
@@ -250,10 +185,10 @@ export function SutaeruStatusBadge({
       className={cn(
         // Base styles
         'inline-flex items-center gap-2',
-        'bg-[#1a1a1a] text-[#aaaaaa]',
+        'bg-secondary text-muted-foreground',
         'font-medium tracking-wide uppercase',
         'rounded-[2px]',
-        'border border-[#333333]',
+        'border border-border',
         
         // Size
         sizeClasses[size],
@@ -308,7 +243,7 @@ export function SutaeruCountBadge({
       className={cn(
         // Base styles
         'inline-flex items-center justify-center',
-        'bg-white text-black',
+        'bg-primary text-primary-foreground',
         'font-semibold',
         'rounded-full',
         

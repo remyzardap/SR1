@@ -1,3 +1,4 @@
+import type React from "react";
 import { PAGE_BG, NOISE_OVERLAY, CSS_ANIM } from '@/lib/design';
 import { useState } from "react";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
@@ -30,7 +31,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Trash2, Wand2, Workflow, Wrench, Brain } from "lucide-react";
+import { Plus, Search, Trash2, Workflow, Wrench } from "lucide-react";
+import { Wand2, Brain } from "@/components/brandIcons";
 import { toast } from "sonner";
 import { AgentSkillsPanel } from "@/components/AgentSkillsPanel";
 
@@ -49,7 +51,7 @@ interface Skill {
 
 const typeConfig: Record<
   SkillType,
-  { label: string; icon: typeof Wand2; bg: string; color: string; border: string }
+  { label: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; bg: string; color: string; border: string }
 > = {
   prompt: {
     label: "Prompt",
@@ -312,12 +314,10 @@ export default function Skills() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
-        <AgentSkillsPanel />
-      </div>
-
       {/* ── Main content ── */}
        <main className="sutaeru-editorial-page max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <AgentSkillsPanel />
+
         {/* Search bar */}
         <div className="mb-6 sm:mb-8">
           <div className="relative w-full sm:max-w-md">

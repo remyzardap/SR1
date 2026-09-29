@@ -4,17 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import {
-  FileText,
-  Table,
-  Presentation,
-  FileCode,
-  Sparkles,
-  Loader2,
-  CheckCircle2,
-  Download,
-  ChevronRight,
-} from "lucide-react";
+import { FileText, Table, Presentation, FileCode, Loader2, CheckCircle2, Download, ChevronRight } from "lucide-react";
+import { Sparkles } from "@/components/brandIcons";
 import { cn } from "@/lib/utils";
 
 type Format = "pdf" | "docx" | "xlsx" | "pptx" | "md";

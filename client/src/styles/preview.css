@@ -1,7 +1,12 @@
 /* Sutaeru preview: editorial surfaces, scaled controls, and unobstructed live work. */
 :root { --art-paper: #F7F6F2; --art-ink: #242320; --art-rule: #B6BBC3; --art-quiet: #66645f; --art-panel: #EFEDE7; --art-alert: #B3402A; --art-inverse: #F7F6F2; }
-.sutaeru-login-mark { width: 76px; height: 52px; color: var(--art-ink); }
-.sutaeru-nav-mark { width: 38px; height: 30px; flex-shrink: 0; color: var(--art-ink); }
+.sutaeru-login-mark { width: 112px; height: 60px; color: var(--art-ink); }
+.sutaeru-nav-mark { width: 48px; height: 28px; flex-shrink: 0; color: var(--art-ink); }
+.sutaeru-glyph-sun { fill: var(--neon-orange); stroke: none; }
+.sutaeru-feature-icon { color: currentColor; overflow: visible; }
+.sutaeru-icon-signal { fill: var(--neon-orange); stroke: var(--neon-orange); }
+.sutaeru-nav-item .sutaeru-feature-icon { transition: color 160ms ease, transform 160ms ease; }
+.sutaeru-nav-item:hover .sutaeru-feature-icon { transform: translateY(-1px); }
 .sutaeru-wordmark,.sutaeru-history-mark { font: 700 12px var(--font-d); color: var(--art-ink); }
 .sutaeru-history-mark { display: flex; align-items: center; gap: 8px; padding: 22px 18px 12px; }
 .sutaeru-history-close { margin-left: auto; min-width: 44px; min-height: 44px; }
@@ -51,7 +56,7 @@
   .sutaeru-run-actions > button { flex: 1; max-width: 72px; }
   .sutaeru-run-actions > .sutaeru-stop-run { flex: 2; max-width: none; }
   .sutaeru-chat .sutaeru-history-open { width: min(86vw,320px); }
-  .sutaeru-login-mark { width: 64px; height: 44px; }
+  .sutaeru-login-mark { width: 96px; height: 52px; }
 }
 @media (prefers-reduced-motion: reduce) { .sutaeru-chat:before,.sutaeru-chat:after,.sutaeru-status-active { animation: none; } }
 

@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { Sparkles, Brain, Layers, ArrowRight } from "lucide-react";
+import { Layers, ArrowRight } from "lucide-react";
+import { Sparkles, Brain } from "@/components/brandIcons";
 import { LandingMark } from "@/components/LandingMark";
 
 interface WelcomeStepProps {

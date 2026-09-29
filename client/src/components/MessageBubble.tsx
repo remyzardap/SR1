@@ -1,35 +1,28 @@
 import { useState } from "react";
-import { BookmarkPlus, Check, Copy, Download, FileText, Pin } from "lucide-react";
+import { FileText } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Message, MessageContent, MessageResponse, MessageActions, MessageAction } from "@/components/ai-elements/message";
 import { Tool, ToolHeader, ToolContent } from "@/components/ai-elements/tool";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { downloadResearchMarkdown, downloadResearchPdf } from "@/lib/researchReports";
-
-interface MessageData {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  model?: string;
-  streaming?: boolean;
-  createdAt: Date;
-  sources?: Array<{ title: string; url: string }>;
-  question?: string;
-  references?: string[];
-}
+import { SpeakButton } from "./SpeakButton";
+import { PlanOptionCards } from "./PlanOptionCards";
+import type { ChatMessageData, PlanDirection } from "@/types/chat";
+import { SutaeruIcon } from "./SutaeruIcon";
 
 interface MessageBubbleProps {
-  message: MessageData;
+  message: ChatMessageData;
   onSave?: (content: string) => void;
   tools?: Array<{ id: string; label: string; detail?: string }>;
   isRunning?: boolean;
   sources?: Array<{ title: string; url: string }>;
   question?: string;
   references?: string[];
+  onSelectPlan?: (option: PlanDirection) => void;
 }
 
-export function MessageBubble({ message, onSave, tools = [], isRunning = false, sources = [], question, references = [] }: MessageBubbleProps) {
+export function MessageBubble({ message, onSave, tools = [], isRunning = false, sources = [], question, references = [], onSelectPlan }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const utils = trpc.useUtils();
   const createBlock = trpc.blocks.create.useMutation({
@@ -50,6 +43,9 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
           isUser ? <span className="whitespace-pre-wrap">{message.content}</span> :
           <MessageResponse isAnimating={message.streaming}>{message.content}</MessageResponse>}
       </MessageContent>
+      {!isUser && message.planOptions?.length && onSelectPlan ? (
+        <PlanOptionCards options={message.planOptions} selectedId={message.selectedOptionId} disabled={message.streaming} onSelect={onSelectPlan} />
+      ) : null}
       {isUser && references.length > 0 && <div className="sutaeru-message-references">{references.map((name) => <span key={name}><FileText />{name}</span>)}</div>}
       {!isUser && sources.length > 0 && (
         <section className="sutaeru-message-sources" aria-label="Sources for this answer">
@@ -73,12 +69,13 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
             void navigator.clipboard.writeText(message.content).then(() => {
               setCopied(true); window.setTimeout(() => setCopied(false), 1500);
             });
-          }}>{copied ? <Check /> : <Copy />}</MessageAction>
+          }}>{<SutaeruIcon name={copied ? "check" : "copy"} />}</MessageAction>
+          <SpeakButton text={message.content} className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" />
           <MessageAction tooltip="Pin to Board" label="Pin to Board" onClick={() => createBlock.mutate({
             type: "chat", source: "s1", content: { text: message.content }, pinned: true, tags: [],
-          })}><Pin /></MessageAction>
-          {onSave && <MessageAction tooltip="Save to memory" label="Save to memory" onClick={() => onSave(message.content)}><BookmarkPlus /></MessageAction>}
-          {question && <MessageAction tooltip="Download PDF report" label="Download PDF report" onClick={() => downloadResearchPdf({ question, answer: message.content, sources, createdAt: message.createdAt })}><Download /></MessageAction>}
+          })}><SutaeruIcon name="pin" /></MessageAction>
+          {onSave && <MessageAction tooltip="Save to memory" label="Save to memory" onClick={() => onSave(message.content)}><SutaeruIcon name="bookmark" /></MessageAction>}
+          {question && <MessageAction tooltip="Download PDF report" label="Download PDF report" onClick={() => downloadResearchPdf({ question, answer: message.content, sources, createdAt: message.createdAt })}><SutaeruIcon name="download" /></MessageAction>}
           {question && <MessageAction tooltip="Download Markdown report" label="Download Markdown report" onClick={() => downloadResearchMarkdown({ question, answer: message.content, sources, createdAt: message.createdAt })}><FileText /></MessageAction>}
         </MessageActions>
       )}

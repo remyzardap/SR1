@@ -3,21 +3,10 @@ import { Conversation, ConversationContent, ConversationScrollButton } from "@/c
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { ChatEmptyState } from "./ChatEmptyState";
-
-interface MessageData {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  model?: string;
-  streaming?: boolean;
-  createdAt: Date;
-  sources?: Array<{ title: string; url: string }>;
-  question?: string;
-  references?: string[];
-}
+import type { ChatMessageData, PlanDirection } from "@/types/chat";
 
 interface ChatMessagesProps {
-  messages: MessageData[];
+  messages: ChatMessageData[];
   isStreaming: boolean;
   agentName?: string;
   messagesEndRef: React.RefObject<HTMLDivElement>;
@@ -25,9 +14,10 @@ interface ChatMessagesProps {
   onSuggestion: (text: string) => void;
   sources?: Array<{ title: string; url: string }>;
   steps?: Array<{ id: string; label: string; detail?: string }>;
+  onSelectPlan?: (messageId: string, option: PlanDirection) => void;
 }
 
-export function ChatMessages({ messages, isStreaming, agentName, messagesEndRef, onSaveMemory, onSuggestion, sources = [], steps = [] }: ChatMessagesProps) {
+export function ChatMessages({ messages, isStreaming, agentName, messagesEndRef, onSaveMemory, onSuggestion, sources = [], steps = [], onSelectPlan }: ChatMessagesProps) {
   const lastAssistantIndex = messages.length - 1 - [...messages].reverse().findIndex((message) => message.role === "assistant");
   const toolSteps = steps.filter((step) => step.detail);
 
@@ -46,6 +36,7 @@ export function ChatMessages({ messages, isStreaming, agentName, messagesEndRef,
                 sources={message.sources}
                 question={message.question}
                 references={message.references}
+                onSelectPlan={onSelectPlan ? (option) => onSelectPlan(message.id, option) : undefined}
               />
             ))}
             {isStreaming && messages.at(-1)?.role !== "assistant" && <TypingIndicator />}

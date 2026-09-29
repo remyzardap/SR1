@@ -1,7 +1,8 @@
 import { PAGE_BG, NOISE_OVERLAY, CSS_ANIM } from '@/lib/design';
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
 import { trpc } from "@/lib/trpc";
+import { callFunction } from "@/lib/kemmaCloud";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -443,6 +444,66 @@ function NoResults({ query }: { query: string }) {
   );
 }
 
+// ─── Living Memory Switch ─────────────────────────────────────────────────────
+function MemorySwitch() {
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    callFunction<{ enabled: boolean }>("memories", { action: "getSetting" })
+      .then((r) => { if (!cancelled) setEnabled(r.enabled); })
+      .catch(() => { if (!cancelled) setEnabled(true); });
+    return () => { cancelled = true; };
+  }, []);
+
+  async function toggle() {
+    if (enabled === null || saving) return;
+    setSaving(true);
+    try {
+      const next = !enabled;
+      await callFunction("memories", { action: "setSetting", enabled: next });
+      setEnabled(next);
+    } catch {
+      // keep the previous state
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div
+      className="flex items-center justify-between gap-3 rounded-lg px-4 py-3"
+      style={{ background: "var(--accent-dim)", border: "1px solid var(--border)" }}
+    >
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--foreground)" }}>
+          Living memory
+        </p>
+        <p className="mt-0.5 text-xs" style={{ color: "var(--muted-foreground)" }}>
+          {enabled === false
+            ? "Off — Kemma stops noting new things from your chats. Existing memories stay."
+            : "On — after each chat, Kemma quietly notes anything worth remembering here."}
+        </p>
+      </div>
+      <button
+        role="switch"
+        aria-checked={enabled !== false}
+        aria-label="Toggle living memory"
+        onClick={() => void toggle()}
+        disabled={enabled === null || saving}
+        className="relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-40"
+        style={{ background: enabled !== false ? "var(--btn-fill, #E8500F)" : "var(--border)" }}
+      >
+        <span
+          className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform"
+          style={{ transform: enabled !== false ? "translateX(22px)" : "translateX(2px)" }}
+        />
+      </button>
+    </div>
+  );
+}
+
 // ─── Memories Page ────────────────────────────────────────────────────────────
 export default function Memories() {
   useSeoMeta({ title: "Memories", path: "/memories" });
@@ -508,6 +569,9 @@ export default function Memories() {
             Add Memory
           </button>
         </div>
+
+        {/* ── Living memory switch ── */}
+        <MemorySwitch />
 
         {/* ── Search bar ── */}
         <div className="relative">

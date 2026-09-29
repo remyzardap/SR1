@@ -21,19 +21,98 @@ const registerSchema = z.object({
 }).refine(d => d.password === d.confirmPassword, {
   message: "Passwords do not match", path: ["confirmPassword"],
 });
+const founderSchema = z.object({
+  handle: z.string().min(1, "Handle is required"),
+  password: z.string().min(1, "Password is required"),
+});
 type LoginForm = z.infer<typeof loginSchema>;
 type RegisterForm = z.infer<typeof registerSchema>;
+type FounderForm = z.infer<typeof founderSchema>;
+
+
+function FounderLoginForm({ inputStyle, labelStyle }: { inputStyle: React.CSSProperties; labelStyle: React.CSSProperties }) {
+  const [, navigate] = useLocation();
+  const [handle, setHandle] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!handle.trim() || !password.trim()) {
+      setError('Please enter both handle and password');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SR1_API_ORIGIN || ''}/api/trpc/auth.founderLogin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ json: { handle: handle.trim(), password } }),
+      });
+      const data = await res.json();
+      if (data?.result?.data?.json?.success) {
+        setAuthToken(data.result.data.json.token);
+        window.location.href = '/chat';
+      } else {
+        const msg = data?.error?.json?.message || data?.error?.message || 'Invalid handle or password';
+        setError(msg);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+        <label style={labelStyle}>Handle</label>
+        <div style={{ position: 'relative' }}>
+          <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: 'var(--t3)', pointerEvents: 'none', lineHeight: 1 }}>@</span>
+          <input data-testid="input-founder-handle" type="text" placeholder="yourhandle" style={inputStyle} autoCapitalize="none" autoCorrect="off" autoComplete="username" value={handle} onChange={e => setHandle(e.target.value)} />
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+        <label style={labelStyle}>Password</label>
+        <div style={{ position: 'relative' }}>
+          <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', color: 'var(--t3)', pointerEvents: 'none', lineHeight: 1 }}>⚿</span>
+          <input data-testid="input-founder-password" type="password" placeholder="Your password" style={inputStyle} autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} />
+        </div>
+      </div>
+       {error && <p data-testid="text-founder-error" style={{ fontSize: '12px', color: 'var(--destructive)', margin: 0, textAlign: 'center' as const }}>{error}</p>}
+      <button data-testid="button-founder-login" type="submit" disabled={loading} style={{
+        width: '100%', padding: '15px', borderRadius: '100px', border: 'none',
+        background: 'var(--btn-fill, #f2f2f2)', color: 'var(--btn-ink, #050505)',
+        fontFamily: 'var(--font-d)', fontSize: '13px', fontWeight: 800,
+        letterSpacing: '.06em', textTransform: 'uppercase' as const,
+        cursor: loading ? 'not-allowed' : 'pointer',
+        transition: 'all .22s', marginTop: '2px', opacity: loading ? 0.6 : 1,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+      }}>
+        {loading ? (
+          <span style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid var(--btn-ink)', borderTopColor: 'transparent', animation: 'spin .6s linear infinite', display: 'inline-block' }} />
+        ) : 'Enter →'}
+      </button>
+    </form>
+  );
+}
 
 export default function Login() {
   const [, navigate] = useLocation();
-  const [tab, setTab] = useState<'in' | 'up'>('in');
+  const [tab, setTab] = useState<'in' | 'up' | 'founder'>('in');
   const [loginError, setLoginError] = useState('');
   const [registerError, setRegisterError] = useState('');
+  const [founderError, setFounderError] = useState('');
   const [registerSuccess, setRegisterSuccess] = useState(false);
   const utils = trpc.useUtils();
 
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
   const registerForm = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) });
+  const founderForm = useForm<FounderForm>({ resolver: zodResolver(founderSchema), defaultValues: { handle: '', password: '' } });
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async (data: unknown) => {
@@ -51,6 +130,18 @@ export default function Login() {
     onSuccess: async () => { await utils.auth.me.invalidate(); setRegisterSuccess(true); setTab('in'); },
     onError: (e) => setRegisterError(e.message || 'Registration failed'),
   });
+  const founderMutation = trpc.auth.founderLogin.useMutation({
+    onSuccess: async (data: unknown) => {
+      const result = data as { token?: unknown } | null;
+      if (!setAuthToken(result?.token)) {
+        setFounderError('Sign-in succeeded, but no session was returned. Please try again.');
+        return;
+      }
+      await utils.auth.me.invalidate();
+      navigate('/chat');
+    },
+    onError: (e) => setFounderError(e.message || 'Invalid handle or password'),
+  });
 
   const onLogin = (d: LoginForm) => {
     setLoginError('');
@@ -59,6 +150,10 @@ export default function Login() {
   const onRegister = (d: RegisterForm) => {
     setRegisterError('');
     registerMutation.mutate({ name: d.name, email: d.email, password: d.password });
+  };
+  const onFounder = (d: FounderForm) => {
+    setFounderError('');
+    founderMutation.mutate({ handle: d.handle, password: d.password });
   };
 
   const inputStyle: React.CSSProperties = {
@@ -78,6 +173,11 @@ export default function Login() {
     letterSpacing: '.14em', textTransform: 'uppercase' as const,
     color: 'var(--muted-foreground, rgba(245,242,237,0.40))', padding: '0 3px',
   };
+
+  const tabs = [
+    { key: 'in', label: 'Sign In' },
+    { key: 'founder', label: 'Founder' },
+  ] as const;
 
   return (
     <div style={{
@@ -126,6 +226,32 @@ export default function Login() {
           padding: '5px',
            boxShadow: '0 12px 32px rgba(36,35,32,.08)',
         }}>
+          {/* Tab row */}
+          <div style={{
+            display: 'flex', gap: '3px', padding: '3px',
+            background: 'var(--glass-bg, rgba(255,255,255,0.10))',
+            borderRadius: 'calc(var(--r-lg, 24px) - 5px)',
+            marginBottom: '6px',
+          }}>
+            {tabs.map(t => (
+              <button
+                key={t.key}
+                data-testid={`tab-${t.key}`}
+                onClick={() => setTab(t.key)}
+                style={{
+                  flex: 1, padding: '11px',
+                  borderRadius: 'calc(var(--r-lg, 24px) - 8px)',
+                  fontFamily: 'var(--font-d)', fontSize: '11px', fontWeight: 700,
+                  letterSpacing: '.08em', textTransform: 'uppercase' as const, textAlign: 'center' as const,
+                  color: tab === t.key ? 'var(--t1, #f2f2f2)' : 'var(--t3, rgba(242,242,242,0.22))',
+                  cursor: 'pointer', transition: 'all .22s', border: 'none',
+                  background: tab === t.key ? 'var(--bg-raise2, #141414)' : 'transparent',
+                   boxShadow: 'none',
+                }}
+              >{t.label}</button>
+            ))}
+          </div>
+
           {/* Form inner */}
           <div style={{ padding: '4px 14px 14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {registerSuccess && (
@@ -222,6 +348,10 @@ export default function Login() {
                   ) : 'Create Account →'}
                 </button>
               </form>
+            )}
+
+            {tab === 'founder' && (
+              <FounderLoginForm inputStyle={inputStyle} labelStyle={labelStyle} />
             )}
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { ArrowUp, FileText, Paperclip, X } from "lucide-react";
+import { FileText, Paperclip } from "lucide-react";
 import type { FileUIPart } from "ai";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +11,8 @@ import {
   usePromptInputAttachments,
   type PromptInputMessage,
 } from "@/components/ai-elements/prompt-input";
+import { VoiceButton } from "./VoiceButton";
+import { SutaeruIcon } from "./SutaeruIcon";
 
 interface ChatInputProps {
   value: string;
@@ -33,7 +35,7 @@ function AttachmentList({ enabled }: { enabled: boolean }) {
           <FileText aria-hidden="true" />
           <span>{file.filename || "Reference file"}</span>
           <Button type="button" variant="ghost" size="icon-sm" onClick={() => attachments.remove(file.id)} aria-label={`Remove ${file.filename || "file"}`}>
-            <X aria-hidden="true" />
+            <SutaeruIcon name="close" aria-hidden="true" />
           </Button>
         </span>
       ))}
@@ -75,13 +77,14 @@ export function ChatInput({ value, isStreaming, onChange, onKeyDown, onSend, onS
         />
         <PromptInputFooter className="sutaeru-composer-footer justify-end">
           <AttachButton enabled={allowAttachments} />
+          <VoiceButton disabled={isStreaming} onTranscript={(text) => onChange(value ? `${value} ${text}` : text)} />
           <PromptInputSubmit
             status={isStreaming ? "streaming" : "ready"}
             onStop={onStop}
             disabled={!isStreaming && !value.trim()}
             className="sutaeru-composer-send"
             title={isStreaming ? "Stop generation" : "Send message"}
-          >{!isStreaming && <ArrowUp className="size-5" />}</PromptInputSubmit>
+          >{!isStreaming && <SutaeruIcon name="arrow" className="size-5 -rotate-90" />}</PromptInputSubmit>
         </PromptInputFooter>
       </PromptInput>
     </div>

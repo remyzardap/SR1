@@ -50,14 +50,14 @@ const connectionTypeLabels = {
   generic_api_key: "API Key",
 };
 const connectionTypeColors = {
-  llm_api_key: "bg-violet-500/10 text-violet-600 border-violet-500/20",
-  oauth2: "bg-sky-500/10 text-sky-600 border-sky-500/20",
-  generic_api_key: "bg-slate-500/10 text-slate-600 border-slate-500/20",
+  llm_api_key: "bg-secondary text-foreground border-border",
+  oauth2: "bg-secondary text-foreground border-border",
+  generic_api_key: "bg-secondary text-foreground border-border",
 };
 const statusConfig = {
-  active: { icon: CheckCircle2, color: "text-emerald-500", label: "Active" },
-  revoked: { icon: XCircle, color: "text-red-500", label: "Revoked" },
-  expired: { icon: Clock, color: "text-amber-500", label: "Expired" },
+  active: { icon: CheckCircle2, color: "text-[var(--state-success)]", label: "Active" },
+  revoked: { icon: XCircle, color: "text-destructive", label: "Revoked" },
+  expired: { icon: Clock, color: "text-[var(--state-warning)]", label: "Expired" },
 };
 
 function GoogleWorkspaceCard() {
@@ -102,8 +102,8 @@ function GoogleWorkspaceCard() {
       <CardHeader className="pb-3">
          <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-red-500/10">
-              <SiGoogle className="h-5 w-5 text-blue-600" />
+             <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-secondary">
+               <SiGoogle className="h-5 w-5 text-foreground" />
             </div>
             <div>
               <CardTitle className="text-lg">Google Workspace</CardTitle>
@@ -115,7 +115,7 @@ function GoogleWorkspaceCard() {
             </div>
           </div>
           {status?.connected ? (
-            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Connected</Badge>
+            <Badge className="bg-secondary text-[var(--state-success)] border-border">Connected</Badge>
           ) : (
             <Badge variant="outline" className="text-muted-foreground">Disconnected</Badge>
           )}
@@ -124,15 +124,15 @@ function GoogleWorkspaceCard() {
       <CardContent>
          <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-3 mb-4">
           <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
-            <Mail className="h-4 w-4 text-red-500" />
+             <Mail className="h-4 w-4 text-foreground" />
             <span className="text-sm">Gmail</span>
           </div>
           <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
-            <Calendar className="h-4 w-4 text-blue-500" />
+             <Calendar className="h-4 w-4 text-foreground" />
             <span className="text-sm">Calendar</span>
           </div>
           <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
-            <HardDrive className="h-4 w-4 text-yellow-500" />
+             <HardDrive className="h-4 w-4 text-foreground" />
             <span className="text-sm">Drive</span>
           </div>
         </div>

@@ -2,7 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Loader2, Send, User, Sparkles } from "lucide-react";
+import { Loader2, Send, User } from "lucide-react";
+import { Sparkles } from "@/components/brandIcons";
 import { useState, useEffect, useRef } from "react";
 import { Streamdown } from "streamdown";
 
