@@ -18,6 +18,8 @@ Lovable owns UI. Claude Code owns backend, build, deploy and the VPS. Both read 
 
 - Restyle `client/src/components/AgentSkillsPanel.tsx` (owner-only panel on the Skills page: list of skill folders with Review, Turn on/off, and a report). Functional and unstyled beyond existing tokens; keep the tRPC calls (`kemma.agentSkills`, `kemma.reviewAgentSkill`, `kemma.setAgentSkillEnabled`) as they are. No sparkle/wand/brain/robot icons.
 
+- Wire the Lovable-designed screens to the real backend. The backend is tRPC (types via `AppRouter` from `server/routers.ts`; routers in `server/routers/` and `server/kemma/`). Go screen by screen (chat and threads, Deep Research, Review panel, exports, Skills page, connectors/settings): replace mock or static data with tRPC hooks (`trpc.<router>.<procedure>.useQuery/useMutation`), add loading, empty and error states, and keep existing procedure names and inputs as they are. If a screen needs a procedure that does not exist, do not invent one: write it under "Requests for Claude Code" with the exact input and output shape you want. Do not touch `server/`. Connectors are server-side config (`mcp.config.json`); the UI should only show status, not tokens.
+
 ## Requests for Claude Code (Lovable writes here)
 
 _None open._
