@@ -3,7 +3,8 @@ import { isDesignPreview } from "./designPreview";
 
 const GUEST_MSG = "You're browsing as a guest — sign in to use this feature.";
 
-const FUNCTIONS_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+// Kemma functions run on our own server (server/routes/fn), same origin as the app.
+const FUNCTIONS_BASE = `${import.meta.env.VITE_SR1_API_ORIGIN || ""}/api/fn`;
 
 export class CloudFunctionError extends Error {
   status: number;
@@ -31,6 +32,7 @@ export async function callFunction<T = unknown>(name: string, body: unknown): Pr
   if (!token) throw new CloudFunctionError("Sign in to continue.", 401);
   const res = await fetch(`${FUNCTIONS_BASE}/${name}`, {
     method: "POST",
+    credentials: "include",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
@@ -51,12 +53,15 @@ export async function streamFunction(name: string, body: unknown, handlers: SseH
   if (!token) throw new CloudFunctionError("Sign in to continue.", 401);
   const res = await fetch(`${FUNCTIONS_BASE}/${name}`, {
     method: "POST",
+    credentials: "include",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
     signal,
   });
   if (!res.ok || !res.body) await parseError(res);
 
+  if (!res.body) throw new CloudFunctionError("Empty response from server.", 502);
+  if (!res.body) throw new CloudFunctionError("Empty response from server.", 502);
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -94,13 +99,15 @@ export async function transcribeAudio(blob: Blob, signal?: AbortSignal): Promise
   form.set("file", new File([blob], "recording.webm", { type }));
   const res = await fetch(`${FUNCTIONS_BASE}/voice`, {
     method: "POST",
+    credentials: "include",
     headers: { Authorization: `Bearer ${token}` },
     body: form,
     signal,
   });
   if (!res.ok || !res.body) await parseError(res);
 
-  // The gateway streams SSE transcript events; accumulate text fragments.
+  // The server streams SSE transcript events; accumulate text fragments.
+  if (!res.body) throw new CloudFunctionError("Empty response from server.", 502);
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -135,6 +142,7 @@ export async function speakText(text: string, signal?: AbortSignal): Promise<str
   if (!token) throw new CloudFunctionError("Sign in to continue.", 401);
   const res = await fetch(`${FUNCTIONS_BASE}/voice?mode=speak`, {
     method: "POST",
+    credentials: "include",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
     signal,

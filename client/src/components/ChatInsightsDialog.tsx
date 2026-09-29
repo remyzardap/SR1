@@ -69,8 +69,9 @@ export function ChatInsightsDialog({ open, onOpenChange, initialConversation, in
     setError(null);
     setResult("");
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-insights`, {
+      const res = await fetch(`${import.meta.env.VITE_SR1_API_ORIGIN || ""}/api/fn/chat-insights`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(focus === "brief" ? { conversation: text, focus, audience: audience.trim() } : { conversation: text, focus }),
         signal: controller.signal,

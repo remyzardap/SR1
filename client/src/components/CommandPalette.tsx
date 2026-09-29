@@ -187,7 +187,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     });
     
     // Blocks
-    blocks.forEach((block: BlockData) => {
+    blocks.forEach((block) => {
       const titleScore = block.title ? fuzzyScore(query, block.title) : 0;
       const contentText = JSON.stringify(block.content);
       const contentScore = fuzzyScore(query, contentText) * 0.3;

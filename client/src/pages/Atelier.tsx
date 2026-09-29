@@ -239,7 +239,7 @@ function ReportPreview({ report }: { report: ReportStructure }) {
 
 export default function Atelier() {
   useSeoMeta({ title: "Atelier", path: "/atelier" });
-  const { data: agentCtx } = trpc.agent.context.useQuery();
+  const { data: identity } = trpc.identity.get.useQuery();
 
   // Phase management
   const [phase, setPhase] = useState<Phase>("select");
@@ -262,6 +262,8 @@ export default function Atelier() {
 
   // Report state
   const [report, setReport] = useState<ReportStructure | null>(null);
+  const [exportFormat, setExportFormat] = useState<"pdf" | "docx" | "xlsx" | "md">("pdf");
+  const [exporting, setExporting] = useState(false);
   const [generatingText, setGeneratingText] = useState("");
 
   // Auto-scroll
@@ -286,8 +288,8 @@ export default function Atelier() {
     abortRef.current = ctrl;
 
     try {
-      const identityContext = agentCtx?.identity
-        ? `Name: ${agentCtx.identity.displayName ?? agentCtx.identity.handle}\nBio: ${agentCtx.identity.bio ?? ""}`
+      const identityContext = identity
+        ? `Name: ${identity.displayName ?? identity.handle}\nBio: ${identity.bio ?? ""}`
         : "";
 
       const res = await fetch("/api/atelier/interview", {
@@ -339,7 +341,7 @@ export default function Atelier() {
     } finally {
       setStreaming(false);
     }
-  }, [input, messages, streaming, reportType, agentCtx]);
+  }, [input, messages, streaming, reportType, identity]);
 
   // ── Upload file ─────────────────────────────────────────────────────────────
   const handleFileUpload = async (file: File) => {
@@ -411,6 +413,38 @@ export default function Atelier() {
       setPhase("interview");
     }
   }, [messages, reportType, theme, uploadMode, uploadedFile]);
+
+  const exportReport = useCallback(async () => {
+    if (!report || exporting) return;
+    setExporting(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SR1_API_ORIGIN || ""}/api/atelier/export`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ report, format: exportFormat, theme: report.theme }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? `Export failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      const filename = res.headers.get("X-Filename") ?? `report.${exportFormat}`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${filename}`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  }, [report, exportFormat, exporting]);
 
   // ── Start interview ─────────────────────────────────────────────────────────
   const startInterview = async () => {
@@ -741,11 +775,20 @@ export default function Atelier() {
               style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--muted-foreground)" }}>
               New Report
             </button>
-            <button className="flex min-h-11 items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-md font-semibold transition-all"
+            <select value={exportFormat} onChange={(e) => setExportFormat(e.target.value as typeof exportFormat)}
+              aria-label="Export format"
+              className="min-h-11 text-[12px] px-2 py-1.5 rounded-md"
+              style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}>
+              <option value="pdf">PDF</option>
+              <option value="docx">Word (DOCX)</option>
+              <option value="xlsx">Excel (XLSX)</option>
+              <option value="md">Markdown</option>
+            </select>
+            <button disabled={exporting} className="flex min-h-11 items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-md font-semibold transition-all disabled:opacity-60"
               style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}
-              onClick={() => toast.info("Export coming soon — PDF, DOCX, XLSX, MD")}>
+              onClick={exportReport}>
               <Download className="w-3.5 h-3.5" />
-              Export
+              {exporting ? "Exporting..." : "Export"}
             </button>
           </div>
         </div>

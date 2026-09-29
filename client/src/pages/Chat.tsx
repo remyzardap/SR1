@@ -366,10 +366,8 @@ export default function Chat() {
       abortRef.current = controller;
 
       try {
-        const cloudUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-        const requestUrl = mode === "deep"
-          ? `${cloudUrl || ""}/functions/v1/research`
-          : `${import.meta.env.VITE_SR1_API_ORIGIN || ""}/api/kemma/stream`;
+        const apiOrigin = import.meta.env.VITE_SR1_API_ORIGIN || "";
+        const requestUrl = mode === "deep" ? `${apiOrigin}/api/fn/research` : `${apiOrigin}/api/kemma/stream`;
         const response = await fetch(requestUrl, {
           method: "POST",
            headers: { "Content-Type": "application/json", ...(getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {}) },

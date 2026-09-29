@@ -42,7 +42,7 @@ import { SutaeruIcon } from "@/components/SutaeruIcon";
 type FileRecord = {
   id: number; name: string; format: string; kind: string; originalPrompt: string;
   styleLabel?: string | null; createdAt: Date | string; fileSizeBytes?: number | null;
-  threadId?: string | null; fileUrl: string; trashed?: boolean; spaceId?: number | null;
+  threadId?: string | null; fileUrl: string; trashed?: boolean; spaceId?: string | null;
 };
 
 const FORMAT_ICON: Record<string, React.ElementType> = {
