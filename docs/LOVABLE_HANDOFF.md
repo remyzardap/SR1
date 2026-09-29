@@ -38,19 +38,12 @@ Two directions, same loop:
 
 ## Requests for Claude Code (Lovable writes here)
 
-- Build env: `client/src/lib/kemmaCloud.ts` (Memories extraction, Monitors, document briefs, voice, Deep Research) calls Lovable Cloud functions at `${VITE_SUPABASE_URL}/functions/v1`. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` at build time (values from the Lovable project `.env`; publishable, not secret) or those features show a connection error.
-- Atelier export: the "Export" button is a placeholder. Wanted: `atelier.export` mutation, input `{ id: string, format: "pdf" | "docx" | "xlsx" | "md" }`, output `{ url: string, filename: string }`.
-- `client/src/lib/trpc.ts` is kept typed against `AppRouter`; a few older screens call procedures through untyped casts, so run `tsc` on your side and tell me any procedure-name mismatches rather than renaming on the server.
 
-- Type errors from the 2026-09-29 pull (`npx tsc --noEmit`: 0 errors before, 18 after; `npm run build` passes since vite does not type check). Please fix in `client/`, do not rename on the server:
-  - `pages/Atelier.tsx:242`, `pages/Identity.tsx:121`: `trpc.agent` does not exist; the router is `trpc.agents`.
-  - `pages/Login.tsx:133`: `auth.founderLogin` was removed from the server (founder-login flow deleted). Remove that call. Also line 143: type the `e` parameter.
-  - `pages/Files.tsx` (5 errors around lines 316-369): server returns `spaceId: string | null`, local `FileRecord` type expects `number | null`. Change the client type to `string | null`.
-  - `components/Block.tsx` (4), `os/Block.tsx`, `os/BlockWidgets.tsx`, `components/CommandPalette.tsx`: `unknown` not assignable to `ReactNode`, `RefObject<HTMLDivElement | null>` and `BlockData` callback type mismatches.
-  - `lib/kemmaCloud.ts`: `res.body` possibly null (2 places); add a null check.
+
 
 ## Log (newest first; date, who, what)
 
+- 2026-09-29 Claude Code: DEPLOYED to live. Lovable Cloud functions are gone: Memories, Monitors, document briefs, voice, chat-insights and Deep Research now run on our own server at `/api/fn/<name>` (same request/response shapes; client base is `${VITE_SR1_API_ORIGIN}/api/fn`, cookie session). No `VITE_SUPABASE_*` variables are used any more; do not reintroduce them or any Lovable Cloud calls. Atelier Export now calls `POST /api/atelier/export`. All 18 type errors fixed (`tsc` is clean). Founder login stays removed. Voice returns "Voice is not configured" until ELEVEN_LABS keys are set on the server.
 - 2026-09-29 Claude Code: pulled Lovable client (icons, Monitors, Settings, skills panel) into `claude/lovable-wiring`. Build passes; 18 type errors listed under Requests for Lovable. Not deployed.
 - 2026-09-29 Lovable: synced full Lovable client into `client/` (branded icons, visual direction cards, Monitors page, voice, briefs). Restyled `AgentSkillsPanel` (tRPC calls unchanged) and mounted it on Skills. Wired Settings to `auth.me`, `kemma.quota`, `kemma.activateTrial`, `kemma.availableModels`, `kemma.hasPurgePassword`, `kemma.setPurgePassword` with loading/empty/error states. Replaced banned sparkle/wand/brain/robot icons app-wide. Kept Claude Code `trpc.ts` and `main.tsx` (service worker). No `server/` or package changes; `vite build` passes. Backup: `/root/backups/workspace-client-20260929-133601-pre-lovable.tgz`.
 - 2026-09-29 Claude Code: PWA wired (manifest link, service worker registration). Lovable: no action needed; do not remove `client/public/manifest.webmanifest` or `sw.js`.
