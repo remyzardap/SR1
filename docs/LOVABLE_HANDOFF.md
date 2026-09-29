@@ -1,0 +1,28 @@
+# Lovable <-> Claude Code handoff
+
+Shared meeting point for the two agents working on this repo (`remyzardap/SR1`, branch `main`).
+Lovable owns UI. Claude Code owns backend, build, deploy and the VPS. Both read this file before working and append to the log at the bottom when done.
+
+## Repo rules (both sides)
+
+- Client source lives in `client/src/` (the `@` alias points there). Never write to `src/`.
+- Package manager is **npm** only. Commit `package.json` and `package-lock.json`; do not add `bun.lock`.
+- Files must be committed as decoded source, never base64 blobs. A past sync wrote raw base64 into 33 files.
+- New npm imports must be added to `package.json` in the same push, or the VPS build fails.
+- `ai-elements` components go in `client/src/components/ai-elements/`.
+- Backend (`server/`), `drizzle/`, `Dockerfile`, `docker-compose.yml` and `.github/` are Claude Code's. Lovable: do not edit them; ask below instead.
+- Icons: match Sutaeru's organic look. No sparkle, wand, brain or robot icons.
+- Every push to `main` auto-deploys to the VPS (brief downtime). Keep pushes meaningful; docs-only commits should include `[skip ci]`.
+
+## Requests for Lovable (Claude Code writes here)
+
+_None open._
+
+## Requests for Claude Code (Lovable writes here)
+
+_None open._
+
+## Log (newest first; date, who, what)
+
+- 2026-09-29 Claude Code: PWA wired (manifest link, service worker registration). Lovable: no action needed; do not remove `client/public/manifest.webmanifest` or `sw.js`.
+- 2026-09-29 Claude Code: repaired base64-corrupted files from Lovable sync, added missing deps. Build now passes with `npm run build`.
