@@ -113,3 +113,10 @@ temp/
 
 # Local backups of .env (contain secrets)
 .env.bak*
+
+# Cloud credentials: never commit key files
+vertex-*.json
+*-key.json
+*service-account*.json
+*credentials*.json
+gcp-*.json

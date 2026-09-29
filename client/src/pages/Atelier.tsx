@@ -243,7 +243,7 @@ function ReportPreview({ report }: { report: ReportStructure }) {
 
 export default function Atelier() {
   useSeoMeta({ title: "Atelier", path: "/atelier" });
-  const { data: agentCtx } = trpc.agent.context.useQuery();
+  const { data: agentCtx } = (trpc as any).agent.context.useQuery();
 
   // Phase management
   const [phase, setPhase] = useState<Phase>("select");

@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 
 export type BlockType = "chat" | "atelier" | "memory" | "task" | "media" | "transcript" | "widget" | "note";
-export type BlockSource = "s1" | "atelier" | "her" | "user" | "feed" | "system";
+export type BlockSource = "s1" | "atelier" | "her" | "kemma" | "user" | "feed" | "system";
 
 export interface BlockData {
   id: string;
@@ -76,7 +76,7 @@ function AtelierContent({ content }: { content: Record<string, unknown> }) {
   const sections = (content.sections as Array<{ title?: string; type?: string }>) ?? [];
   return (
     <div className="flex flex-col gap-2">
-      {content.reportTitle && (
+      {!!content.reportTitle && (
         <p className="text-sm font-semibold" style={{ color: "#f2f2f2" }}>{content.reportTitle as string}</p>
       )}
       <div className="flex flex-wrap gap-1.5">
@@ -90,7 +90,7 @@ function AtelierContent({ content }: { content: Record<string, unknown> }) {
           <span className="text-[11px]" style={{ color: "rgba(242,242,242,0.3)" }}>+{sections.length - 5} more</span>
         )}
       </div>
-      {content.preview && (
+      {!!content.preview && (
         <p className="text-[13px] line-clamp-2" style={{ color: "rgba(242,242,242,0.45)" }}>{content.preview as string}</p>
       )}
     </div>
@@ -100,7 +100,7 @@ function AtelierContent({ content }: { content: Record<string, unknown> }) {
 function MemoryContent({ content }: { content: Record<string, unknown> }) {
   return (
     <div>
-      {content.memoryType && (
+      {!!content.memoryType && (
         <span className="text-[10px] uppercase tracking-widest font-semibold"
           style={{ color: "#f59e0b" }}>{content.memoryType as string} · </span>
       )}
@@ -123,7 +123,7 @@ function TaskContent({ content }: { content: Record<string, unknown> }) {
         <p className="text-[14px]" style={{ color: done ? "rgba(242,242,242,0.4)" : "rgba(242,242,242,0.8)", textDecoration: done ? "line-through" : "none" }}>
           {content.title as string ?? "Untitled task"}
         </p>
-        {content.dueDate && (
+        {!!content.dueDate && (
           <p className="text-[11px] mt-0.5" style={{ color: "rgba(242,242,242,0.3)" }}>Due {content.dueDate as string}</p>
         )}
       </div>

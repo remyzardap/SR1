@@ -131,7 +131,7 @@ export default function Identity() {
     onSuccess: () => {
       toast.success("Identity saved successfully!");
       utils.identity.get.invalidate();
-      utils.agent.context.invalidate();
+      (utils as any).agent.context.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "Failed to save identity.");

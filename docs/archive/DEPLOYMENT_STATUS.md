@@ -21,7 +21,7 @@
 ```bash
 NODE_ENV=production
 PORT=5000
-DATABASE_URL=postgresql://sutaeru:sutaeru123@coolify-db:5432/sutaeru
+DATABASE_URL=postgresql://sutaeru:<REDACTED>@coolify-db:5432/sutaeru
 APP_URL=http://localhost:5000
 VITE_APP_ID=sutaeru
 ```
@@ -51,7 +51,7 @@ cd /home/ubuntu/S1PRONTO-main
 sudo docker build -t sutaeru:latest .
 sudo docker stop sutaeru && sudo docker rm sutaeru
 sudo docker run -d --name sutaeru --network coolify -p 5000:5000 \
-  -e DATABASE_URL="postgresql://sutaeru:sutaeru123@coolify-db:5432/sutaeru" \
+  -e DATABASE_URL="postgresql://sutaeru:<REDACTED>@coolify-db:5432/sutaeru" \
   -e SESSION_SECRET="your-secret" \
   -e APP_URL="http://localhost:5000" \
   sutaeru:latest

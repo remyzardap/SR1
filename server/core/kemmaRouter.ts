@@ -115,6 +115,22 @@ function getEnvModel(name: keyof typeof DEFAULTS): string {
 // SLOT ROUTERS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+export interface SelectableModel { id: string; label: string; tier: ModelProvider; hasKey: boolean }
+
+export function listSelectableModels(): SelectableModel[] {
+  const slots = ["KEMMA_MODEL_CHAT", "KEMMA_MODEL_REPORT", "KEMMA_MODEL_LONG_DOC", "KEMMA_MODEL_VISION"] as const;
+  const seen = new Set<string>();
+  const out: SelectableModel[] = [];
+  for (const slot of slots) {
+    const id = getEnvModel(slot);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const provider = detectProvider(id);
+    out.push({ id, label: id, tier: provider, hasKey: !!apiKeyFor(provider) });
+  }
+  return out;
+}
+
 export function chatRoute(): RouteConfig {
   return routeFor(getEnvModel("KEMMA_MODEL_CHAT"));
 }
