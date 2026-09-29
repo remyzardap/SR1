@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Search, Trash2, Wand2, Workflow, Wrench, Brain } from "lucide-react";
 import { toast } from "sonner";
+import { AgentSkillsPanel } from "@/components/AgentSkillsPanel";
 
 const skillTypes = ["prompt", "workflow", "tool_definition", "behavior"] as const;
 type SkillType = (typeof skillTypes)[number];
@@ -310,6 +311,10 @@ export default function Skills() {
           </button>
         </div>
       </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
+        <AgentSkillsPanel />
+      </div>
 
       {/* ── Main content ── */}
        <main className="sutaeru-editorial-page max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8">

@@ -31,6 +31,8 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/server ./server
 COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/drizzle.config.ts ./
+COPY --from=builder /app/skills ./skills
+COPY --from=builder /app/mcp.config.json ./
 
 # Cloud Run sets PORT (3000 on the sutaeru service); this is the default for local runs.
 ENV PORT=3000

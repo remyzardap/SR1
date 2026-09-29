@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure, router } from "../_core/trpc";
+import { protectedProcedure, adminProcedure, router } from "../_core/trpc";
+import { listSkillStatuses, reviewSkill, setSkillEnabled } from "../kemma/skillReviews";
 import { kemmaExecute, type KemmaMessage } from "../kemma/engine";
 import { checkQuota, getQuotaSummary, activateTrial } from "../core/quotaCheck";
 import { getDb } from "../db";
@@ -84,6 +85,22 @@ export const kemmaRouter = router({
       } catch (e) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Kemma error: ${(e as Error).message}` });
       }
+    }),
+
+  agentSkills: adminProcedure.query(() => listSkillStatuses()),
+
+  reviewAgentSkill: adminProcedure
+    .input(z.object({ slug: z.string().min(1).max(64) }))
+    .mutation(async ({ input }) => {
+      try { return await reviewSkill(input.slug); }
+      catch (e) { throw new TRPCError({ code: "BAD_REQUEST", message: (e as Error).message }); }
+    }),
+
+  setAgentSkillEnabled: adminProcedure
+    .input(z.object({ slug: z.string().min(1).max(64), enabled: z.boolean() }))
+    .mutation(async ({ input, ctx }) => {
+      try { return await setSkillEnabled(input.slug, input.enabled, ctx.user.id); }
+      catch (e) { throw new TRPCError({ code: "BAD_REQUEST", message: (e as Error).message }); }
     }),
 
   availableModels: protectedProcedure.query(() => listSelectableModels()),

@@ -9,13 +9,15 @@
     "start": "node --import tsx/esm server/migrate.ts && node dist/index.js",
     "migrate": "tsx server/migrate.ts",
     "check": "tsc --noEmit",
+    "eval:research": "tsx --env-file=.env evals/research/run.ts",
     "format": "prettier --write .",
     "test": "vitest run",
     "test:e2e": "vitest run server/e2e.test.ts",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "db:migrate": "drizzle-kit migrate",
     "seed": "tsx server/seed.ts",
-    "seed:founders": "tsx server/seed-founders.ts"
+    "seed:founders": "tsx server/seed-founders.ts",
+    "jobs:test": "tsx --env-file=.env scripts/jobs-test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1002.0",
@@ -26,6 +28,7 @@
     "@google/genai": "^2.24.0",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-aspect-ratio": "^1.1.8",
@@ -100,6 +103,7 @@
     "p-retry": "^7.1.1",
     "pdfkit": "^0.17.2",
     "pg": "^8.20.0",
+    "pg-boss": "^10.4.2",
     "pptxgenjs": "^4.0.1",
     "qrcode": "^1.5.4",
     "react": "^19.2.4",
@@ -124,6 +128,7 @@
     "zod-validation-error": "^5.0.0"
   },
   "devDependencies": {
+    "@modelcontextprotocol/server-everything": "^2026.8.31",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.2.1",
     "@types/archiver": "^6.0.3",

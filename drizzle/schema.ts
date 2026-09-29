@@ -10,6 +10,7 @@ import {
   timestamp,
   varchar,
   bigint,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
@@ -529,3 +530,20 @@ export const usageLogs = pgTable("usage_logs", {
 });
 export type UsageLog = typeof usageLogs.$inferSelect;
 export type InsertUsageLog = typeof usageLogs.$inferInsert;
+
+// ─── Agent skills: one review per content hash, usable only after approval ────
+export const skillReviews = pgTable(
+  "skill_reviews",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    skillSlug: varchar("skillSlug", { length: 128 }).notNull(),
+    contentHash: varchar("contentHash", { length: 64 }).notNull(),
+    verdict: varchar("verdict", { length: 16 }).notNull(),
+    report: json("report").notNull(),
+    reviewedAt: timestamp("reviewedAt").defaultNow().notNull(),
+    approvedAt: timestamp("approvedAt"),
+    approvedBy: integer("approvedBy"),
+  },
+  (t) => [uniqueIndex("skill_reviews_slug_hash").on(t.skillSlug, t.contentHash)],
+);
+export type SkillReviewRow = typeof skillReviews.$inferSelect;

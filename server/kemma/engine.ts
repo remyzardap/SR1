@@ -19,9 +19,9 @@ import {
 } from "../core/kemmaRouter";
 import { checkQuota, incrementQuota } from "../core/quotaCheck";
 import { logUsage, checkSpendCap } from "../core/usage";
-import { KEMMA_TOOLS, type ToolDefinition } from "./tools";
+import { KEMMA_TOOLS, SKILL_TOOLS, SKILL_TOOL_NAMES, type ToolDefinition } from "./tools";
 import { getMemoriesContext } from "./memory";
-import { type Source, extractSources, dedupeSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
+import { type Source, extractSources, dedupeSources, annotateSearchResult, keepCitedSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
 
 export interface KemmaMessage {
   role: "user" | "assistant" | "system" | "tool";
@@ -35,6 +35,7 @@ export interface ToolCall {
   id: string;
   type: "function";
   function: { name: string; arguments: string; };
+  extra_content?: { google?: { thought_signature?: string } };
 }
 
 export interface ToolExecution {
@@ -74,7 +75,9 @@ export interface EngineOutput {
 }
 
 import { MAX_TOOL_CALLS } from "./kemmaMax";
-import { loadFileSkills, selectSkillsForQuery, reviewSkills, type FileSkill } from "./fileSkills";
+import { buildSkillIndex, type FileSkill } from "./fileSkills";
+import { getEnabledSkills } from "./skillReviews";
+import { getMcpRegistry } from "./mcp/client";
 
 function selectRoute(input: EngineInput, currentMessages: KemmaMessage[], step: number, maxSteps: number): RouteConfig {
   const { isThinking, modelOverride } = input;
@@ -180,7 +183,7 @@ async function runParallelSubAgents(
     results.map((r, i) => `--- Sub-question ${i + 1}: ${r.query} ---\n${r.output.response}`).join("\n\n"),
     "",
     "Sources:",
-    collectedSources.map((s, i) => `[${i + 1}] ${s.title} — ${s.url}`).join("\n"),
+    collectedSources.map((s, i) => `[${i + 1}] ${s.title}: ${s.url}`).join("\n"),
   ].join("\n");
 
   const reportCfg = reportRoute();
@@ -222,48 +225,26 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     if (lastUserMessage?.content) memories = await getMemoriesContext(userId, lastUserMessage.content as string);
   } catch { /* non-fatal */ }
 
-  // Load file-based skills and run an automatic review gate.
-  const fileSkills: FileSkill[] = [];
-  const approvedFileSkills: FileSkill[] = [];
+  // File skills: only skills approved for their exact content hash are offered. The system prompt
+  // carries just name + description; bodies load on demand through load_skill. No LLM call here.
+  let enabledSkills: FileSkill[] = [];
   if (!input.isSubAgent) {
-    try {
-      const loaded = await loadFileSkills();
-      const queryText = lastUserMessage?.content ?? "";
-      const selected = selectSkillsForQuery(loaded, queryText);
-      if (selected.length > 0) {
-        const reviews = await reviewSkills(selected, queryText);
-        const approvedNames = new Set(
-          reviews.filter((r) => r.verdict === "approve").map((r) => r.skillName)
-        );
-        for (const s of selected) {
-          if (approvedNames.has(s.name)) approvedFileSkills.push(s);
-        }
-        const report = reviews
-          .map((r) => `${r.skillName}=${r.verdict} (${r.summary})`)
-          .join("; ");
-        onNotice?.(`Skill review: ${report}`);
-      }
-      fileSkills.push(...loaded);
-    } catch {
-      // Non-fatal: skills directory may be missing in some deployments.
-    }
+    try { enabledSkills = await getEnabledSkills(); } catch { /* skills are optional */ }
   }
-
-  const activeSkills = [
-    ...(input.skills ?? []),
-    ...approvedFileSkills.map((s) => ({ id: 0, name: s.name, description: s.description, content: s.content })),
-  ];
 
   let systemPrompt = isVoice
     ? buildKemmaVoicePrompt({ userId, tier, memories, userName })
     : buildKemmaSystemPrompt({ userId, tier, memories, userName });
 
-  if (activeSkills.length > 0) {
-    const skillText = activeSkills
+  const skillIndex = buildSkillIndex(enabledSkills);
+  if (skillIndex) systemPrompt += `\n\n${skillIndex}`;
+
+  if (input.skills && input.skills.length > 0) {
+    const skillText = input.skills
       .map((s) => `### ${s.name}\n${s.description ?? ""}\n${typeof s.content === "string" ? s.content : JSON.stringify(s.content ?? {})}`)
       .join("\n\n");
     systemPrompt += `\n\nAPPROVED SKILLS TO FOLLOW:\n${skillText}`;
-    activeSkills.forEach((s) => onSkillUsed?.({ id: s.id, name: s.name }));
+    input.skills.forEach((s) => onSkillUsed?.({ id: s.id, name: s.name }));
   }
 
   let currentMessages: KemmaMessage[] = messages.filter((m) => m.role !== "system");
@@ -292,6 +273,29 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     }
   }
 
+  // MCP tools join the same registry and the same per-run filter as built-in tools.
+  if (!input.isSubAgent) {
+    try {
+      const mcpTools = (await getMcpRegistry().tools()).filter((t) => !input.allowedTools || input.allowedTools.includes(t.name));
+      if (mcpTools.length > 0) baseTools = [...baseTools, ...mcpTools];
+    } catch { /* MCP is optional */ }
+  }
+
+  if (enabledSkills.length > 0) {
+    const canRunScripts = baseTools.some((t) => t.name === "run_code");
+    baseTools = [...baseTools, ...SKILL_TOOLS.filter((t) => t.name !== "run_skill_script" || canRunScripts)];
+  }
+
+  // A skill can only narrow the tool set. Recomputed from the original set each time a skill loads.
+  const originalTools = baseTools;
+  const loadedSkillNarrowing = new Map<string, string[] | null>();
+  const applySkillNarrowing = () => {
+    const lists = [...loadedSkillNarrowing.values()];
+    if (lists.length === 0 || lists.some((l) => l === null)) { baseTools = originalTools; return; }
+    const allowed = new Set(lists.flatMap((l) => l as string[]));
+    baseTools = originalTools.filter((t) => allowed.has(t.name) || (SKILL_TOOL_NAMES as readonly string[]).includes(t.name));
+  };
+
   const toolExecutions: ToolExecution[] = [];
   const modelsUsed: string[] = [];
   const collectedSources: Source[] = [];
@@ -306,8 +310,9 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
       await incrementQuota(userId, "message");
       await incrementQuota(userId, "agentic_task");
       if (isThinking) await incrementQuota(userId, "think");
-      const sources = subResult.sources;
-      const cited = sources.length > 0 ? appendCitations(subResult.content, sources) : { text: subResult.content };
+      const kept = subResult.sources.length > 0 ? keepCitedSources(subResult.content, subResult.sources) : { text: subResult.content, sources: subResult.sources };
+      const sources = kept.sources;
+      const cited = sources.length > 0 ? appendCitations(kept.text, sources) : { text: subResult.content };
       return {
         response: cited.text,
         toolCalls: [],
@@ -364,14 +369,27 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         onToolStart?.(tc.function.name, parsedArgs);
         const toolStart = Date.now();
         let toolResult: unknown;
-        try { toolResult = await executeToolCall(userId, tc.function.name, parsedArgs); }
-        catch (err) { toolResult = { error: `Tool ${tc.function.name} failed: ${(err as Error).message}` }; }
+        if (!baseTools.some((t) => t.name === tc.function.name)) {
+          toolResult = { success: false, error: `Tool ${tc.function.name} is not available in this run.`, code: "TOOL_NOT_ALLOWED" };
+        } else {
+          try { toolResult = await executeToolCall(userId, tc.function.name, parsedArgs); }
+          catch (err) { toolResult = { error: `Tool ${tc.function.name} failed: ${(err as Error).message}` }; }
+        }
+        if (tc.function.name === "load_skill" && (toolResult as { success?: boolean })?.success) {
+          const loaded = enabledSkills.find((sk) => sk.slug === (parsedArgs as { name?: string })?.name);
+          if (loaded) {
+            loadedSkillNarrowing.set(loaded.slug, loaded.allowedTools);
+            applySkillNarrowing();
+            onSkillUsed?.({ id: 0, name: loaded.slug });
+          }
+        }
         const toolDuration = Date.now() - toolStart;
         onToolEnd?.(tc.function.name, toolResult, toolDuration);
         toolExecutions.push({ tool: tc.function.name, input: parsedArgs, output: toolResult, step, durationMs: toolDuration });
         const newSources = extractSources(tc.function.name, toolResult);
         if (newSources.length > 0) collectedSources.push(...newSources);
-        currentMessages.push({ role: "tool", content: JSON.stringify(toolResult), tool_call_id: tc.id, name: tc.function.name });
+        const forModel = tc.function.name === "web_search" ? annotateSearchResult(toolResult, dedupeSources(collectedSources)) : toolResult;
+        currentMessages.push({ role: "tool", content: JSON.stringify(forModel), tool_call_id: tc.id, name: tc.function.name });
       }
 
       if (totalToolCallCount >= maxToolCalls) {
@@ -422,7 +440,9 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
 
     // Append numbered source cards
     if (sources.length > 0) {
-      const cited = appendCitations(finalContent, sources);
+      const kept = keepCitedSources(finalContent, sources);
+      sources = kept.sources;
+      const cited = appendCitations(kept.text, sources);
       finalContent = cited.text;
     }
 
@@ -641,6 +661,22 @@ interface SingleLLMOptions {
   onStream?: (chunk: string) => void;
 }
 
+// Gemini 3.x rejects tool-call history that lacks the thought_signature it issued. Keep it for Gemini,
+// use Google's documented placeholder for calls made by another model, and strip it for other providers.
+const GEMINI_SKIP_SIGNATURE = "skip_thought_signature_validator";
+
+function adaptToolCallsForProvider(m: KemmaMessage, provider: ModelProvider): KemmaMessage {
+  if (!m.tool_calls?.length) return m;
+  return {
+    ...m,
+    tool_calls: m.tool_calls.map((tc) => {
+      const { extra_content, ...rest } = tc;
+      if (provider !== "gemini") return rest;
+      return { ...rest, extra_content: extra_content?.google?.thought_signature ? extra_content : { google: { thought_signature: GEMINI_SKIP_SIGNATURE } } };
+    }),
+  };
+}
+
 async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string | null; toolCalls?: ToolCall[]; usage?: { input: number; output: number; total: number } }> {
   const { route, systemPrompt, messages, tools, stream, onStream } = input;
 
@@ -651,7 +687,7 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
   // OpenAI-compatible path (Qwen, Perplexity, Gemini)
   const body = {
     model: route.model,
-    messages: [{ role: "system", content: systemPrompt }, ...messages.filter((m) => m.role !== "system")],
+    messages: [{ role: "system", content: systemPrompt }, ...messages.filter((m) => m.role !== "system").map((m) => adaptToolCallsForProvider(m, route.provider))],
     tools: tools ? tools.map((t) => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.parameters } })) : undefined,
     tool_choice: tools ? "auto" : undefined,
     stream: stream && !!onStream,
@@ -690,7 +726,12 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
 
   const data = await res.json();
   const choice = data.choices?.[0];
-  const toolCalls = (choice?.message?.tool_calls ?? []).map((tc: any) => ({ id: tc.id, type: "function" as const, function: { name: tc.function.name, arguments: tc.function.arguments } }));
+  const toolCalls = (choice?.message?.tool_calls ?? []).map((tc: any) => ({
+    id: tc.id,
+    type: "function" as const,
+    function: { name: tc.function.name, arguments: tc.function.arguments },
+    ...(tc.extra_content ? { extra_content: tc.extra_content } : {}),
+  }));
   return {
     content: choice?.message?.content ?? null,
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,

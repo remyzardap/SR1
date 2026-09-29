@@ -12,6 +12,8 @@ import { registerGoogleCallbackRoute } from '../routers/googleCallback';
 import { registerTelegramWebhookRoute } from '../routers/telegramWebhook';
 import { kemmaStreamRoute } from '../routes/kemmaStream';
 import { startTrialExpiryJob } from '../core/trialManager';
+import { startJobRunner } from '../core/jobs';
+import { registerJobsTick } from '../core/jobsTick';
 import { setupVite, serveStatic } from './vite';
 import { loadSecretsFromSecretManager } from './secretManager';
 import { ENV } from './env';
@@ -90,6 +92,7 @@ app.use('/api/atelier', requireSession);
 registerAtelierRoutes(app);
 app.use('/api/intelligence', requireSession, intelligenceRouter);
 app.post('/api/kemma/stream', requireSession, kemmaStreamRoute);
+registerJobsTick(app);
 registerFileRoutes(app);
 registerExportRoutes(app);
 
@@ -113,6 +116,7 @@ const server = createServer(app);
 
   // Start trial expiry background job
   startTrialExpiryJob();
+  startJobRunner();
 
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`Sutaeru server running on port ${PORT}`);

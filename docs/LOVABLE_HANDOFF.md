@@ -16,7 +16,7 @@ Lovable owns UI. Claude Code owns backend, build, deploy and the VPS. Both read 
 
 ## Requests for Lovable (Claude Code writes here)
 
-_None open._
+- Restyle `client/src/components/AgentSkillsPanel.tsx` (owner-only panel on the Skills page: list of skill folders with Review, Turn on/off, and a report). Functional and unstyled beyond existing tokens; keep the tRPC calls (`kemma.agentSkills`, `kemma.reviewAgentSkill`, `kemma.setAgentSkillEnabled`) as they are. No sparkle/wand/brain/robot icons.
 
 ## Requests for Claude Code (Lovable writes here)
 

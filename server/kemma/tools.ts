@@ -409,6 +409,49 @@ const driveMoveTool: ToolDefinition = {
 };
 
 /**
+ * Skill tools. Not part of KEMMA_TOOLS: the engine adds them only on runs where at least one skill
+ * is enabled. They are read-only (load, read) or sandbox-only (run_skill_script) and never widen access.
+ */
+export const SKILL_TOOL_NAMES = ["load_skill", "read_skill_file", "run_skill_script"] as const;
+
+export const SKILL_TOOLS: ToolDefinition[] = [
+  {
+    name: "load_skill",
+    description: "Load the full instructions of an enabled skill by name (from the Skills index in the system prompt). Call this before starting a task the skill covers.",
+    parameters: {
+      type: "object",
+      properties: { name: { type: "string", description: "Skill name exactly as listed in the index" } },
+      required: ["name"],
+    },
+  },
+  {
+    name: "read_skill_file",
+    description: "Read one text file that belongs to a loaded skill (for example references/source-hierarchy.md). Read-only and confined to that skill's folder.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Skill name" },
+        path: { type: "string", description: "Path relative to the skill folder, for example references/assumptions.md" },
+      },
+      required: ["name", "path"],
+    },
+  },
+  {
+    name: "run_skill_script",
+    description: "Run a script from a skill's scripts/ folder inside the isolated E2B sandbox (.py, .js or .sh). The skill folder is available at /skills/<name>; write outputs to /output. Returns stdout, stderr and the files written to /output.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Skill name" },
+        script: { type: "string", description: "Script path relative to the skill folder, for example scripts/build_model.py" },
+        args: { type: "array", items: { type: "string" }, description: "Command line arguments" },
+      },
+      required: ["name", "script"],
+    },
+  },
+];
+
+/**
  * Exported array containing all Kemma tool definitions
  * @type {ToolDefinition[]}
  */

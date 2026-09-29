@@ -99,6 +99,11 @@ import { generateAndSaveFile as generateFile } from "./executors/generateFile";
 import { phoneScan, type ScanAction, type ScanOptions } from "./executors/phoneScan";
 import { STYLE_DEFINITIONS, type StructuredContent, type StyleOption } from "../fileGenerator";
 import { BrowserUse } from "browser-use-sdk";
+import fsp from "fs/promises";
+import nodePath from "path";
+import { getEnabledSkills } from "./skillReviews";
+import { getMcpRegistry, MCP_TOOL_PREFIX } from "./mcp/client";
+import { toLoadedSkill, readSkillFileContent, type FileSkill } from "./fileSkills";
 import {
   listDriveFiles,
   readDriveFile,
@@ -410,10 +415,76 @@ export async function browse(url: string, options: BrowseOptions = {}): Promise<
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SKILL SCRIPTS (E2B only): the skill folder is uploaded to /skills/<name>; never runs on this server
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SKILL_SCRIPT_TIMEOUT_MS = 120_000;
+const SKILL_SANDBOX_LIFETIME_MS = 300_000;
+const SKILL_MAX_UPLOAD_BYTES = 5_000_000;
+
+function shellQuote(arg: string): string {
+  return `'${arg.replace(/'/g, `'\\''`)}'`;
+}
+
+export async function runSkillScript(skill: FileSkill, script: string, args: string[]): Promise<RunCodeResult & { outputFiles: Array<{ path: string; bytes: number }> }> {
+  const fail = (stderr: string) => ({ stdout: "", stderr, exitCode: 1, engine: "e2b" as const, timedOut: false, outputFiles: [] });
+  if (!skill.dir) return fail("This skill has no scripts.");
+  const rel = nodePath.posix.normalize(String(script).replace(/\\/g, "/"));
+  if (!rel.startsWith("scripts/") || rel.includes("..") || !skill.files.includes(rel)) return fail(`Not a script of this skill. Scripts: ${skill.files.filter((f) => f.startsWith("scripts/")).join(", ") || "(none)"}`);
+  const ext = nodePath.posix.extname(rel);
+  const runner = ext === ".py" ? "python3" : ext === ".js" ? "node" : ext === ".sh" ? "bash" : null;
+  if (!runner) return fail("Only .py, .js and .sh scripts can run.");
+  if (!E2B_API_KEY) return fail("E2B_API_KEY is not configured. Skill scripts are unavailable until it is set.");
+
+  const uploads: Array<{ path: string; data: ArrayBuffer }> = [];
+  let total = 0;
+  for (const f of ["SKILL.md", ...skill.files]) {
+    const buf = await fsp.readFile(nodePath.join(skill.dir, f));
+    total += buf.length;
+    if (total > SKILL_MAX_UPLOAD_BYTES) return fail("Skill folder is too large to upload to the sandbox.");
+    uploads.push({ path: `/skills/${skill.slug}/${f}`, data: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer });
+  }
+
+  let sbx: Sandbox | undefined;
+  try {
+    const opts: SandboxOpts = { apiKey: E2B_API_KEY, timeoutMs: SKILL_SANDBOX_LIFETIME_MS };
+    if (SANDBOX_TEMPLATE) opts.template = SANDBOX_TEMPLATE;
+    sbx = await Sandbox.create(opts);
+    await sbx.files.write(uploads);
+    await sbx.commands.run("mkdir -p /output");
+
+    const cmd = `cd /skills/${skill.slug} && ${runner} ${shellQuote(rel)} ${args.map(shellQuote).join(" ")}`;
+    let stdout = "", stderr = "", exitCode = 0;
+    try {
+      const r = await sbx.commands.run(cmd, { timeoutMs: SKILL_SCRIPT_TIMEOUT_MS });
+      stdout = r.stdout; stderr = r.stderr; exitCode = r.exitCode;
+    } catch (e: any) {
+      // e2b throws CommandExitError on non-zero exit; it carries the streams.
+      stdout = e?.stdout ?? ""; stderr = e?.stderr ?? String(e?.message ?? e); exitCode = typeof e?.exitCode === "number" ? e.exitCode : 1;
+    }
+    const listing = await sbx.files.list("/output").catch(() => []);
+    return {
+      stdout: truncateBytes(stdout, CODE_MAX_OUTPUT_BYTES),
+      stderr: truncateBytes(stderr, CODE_MAX_OUTPUT_BYTES),
+      exitCode,
+      engine: "e2b",
+      timedOut: false,
+      outputFiles: listing.filter((f) => f.type === "file").map((f) => ({ path: f.path, bytes: f.size })),
+    };
+  } catch (err) {
+    const message = (err as Error).message ?? "Unknown sandbox error";
+    const timedOut = /timeout/i.test(message);
+    return { ...fail(timedOut ? "Execution timed out" : `Sandbox error: ${message}`), exitCode: timedOut ? 124 : 1, timedOut };
+  } finally {
+    if (sbx) await sbx.kill().catch(() => {});
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 3. TOOL DISPATCHER — replaces executor.ts, with 3 bugs fixed
 // ═══════════════════════════════════════════════════════════════════════════
 
-type ToolName = "safe_files" | "web_search" | "browse" | "run_code" | "generate_file" | "phone_scan" | "drive_search" | "drive_read" | "drive_create" | "drive_edit" | "drive_move";
+type ToolName = "load_skill" | "read_skill_file" | "run_skill_script" | "safe_files" | "web_search" | "browse" | "run_code" | "generate_file" | "phone_scan" | "drive_search" | "drive_read" | "drive_create" | "drive_edit" | "drive_move";
 
 type SafeFilesAction = "create" | "read" | "edit" | "list" | "versions";
 
@@ -436,7 +507,7 @@ function createErrorResult(error: string, code: string): ErrorResult {
 }
 
 function isValidToolName(value: unknown): value is ToolName {
-  const valid: ToolName[] = ["safe_files", "web_search", "browse", "run_code", "generate_file", "phone_scan", "drive_search", "drive_read", "drive_create", "drive_edit", "drive_move"];
+  const valid: ToolName[] = ["load_skill", "read_skill_file", "run_skill_script", "safe_files", "web_search", "browse", "run_code", "generate_file", "phone_scan", "drive_search", "drive_read", "drive_create", "drive_edit", "drive_move"];
   return typeof value === "string" && valid.includes(value as ToolName);
 }
 
@@ -492,10 +563,31 @@ async function routeSafeFilesAction(
 
 export async function executeToolCall(userId: number, toolName: string, args: unknown): Promise<ToolResult> {
   try {
+    if (toolName.startsWith(MCP_TOOL_PREFIX)) {
+      const r = await getMcpRegistry().call(toolName, typeof args === "object" && args !== null ? (args as Record<string, unknown>) : {});
+      return r.ok ? createSuccessResult({ output: r.text }) : createErrorResult(r.error, "MCP_ERROR");
+    }
     if (!isValidToolName(toolName)) return createErrorResult(`Unknown tool: ${toolName}`, "UNKNOWN_TOOL");
     const safeArgs = typeof args === "object" && args !== null ? (args as Record<string, unknown>) : {};
 
     switch (toolName) {
+      case "load_skill":
+      case "read_skill_file":
+      case "run_skill_script": {
+        const name = safeArgs.name;
+        if (typeof name !== "string") return createErrorResult('Missing or invalid "name" parameter', "INVALID_PARAMS");
+        const skill = (await getEnabledSkills()).find((s) => s.slug === name);
+        if (!skill) return createErrorResult(`Skill "${name}" is not enabled.`, "SKILL_NOT_ENABLED");
+        if (toolName === "load_skill") return createSuccessResult(toLoadedSkill(skill));
+        if (toolName === "read_skill_file") {
+          const r = await readSkillFileContent(skill, String(safeArgs.path ?? ""));
+          return "error" in r ? createErrorResult(r.error, "INVALID_PARAMS") : createSuccessResult(r);
+        }
+        if (typeof safeArgs.script !== "string") return createErrorResult('Missing or invalid "script" parameter', "INVALID_PARAMS");
+        const args = Array.isArray(safeArgs.args) ? safeArgs.args.filter((a): a is string => typeof a === "string") : [];
+        return createSuccessResult(await runSkillScript(skill, safeArgs.script, args));
+      }
+
       case "safe_files": {
         const { action } = safeArgs;
         if (!isValidSafeFilesAction(action)) {
@@ -702,5 +794,12 @@ When researching a topic (not just answering a quick factual lookup), follow thi
 4. Cross-check any surprising, specific, or high-stakes claim (numbers, dates, prices, names) against a second independent source before stating it as fact.
 5. Only synthesize your final answer once you've done this — don't stop after the first search result if the question deserves depth.
 6. When asked for a report or deliverable (not just a chat answer), use generate_file to produce an actual formatted document rather than only replying in chat.
+Citations and format for research answers:
+- Put the direct answer first, then supporting detail.
+- Every factual claim (numbers, dates, regulation names, prices, legal points) ends with an inline marker like [3]. Use the "id" field on each web_search result as the marker number. Never invent a number, and never cite an id you did not see in a tool result.
+- Prefer primary sources (government, regulator, statute text, official statistics, the operator itself) over news or vendor pages. When you rely on a secondary source, say so.
+- State the date of each time-sensitive figure or rule. Flag anything older than six months, or possibly amended or revoked.
+- When sources disagree, say so and say which one is more authoritative and why. Do not smooth over conflicts.
+- Do not write a Sources list yourself; the system appends the numbered list. Do not use emoji, and do not use em or en dashes as punctuation.
 Use your full tool-call budget when the task warrants it — a shallow one-search answer to a substantive research question is a failure mode, not efficiency.
 `.trim();

@@ -1,0 +1,15 @@
+{
+  "servers": {
+    "everything": {
+      "enabled": false,
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["--no-install", "mcp-server-everything"],
+      "envVars": [],
+      "tools": {
+        "echo": "read",
+        "get-sum": "read"
+      }
+    }
+  }
+}

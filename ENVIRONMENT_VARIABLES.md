@@ -157,6 +157,14 @@ SONAR_API_KEY=
 | `KEMMA_MODEL_CHAT` | `qwen3.8-max` | Everyday chat, tools, code, file generation |
 | `KEMMA_MODEL_SEARCH` | `sonar-pro` | Web search model |
 | `KEMMA_MODEL_VISION` | `gemini-3.8-flash` | Vision and documents |
+| `KEMMA_UNLIMITED_USER_IDS` | empty | Comma separated user ids that skip quota checks. Use for the owner account and eval runs |
+| `SKILLS_DIR` | `./skills` | Folder of agent skills (SKILL.md folders or flat .md). A skill is used only after it is reviewed and switched on for its exact content |
+| `MCP_CONFIG` | `./mcp.config.json` | MCP servers and their tool allowlists. Credentials come from env var names listed there, never from the file |
+| `JOBS_ENABLED` | on | Set `false` to turn off the pg-boss job runner |
+| `JOBS_TICK_SECRET` | empty | Enables `POST /api/jobs/tick` (header `x-jobs-secret`) for Cloud Run with Cloud Scheduler. Empty disables the endpoint |
+| `EVAL_USER_ID` | `199` | User id the research eval runs as |
+| `EVAL_DB_HOST` | empty | Replaces the host in `DATABASE_URL` when the eval runs on the VPS host outside docker |
+| `EVAL_JUDGE_MODEL` | `KEMMA_MODEL_VERIFY` | Model that scores eval answers; keep it different from the writer |
 | `KEMMA_MODEL_EMBEDDING` | `text-embedding-004` | Embeddings |
 | `KEMMA_MODEL_IMAGE` | `gemini-3.8-flash` | Image generation |
 | `KEMMA_MODEL_REPORT` | `qwen3.8-max` | Report writing |

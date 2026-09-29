@@ -50,6 +50,13 @@
       "when": 1790322776670,
       "tag": "0021_chat_messages_embedding",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790326376670,
+      "tag": "0022_skill_reviews",
+      "breakpoints": true
     }
   ]
 }
