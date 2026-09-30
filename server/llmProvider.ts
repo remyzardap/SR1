@@ -3,7 +3,7 @@
  * the Kemma router (Qwen for text, Gemini as fallback) — never by the customer.
  */
 
-import { chatRoute, fallbackRoutes } from "./core/kemmaRouter";
+import { chatRoute, fallbackRoutes, resolveRouteAuth, routeHasAuth, type RouteConfig } from "./core/kemmaRouter";
 
 export interface DocumentContent {
   title: string;
@@ -17,25 +17,25 @@ export interface StyleOption {
   previewText?: string;
 }
 
-function resolveEndpoint(): { baseUrl: string; apiKey: string; model: string } {
-  const route = [chatRoute(), ...fallbackRoutes()].find((r) => r.apiKey);
+function resolveRoute(): RouteConfig {
+  const route = [chatRoute(), ...fallbackRoutes()].find((r) => routeHasAuth(r));
   if (!route) {
     throw new Error("No LLM provider configured. Set QWEN_API_KEY or GEMINI_API_KEY.");
   }
-  return { baseUrl: route.baseUrl, apiKey: route.apiKey, model: route.model };
+  return route;
 }
 
 async function callLLM(messages: Array<{ role: string; content: string }>): Promise<string> {
-  const ep = resolveEndpoint();
+  const target = await resolveRouteAuth(resolveRoute());
 
-  const response = await fetch(`${ep.baseUrl}/chat/completions`, {
+  const response = await fetch(`${target.baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${ep.apiKey}`,
+      Authorization: `Bearer ${target.auth}`,
     },
     body: JSON.stringify({
-      model: ep.model,
+      model: target.model,
       messages,
       max_tokens: 4096,
       stream: false,

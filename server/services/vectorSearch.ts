@@ -6,12 +6,17 @@
  *
  * Required env vars:
  *   GEMINI_API_KEY  - Google AI Studio API key
+ *
+ * With GEMINI_BACKEND=vertex (and GOOGLE_APPLICATION_CREDENTIALS) the embedding goes to the
+ * native Vertex predict endpoint via text-embedding-004 in VERTEX_EMBEDDING_LOCATION, and no
+ * AI Studio key is needed. Results stay 768-dimensional either way.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getDb } from "../db";
 import { memories, identities } from "../../drizzle/schema";
 import { eq, sql } from "drizzle-orm";
+import { vertexEmbed, vertexEnabled } from "../core/vertexAuth";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const EMBEDDING_MODEL = process.env.KEMMA_MODEL_EMBEDDING || "gemini-embedding-2";
@@ -27,9 +32,12 @@ const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 /**
  * Generate an embedding for the given text using Google's Gemini Embedding API.
  * Model configurable via KEMMA_MODEL_EMBEDDING (default gemini-embedding-2).
+ * In Vertex mode the native predict endpoint is used and the model is mapped to
+ * text-embedding-004; the result is always 768-dimensional.
  */
 export async function embed(text: string): Promise<number[]> {
-  if (!GEMINI_API_KEY) {
+  const backend = vertexEnabled() ? "vertex" : "aistudio";
+  if (backend === "aistudio" && !GEMINI_API_KEY) {
     throw new Error("GEMINI_API_KEY is not configured");
   }
 
@@ -40,11 +48,16 @@ export async function embed(text: string): Promise<number[]> {
     return cached.vector;
   }
 
-  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
+  let embedding: number[];
+  if (backend === "vertex") {
+    embedding = await vertexEmbed(text, process.env.KEMMA_MODEL_EMBEDDING || EMBEDDING_MODEL);
+  } else {
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || "");
+    const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
 
-  const result = await model.embedContent(text);
-  const embedding = result.embedding.values;
+    const result = await model.embedContent(text);
+    embedding = result.embedding.values;
+  }
 
   // Cache the result
   vectorCache.set(cacheKey, { vector: embedding, timestamp: Date.now() });
@@ -243,9 +256,9 @@ export async function searchMemoriesByText(
 // UTILITIES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/** Returns true if Gemini Embedding is configured */
+/** Returns true if Gemini Embedding is configured (AI Studio key, or the Vertex backend) */
 export function isVectorSearchConfigured(): boolean {
-  return !!GEMINI_API_KEY;
+  return vertexEnabled() || !!GEMINI_API_KEY;
 }
 
 /**

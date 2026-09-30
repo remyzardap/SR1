@@ -3,7 +3,7 @@
  * Precedence: message settings > thread settings > server defaults.
  */
 
-import { routeFor, ROUGH_PRICES_USD_PER_1M } from "../core/kemmaRouter";
+import { routeFor, stripProviderPrefix, ROUGH_PRICES_USD_PER_1M } from "../core/kemmaRouter";
 
 export type ChatMode = "fast" | "deep" | "document" | "image";
 
@@ -93,12 +93,13 @@ function hasProviderKey(provider: string): boolean {
     case "qwen": return !!process.env.QWEN_API_KEY;
     case "perplexity": return !!(process.env.SONAR_API_KEY || process.env.PERPLEXITY_API_KEY);
     case "gemini": return !!process.env.GEMINI_API_KEY;
+    case "litellm": return !!(process.env.LITELLM_API_KEY || process.env.KOBOILLM_API_KEY);
     default: return false;
   }
 }
 
 export function estimateModelCostTier(model: string): "cheap" | "medium" | "premium" {
-  const price = ROUGH_PRICES_USD_PER_1M[model];
+  const price = ROUGH_PRICES_USD_PER_1M[stripProviderPrefix(model)];
   if (!price) return "medium";
   const avg = (price.input + price.output) / 2;
   if (avg <= 1) return "cheap";

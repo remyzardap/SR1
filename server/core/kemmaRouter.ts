@@ -2,8 +2,19 @@
  * kemmaRouter.ts
  * Env-driven model routing for the Kemma agent.
  *
- * Supported providers: qwen, gemini, perplexity (search only).
- * Dropped providers: kimi, anthropic, openai, litellm, nvidia.
+ * Supported providers: qwen, gemini, perplexity (search only), litellm (OpenAI-compatible gateway).
+ * Dropped providers: kimi, anthropic, openai, nvidia.
+ *
+ * Gemini backend: GEMINI_BACKEND=vertex (default aistudio) routes every gemini-provider call
+ * through the Vertex AI OpenAI-compatible endpoint with a service-account bearer token
+ * (GOOGLE_APPLICATION_CREDENTIALS); if that env var is missing or unreadable the code warns once
+ * and stays on AI Studio. Vertex auth, token and URL building live in core/vertexAuth.ts.
+ * Because Vertex credentials resolve asynchronously, call sites must never read
+ * route.apiKey / route.baseUrl for a gemini route directly; they must await resolveRouteAuth(route).
+ *
+ * Provider prefix rule: a model id that starts with "litellm/" (case-insensitive) routes to the
+ * LiteLLM gateway before any other rule is checked. The prefix is stripped from the model name
+ * sent to the gateway; the full prefixed id stays in RouteConfig.label for logs and the picker.
  *
  * Routing slots (all configurable via KEMMA_MODEL_* env vars):
  *   chat/tools/code/file generation -> KEMMA_MODEL_CHAT (default qwen3.8-max)
@@ -15,14 +26,26 @@
  *   long docs/heavy browsing        -> KEMMA_MODEL_LONG_DOC (default qwen3.8-max)
  *   deep-research planner           -> KEMMA_MODEL_PLANNER (default gemini-3.8-flash)
  *   citation verification           -> KEMMA_MODEL_VERIFY (default gemini-3.8-flash)
+ *   pro reasoning (exposed, opt-in) -> KEMMA_MODEL_PRO (default gemini-3.1-pro-preview)
+ *                                     with KEMMA_MODEL_PRO_FALLBACK (default gemini-2.5-pro)
  *
  * Fallback chain (used by the engine when a primary call fails):
- *   KEMMA_MODEL_CHAT -> KEMMA_MODEL_VISION
+ *   KEMMA_MODEL_CHAT -> KEMMA_MODEL_VISION -> KEMMA_MODEL_FALLBACK (optional, appended last)
+ *   A KEMMA_MODEL_PRO call additionally retries KEMMA_MODEL_PRO_FALLBACK before the chain.
  */
+
+import {
+  getVertexProject,
+  getVertexToken,
+  stripGooglePrefix,
+  vertexChatBaseUrl,
+  vertexEnabled,
+  vertexProjectCached,
+} from "./vertexAuth";
 
 export type Tier = "free" | "trial" | "pro" | "max";
 export type TaskComplexity = "simple" | "medium" | "complex";
-export type ModelProvider = "qwen" | "perplexity" | "gemini";
+export type ModelProvider = "qwen" | "perplexity" | "gemini" | "litellm";
 
 export interface RouteInput {
   tier: Tier;
@@ -33,12 +56,20 @@ export interface RouteInput {
   maxSteps?: number;
 }
 
+export type RouteAuthKind = "api_key" | "vertex";
+
 export interface RouteConfig {
   model: string;
   baseUrl: string;
   apiKey: string;
   label: string;
   provider: ModelProvider;
+  /**
+   * How a request authenticates: "api_key" = static key in RouteConfig.apiKey (all non-gemini
+   * providers and gemini via AI Studio); "vertex" = async service-account bearer token, and
+   * baseUrl/model must be re-resolved per call through resolveRouteAuth().
+   */
+  authKind: RouteAuthKind;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -55,15 +86,27 @@ const DEFAULTS = {
   KEMMA_MODEL_LONG_DOC: "qwen3.8-max",
   KEMMA_MODEL_PLANNER: "gemini-3.8-flash",
   KEMMA_MODEL_VERIFY: "gemini-3.8-flash",
+  KEMMA_MODEL_PRO: "gemini-3.1-pro-preview",
+  KEMMA_MODEL_PRO_FALLBACK: "gemini-2.5-pro",
   KEMMA_SEARCH_RPM: "40",
   QWEN_BASE_URL: "https://token-plan.maas.qwencloudapi.com/compatible-mode/v1",
+  LITELLM_BASE_URL: "https://api.koboillm.com/v1",
 };
 
-const ENDPOINTS: Record<ModelProvider, string> = {
+const ENDPOINTS: Record<Exclude<ModelProvider, "litellm">, string> = {
   qwen: process.env.QWEN_BASE_URL || DEFAULTS.QWEN_BASE_URL,
   perplexity: "https://api.perplexity.ai",
   gemini: "https://generativelanguage.googleapis.com/v1beta/openai",
 };
+
+// Read at call time so env changes take effect without a restart. Trailing slash trimmed.
+export function litellmBaseUrl(): string {
+  return (process.env.LITELLM_BASE_URL || DEFAULTS.LITELLM_BASE_URL).replace(/\/+$/, "");
+}
+
+function endpointFor(provider: ModelProvider): string {
+  return provider === "litellm" ? litellmBaseUrl() : ENDPOINTS[provider];
+}
 
 // Very rough per-million-token prices for cost estimation only.
 export const ROUGH_PRICES_USD_PER_1M: Record<string, { input: number; output: number }> = {
@@ -72,16 +115,27 @@ export const ROUGH_PRICES_USD_PER_1M: Record<string, { input: number; output: nu
   "gemini-2.0-flash": { input: 0.1, output: 0.4 },
   "gemini-2.0-flash-thinking": { input: 0.1, output: 0.4 },
   "text-embedding-004": { input: 0, output: 0 },
+  "gemini-3.1-pro-preview": { input: 2.0, output: 12.0 },
+  "gemini-2.5-pro": { input: 1.25, output: 10.0 },
   "sonar-pro": { input: 3, output: 15 },
   "sonar": { input: 1, output: 1 },
+  "deepseek-ai/deepseek-v3.2-maas": { input: 0.3, output: 1.0 },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PROVIDER / KEY RESOLUTION
 // ═══════════════════════════════════════════════════════════════════════════════
 
+const LITELLM_PREFIX = "litellm/";
+
+/** Strips the litellm/ routing prefix (case-insensitive); other ids are returned unchanged. */
+export function stripProviderPrefix(model: string): string {
+  return model.toLowerCase().startsWith(LITELLM_PREFIX) ? model.slice(LITELLM_PREFIX.length) : model;
+}
+
 export function detectProvider(model: string): ModelProvider {
   const lower = model.toLowerCase();
+  if (lower.startsWith(LITELLM_PREFIX)) return "litellm";
   if (lower.includes("qwen") || lower.includes("qwq")) return "qwen";
   if (lower.includes("sonar")) return "perplexity";
   if (lower.includes("gemini") || lower.includes("embedding")) return "gemini";
@@ -93,18 +147,57 @@ export function apiKeyFor(provider: ModelProvider): string {
     case "qwen": return process.env.QWEN_API_KEY || "";
     case "perplexity": return process.env.SONAR_API_KEY || process.env.PERPLEXITY_API_KEY || "";
     case "gemini": return process.env.GEMINI_API_KEY || "";
+    case "litellm": return process.env.LITELLM_API_KEY || process.env.KOBOILLM_API_KEY || "";
   }
 }
 
 export function routeFor(model: string): RouteConfig {
   const provider = detectProvider(model);
+  const vertex = provider === "gemini" && vertexEnabled();
+  const stripped = provider === "litellm" ? stripProviderPrefix(model) : model;
+  const project = vertex ? vertexProjectCached() : "";
   return {
-    model,
-    baseUrl: ENDPOINTS[provider],
-    apiKey: apiKeyFor(provider),
+    model: vertex ? stripGooglePrefix(stripped) : stripped,
+    // A Vertex route keeps the AI Studio URL here until the project id is known (it resolves
+    // async); call sites for gemini routes must go through resolveRouteAuth(), never route.baseUrl.
+    baseUrl: vertex && project ? vertexChatBaseUrl(project) : endpointFor(provider),
+    apiKey: vertex ? "" : apiKeyFor(provider),
     label: `${model} (${provider})`,
     provider,
+    authKind: vertex ? "vertex" : "api_key",
   };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VERTEX-AWARE REQUEST RESOLUTION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface ResolvedRouteTarget {
+  /** OpenAI-compatible base; call sites append /chat/completions. */
+  baseUrl: string;
+  /** Model id to send upstream (google/ prefixed in Vertex mode, never doubled). */
+  model: string;
+  /** Bearer credential: the static API key, or a freshly resolved Vertex access token. Never log this. */
+  auth: string;
+}
+
+/**
+ * Resolve everything a route needs at fetch time. Static-key routes resolve synchronously to
+ * their own values (non-gemini providers behave exactly as before); Vertex gemini routes get a
+ * live bearer token and a project-qualified base URL. Every call site that sends an
+ * Authorization header for a RouteConfig must use this.
+ */
+export async function resolveRouteAuth(route: RouteConfig): Promise<ResolvedRouteTarget> {
+  if (route.authKind !== "vertex") {
+    return { baseUrl: route.baseUrl, model: route.model, auth: route.apiKey };
+  }
+  const [auth, project] = await Promise.all([getVertexToken(), getVertexProject()]);
+  return { baseUrl: vertexChatBaseUrl(project), model: `google/${stripGooglePrefix(route.model)}`, auth };
+}
+
+/** True when a route can actually be called. Vertex routes authenticate via the service account, not a key. */
+export function routeHasAuth(route: RouteConfig): boolean {
+  return route.authKind === "vertex" || !!route.apiKey;
 }
 
 function getEnvModel(name: keyof typeof DEFAULTS): string {
@@ -118,7 +211,7 @@ function getEnvModel(name: keyof typeof DEFAULTS): string {
 export interface SelectableModel { id: string; label: string; tier: ModelProvider; hasKey: boolean }
 
 export function listSelectableModels(): SelectableModel[] {
-  const slots = ["KEMMA_MODEL_CHAT", "KEMMA_MODEL_REPORT", "KEMMA_MODEL_LONG_DOC", "KEMMA_MODEL_VISION"] as const;
+  const slots = ["KEMMA_MODEL_CHAT", "KEMMA_MODEL_REPORT", "KEMMA_MODEL_LONG_DOC", "KEMMA_MODEL_VISION", "KEMMA_MODEL_PRO"] as const;
   const seen = new Set<string>();
   const out: SelectableModel[] = [];
   for (const slot of slots) {
@@ -126,7 +219,7 @@ export function listSelectableModels(): SelectableModel[] {
     if (seen.has(id)) continue;
     seen.add(id);
     const provider = detectProvider(id);
-    out.push({ id, label: id, tier: provider, hasKey: !!apiKeyFor(provider) });
+    out.push({ id, label: id, tier: provider, hasKey: routeHasAuth(routeFor(id)) });
   }
   return out;
 }
@@ -143,9 +236,9 @@ export function visionRoute(): RouteConfig {
   return routeFor(getEnvModel("KEMMA_MODEL_VISION"));
 }
 
-export function embeddingRoute(): { model: string; apiKey: string } {
+export function embeddingRoute(): { model: string; apiKey: string; authKind: RouteAuthKind } {
   const route = routeFor(getEnvModel("KEMMA_MODEL_EMBEDDING"));
-  return { model: route.model, apiKey: route.apiKey };
+  return { model: route.model, apiKey: route.apiKey, authKind: route.authKind };
 }
 
 export function imageRoute(): RouteConfig {
@@ -168,6 +261,16 @@ export function verifyRoute(): RouteConfig {
   return routeFor(getEnvModel("KEMMA_MODEL_VERIFY"));
 }
 
+/** Pro reasoning slot (gemini on both backends). No existing role switches to it automatically. */
+export function proRoute(): RouteConfig {
+  return routeFor(getEnvModel("KEMMA_MODEL_PRO"));
+}
+
+/** Tried when a proRoute() call fails. Set KEMMA_MODEL_PRO_FALLBACK to empty to disable. */
+export function proFallbackRoute(): RouteConfig | null {
+  const model = (process.env.KEMMA_MODEL_PRO_FALLBACK ?? DEFAULTS.KEMMA_MODEL_PRO_FALLBACK).trim();
+  return model ? routeFor(model) : null;
+}
 // Polish and Nemotron are no longer supported.
 export function polishRoute(): RouteConfig | null {
   return null;
@@ -186,7 +289,27 @@ export function fallbackRoutes(): RouteConfig[] {
     getEnvModel("KEMMA_MODEL_CHAT"),
     getEnvModel("KEMMA_MODEL_VISION"),
   ];
+  const globalFallback = (process.env.KEMMA_MODEL_FALLBACK || "").trim();
+  if (globalFallback && !chain.includes(globalFallback)) chain.push(globalFallback);
   return chain.map(routeFor);
+}
+
+/**
+ * The order in which the engine retries a failed call: the primary route, then
+ * KEMMA_MODEL_PRO_FALLBACK when the primary is the pro slot, then the generic fallback
+ * chain, deduplicated by model.
+ */
+export function callChainFor(route: RouteConfig): RouteConfig[] {
+  const proExtra: RouteConfig[] = [];
+  if (route.model === proRoute().model) {
+    const proFallback = proFallbackRoute();
+    if (proFallback && proFallback.model !== route.model) proExtra.push(proFallback);
+  }
+  return [
+    route,
+    ...proExtra,
+    ...fallbackRoutes().filter((r) => r.model !== route.model && !proExtra.some((e) => e.model === r.model)),
+  ];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -200,7 +323,7 @@ export function monthlySpendCapUsd(_provider: ModelProvider): number {
 }
 
 export function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number {
-  const price = ROUGH_PRICES_USD_PER_1M[model] || { input: 2, output: 6 };
+  const price = ROUGH_PRICES_USD_PER_1M[stripProviderPrefix(model)] || { input: 2, output: 6 };
   return (inputTokens * price.input + outputTokens * price.output) / 1_000_000;
 }
 

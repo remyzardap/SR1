@@ -10,6 +10,7 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { geminiVisionRoute } from "../../core/kemmaRouter";
+import { vertexGenerateContentBody, vertexGenerateContentText } from "../../core/vertexAuth";
 
 export interface PhoneScanInput {
   imageBase64: string;
@@ -43,30 +44,34 @@ export async function scanWithGemini(input: PhoneScanInput): Promise<PhoneScanRe
   const { imageBase64, mimeType, scanType = "general", userPrompt } = input;
   
   const route = geminiVisionRoute();
-  
+
   try {
-    const genAI = new GoogleGenerativeAI(route.apiKey);
-    const model = genAI.getGenerativeModel({ 
-      model: route.model,
-      generationConfig: {
-        temperature: 0.1,  // Low temperature for accuracy
-        maxOutputTokens: 4096,
-      }
-    });
-
-    // Build specialized prompt based on scan type
+    // Build the prompt and the inline image once; only the transport differs by backend.
     const prompt = userPrompt || buildScanPrompt(scanType);
+    const image = { data: imageBase64, mimeType };
 
-    const imagePart = {
-      inlineData: {
-        data: imageBase64,
-        mimeType: mimeType,
-      },
-    };
-
-    const result = await model.generateContent([prompt, imagePart]);
-    const response = await result.response;
-    const text = response.text();
+    let text: string;
+    if (route.authKind === "vertex") {
+      const body = vertexGenerateContentBody({
+        texts: [prompt],
+        image,
+        generationConfig: { temperature: 0.1, maxOutputTokens: 4096 },
+      });
+      text = await vertexGenerateContentText(route.model, body);
+    } else {
+      const genAI = new GoogleGenerativeAI(route.apiKey);
+      const model = genAI.getGenerativeModel({
+        model: route.model,
+        generationConfig: {
+          temperature: 0.1,  // Low temperature for accuracy
+          maxOutputTokens: 4096,
+        }
+      });
+      const imagePart = { inlineData: image };
+      const result = await model.generateContent([prompt, imagePart]);
+      const response = await result.response;
+      text = response.text();
+    }
 
     // Parse structured data from response
     const structured = parseStructuredResponse(text, scanType);
