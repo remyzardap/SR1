@@ -1,4 +1,5 @@
 import { ENV } from "./env";
+import { apiKeyFor, detectProvider, litellmBaseUrl, stripProviderPrefix } from "../core/kemmaRouter";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
 
@@ -209,18 +210,25 @@ const normalizeToolChoice = (
   return toolChoice;
 };
 
-const resolveApiUrl = () =>
-  ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
+// The platform chat model; a litellm/ prefix routes this path to the gateway as well.
+const chatModelId = () => process.env.KEMMA_MODEL_CHAT || "qwen3.8-max";
+
+const resolveApiUrl = () => {
+  if (detectProvider(chatModelId()) === "litellm") return `${litellmBaseUrl()}/chat/completions`;
+  return ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
     ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
     : `${(process.env.QWEN_BASE_URL || "https://token-plan.maas.qwencloudapi.com/compatible-mode/v1").replace(/\/$/, "")}/chat/completions`;
+};
 
 const assertApiKey = () => {
-  const key = ENV.forgeApiKey || ENV.qwenApiKey;
-  if (!key) {
-    throw new Error("No LLM API key configured. Set QWEN_API_KEY or BUILT_IN_FORGE_API_KEY.");
+  if (!resolveApiKey()) {
+    throw new Error("No LLM API key configured. Set QWEN_API_KEY, LITELLM_API_KEY or BUILT_IN_FORGE_API_KEY.");
   }
 };
-const resolveApiKey = () => ENV.forgeApiKey || ENV.qwenApiKey;
+const resolveApiKey = () =>
+  detectProvider(chatModelId()) === "litellm"
+    ? apiKeyFor("litellm")
+    : ENV.forgeApiKey || ENV.qwenApiKey;
 
 const normalizeResponseFormat = ({
   responseFormat,
@@ -282,7 +290,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   } = params;
 
   const payload: Record<string, unknown> = {
-    model: process.env.KEMMA_MODEL_CHAT || "qwen3.8-max",
+    model: stripProviderPrefix(chatModelId()),
     messages: messages.map(normalizeMessage),
   };
 

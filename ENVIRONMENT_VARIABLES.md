@@ -58,6 +58,19 @@ GEMINI_API_KEY=
 SONAR_API_KEY=
 ```
 
+### LiteLLM gateway (KoboiLLM)
+
+OpenAI-compatible gateway available as a fourth provider. Calls go to `{LITELLM_BASE_URL}/chat/completions` with `Authorization: Bearer <key>`.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LITELLM_BASE_URL` | `https://api.koboillm.com/v1` | Gateway endpoint; trailing slash trimmed |
+| `LITELLM_API_KEY` | empty | Gateway key; falls back to `KOBOILLM_API_KEY` |
+| `KOBOILLM_API_KEY` | empty | Fallback gateway key |
+| `KEMMA_MODEL_FALLBACK` | empty | Optional model id appended as the LAST fallback after `KEMMA_MODEL_CHAT` and `KEMMA_MODEL_VISION`; duplicates are skipped; may use the `litellm/` prefix |
+
+Prefix rule: a model id that starts with `litellm/` (case-insensitive) routes to this gateway, checked before every other routing rule. The prefix is stripped before the request, so `KEMMA_MODEL_PLANNER=litellm/deepseek-ai/deepseek-v3.2-maas` sends model `deepseek-ai/deepseek-v3.2-maas` to the gateway.
+
 ---
 
 ## 🔊 Voice & Speech (ElevenLabs)
