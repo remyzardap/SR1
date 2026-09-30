@@ -50,6 +50,7 @@ const menuItems: Array<{ icon: SutaeruIconName; label: string; path: string; gro
   // ── File generation ──
   { icon: "make", label: "Atelier", path: "/atelier", group: "forge" },
   { icon: "report", label: "Generate", path: "/generate", group: "forge" },
+  { icon: "image", label: "Images", path: "/images", group: "forge" },
   { icon: "files", label: "My Files", path: "/files", group: "forge" },
   // ── Back Office ──
   // ── Settings ──
