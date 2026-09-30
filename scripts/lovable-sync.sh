@@ -55,6 +55,8 @@ case "$cmd" in
       | rsync -a --from0 --files-from=- "$REPO/" "$WS/"
     # Handoff doc: repo copy wins only if the workspace copy is not newer, so neither side's log lines are lost.
     if [ "$REPO/docs/LOVABLE_HANDOFF.md" -nt "$WS/docs/LOVABLE_HANDOFF.md" ]; then cp "$REPO/docs/LOVABLE_HANDOFF.md" "$WS/docs/LOVABLE_HANDOFF.md"; else echo "Handoff doc in workspace is newer; kept it. Run from-lovable to pull it."; fi
+    # With --client the repo is authoritative for client/, so mirror deletions too (a backup was taken above).
+    if [ $with_client = 1 ]; then rsync -a --delete --exclude=node_modules "$REPO/client/" "$WS/client/"; fi
     chown -R 1001:1001 "$WS"
     echo "Copied to workspace."
     ;;
