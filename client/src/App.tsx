@@ -19,6 +19,7 @@ import Identity from "./pages/Identity";
 import Skills from "./pages/Skills";
 import Memories from "./pages/Memories";
 import Monitors from "./pages/Monitors";
+import Images from "./pages/Images";
 import Connections from "./pages/Connections";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
@@ -165,6 +166,15 @@ function AppRoutes() {
           </DashboardLayout>
         ) : (
           <ProtectedRoute component={Monitors} />
+        )}
+      </Route>
+      <Route path="/images">
+        {isAuthenticated ? (
+          <DashboardLayout>
+            <Images />
+          </DashboardLayout>
+        ) : (
+          <ProtectedRoute component={Images} />
         )}
       </Route>
       <Route path="/connections">
