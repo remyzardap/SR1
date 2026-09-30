@@ -28,11 +28,11 @@ export function isDesignPreview(): boolean {
     return true;
   }
   if (flag === "0") {
-    window.sessionStorage.setItem(PREVIEW_KEY, "0");
+    window.sessionStorage.removeItem(PREVIEW_KEY);
     return false;
   }
-  // Sign-in is bypassed by default; ?preview=0 restores the real login.
-  return window.sessionStorage.getItem(PREVIEW_KEY) !== "0";
+  // Real sign-in is the default. Preview only runs after ?preview=1 or the login page's explore link.
+  return window.sessionStorage.getItem(PREVIEW_KEY) === "1";
 }
 
 export function enterDesignPreview(): void {
