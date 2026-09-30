@@ -13,6 +13,7 @@ import type { NextFunction, Request, Response } from "express";
 import { FnError, GENERIC_FAILURE, requireUserId, sendError } from "./shared";
 import { handleChatInsights } from "./chatInsights";
 import { handleDocumentBrief } from "./documentBrief";
+import { handleImage } from "./image";
 import { handleMemories } from "./memories";
 import { handleMonitors } from "./monitors";
 import { handleResearch } from "./research";
@@ -27,9 +28,10 @@ const functions: Record<string, FnHandler> = {
   "chat-insights": handleChatInsights,
   research: handleResearch,
   voice: handleVoice,
+  image: handleImage,
 };
 
-/** The six function names the client calls; anything else is a 404. */
+/** The function names the client calls; anything else is a 404. */
 export function resolveFunction(name: string): FnHandler | undefined {
   return Object.hasOwn(functions, name) ? functions[name] : undefined;
 }
