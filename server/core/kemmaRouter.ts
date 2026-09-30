@@ -110,8 +110,8 @@ function endpointFor(provider: ModelProvider): string {
 
 // Very rough per-million-token prices for cost estimation only.
 export const ROUGH_PRICES_USD_PER_1M: Record<string, { input: number; output: number }> = {
-  "qwen3.8-max": { input: 0.5, output: 1.5 },
-  "gemini-3.8-flash": { input: 0.1, output: 0.4 },
+  "qwen3.8-max": { input: 2, output: 6 },
+  "gemini-3.8-flash": { input: 0.75, output: 3.75 },
   "gemini-2.0-flash": { input: 0.1, output: 0.4 },
   "gemini-2.0-flash-thinking": { input: 0.1, output: 0.4 },
   "text-embedding-004": { input: 0, output: 0 },

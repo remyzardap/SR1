@@ -165,9 +165,10 @@ describe("estimateCostUsd", () => {
     expect(estimateCostUsd(GATEWAY_MODEL, 0, 1_000_000)).toBeCloseTo(1.0);
   });
 
-  it("keeps the existing prices and the unknown-model default", () => {
+  it("uses the published prices and the unknown-model default", () => {
     expect(estimateCostUsd("sonar-pro", 1_000_000, 0)).toBeCloseTo(3);
-    expect(estimateCostUsd("qwen3.8-max", 1_000_000, 0)).toBeCloseTo(0.5);
+    expect(estimateCostUsd("qwen3.8-max", 1_000_000, 0)).toBeCloseTo(2);
+    expect(estimateCostUsd("gemini-3.8-flash", 1_000_000, 1_000_000)).toBeCloseTo(4.5);
     expect(estimateCostUsd("mystery-model", 1_000_000, 0)).toBeCloseTo(2);
   });
 });
