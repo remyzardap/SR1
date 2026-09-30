@@ -6,7 +6,6 @@ import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { LandingMark } from "@/components/LandingMark";
 import { setAuthToken } from "@/lib/authSession";
-import { enterDesignPreview } from "@/lib/designPreview";
 import { OrbitalSystem } from "../../landing/FigureEffects";
 
 const loginSchema = z.object({
@@ -225,20 +224,6 @@ export default function Login() {
             )}
           </div>
         </div>
-
-        <button
-          data-testid="button-design-preview"
-          type="button"
-          onClick={() => { enterDesignPreview(); navigate('/chat'); }}
-          style={{
-            marginTop: '22px', padding: '10px 18px', borderRadius: '100px',
-            background: 'transparent', border: '1px solid var(--glass-border, rgba(255,255,255,0.18))',
-            color: 'var(--muted-foreground, rgba(245,242,237,0.55))',
-            fontFamily: 'var(--font-d)', fontSize: '10px', fontWeight: 700,
-            letterSpacing: '.1em', textTransform: 'uppercase' as const,
-            cursor: 'pointer', transition: 'all .22s',
-          }}
-        >Look around without signing in →</button>
       </div>
 
       <style>{`
