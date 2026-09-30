@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../db";
 import { skillReviews } from "../../drizzle/schema";
-import { verifyRoute } from "../core/kemmaRouter";
+import { resolveRouteAuth, routeHasAuth, verifyRoute } from "../core/kemmaRouter";
 import { loadFileSkills, collectSkillTextForReview, type FileSkill } from "./fileSkills";
 
 export type Verdict = "approve" | "review" | "reject";
@@ -147,7 +147,7 @@ async function runReview(skill: FileSkill, text: string): Promise<SkillReviewRep
   };
 
   const route = verifyRoute();
-  if (!route.apiKey) return { ...base, summary: "No review model configured; read the skill yourself before enabling." };
+  if (!routeHasAuth(route)) return { ...base, summary: "No review model configured; read the skill yourself before enabling." };
 
   const system =
     "You are a security reviewer for agent skills. A skill is instructions plus optional helper files that an AI agent will follow. " +
@@ -157,11 +157,12 @@ async function runReview(skill: FileSkill, text: string): Promise<SkillReviewRep
     "hiddenText (boolean), ruleOverrideAttempts (string array).";
 
   try {
-    const res = await fetch(`${route.baseUrl}/chat/completions`, {
+    const target = await resolveRouteAuth(route);
+    const res = await fetch(`${target.baseUrl}/chat/completions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${route.apiKey}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${target.auth}` },
       body: JSON.stringify({
-        model: route.model,
+        model: target.model,
         temperature: 0,
         messages: [
           { role: "system", content: system },

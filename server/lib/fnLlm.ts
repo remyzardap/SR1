@@ -10,6 +10,8 @@ import {
   chatRoute,
   fallbackRoutes,
   longDocRoute,
+  resolveRouteAuth,
+  routeHasAuth,
   type ModelProvider,
   type RouteConfig,
 } from "../core/kemmaRouter";
@@ -44,20 +46,20 @@ export class LlmUnavailableError extends Error {
   }
 }
 
-/** Routes with a configured key, primary first, deduplicated by model name. */
+/** Routes that can be authenticated (static key or Vertex service account), primary first, deduplicated by model name. */
 export function resolveRoutes(slot: LlmOptions["slot"]): RouteConfig[] {
   const primary = slot === "longDoc" ? longDocRoute() : chatRoute();
   const chain = [primary, ...fallbackRoutes()];
   const seen = new Set<string>();
   return chain.filter((route) => {
-    if (!route.apiKey || seen.has(route.model)) return false;
+    if (!routeHasAuth(route) || seen.has(route.model)) return false;
     seen.add(route.model);
     return true;
   });
 }
 
-function endpointFor(route: RouteConfig): string {
-  const base = route.baseUrl.endsWith("/") ? route.baseUrl.slice(0, -1) : route.baseUrl;
+function endpointFor(baseUrl: string): string {
+  const base = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
   return `${base}/chat/completions`;
 }
 
@@ -66,10 +68,11 @@ async function request(
   messages: ChatMessage[],
   { stream, maxTokens = 2000 }: { stream: boolean; maxTokens?: number }
 ): Promise<Response> {
-  const res = await fetch(endpointFor(route), {
+  const target = await resolveRouteAuth(route);
+  const res = await fetch(endpointFor(target.baseUrl), {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${route.apiKey}` },
-    body: JSON.stringify({ model: route.model, messages, max_tokens: maxTokens, stream }),
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${target.auth}` },
+    body: JSON.stringify({ model: target.model, messages, max_tokens: maxTokens, stream }),
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
@@ -89,12 +92,13 @@ export async function complete(messages: ChatMessage[], options: LlmOptions): Pr
       const res = await request(route, messages, { stream: false, maxTokens: options.maxTokens });
       const data = (await res.json()) as {
         choices?: Array<{ message?: { content?: string } }>;
-        usage?: { prompt_tokens?: number; completion_tokens?: number };
+        usage?: { prompt_tokens?: number; completion_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } };
       };
       const text = data.choices?.[0]?.message?.content;
       if (!text) throw new Error("Empty LLM response");
       const inputTokens = data.usage?.prompt_tokens ?? 0;
-      const outputTokens = data.usage?.completion_tokens ?? 0;
+      // Vertex bills thinking as completion_tokens_details.reasoning_tokens; keep it in the output count.
+      const outputTokens = (data.usage?.completion_tokens ?? 0) + (data.usage?.completion_tokens_details?.reasoning_tokens ?? 0);
       void logUsage({ userId: options.userId, provider: route.provider, model: route.model, inputTokens, outputTokens, purpose: options.purpose });
       return { text, model: route.model, provider: route.provider, inputTokens, outputTokens };
     } catch (err) {

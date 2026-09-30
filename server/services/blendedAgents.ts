@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { chatRoute, plannerRoute } from '../core/kemmaRouter';
+import { vertexEnabled, vertexGenerateContentBody, vertexGenerateContentText } from '../core/vertexAuth';
 
 interface AgentConfig {
   id: string;
@@ -132,10 +133,27 @@ async function callQwen(message: string, config: AgentConfig): Promise<AgentResp
   };
 }
 
-// Call Gemini API
+// Call Gemini (AI Studio key in the query string, or native Vertex generateContent with a bearer token)
 async function callGemini(message: string, config: AgentConfig): Promise<AgentResponse> {
   const startTime = Date.now();
-  
+
+  if (vertexEnabled()) {
+    const body = vertexGenerateContentBody({
+      texts: [message],
+      generationConfig: { temperature: 0.7, maxOutputTokens: 2000 },
+    });
+    const content = await vertexGenerateContentText(config.model, body);
+    if (!content) {
+      throw new Error('Vertex AI Gemini returned no content');
+    }
+    return {
+      content,
+      model: 'Gemini',
+      confidence: 0.90,
+      latency: Date.now() - startTime,
+    };
+  }
+
   const response = await fetch(
     `${config.baseUrl}/models/${config.model}:generateContent?key=${config.apiKey}`,
     {
@@ -260,7 +278,7 @@ export function getAgentStatus() {
     name: agent.name,
     specialties: agent.specialties,
     latency: agent.latency,
-    isAvailable: !!agent.apiKey,
+    isAvailable: agent.id === 'gemini' ? vertexEnabled() || !!agent.apiKey : !!agent.apiKey,
   }));
 }
 

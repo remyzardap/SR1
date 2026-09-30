@@ -1,5 +1,5 @@
 import { ENV } from "./env";
-import { apiKeyFor, detectProvider, litellmBaseUrl, stripProviderPrefix } from "../core/kemmaRouter";
+import { apiKeyFor, detectProvider, litellmBaseUrl, resolveRouteAuth, routeFor, routeHasAuth, stripProviderPrefix } from "../core/kemmaRouter";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
 
@@ -213,6 +213,13 @@ const normalizeToolChoice = (
 // The platform chat model; a litellm/ prefix routes this path to the gateway as well.
 const chatModelId = () => process.env.KEMMA_MODEL_CHAT || "qwen3.8-max";
 
+// A chat model on the gemini provider goes through the platform gemini backend
+// (AI Studio or Vertex, per GEMINI_BACKEND); everything else keeps the forge/qwen path.
+const geminiChatRoute = () => {
+  const id = chatModelId();
+  return detectProvider(id) === "gemini" ? routeFor(id) : null;
+};
+
 const resolveApiUrl = () => {
   if (detectProvider(chatModelId()) === "litellm") return `${litellmBaseUrl()}/chat/completions`;
   return ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
@@ -221,6 +228,13 @@ const resolveApiUrl = () => {
 };
 
 const assertApiKey = () => {
+  const gemini = geminiChatRoute();
+  if (gemini) {
+    if (!routeHasAuth(gemini)) {
+      throw new Error("Gemini backend is not configured. Set GEMINI_API_KEY, or GEMINI_BACKEND=vertex with GOOGLE_APPLICATION_CREDENTIALS.");
+    }
+    return;
+  }
   if (!resolveApiKey()) {
     throw new Error("No LLM API key configured. Set QWEN_API_KEY, LITELLM_API_KEY or BUILT_IN_FORGE_API_KEY.");
   }
@@ -289,11 +303,13 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     response_format,
   } = params;
 
+  const gemini = geminiChatRoute();
+  const target = gemini ? await resolveRouteAuth(gemini) : null;
+
   const payload: Record<string, unknown> = {
-    model: stripProviderPrefix(chatModelId()),
+    model: target ? target.model : stripProviderPrefix(chatModelId()),
     messages: messages.map(normalizeMessage),
   };
-
   if (tools && tools.length > 0) {
     payload.tools = tools;
   }
@@ -319,11 +335,11 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(resolveApiUrl(), {
+  const response = await fetch(target ? `${target.baseUrl}/chat/completions` : resolveApiUrl(), {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${resolveApiKey()}`,
+      authorization: `Bearer ${target ? target.auth : resolveApiKey()}`,
     },
     body: JSON.stringify(payload),
   });

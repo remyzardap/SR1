@@ -83,13 +83,28 @@ Prefix rule: a model id that starts with `litellm/` (case-insensitive) routes to
 
 ---
 
-## 🔐 Google Vertex AI Configuration
+## Vertex AI backend (Gemini)
 
-| Variable | Description |
-|----------|-------------|
-| `VERTEX_PROJECT` | GCP project id |
-| `VERTEX_LOCATION` | Vertex AI region |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service-account JSON |
+Gemini can run either through the AI Studio API (static key) or Google Cloud Vertex AI
+(service account). Google Cloud trial credits apply to Vertex only.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GEMINI_BACKEND` | `aistudio` | `aistudio` or `vertex`. Anything else falls back to `aistudio`. `vertex` also requires `GOOGLE_APPLICATION_CREDENTIALS` to point at a readable service-account JSON; if missing or unreadable, one warning is logged (env var name only, never the path or token) and the AI Studio backend is used |
+| `GOOGLE_APPLICATION_CREDENTIALS` | empty | Path to the service-account JSON used for Vertex auth (scope `cloud-platform`). The library caches and refreshes tokens |
+| `VERTEX_PROJECT` | empty | GCP project id. Optional: resolved from the service account when unset |
+| `VERTEX_LOCATION` | `global` | Location for chat and `generateContent` (vision/documents). The 3.x Gemini models exist only in `global`; `gemini-2.5-*` also work in `us-central1` |
+| `VERTEX_EMBEDDING_LOCATION` | `us-central1` | Location for embedding `predict` calls. `text-embedding-004` is not served from `global` |
+
+In Vertex mode:
+
+- OpenAI-compatible chat/tool calls go to `https://aiplatform.googleapis.com/v1/projects/{project}/locations/{location}/endpoints/openapi/chat/completions` with `Authorization: Bearer <token>` and the model sent as `google/<model>`.
+- Vision and document scans go to the native `:generateContent` endpoint (standard Gemini body with `inlineData` parts).
+- Embeddings use native predict only: `https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/us-central1/publishers/google/models/text-embedding-004:predict`. In Vertex mode any `KEMMA_MODEL_EMBEDDING` other than `text-embedding-004` (including `gemini-embedding-2`) is mapped to `text-embedding-004` with a one-time log; results are always 768-dimensional. `gemini-embedding-2` and the OpenAI-compatible embeddings endpoint do not work on this project; do not use them in Vertex mode.
+
+`gemini-3.1-pro-preview` (slot `KEMMA_MODEL_PRO`, default) and `gemini-2.5-pro`
+(slot `KEMMA_MODEL_PRO_FALLBACK`, default, tried when the pro call fails) follow the same
+rules: 3.x requires `VERTEX_LOCATION=global`. There is no `gemini-3.8-pro` on Vertex.
 
 ---
 
@@ -184,6 +199,8 @@ Prefix rule: a model id that starts with `litellm/` (case-insensitive) routes to
 | `KEMMA_MODEL_LONG_DOC` | `qwen3.8-max` | Long documents and heavy browsing |
 | `KEMMA_MODEL_PLANNER` | `gemini-3.8-flash` | Deep-research planner |
 | `KEMMA_MODEL_VERIFY` | `gemini-3.8-flash` | Citation verification |
+| `KEMMA_MODEL_PRO` | `gemini-3.1-pro-preview` | Pro reasoning slot (exposed in the model list; no role switches to it automatically). 3.x is Vertex `global` only |
+| `KEMMA_MODEL_PRO_FALLBACK` | `gemini-2.5-pro` | Tried when a `KEMMA_MODEL_PRO` call fails; empty disables it |
 | `KEMMA_SEARCH_RPM` | `40` | Perplexity Sonar rate limit |
 | `KEMMA_MAX_SUBAGENTS` | `1` | Parallel research sub-agents (max 5) |
 | `KEMMA_TOOL_BUDGET` | `60` | Tool-call budget for Deep Research |

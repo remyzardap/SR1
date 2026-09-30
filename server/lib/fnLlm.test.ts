@@ -4,6 +4,10 @@ const router = vi.hoisted(() => ({
   chatRoute: vi.fn(),
   longDocRoute: vi.fn(),
   fallbackRoutes: vi.fn(),
+  routeHasAuth: vi.fn((route: { apiKey?: string; authKind?: string }) => route.authKind === "vertex" || !!route.apiKey),
+  resolveRouteAuth: vi.fn((route: { baseUrl: string; model: string; apiKey: string }) =>
+    Promise.resolve({ baseUrl: route.baseUrl, model: route.model, auth: route.apiKey })
+  ),
 }));
 const usage = vi.hoisted(() => ({ logUsage: vi.fn() }));
 
@@ -41,6 +45,12 @@ const options = { userId: 7, purpose: "test_purpose" };
 
 beforeEach(() => {
   vi.clearAllMocks();
+  router.routeHasAuth.mockImplementation((route: { apiKey?: string; authKind?: string }) => route.authKind === "vertex" || !!route.apiKey);
+  router.resolveRouteAuth.mockImplementation(async (route: { baseUrl: string; model: string; apiKey: string }) => ({
+    baseUrl: route.baseUrl,
+    model: route.model,
+    auth: route.apiKey,
+  }));
   router.chatRoute.mockReturnValue(route("chat-model", "k"));
   router.longDocRoute.mockReturnValue(route("long-model", "k"));
   router.fallbackRoutes.mockReturnValue([route("chat-model", "k"), route("backup-model", "b")]);
@@ -81,6 +91,17 @@ describe("complete", () => {
     expect(usage.logUsage).toHaveBeenCalledWith(expect.objectContaining({ userId: 7, purpose: "test_purpose", inputTokens: 10, outputTokens: 4 }));
   });
 
+  it("keeps Vertex reasoning tokens in the output count", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({
+      choices: [{ message: { content: "thinking" } }],
+      usage: { prompt_tokens: 10, completion_tokens: 4, completion_tokens_details: { reasoning_tokens: 6 } },
+    })));
+
+    const out = await complete([{ role: "user", content: "hi" }], options);
+    expect(out.outputTokens).toBe(10);
+    expect(usage.logUsage).toHaveBeenCalledWith(expect.objectContaining({ inputTokens: 10, outputTokens: 10 }));
+  });
+
   it("tries the next route when the first one fails", async () => {
     const fetchMock = vi
       .fn()
@@ -98,6 +119,27 @@ describe("complete", () => {
     router.fallbackRoutes.mockReturnValue([]);
     router.chatRoute.mockReturnValue(route("chat-model", ""));
     await expect(complete([{ role: "user", content: "hi" }], options)).rejects.toBeInstanceOf(LlmUnavailableError);
+  });
+
+  it("uses the resolved Vertex base URL and bearer token", async () => {
+    const vertexRoute = { ...route("gemini-3.8-flash", ""), provider: "gemini" as const, authKind: "vertex" as const };
+    router.chatRoute.mockReturnValue(vertexRoute);
+    router.fallbackRoutes.mockReturnValue([]);
+    router.resolveRouteAuth.mockImplementation(async (r: { baseUrl: string; model: string; auth?: string }) => ({
+      baseUrl: "https://aiplatform.googleapis.com/v1/projects/p/locations/global/endpoints/openapi",
+      model: `google/${r.model}`,
+      auth: "vertex-token",
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue(json({ choices: [{ message: { content: "from vertex" } }] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const out = await complete([{ role: "user", content: "hi" }], options);
+    expect(out.text).toBe("from vertex");
+    const [url, init] = fetchMock.mock.calls[0] as [string, { headers: Record<string, string>; body: string }];
+    expect(url).toBe("https://aiplatform.googleapis.com/v1/projects/p/locations/global/endpoints/openapi/chat/completions");
+    expect(init.headers.Authorization).toBe("Bearer vertex-token");
+    expect(JSON.parse(init.body).model).toBe("google/gemini-3.8-flash");
   });
 });
 

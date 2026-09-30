@@ -6,7 +6,7 @@
  * exponential backoff on 429 responses.
  */
 
-import { searchRoute, type RouteConfig } from "../../core/kemmaRouter";
+import { resolveRouteAuth, routeHasAuth, searchRoute, type RouteConfig } from "../../core/kemmaRouter";
 
 interface PerplexityMessage {
   role: 'user' | 'assistant' | 'system';
@@ -159,14 +159,15 @@ export async function webSearch(
   await throttleSearch();
 
   const route = searchRoute();
-  if (!route.apiKey) {
+  if (!routeHasAuth(route)) {
     throw new PerplexityConfigError(
       'SONAR_API_KEY / PERPLEXITY_API_KEY environment variable is not set or is empty'
     );
   }
 
+  const target = await resolveRouteAuth(route);
   const requestBody = {
-    model: route.model,
+    model: target.model,
     messages: [
       {
         role: 'user' as const,
@@ -182,11 +183,11 @@ export async function webSearch(
     attempts++;
 
     try {
-      const response = await fetch(`${route.baseUrl}/chat/completions`, {
+      const response = await fetch(`${target.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${route.apiKey}`,
+          'Authorization': `Bearer ${target.auth}`,
         },
         body: JSON.stringify(requestBody),
       });

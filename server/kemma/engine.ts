@@ -8,15 +8,18 @@ import {
   visionRoute,
   verifyRoute,
   plannerRoute,
+  callChainFor,
   routeFor,
   detectComplexity,
   MAX_STEPS,
   type Tier,
   type RouteConfig,
   type ModelProvider,
-  fallbackRoutes,
   detectProvider,
+  resolveRouteAuth,
+  routeHasAuth,
 } from "../core/kemmaRouter";
+import { vertexGenerateContentBody, vertexGenerateContentText } from "../core/vertexAuth";
 import { checkQuota, incrementQuota } from "../core/quotaCheck";
 import { logUsage, checkSpendCap } from "../core/usage";
 import { KEMMA_TOOLS, SKILL_TOOLS, SKILL_TOOL_NAMES, type ToolDefinition } from "./tools";
@@ -121,7 +124,7 @@ async function runParallelSubAgents(
   if (maxSubAgents <= 1) return null;
 
   const planCfg = plannerRoute();
-  if (!planCfg.apiKey) {
+  if (!routeHasAuth(planCfg)) {
     onNotice?.("Planner model not configured; skipping parallel sub-agents.");
     return null;
   }
@@ -414,7 +417,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     if (sources.length > 0 && isAgentic) {
       try {
         const verifyRouteConfig = verifyRoute();
-        if (verifyRouteConfig.apiKey) {
+        if (routeHasAuth(verifyRouteConfig)) {
           const claims = finalContent
             .split(/\n\n+/)
             .map((p) => p.trim())
@@ -502,14 +505,22 @@ export async function kemmaVisionExecute(input: VisionEngineInput): Promise<Engi
   if (!cap.allowed) return makeErrorResponse(cap.reason, startTime);
 
   try {
-    const genAI = new GoogleGenerativeAI(route.apiKey);
-    const model = genAI.getGenerativeModel({ model: route.model });
     const userText = lastUserMessage?.content || "Describe this image.";
-    const imagePart = { inlineData: { data: imageData, mimeType } };
-
-    const result = await model.generateContent([systemPrompt, userText, imagePart]);
-    const response = await result.response;
-    const text = response.text();
+    let text: string;
+    if (route.authKind === "vertex") {
+      const body = vertexGenerateContentBody({
+        texts: [systemPrompt, userText],
+        image: { data: imageData, mimeType },
+      });
+      text = await vertexGenerateContentText(route.model, body);
+    } else {
+      const genAI = new GoogleGenerativeAI(route.apiKey);
+      const model = genAI.getGenerativeModel({ model: route.model });
+      const imagePart = { inlineData: { data: imageData, mimeType } };
+      const result = await model.generateContent([systemPrompt, userText, imagePart]);
+      const response = await result.response;
+      text = response.text();
+    }
 
     await incrementQuota(userId, "message");
     await logUsage({ userId, sessionId, reportId, provider: route.provider, model: route.model, inputTokens: 0, outputTokens: 0, purpose: "vision" });
@@ -558,9 +569,6 @@ export async function kemmaDocumentScan(input: DocumentScanInput): Promise<Docum
   if (!cap.allowed) throw new Error(cap.reason);
 
   try {
-    const genAI = new GoogleGenerativeAI(route.apiKey);
-    const model = genAI.getGenerativeModel({ model: route.model });
-
     const defaultPrompt = `Extract all text from this document. If it's a receipt/invoice, identify:
 - Vendor name
 - Date
@@ -570,10 +578,21 @@ export async function kemmaDocumentScan(input: DocumentScanInput): Promise<Docum
 
 Return the extracted text in a structured format.`;
 
-    const imagePart = { inlineData: { data: imageData, mimeType } };
-    const result = await model.generateContent([prompt || defaultPrompt, imagePart]);
-    const response = await result.response;
-    const text = response.text();
+    let text: string;
+    if (route.authKind === "vertex") {
+      const body = vertexGenerateContentBody({
+        texts: [prompt || defaultPrompt],
+        image: { data: imageData, mimeType },
+      });
+      text = await vertexGenerateContentText(route.model, body);
+    } else {
+      const genAI = new GoogleGenerativeAI(route.apiKey);
+      const model = genAI.getGenerativeModel({ model: route.model });
+      const imagePart = { inlineData: { data: imageData, mimeType } };
+      const result = await model.generateContent([prompt || defaultPrompt, imagePart]);
+      const response = await result.response;
+      text = response.text();
+    }
 
     await incrementQuota(userId, "message");
     await logUsage({ userId, provider: route.provider, model: route.model, inputTokens: 0, outputTokens: 0, purpose: "document_scan" });
@@ -612,7 +631,8 @@ async function callLLM(input: CallLLMOptions): Promise<{ content: string | null;
   }
 
   const errors: string[] = [];
-  const routesToTry = [route, ...fallbackRoutes().filter((r) => r.model !== route.model)];
+  // The chain includes KEMMA_MODEL_PRO_FALLBACK right after the pro slot (see callChainFor).
+  const routesToTry = callChainFor(route);
 
   for (let i = 0; i < routesToTry.length; i++) {
     const tryRoute = routesToTry[i];
@@ -680,13 +700,14 @@ function adaptToolCallsForProvider(m: KemmaMessage, provider: ModelProvider): Ke
 async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string | null; toolCalls?: ToolCall[]; usage?: { input: number; output: number; total: number } }> {
   const { route, systemPrompt, messages, tools, stream, onStream } = input;
 
-  if (!route.apiKey) {
+  if (!routeHasAuth(route)) {
     throw new Error(`${route.provider} API key is not configured.`);
   }
 
-  // OpenAI-compatible path (Qwen, Perplexity, Gemini)
+  // OpenAI-compatible path (Qwen, Perplexity, Gemini via AI Studio or Vertex)
+  const target = await resolveRouteAuth(route);
   const body = {
-    model: route.model,
+    model: target.model,
     messages: [{ role: "system", content: systemPrompt }, ...messages.filter((m) => m.role !== "system").map((m) => adaptToolCallsForProvider(m, route.provider))],
     tools: tools ? tools.map((t) => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.parameters } })) : undefined,
     tool_choice: tools ? "auto" : undefined,
@@ -694,9 +715,9 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
     max_tokens: 4096,
   };
 
-  const res = await fetch(`${route.baseUrl}/chat/completions`, {
+  const res = await fetch(`${target.baseUrl}/chat/completions`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${route.apiKey}` },
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${target.auth}` },
     body: JSON.stringify(body),
   });
 
@@ -732,12 +753,15 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
     function: { name: tc.function.name, arguments: tc.function.arguments },
     ...(tc.extra_content ? { extra_content: tc.extra_content } : {}),
   }));
+  // Vertex bills thinking as completion_tokens_details.reasoning_tokens; add it to the output
+  // count so cost estimates do not drop it (AI Studio responses simply lack the field).
+  const reasoningTokens = data.usage?.completion_tokens_details?.reasoning_tokens ?? 0;
   return {
     content: choice?.message?.content ?? null,
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
     usage: {
       input: data.usage?.prompt_tokens ?? 0,
-      output: data.usage?.completion_tokens ?? 0,
+      output: (data.usage?.completion_tokens ?? 0) + reasoningTokens,
       total: data.usage?.total_tokens ?? 0,
     },
   };
