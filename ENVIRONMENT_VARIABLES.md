@@ -207,6 +207,38 @@ rules: 3.x requires `VERTEX_LOCATION=global`. There is no `gemini-3.8-pro` on Ve
 
 ---
 
+## Image generation
+
+`POST /api/fn/image` renders one image per request on the engine the user picked
+(`server/routes/fn/image.ts` and `server/lib/fnImage.ts`). There is no fallback to
+another engine: each one costs money and the choice is the user's. Per user the
+function allows 20 images an hour and 100 a day.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `IMAGE_ENGINE_DEFAULT` | `gemini` | Engine used when the request names none: `gemini`, `qwen` or `openai`. An unknown value falls back to `gemini` |
+| `KEMMA_MODEL_IMAGE` | `gemini-3.1-flash-image` | Gemini image model for quality `standard` |
+| `KEMMA_MODEL_IMAGE_PRO` | `gemini-3-pro-image` | Gemini image model for quality `high` |
+| `QWEN_IMAGE_MODEL` | `wan2.7-image` | Wan image model for quality `standard` |
+| `QWEN_IMAGE_MODEL_PRO` | `wan2.7-image-pro` | Wan image model for quality `high` |
+| `OPENAI_IMAGE_MODEL` | `gpt-image-2` | Gateway image model, used for both qualities |
+
+An engine is offered only when it is configured: Gemini needs `GEMINI_BACKEND=vertex`
+with readable `GOOGLE_APPLICATION_CREDENTIALS`, or `GEMINI_API_KEY`; Qwen needs
+`QWEN_API_KEY`; the OpenAI route needs `LITELLM_API_KEY` or `KOBOILLM_API_KEY`. Keys,
+URLs with keys and storage paths are never returned to the client.
+
+The Gemini image models are served from Vertex `global` only: image calls always go to
+`locations/global` and ignore `VERTEX_LOCATION`, which stays reserved for the chat and
+vision roles. Qwen images use the native `multimodal-generation` route on the host of
+`QWEN_BASE_URL`, not the `compatible-mode` path (the OpenAI `images` route answers 404
+there). OpenAI images go to `{LITELLM_BASE_URL}/images/generations`.
+
+`KEMMA_MODEL_IMAGE` names a text model for the Kemma router (see the table above); the
+image function reads the same variable and expects a Gemini image model id.
+
+---
+
 ## 🔍 Verification Commands
 
 Production runs on Cloud Run (service `sutaeru`, region `asia-southeast2`), not a local container.

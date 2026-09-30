@@ -7,4 +7,13 @@ export const rateLimitConfig = {
     requests: 200, 
     windowMs: 60000 
   },
+  // Image generation, per signed-in user: see server/routes/fn/image.ts.
+  imageGenerateHourly: { 
+    requests: 20, 
+    windowMs: 60 * 60 * 1000 
+  },
+  imageGenerateDaily: { 
+    requests: 100, 
+    windowMs: 24 * 60 * 60 * 1000 
+  },
 };
