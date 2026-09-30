@@ -1,7 +1,4 @@
 import { getAuthToken } from "./authSession";
-import { isDesignPreview } from "./designPreview";
-
-const GUEST_MSG = "You're browsing as a guest — sign in to use this feature.";
 
 // Kemma functions run on our own server (server/routes/fn), same origin as the app.
 const FUNCTIONS_BASE = `${import.meta.env.VITE_SR1_API_ORIGIN || ""}/api/fn`;
@@ -27,7 +24,6 @@ async function parseError(res: Response): Promise<never> {
 
 /** POST a JSON action to one of the Kemma Cloud functions with the SR1 session token. */
 export async function callFunction<T = unknown>(name: string, body: unknown): Promise<T> {
-  if (isDesignPreview()) throw new CloudFunctionError(GUEST_MSG, 401);
   const token = getAuthToken();
   if (!token) throw new CloudFunctionError("Sign in to continue.", 401);
   const res = await fetch(`${FUNCTIONS_BASE}/${name}`, {
@@ -48,7 +44,6 @@ export interface SseHandlers {
 
 /** POST to a streaming (SSE) Cloud function and dispatch token/done/error events. */
 export async function streamFunction(name: string, body: unknown, handlers: SseHandlers, signal?: AbortSignal): Promise<void> {
-  if (isDesignPreview()) throw new CloudFunctionError(GUEST_MSG, 401);
   const token = getAuthToken();
   if (!token) throw new CloudFunctionError("Sign in to continue.", 401);
   const res = await fetch(`${FUNCTIONS_BASE}/${name}`, {
@@ -91,7 +86,6 @@ export async function streamFunction(name: string, body: unknown, handlers: SseH
 
 /** Transcribe an audio blob via the voice function; returns the transcript text. */
 export async function transcribeAudio(blob: Blob, signal?: AbortSignal): Promise<string> {
-  if (isDesignPreview()) throw new CloudFunctionError(GUEST_MSG, 401);
   const token = getAuthToken();
   if (!token) throw new CloudFunctionError("Sign in to continue.", 401);
   const type = blob.type.startsWith("video/") ? blob.type.replace("video/", "audio/") : blob.type || "audio/webm";
@@ -137,7 +131,6 @@ export async function transcribeAudio(blob: Blob, signal?: AbortSignal): Promise
 
 /** Read text aloud via the voice function; returns a playable object URL. */
 export async function speakText(text: string, signal?: AbortSignal): Promise<string> {
-  if (isDesignPreview()) throw new CloudFunctionError(GUEST_MSG, 401);
   const token = getAuthToken();
   if (!token) throw new CloudFunctionError("Sign in to continue.", 401);
   const res = await fetch(`${FUNCTIONS_BASE}/voice?mode=speak`, {

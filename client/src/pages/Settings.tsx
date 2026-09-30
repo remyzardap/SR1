@@ -78,7 +78,7 @@ export default function Settings() {
               <Button variant="outline" size="sm" asChild><Link href="/identity">Edit profile</Link></Button>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">You're browsing as a guest — sign in to manage your account.</p>
+            <p className="text-sm text-muted-foreground">Sign in to manage your account.</p>
           )}
         </Status>
       </Section>

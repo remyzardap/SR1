@@ -6,7 +6,6 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { getAuthToken } from "./lib/authSession";
-import { isDesignPreview } from "./lib/designPreview";
 import "@fontsource/urbanist/600.css";
 import "@fontsource/urbanist/700.css";
 import "@fontsource/urbanist/800.css";
@@ -22,10 +21,6 @@ const queryClient = new QueryClient();
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;
-  // In design-preview mode the screens are browsed without a session;
-  // API errors should surface as empty/error states, never a redirect.
-  if (isDesignPreview()) return;
-
   const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
   if (!isUnauthorized) return;
 

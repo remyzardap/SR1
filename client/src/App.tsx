@@ -26,22 +26,8 @@ import VerifyEmail from "./pages/VerifyEmail";
 import DashboardLayout from "./components/DashboardLayout";
 import { useAuth } from "./_core/hooks/useAuth";
 import { IntelligenceProvider } from "./_core/hooks/useSutaeruIntelligence";
-import { exitDesignPreview, isDesignPreview } from "./lib/designPreview";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { SutaeruIcon } from "@/components/SutaeruIcon";
-
-function DesignPreviewBadge() {
-  if (!isDesignPreview()) return null;
-  return (
-    <Button
-      data-testid="button-exit-design-preview"
-      onClick={() => { exitDesignPreview(); window.location.href = "/login"; }}
-      className="sutaeru-preview-exit"
-    ><SutaeruIcon name="close" /> Preview</Button>
-  );
-}
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, loading } = useAuth();
@@ -209,7 +195,6 @@ function App() {
           <IntelligenceProvider>
             <TooltipProvider>
               <Toaster richColors position="top-right" />
-              <DesignPreviewBadge />
               <AppRoutes />
             </TooltipProvider>
           </IntelligenceProvider>

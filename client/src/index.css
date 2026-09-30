@@ -254,21 +254,7 @@ body::after {
   input[type="radio"]:not(:disabled) { cursor: pointer; }
 }
 
-.sutaeru-preview-exit {
-  position: fixed;
-  right: 12px;
-  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
-  z-index: 9999;
-  height: 34px;
-  gap: 6px;
-  border-radius: 4px;
-  box-shadow: var(--elev-2-shadow);
-  font-family: var(--font-m);
-  font-size: 10px;
-  text-transform: uppercase;
-}
 
-.sutaeru-preview-exit svg { width: 15px; height: 15px; }
 
 .sutaeru-plan {
   width: 100%;
