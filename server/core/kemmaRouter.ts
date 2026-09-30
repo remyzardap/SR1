@@ -81,7 +81,7 @@ const DEFAULTS = {
   KEMMA_MODEL_SEARCH: "sonar-pro",
   KEMMA_MODEL_VISION: "gemini-3.8-flash",
   KEMMA_MODEL_EMBEDDING: "text-embedding-004",
-  KEMMA_MODEL_IMAGE: "gemini-3.8-flash",
+  KEMMA_MODEL_IMAGE: "gemini-3.1-flash-image",
   KEMMA_MODEL_REPORT: "qwen3.8-max",
   KEMMA_MODEL_LONG_DOC: "qwen3.8-max",
   KEMMA_MODEL_PLANNER: "gemini-3.8-flash",
