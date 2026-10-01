@@ -1,13 +1,12 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Redirect, Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { VideoPlayerProvider } from "./contexts/VideoPlayerContext";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
-import Generate from "./pages/Generate";
 import Atelier from "./pages/Atelier";
 import Files from "./pages/Files";
 import Settings from "./pages/Settings";
@@ -65,13 +64,7 @@ function AppRoutes() {
         )}
       </Route>
       <Route path="/generate">
-        {isAuthenticated ? (
-          <DashboardLayout>
-            <Generate />
-          </DashboardLayout>
-        ) : (
-          <ProtectedRoute component={Generate} />
-        )}
+        <Redirect to="/atelier?mode=describe" />
       </Route>
       <Route path="/files">
         {isAuthenticated ? (

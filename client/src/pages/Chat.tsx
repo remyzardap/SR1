@@ -134,7 +134,7 @@ export default function Chat() {
   const [hasPersistedHistory, setHasPersistedHistory] = useState(() => sessionStorage.getItem("sutaeru_chat_has_history") === "1");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [agentPanelOpen, setAgentPanelOpen] = useState(true);
+  const [agentPanelOpen, setAgentPanelOpen] = useState(false);
   type ChatWidth = "normal" | "wide" | "full";
   const [chatWidth, setChatWidth] = useState<ChatWidth>(() => {
     try {

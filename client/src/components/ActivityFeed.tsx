@@ -45,7 +45,7 @@ export function ActivityFeed({ items, isRunning }: { items: ActivityItem[]; isRu
   const expanded = isRunning || open;
 
   return (
-    <section className="sutaeru-activity my-3 rounded-xl border bg-card/60 text-sm" aria-label="What Kemma did" aria-live="polite">
+    <section className="sutaeru-activity my-3 text-sm" aria-label="What Kemma did" aria-live="polite">
       <button
         type="button"
         className="flex w-full items-center gap-2 px-3 py-2 text-left text-muted-foreground"

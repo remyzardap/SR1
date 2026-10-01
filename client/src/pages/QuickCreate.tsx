@@ -39,7 +39,7 @@ const STYLE_COLORS: Record<string, { bg: string; accent: string; text: string }>
 
 type Step = "prompt" | "styles" | "generating" | "done";
 
-export default function Generate() {
+export default function QuickCreate({ embedded = false }: { embedded?: boolean } = {}) {
   const [step, setStep] = useState<Step>("prompt");
   const [prompt, setPrompt] = useState("");
   const [format, setFormat] = useState<Format>("pdf");
@@ -90,7 +90,7 @@ export default function Generate() {
   };
 
   return (
-    <div className="sutaeru-editorial-page mx-auto max-w-3xl px-3 py-6 sm:px-4 sm:py-8">
+    <div className={embedded ? "w-full max-w-3xl py-2" : "sutaeru-editorial-page mx-auto max-w-3xl px-3 py-6 sm:px-4 sm:py-8"}>
       {/* Progress steps */}
       <div className="mb-8 flex flex-wrap items-center gap-1 text-xs sm:gap-2 sm:text-sm">
         {(["prompt", "styles", "generating", "done"] as Step[]).map((s, i) => {

@@ -172,7 +172,7 @@ export default function Files() {
           </p>
         </div>
         <div className="sk-actions">
-          <button type="button" className="sk-btn" onClick={() => navigate("/generate")}>
+          <button type="button" className="sk-btn" onClick={() => navigate("/atelier")}>
             New File
           </button>
         </div>
@@ -250,7 +250,7 @@ export default function Files() {
               <button
                 type="button"
                 className="sk-btn mt-3 self-start"
-                onClick={() => navigate("/generate")}
+                onClick={() => navigate("/atelier")}
               >
                 Generate a File
               </button>

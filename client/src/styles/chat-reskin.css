@@ -1,0 +1,55 @@
+/* Chat reskin: paper page, white composer with a dark round send button, mono kickers, "Try" list.
+   Overrides the older editorial/neon rules in preview.css and sutaeru-os.css. Owned by Claude Code. */
+.sutaeru-chat { background: var(--art-paper) !important; }
+
+/* Header */
+.sutaeru-chat .sutaeru-chat-header { background: transparent !important; backdrop-filter: none !important; border-bottom: 0 !important; padding-top: 18px; padding-bottom: 10px; }
+.sutaeru-chat .sutaeru-chat-header [class*="rounded-full"][style*="rgba(10,10,10,0.05)"] { background: #fff !important; border: 0 !important; }
+.sutaeru-chat .neon-pill { background: transparent !important; color: var(--art-quiet) !important; border: 0 !important; box-shadow: none !important; font-family: var(--font-b) !important; font-weight: 500; font-size: 13px; }
+.sutaeru-chat .neon-pill-active { background: var(--art-ink) !important; color: var(--art-paper) !important; border: 0 !important; box-shadow: none !important; font-family: var(--font-b) !important; font-weight: 600; font-size: 13px; }
+.sutaeru-chat .sutaeru-chat-header button[style*="rgba(10,10,10,0.05)"] { background: #fff !important; border: 0 !important; }
+.sutaeru-chat .sutaeru-chat-header button[style*="rgba(10,10,10,0.05)"]:hover { background: var(--sk-soft) !important; }
+
+/* Run status strip */
+.sutaeru-chat .sutaeru-run-status { background: transparent; border-bottom: 0; min-height: 44px; padding: 4px 28px; }
+.sutaeru-chat .sutaeru-status-copy strong { font: 600 11px var(--sk-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--art-quiet); }
+.sutaeru-chat .sutaeru-status-copy span { font-size: 13px; color: var(--art-ink); }
+.sutaeru-chat .sutaeru-timer { font: 500 12px var(--sk-mono); color: var(--art-quiet); }
+
+/* Empty state */
+.sk-chat-empty { width: 100%; max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; padding: 5vh 16px 3vh; }
+.sk-chat-greeting { font: 700 clamp(40px, 6.5vw, 76px)/1.02 var(--font-d); letter-spacing: -0.04em; margin: 4px 0 26px; color: var(--art-ink); }
+.sk-chat-try { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 10px; text-align: left; }
+.sk-chat-try > .sk-label { padding: 6px 4px 2px; }
+.sk-chat-suggestion { display: flex; align-items: center; gap: 16px; width: 100%; background: #fff; border: 0; border-radius: 22px; padding: 16px 22px; font: 400 16px var(--font-b); color: var(--art-ink); text-align: left; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.sk-chat-suggestion:hover { transform: translateY(-1px); box-shadow: 0 10px 26px -16px rgb(36 35 32 / .35); }
+.sk-chat-suggestion-icon { width: 22px; height: 22px; flex: none; }
+
+/* Messages */
+.sutaeru-chat .sutaeru-message-label strong { font: 600 11px var(--sk-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--art-ink); }
+.sutaeru-chat .sutaeru-message-label span { font-family: var(--sk-mono); font-size: 11px; letter-spacing: .08em; }
+.sutaeru-chat .sutaeru-user-content { background: var(--art-ink) !important; color: var(--art-paper) !important; border: 0 !important; border-radius: 26px 26px 8px 26px !important; padding: 14px 22px !important; box-shadow: none !important; }
+.sutaeru-chat .sutaeru-user-content * { color: var(--art-paper) !important; }
+.sutaeru-chat .sutaeru-message-sources li a, .sutaeru-chat .sutaeru-answer-source-list a { background: #fff; border: 0; border-radius: 999px; }
+
+/* Composer: white card, dark round send */
+.sutaeru-chat .sutaeru-run-composer { background: transparent !important; border-top: 0 !important; padding-bottom: max(18px, env(safe-area-inset-bottom)); }
+.sutaeru-chat .sutaeru-input-box { background: #fff !important; border: 0 !important; border-radius: 32px !important; box-shadow: 0 18px 40px -22px rgb(36 35 32 / .38), 0 1px 0 rgb(36 35 32 / .04) !important; padding: 8px 10px 8px 24px; min-height: 64px; }
+.sutaeru-chat .sutaeru-input-box textarea { color: var(--art-ink) !important; caret-color: var(--neon-orange) !important; }
+.sutaeru-chat .sutaeru-input-box textarea::placeholder { color: #8d8a83 !important; }
+.sutaeru-chat .sutaeru-composer-send { background: var(--art-ink) !important; color: var(--art-paper) !important; border-radius: 50% !important; width: 48px; height: 48px; }
+.sutaeru-chat .sutaeru-composer-send:hover { filter: brightness(1.2); }
+.sutaeru-chat .sutaeru-attach-button { color: var(--art-ink); }
+.sutaeru-chat .sutaeru-attach-button:hover { background: var(--sk-soft); }
+.sutaeru-chat .sutaeru-attachment-chip { color: var(--art-ink); border-color: var(--sk-track); }
+.sutaeru-chat .sutaeru-attachment-chip button { color: var(--art-ink); }
+
+/* Side panel + settings card */
+.sutaeru-chat .neon-card { background: #fff !important; border: 0 !important; border-radius: 24px !important; box-shadow: none !important; }
+.sutaeru-chat .neon-label { font: 500 10.5px var(--sk-mono) !important; letter-spacing: .16em; text-transform: uppercase; color: var(--art-quiet) !important; }
+
+/* Activity feed matches the card language */
+.sutaeru-activity { background: #fff !important; border: 0 !important; border-radius: 24px !important; }
+
+/* Center the transcript column inside the chat area */
+.sutaeru-chat .sutaeru-chat-transcript .sutaeru-chat-content { margin-inline: auto !important; }
