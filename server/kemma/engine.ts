@@ -409,6 +409,8 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     if (totalTokens.total > 0) await incrementQuota(userId, "token", totalTokens.total);
 
     let finalContent = llmResponse.content ?? "Done.";
+    // Calls that offered tools are not streamed, so the route would never see this text: emit it now.
+    if (onStream && offerTools && llmResponse.content) onStream(llmResponse.content);
 
     // Deduplicate sources collected during tool use
     let sources = dedupeSources(collectedSources);
@@ -730,11 +732,16 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
     let fullContent = "";
     const reader = res.body?.getReader();
     const decoder = new TextDecoder();
+    let sseBuffer = "";
     if (reader) {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const lines = decoder.decode(value).split("\n").filter((l) => l.startsWith("data: "));
+        // SSE lines can be split across network chunks; only parse complete lines.
+        sseBuffer += decoder.decode(value, { stream: true });
+        const parts = sseBuffer.split("\n");
+        sseBuffer = parts.pop() ?? "";
+        const lines = parts.filter((l) => l.startsWith("data: "));
         for (const line of lines) {
           const data = line.replace("data: ", "").trim();
           if (data === "[DONE]") break;

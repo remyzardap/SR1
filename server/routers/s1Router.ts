@@ -12,7 +12,8 @@
  * or VERTEX_PROJECT is set. Uses the OpenAI-compatible Vertex AI endpoint.
  */
 
-import { chatRoute, longDocRoute, routeFor } from "../core/kemmaRouter";
+import { chatRoute, longDocRoute, proRoute, routeFor } from "../core/kemmaRouter";
+import { stripGooglePrefix, vertexChatBaseUrl } from "../core/vertexAuth";
 
 export interface S1Agent {
   id: string;
@@ -53,8 +54,8 @@ const AGENTS: Record<
       emoji: "✨",
       color: "#4285f4",
     },
-    normalModel: "gemini-2.5-flash",
-    maxModel: "gemini-2.5-pro",
+    normalModel: chatRoute().model,
+    maxModel: proRoute().model,
   },
   qwen: {
     info: {
@@ -64,7 +65,8 @@ const AGENTS: Record<
       emoji: "✍️",
       color: "#7c3aed",
     },
-    normalModel: chatRoute().model,
+    // Must stay a Qwen model: the chat slot is Gemini now, which would resolve to a keyless route here.
+    normalModel: longDocRoute().model,
     maxModel: longDocRoute().model,
   },
   sonar: {
@@ -96,9 +98,14 @@ function getAgentConfig(agentId: string, max: boolean, fallback = true): AgentCo
   switch (agentId) {
     case "gemini": {
       if (VERTEX_PROJECT && GOOGLE_CREDS) {
-        // Vertex AI OpenAI-compatible endpoint
-        const baseUrl = `https://${VERTEX_LOCATION}-aiplatform.googleapis.com/v1beta1/projects/${VERTEX_PROJECT}/locations/${VERTEX_LOCATION}/endpoints/openapi`;
-        return { baseUrl, model, apiKey: "", vertexProject: VERTEX_PROJECT, vertexLocation: VERTEX_LOCATION };
+        // Vertex AI OpenAI-compatible endpoint (global uses the bare host; model needs the google/ prefix)
+        return {
+          baseUrl: vertexChatBaseUrl(VERTEX_PROJECT),
+          model: `google/${stripGooglePrefix(model)}`,
+          apiKey: "",
+          vertexProject: VERTEX_PROJECT,
+          vertexLocation: VERTEX_LOCATION,
+        };
       }
       // Fallback: Gemini via Google AI Studio key
       const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GEMINI;
