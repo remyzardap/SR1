@@ -25,14 +25,14 @@ export const spacesRouter = router({
     }),
 
   create: protectedProcedure
-    .input(z.object({ name: z.string().min(1).max(255), description: z.string().max(2000).optional() }))
+    .input(z.object({ name: z.string().trim().min(1).max(255), description: z.string().max(2000).optional() }))
     .mutation(async ({ ctx, input }) => {
       const id = await createSpace(ctx.user.id, input.name, input.description);
       return { id };
     }),
 
   update: protectedProcedure
-    .input(z.object({ id: z.string().uuid(), name: z.string().min(1).max(255).optional(), description: z.string().max(2000).optional() }))
+    .input(z.object({ id: z.string().uuid(), name: z.string().trim().min(1).max(255).optional(), description: z.string().max(2000).optional() }))
     .mutation(async ({ ctx, input }) => {
       const space = await getSpace(input.id, ctx.user.id);
       if (!space) throw new TRPCError({ code: "NOT_FOUND" });
@@ -78,7 +78,7 @@ export const spacesRouter = router({
     }),
 
   moveFile: protectedProcedure
-    .input(z.object({ fileId: z.number(), spaceId: z.string().uuid().nullable() }))
+    .input(z.object({ fileId: z.number().int().positive(), spaceId: z.string().uuid().nullable() }))
     .mutation(async ({ ctx, input }) => {
       if (input.spaceId) {
         const space = await getSpace(input.spaceId, ctx.user.id);

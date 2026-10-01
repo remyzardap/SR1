@@ -58,9 +58,19 @@ export async function handleResearch(userId: number, req: Request, res: Response
   startSse(res);
   const stopHeartbeat = startHeartbeat(res);
   let aborted = false;
-  req.on("close", () => {
+  // Node destroys the request stream once its body has been read, which happens while
+  // this response is still open: a req "close" after a complete body says nothing about
+  // the client. A response closed before our own res.end() does, and so does a request
+  // that gave up before finishing the upload.
+  const clientGone = () => {
     aborted = true;
     stopHeartbeat();
+  };
+  req.on("close", () => {
+    if (!req.readableEnded) clientGone();
+  });
+  res.on("close", () => {
+    if (!res.writableEnded) clientGone();
   });
   const send = (event: string, data: unknown) => {
     if (!aborted && !res.writableEnded) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);

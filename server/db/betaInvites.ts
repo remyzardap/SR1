@@ -1,6 +1,6 @@
 import { getDb } from "../db";
 import { betaInviteCodes } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, gt, isNull, lt, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import crypto from "crypto";
 
@@ -15,9 +15,10 @@ export async function generateBetaInviteCode(
   }
 ): Promise<string> {
   const db = await getDb();
+  if (!db) throw new Error("Database not available");
   const code = nanoid(12).toUpperCase();
 
-  await db!.insert(betaInviteCodes).values({
+  await db.insert(betaInviteCodes).values({
     id: crypto.randomUUID(),
     code,
     createdBy,
@@ -31,7 +32,10 @@ export async function generateBetaInviteCode(
 }
 
 /**
- * Validate and use a beta invite code
+ * Validate and redeem a beta invite code.
+ *
+ * The redemption is claimed with a single conditional UPDATE so that two
+ * concurrent signups cannot both consume the same one-use code.
  */
 export async function useBetaInviteCode(
   code: string,
@@ -39,13 +43,15 @@ export async function useBetaInviteCode(
 ): Promise<{ valid: boolean; reason?: string }> {
   const db = await getDb();
 
-  if (!db) return { valid: true }; // DB not available — open access
+  if (!db) return { valid: true }; // DB not available - open access
+
+  const normalized = code.trim().toUpperCase();
 
   // Find the code
   const record = await db
     .select()
     .from(betaInviteCodes)
-    .where(eq(betaInviteCodes.code, code.toUpperCase()))
+    .where(eq(betaInviteCodes.code, normalized))
     .limit(1);
 
   if (!record || record.length === 0) {
@@ -54,7 +60,8 @@ export async function useBetaInviteCode(
 
   const invite = record[0];
 
-  // Check if active
+  // Friendly pre-checks for accurate error messages. The authoritative gate
+  // is the atomic claim below.
   if (!invite.isActive) {
     return { valid: false, reason: "Invite code is no longer active" };
   }
@@ -69,14 +76,29 @@ export async function useBetaInviteCode(
     return { valid: false, reason: "Invite code has reached its usage limit" };
   }
 
-  // Mark as used
-  await db
+  // Claim atomically: Postgres re-evaluates the active/expiry/usage guards
+  // inside the UPDATE, and only a claim that locks a row counts as valid.
+  const now = new Date();
+  const [claimed] = await db
     .update(betaInviteCodes)
     .set({
       usedBy: userId,
-      usageCount: (invite.usageCount ?? 0) + 1,
+      usageCount: sql`${betaInviteCodes.usageCount} + 1`,
+      updatedAt: now,
     })
-    .where(eq(betaInviteCodes.id, invite.id));
+    .where(
+      and(
+        eq(betaInviteCodes.id, invite.id),
+        eq(betaInviteCodes.isActive, true),
+        or(isNull(betaInviteCodes.expiresAt), gt(betaInviteCodes.expiresAt, now)),
+        or(isNull(betaInviteCodes.maxUses), lt(betaInviteCodes.usageCount, betaInviteCodes.maxUses)),
+      ),
+    )
+    .returning({ id: betaInviteCodes.id });
+
+  if (!claimed) {
+    return { valid: false, reason: "Invite code has reached its usage limit" };
+  }
 
   return { valid: true };
 }

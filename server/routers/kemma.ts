@@ -178,7 +178,16 @@ export const kemmaRouter = router({
 
   deleteSession: protectedProcedure
     .input(z.object({ sessionId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) => { await deleteChatSession(input.sessionId, ctx.user.id); return { success: true }; }),
+    .mutation(async ({ ctx, input }) => {
+      // db.deleteChatSession removes chat_messages before filtering by userId,
+      // so the ownership check has to happen here first.
+      const sessions = await listChatSessions(ctx.user.id);
+      if (!sessions.some((s: any) => s.id === input.sessionId)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Session not found" });
+      }
+      await deleteChatSession(input.sessionId, ctx.user.id);
+      return { success: true };
+    }),
 
   saveMessage: protectedProcedure
     .input(z.object({

@@ -2,7 +2,9 @@ import { generateFile } from "../../fileGenerator";
 import { getStorageAdapter } from "../../storageAdapter";
 import { getDb } from "../../db";
 import { files } from "../../../drizzle/schema";
-import type { StructuredContent, StyleOption } from "../../fileGenerator";
+import type { StructuredContent, StyleOption, FileFormat } from "../../fileGenerator";
+
+const SUPPORTED_FORMATS: readonly string[] = ["pdf", "docx", "xlsx", "pptx", "md"];
 
 /**
  * Generates a file, stores bytes via the configured adapter, and persists
@@ -16,7 +18,10 @@ export async function generateAndSaveFile(
   style: StyleOption,
   options?: { threadId?: string; spaceId?: string }
 ): Promise<{ url: string; fileId: number; name: string }> {
-  const fmt = format as "pdf" | "docx" | "xlsx" | "pptx" | "md";
+  if (!SUPPORTED_FORMATS.includes(format)) {
+    throw new Error(`Unsupported file format: ${format}`);
+  }
+  const fmt = format as FileFormat;
   const { buffer, extension, mimeType } = await generateFile(content, fmt, style);
 
   const adapter = getStorageAdapter();

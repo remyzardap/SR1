@@ -36,7 +36,12 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
 
   const heartbeat = setInterval(() => res.write(": ping\n\n"), 20000);
   let aborted = false;
-  req.on("close", () => { aborted = true; clearInterval(heartbeat); });
+  const clientGone = () => { aborted = true; clearInterval(heartbeat); };
+  // The request readable is auto-destroyed once express.json() consumed the body, so its
+  // "close" can fire before this listener is attached: watch the response side for real
+  // disconnects, and the request side only for abandoned uploads (same fix as /api/fn).
+  req.on("close", () => { if (!req.readableEnded) clientGone(); });
+  res.on("close", () => { if (!res.writableEnded) clientGone(); });
 
   let assistantContent = "";
   try {
@@ -72,7 +77,22 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
       onSkillUsed: (skill) => { if (!aborted) sendEvent(res, "skill", skill); },
     });
 
-    if (sessionId && assistantContent) {
+    // An engine-level error never reaches onStream; surface it through the SSE "error" event
+    // (the client shows it and removes the blank assistant message) without persisting the
+    // error text as an assistant message. Same for an answer that is entirely empty.
+    if (!assistantContent && (output.isError || !output.response)) {
+      if (!aborted) sendEvent(res, "error", output.isError ? output.response : "Kemma returned an empty response. Please try again.");
+      return;
+    }
+
+    // Final text the engine produced without streaming it (e.g. the "Done." truncation
+    // fallback): deliver and persist it like a streamed answer instead of leaving a blank chat.
+    if (!assistantContent && output.response) {
+      assistantContent = output.response;
+      if (!aborted) sendEvent(res, "token", assistantContent);
+    }
+
+    if (sessionId && assistantContent && !aborted) {
       await addChatMessage(sessionId, user.id, assistantContent, "assistant", finalModels[finalModels.length - 1] ?? resolved.model ?? undefined);
     }
 

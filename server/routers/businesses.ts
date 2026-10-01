@@ -19,7 +19,7 @@ export const businessesRouter = router({
 
   // ── Get a single business by ID (ownership enforced) ──────────────────────
   byId: protectedProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.number().int().positive() }))
     .query(async ({ ctx, input }) => {
       const biz = await getBusinessById(input.id, ctx.user.id);
       if (!biz) throw new TRPCError({ code: "NOT_FOUND", message: "Business not found" });
@@ -30,14 +30,14 @@ export const businessesRouter = router({
   create: protectedProcedure
     .input(
       z.object({
-        name: z.string().min(1, "Business name is required").max(255),
+        name: z.string().trim().min(1, "Business name is required").max(255),
         currency: z.enum(CURRENCY_OPTIONS).default("IDR"),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const biz = await createBusiness({
         ownerId: ctx.user.id,
-        name: input.name.trim(),
+        name: input.name,
         currency: input.currency,
       });
       if (!biz) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create business" });
@@ -48,8 +48,8 @@ export const businessesRouter = router({
   update: protectedProcedure
     .input(
       z.object({
-        id: z.number(),
-        name: z.string().min(1).max(255).optional(),
+        id: z.number().int().positive(),
+        name: z.string().trim().min(1).max(255).optional(),
         currency: z.enum(CURRENCY_OPTIONS).optional(),
       })
     )
@@ -64,7 +64,7 @@ export const businessesRouter = router({
 
   // ── Delete a business ─────────────────────────────────────────────────────
   delete: protectedProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
       const existing = await getBusinessById(input.id, ctx.user.id);
       if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Business not found" });

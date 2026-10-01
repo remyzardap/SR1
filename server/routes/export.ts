@@ -34,12 +34,18 @@ export function registerExportRoutes(app: Express) {
     const { sessionId } = paramsResult.data;
     const { format } = queryResult.data;
 
-    const session = await getChatSessionForUser(sessionId, user.id);
-    if (!session) {
-      return res.status(404).json({ error: "Not found" });
+    let session: Awaited<ReturnType<typeof getChatSessionForUser>>;
+    let messages: Awaited<ReturnType<typeof getChatSessionMessages>>;
+    try {
+      session = await getChatSessionForUser(sessionId, user.id);
+      if (!session) {
+        return res.status(404).json({ error: "Not found" });
+      }
+      messages = await getChatSessionMessages(sessionId);
+    } catch (err) {
+      console.error("[export/thread] load error:", err);
+      return res.status(500).json({ error: "Export failed" });
     }
-
-    const messages = await getChatSessionMessages(sessionId);
     const name = safeFilename(session.title || "chat", session.id);
 
     try {
@@ -63,10 +69,19 @@ export function registerExportRoutes(app: Express) {
     const user = (req as any).user;
     const adapter = getStorageAdapter();
 
-    const [sessions, files] = await Promise.all([
-      listChatSessions(user.id),
-      getFilesByUser(user.id),
-    ]);
+    let sessions: Awaited<ReturnType<typeof listChatSessions>>;
+    let files: Awaited<ReturnType<typeof getFilesByUser>>;
+    try {
+      [sessions, files] = await Promise.all([
+        listChatSessions(user.id),
+        getFilesByUser(user.id),
+      ]);
+    } catch (err) {
+      // These reads happen before any bytes are streamed; without this guard a
+      // rejection would leave the response started-but-never-ended (hang).
+      console.error("[export/all] failed to load user data:", err);
+      return res.status(500).json({ error: "Export failed" });
+    }
 
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", `attachment; filename="sutaeru-export-${user.id}.zip"`);

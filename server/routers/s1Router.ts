@@ -12,7 +12,8 @@
  * or VERTEX_PROJECT is set. Uses the OpenAI-compatible Vertex AI endpoint.
  */
 
-import { chatRoute, longDocRoute, routeFor } from "../core/kemmaRouter";
+import { detectProvider, routeFor, slotModelId, type SlotName } from "../core/kemmaRouter";
+import { stripGooglePrefix, vertexChatBaseUrl } from "../core/vertexAuth";
 
 export interface S1Agent {
   id: string;
@@ -40,11 +41,10 @@ export interface AgentConfig {
 
 // ─── Agent definitions ────────────────────────────────────────────────────────
 
-// Max mode: uses the most capable model variant for each agent.
-const AGENTS: Record<
-  string,
-  { info: AgentInfo; normalModel: string; maxModel: string }
-> = {
+// Max mode: uses the most capable model variant for each agent. Models are resolved per call
+// from the Kemma slots; an import-time snapshot would freeze whatever env happened to be set
+// when this module was first loaded (see the slot env timing note in core/kemmaRouter.ts).
+const AGENTS: Record<string, { info: AgentInfo; model: (max: boolean) => string }> = {
   gemini: {
     info: {
       agent: "gemini",
@@ -53,8 +53,19 @@ const AGENTS: Record<
       emoji: "✨",
       color: "#4285f4",
     },
-    normalModel: "gemini-2.5-flash",
-    maxModel: "gemini-2.5-pro",
+    // This member talks to the Gemini backend, so it must send an id that backend serves: the
+    // slot this tier asks for when that slot is a Gemini model, otherwise the next Gemini slot.
+    // An empty string means no Gemini slot is configured and the member is skipped.
+    model: (max) => {
+      const order: SlotName[] = max
+        ? ["KEMMA_MODEL_PRO", "KEMMA_MODEL_CHAT", "KEMMA_MODEL_VISION", "KEMMA_MODEL_PLANNER"]
+        : ["KEMMA_MODEL_CHAT", "KEMMA_MODEL_VISION", "KEMMA_MODEL_PLANNER", "KEMMA_MODEL_PRO"];
+      for (const slot of order) {
+        const id = slotModelId(slot);
+        if (detectProvider(id) === "gemini") return stripGooglePrefix(id);
+      }
+      return "";
+    },
   },
   qwen: {
     info: {
@@ -64,8 +75,9 @@ const AGENTS: Record<
       emoji: "✍️",
       color: "#7c3aed",
     },
-    normalModel: chatRoute().model,
-    maxModel: longDocRoute().model,
+    // The long-doc slot is the Qwen one; the chat slot is Gemini now, which would resolve to a
+    // keyless route here.
+    model: () => slotModelId("KEMMA_MODEL_LONG_DOC"),
   },
   sonar: {
     info: {
@@ -75,8 +87,7 @@ const AGENTS: Record<
       emoji: "🔍",
       color: "#2dd4bf",
     },
-    normalModel: "sonar",
-    maxModel: "sonar-pro",
+    model: (max) => (max ? "sonar-pro" : "sonar"),
   },
 };
 
@@ -91,14 +102,20 @@ function getAgentConfig(agentId: string, max: boolean, fallback = true): AgentCo
   const agent = AGENTS[agentId];
   if (!agent) return null;
 
-  const model = max ? agent.maxModel : agent.normalModel;
+  const model = agent.model(max);
 
   switch (agentId) {
     case "gemini": {
+      if (!model) return null; // no Gemini slot configured: this member cannot answer
       if (VERTEX_PROJECT && GOOGLE_CREDS) {
-        // Vertex AI OpenAI-compatible endpoint
-        const baseUrl = `https://${VERTEX_LOCATION}-aiplatform.googleapis.com/v1beta1/projects/${VERTEX_PROJECT}/locations/${VERTEX_LOCATION}/endpoints/openapi`;
-        return { baseUrl, model, apiKey: "", vertexProject: VERTEX_PROJECT, vertexLocation: VERTEX_LOCATION };
+        // Vertex AI OpenAI-compatible endpoint (global uses the bare host; model needs the google/ prefix)
+        return {
+          baseUrl: vertexChatBaseUrl(VERTEX_PROJECT),
+          model: `google/${stripGooglePrefix(model)}`,
+          apiKey: "",
+          vertexProject: VERTEX_PROJECT,
+          vertexLocation: VERTEX_LOCATION,
+        };
       }
       // Fallback: Gemini via Google AI Studio key
       const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GEMINI;
@@ -110,7 +127,9 @@ function getAgentConfig(agentId: string, max: boolean, fallback = true): AgentCo
 
     case "qwen": {
       const route = routeFor(model);
-      if (route.apiKey) return { baseUrl: route.baseUrl, model, apiKey: route.apiKey };
+      // route.apiKey is "" for a Vertex-backed slot, and route.model is the id the endpoint
+      // actually expects (a litellm/ routing prefix is stripped before sending).
+      if (route.apiKey) return { baseUrl: route.baseUrl, model: route.model, apiKey: route.apiKey };
       return null;
     }
 
@@ -181,7 +200,9 @@ export async function resolveBearer(config: AgentConfig): Promise<string> {
   const auth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform"] });
   const client = await auth.getClient();
   const token = await client.getAccessToken();
-  return token.token ?? "";
+  // An empty bearer would reach Vertex as an unauthenticated call; the caller handles the throw.
+  if (!token.token) throw new Error("Vertex AI authentication returned no access token.");
+  return token.token;
 }
 
 async function fetchDraft(
@@ -271,7 +292,23 @@ export async function s1Blend(
   if (sysIdx >= 0) blended[sysIdx] = { ...blended[sysIdx], content: blended[sysIdx].content + blendNote };
   else blended.unshift({ role: "system", content: blendNote.trim() });
 
-  return { info: S1_BLEND_INFO, config: synth.config, messages: blended, contributors: drafts.map((d) => d.id) };
+  // Synthesize on a backend that actually answered, keeping the usual voice preference: a member
+  // whose draft call just failed is very likely to fail the streaming call as well.
+  let answeredMember: { id: string; config: AgentConfig } | null = null;
+  for (const id of ["gemini", "qwen", "sonar"]) {
+    const member = members.find((m) => m.id === id);
+    if (member && drafts.some((d) => d.id === member.id)) {
+      answeredMember = member;
+      break;
+    }
+  }
+
+  return {
+    info: S1_BLEND_INFO,
+    config: (answeredMember ?? synth).config,
+    messages: blended,
+    contributors: drafts.map((d) => d.id),
+  };
 }
 
 // ─── Persona definitions ─────────────────────────────────────────────────────

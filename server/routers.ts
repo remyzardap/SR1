@@ -214,6 +214,11 @@ export const appRouter = router({
         if (!valid) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email/handle or password." });
         }
+        if (user.totpEnabled) {
+          // Password-only sessions must not bypass an enabled second factor;
+          // the 2FA-capable client path is auth.login2fa.
+          throw new TRPCError({ code: "FORBIDDEN", message: "2FA is enabled on this account. Sign in with your authenticator code." });
+        }
         const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name || "", expiresInMs: ONE_YEAR_MS });
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
@@ -233,7 +238,13 @@ export const appRouter = router({
           const ONE_HOUR = 60 * 60 * 1000;
           const expiresAt = new Date(Date.now() + ONE_HOUR);
           await createPasswordResetToken(user.id, token, expiresAt);
-          await sendPasswordResetEmail(user.email!, token);
+          try {
+            await sendPasswordResetEmail(user.email!, token);
+          } catch (err) {
+            // The public endpoint must never surface transport errors: some SMTP
+            // failures echo the message content (and the token) in their text.
+            console.error("[auth] password reset email failed:", (err as Error).message);
+          }
         }
         return { success: true };
       }),
@@ -520,14 +531,18 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        // Check handle uniqueness before upserting
-        if (input.handle) {
-          const existing = await getIdentityByHandle(input.handle);
+        // Handles are addressed case-insensitively everywhere else (login via
+        // getUserByHandle lowercases), so normalize before the uniqueness
+        // check and persist the lowercased form.
+        const normalized = { ...input };
+        if (normalized.handle) {
+          normalized.handle = normalized.handle.toLowerCase();
+          const existing = await getIdentityByHandle(normalized.handle);
           if (existing && existing.userId !== ctx.user.id) {
-            throw new TRPCError({ code: "CONFLICT", message: `The handle @${input.handle} is already taken.` });
+            throw new TRPCError({ code: "CONFLICT", message: `The handle @${normalized.handle} is already taken.` });
           }
         }
-        const identity = await upsertIdentity(ctx.user.id, input);
+        const identity = await upsertIdentity(ctx.user.id, normalized);
         return identity;
       }),
     completeOnboarding: protectedProcedure.mutation(async ({ ctx }) => {

@@ -61,11 +61,19 @@ export async function handleDocumentBrief(userId: number, req: Request, res: Res
 
   startSse(res);
   const stopHeartbeat = startHeartbeat(res);
-  // The dialog can be closed mid-read; writes after that are dropped.
+  // The dialog can be closed mid-read; writes after that are dropped. Node destroys the
+  // request stream as soon as the body has been read, while this response is still open,
+  // so a req "close" after a full body is not the disconnect: the response is.
   let aborted = false;
-  req.on("close", () => {
+  const clientGone = () => {
     aborted = true;
     stopHeartbeat();
+  };
+  req.on("close", () => {
+    if (!req.readableEnded) clientGone();
+  });
+  res.on("close", () => {
+    if (!res.writableEnded) clientGone();
   });
   const send = (event: "token" | "done" | "error", data: unknown) => {
     if (!aborted && !res.writableEnded) writeSseEvent(res, event, data);
