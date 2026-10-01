@@ -15,6 +15,7 @@ import "@fontsource/epilogue/600.css";
 import "./index.css";
 import "./styles/sutaeru-os.css";
 import "./styles/preview.css";
+import "./styles/pages-reskin.css";
 
 const queryClient = new QueryClient();
 

@@ -1,0 +1,5 @@
+/*
+ * Page reskin styles (Kimi job, branch kimi/reskin). Owns the shared page patterns for
+ * Images, Files, Memories, Skills, Monitors, Connections, Identity, Settings, Admin, AuditLogs.
+ * Everything here must be scoped under `.sk-page` so it cannot leak into the shell or chat.
+ */
