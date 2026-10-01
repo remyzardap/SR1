@@ -728,6 +728,18 @@ function parseCompletionJson(data: any): { content: string | null; toolCalls?: T
   };
 }
 
+/**
+ * Gemini flash models spend several seconds "thinking" before answering, and far longer when tools are offered
+ * (measured: 3 to 20 s for a two sentence answer). Chat does not need deep reasoning, so ask for low effort.
+ * KEMMA_REASONING_EFFORT: low (default), medium, high, or off to send nothing. Pro models are never limited.
+ */
+export function reasoningEffortFor(route: { provider: string; model: string }, env: string | undefined = process.env.KEMMA_REASONING_EFFORT): "low" | "medium" | "high" | undefined {
+  if (route.provider !== "gemini" || /pro/i.test(route.model)) return undefined;
+  const v = (env ?? "low").trim().toLowerCase();
+  if (v === "off" || v === "") return undefined;
+  return v === "medium" || v === "high" ? v : "low";
+}
+
 async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string | null; toolCalls?: ToolCall[]; usage?: { input: number; output: number; total: number } }> {
   const { route, systemPrompt, messages, tools, stream, onStream } = input;
 
@@ -744,6 +756,7 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
     tool_choice: tools ? "auto" : undefined,
     stream: stream && !!onStream,
     max_tokens: 4096,
+    reasoning_effort: reasoningEffortFor(route),
   };
 
   const res = await fetch(`${target.baseUrl}/chat/completions`, {
