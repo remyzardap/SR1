@@ -53,3 +53,4 @@
 
 /* Center the transcript column inside the chat area */
 .sutaeru-chat .sutaeru-chat-transcript .sutaeru-chat-content { margin-inline: auto !important; }
+.sutaeru-chat .sutaeru-chat-transcript > div { margin-inline: auto; width: 100%; }

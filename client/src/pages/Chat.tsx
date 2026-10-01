@@ -455,6 +455,11 @@ export default function Chat() {
               const parsed = JSON.parse(data) as { id: number; name: string };
               assistantSkills.push(parsed);
               setUsedSkills([...assistantSkills]);
+            } else if (event === "quota_warn") {
+              try {
+                const parsed = JSON.parse(data) as { message?: string };
+                if (parsed.message) toast.warning(parsed.message);
+              } catch { /* ignore malformed warning */ }
             } else if (event === "notice") {
               const parsed = JSON.parse(data) as { message?: string };
               if (parsed.message) {

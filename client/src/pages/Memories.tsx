@@ -237,7 +237,7 @@ function MemoryCard({
 
       <span className="sk-meta">
         ADDED {memory.createdAt ? formatDate(memory.createdAt) : "-"}
-        {memory.source ? ` · FROM ${memory.source}` : ""}
+        {memory.sourceApp ?? memory.source ? ` · FROM ${memory.sourceApp ?? memory.source}` : ""}
       </span>
     </motion.div>
   );
@@ -356,7 +356,7 @@ export default function Memories() {
       const q = search.toLowerCase();
       result = result.filter(
         (m: any) =>
-          m.content?.toLowerCase().includes(q) || m.source?.toLowerCase().includes(q)
+          m.content?.toLowerCase().includes(q) || (m.sourceApp ?? m.source)?.toLowerCase().includes(q)
       );
     }
     return result;
