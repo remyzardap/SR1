@@ -18,6 +18,7 @@ import { Settings, X, Cpu, Wrench, Download, PanelRightOpen, PanelRightClose, Za
 import { Sparkles } from "@/components/brandIcons";
 import { Button } from "@/components/ui/button";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
+import type { ActivityItem } from "@/components/ActivityFeed";
 import type { ChatMessageData as Message, PlanDirection } from "@/types/chat";
 import {
   Select,
@@ -145,6 +146,7 @@ export default function Chat() {
 
   // Agent run state
   const [agentSteps, setAgentSteps] = useState<AgentStep[]>([]);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [currentStep, setCurrentStep] = useState<string>("");
   const [usedSkills, setUsedSkills] = useState<Array<{ id: number; name: string }>>([]);
   const [usage, setUsage] = useState<{ inputTokens: number; outputTokens: number; totalTokens: number } | null>(null);
@@ -236,6 +238,7 @@ export default function Chat() {
       setMessageModel("auto");
       setTaggedSkills([]);
       setAgentSteps([]);
+      setActivity([]);
       setUsedSkills([]);
       setUsage(null);
       setSources([]);
@@ -260,6 +263,7 @@ export default function Chat() {
     setMessageModel("auto");
     setTaggedSkills([]);
     setAgentSteps([]);
+      setActivity([]);
     setUsedSkills([]);
     setUsage(null);
     setSources([]);
@@ -325,6 +329,7 @@ export default function Chat() {
       setElapsed(0);
       setStartedAt(Date.now());
       setAgentSteps([]);
+      setActivity([]);
       setUsedSkills([]);
       setUsage(null);
       setSources([]);
@@ -392,6 +397,7 @@ export default function Chat() {
         let finalModel: string | undefined;
         const assistantSkills: Array<{ id: number; name: string }> = [];
         const assistantSteps: AgentStep[] = [];
+        const assistantActivity: ActivityItem[] = [];
 
         while (true) {
           const { done, value } = await reader.read();
@@ -422,6 +428,15 @@ export default function Chat() {
               assistantSteps.push({ id: crypto.randomUUID(), label: `Run ${label}`, detail: label });
               setAgentSteps([...assistantSteps]);
               setCurrentStep(`Run ${label}`);
+            } else if (event === "activity") {
+              try {
+                const item = JSON.parse(data) as ActivityItem;
+                const at = assistantActivity.findIndex((existing) => existing.id === item.id);
+                if (at >= 0) assistantActivity[at] = { ...assistantActivity[at], ...item };
+                else assistantActivity.push(item);
+                setActivity([...assistantActivity]);
+                if (item.status === "running" && item.kind !== "write") setCurrentStep(item.detail ? `${item.label}: ${item.detail}` : item.label);
+              } catch { /* ignore malformed activity */ }
             } else if (event === "skill") {
               const parsed = JSON.parse(data) as { id: number; name: string };
               assistantSkills.push(parsed);
@@ -636,6 +651,7 @@ export default function Chat() {
               onSuggestion={(s) => void handleSend(s)}
               sources={sources}
               steps={agentSteps}
+              activity={activity}
               onSelectPlan={handleSelectPlan}
             />
 

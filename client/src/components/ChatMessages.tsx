@@ -1,6 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { MessageBubble } from "./MessageBubble";
+import type { ActivityItem } from "./ActivityFeed";
 import { TypingIndicator } from "./TypingIndicator";
 import { ChatEmptyState } from "./ChatEmptyState";
 import type { ChatMessageData, PlanDirection } from "@/types/chat";
@@ -14,10 +15,11 @@ interface ChatMessagesProps {
   onSuggestion: (text: string) => void;
   sources?: Array<{ title: string; url: string }>;
   steps?: Array<{ id: string; label: string; detail?: string }>;
+  activity?: ActivityItem[];
   onSelectPlan?: (messageId: string, option: PlanDirection) => void;
 }
 
-export function ChatMessages({ messages, isStreaming, agentName, messagesEndRef, onSaveMemory, onSuggestion, sources = [], steps = [], onSelectPlan }: ChatMessagesProps) {
+export function ChatMessages({ messages, isStreaming, agentName, messagesEndRef, onSaveMemory, onSuggestion, sources = [], steps = [], activity = [], onSelectPlan }: ChatMessagesProps) {
   const lastAssistantIndex = messages.length - 1 - [...messages].reverse().findIndex((message) => message.role === "assistant");
   const toolSteps = steps.filter((step) => step.detail);
 
@@ -32,6 +34,7 @@ export function ChatMessages({ messages, isStreaming, agentName, messagesEndRef,
                 message={message}
                 onSave={!message.streaming && message.role === "assistant" ? onSaveMemory : undefined}
                 tools={index === lastAssistantIndex ? toolSteps : undefined}
+                activity={index === lastAssistantIndex ? activity : undefined}
                 isRunning={isStreaming && index === lastAssistantIndex}
                 sources={message.sources}
                 question={message.question}

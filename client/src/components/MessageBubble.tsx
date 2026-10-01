@@ -10,19 +10,21 @@ import { SpeakButton } from "./SpeakButton";
 import { PlanOptionCards } from "./PlanOptionCards";
 import type { ChatMessageData, PlanDirection } from "@/types/chat";
 import { SutaeruIcon } from "./SutaeruIcon";
+import { ActivityFeed, type ActivityItem } from "./ActivityFeed";
 
 interface MessageBubbleProps {
   message: ChatMessageData;
   onSave?: (content: string) => void;
   tools?: Array<{ id: string; label: string; detail?: string }>;
   isRunning?: boolean;
+  activity?: ActivityItem[];
   sources?: Array<{ title: string; url: string }>;
   question?: string;
   references?: string[];
   onSelectPlan?: (option: PlanDirection) => void;
 }
 
-export function MessageBubble({ message, onSave, tools = [], isRunning = false, sources = [], question, references = [], onSelectPlan }: MessageBubbleProps) {
+export function MessageBubble({ message, onSave, tools = [], isRunning = false, activity = [], sources = [], question, references = [], onSelectPlan }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const utils = trpc.useUtils();
   const createBlock = trpc.blocks.create.useMutation({
@@ -38,6 +40,7 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
         <span>{message.createdAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
         {!isUser && message.model && <span>{message.model}</span>}
       </div>
+      {!isUser && activity.length > 0 && <ActivityFeed items={activity} isRunning={isRunning} />}
       <MessageContent className={isUser ? "sutaeru-user-content" : "sutaeru-assistant-content"}>
         {message.streaming && !message.content ? <Shimmer>Thinking…</Shimmer> :
           isUser ? <span className="whitespace-pre-wrap">{message.content}</span> :
@@ -53,7 +56,7 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
           <ol>{sources.map((source, index) => <li key={`${source.url}-${index}`}><a href={source.url} target="_blank" rel="noreferrer"><span>{String(index + 1).padStart(2, "0")}</span>{source.title}</a></li>)}</ol>
         </section>
       )}
-      {!isUser && tools.length > 0 && (
+      {!isUser && activity.length === 0 && tools.length > 0 && (
         <div className="sutaeru-message-tools">
           {tools.map((tool) => (
             <Tool key={tool.id} defaultOpen={false}>
