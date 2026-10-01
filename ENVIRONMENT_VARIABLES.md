@@ -208,6 +208,22 @@ rules: 3.x requires `VERTEX_LOCATION=global`. There is no `gemini-3.8-pro` on Ve
 
 ---
 
+## Venice, VPS files and WhatsApp
+
+| Variable | Default | What it does |
+|---|---|---|
+| `VENICE_API_KEY` | empty | Key for the Venice provider (admin-only unrestricted chat models routed as `venice/<id>`) |
+| `VENICE_BASE_URL` | `https://api.venice.ai/api/v1` | Venice API base URL |
+| `VENICE_MODELS` | `venice/venice-uncensored` | Comma-separated `venice/<id>` models offered to admins |
+| `VENICE_TOOLS` | unset | Set to `1` to let Venice models call tools; otherwise they get no tools |
+| `VPS_FILES_ROOTS` | `/vps` | Comma-separated container paths the admin-only `vps_files` tool may read (read-only; secret paths are blocked in code) |
+| `WHATSAPP_BAILEYS` | unset | Set to `1` to start the WhatsApp bridge (links a spare number as a device) |
+| `WHATSAPP_PAIR_NUMBER` | empty | Number (digits with country code) to link once; the pairing code appears on the admin pairing page |
+| `WHATSAPP_ALLOWED_NUMBERS` | empty | Comma-separated digits that may talk to Kemma over WhatsApp; everyone else is ignored |
+| `WHATSAPP_AUTH_DIR` | `/data/wa-auth` | Folder for the linked-device session (mount as a volume so restarts do not unlink) |
+| `WHATSAPP_KEMMA_USER_ID` | lowest admin id | User that WhatsApp messages run as |
+| `WHATSAPP_GRAPH_VERSION` | `v24.0` | Meta Graph API version used by the WhatsApp Cloud webhook |
+
 ## Image generation
 
 `POST /api/fn/image` renders one image per request on the engine the user picked

@@ -229,8 +229,9 @@ describe("POST /webhooks/whatsapp (x-hub-signature-256)", () => {
 });
 
 describe("mounting", () => {
-  it("FINDING: the router is never mounted by _core/index.ts (webhook is dead code as shipped)", async () => {
+  it("the router is mounted by _core/index.ts at /webhooks/whatsapp", async () => {
     const indexSrc = await import("fs/promises").then((fs) => fs.readFile(new URL("../../_core/index.ts", import.meta.url), "utf-8"));
-    expect(indexSrc).not.toMatch(/whatsapp/i);
+    expect(indexSrc).toMatch(/import whatsappWebhookRouter from ['"]\.\.\/routes\/webhooks\/whatsapp['"]/);
+    expect(indexSrc).toMatch(/app\.use\(['"]\/webhooks\/whatsapp['"], whatsappWebhookRouter\)/);
   });
 });
