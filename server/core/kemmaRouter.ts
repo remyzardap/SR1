@@ -148,8 +148,15 @@ export function detectProvider(model: string): ModelProvider {
   if (lower.includes("qwen") || lower.includes("qwq")) return "qwen";
   if (lower.includes("sonar")) return "perplexity";
   if (lower.includes("gemini") || lower.includes("embedding")) return "gemini";
+  // Default is qwen, but say so once per id: silently misrouting e.g. an OpenAI id to
+  // the Qwen endpoint fails later with a confusing provider 4xx and no local trace.
+  if (lower && !warnedUnknownProviders.has(lower)) {
+    warnedUnknownProviders.add(lower);
+    console.warn(`[kemmaRouter] "${model}" matches no known provider; routing it to Qwen. Check the KEMMA_MODEL_* env for this slot.`);
+  }
   return "qwen";
 }
+const warnedUnknownProviders = new Set<string>();
 
 export function apiKeyFor(provider: ModelProvider): string {
   switch (provider) {

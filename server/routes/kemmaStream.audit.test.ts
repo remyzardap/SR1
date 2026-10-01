@@ -25,6 +25,7 @@ const db = vi.hoisted(() => ({
   getDb: vi.fn(async () => null),
   addChatMessage: vi.fn(async () => "msg-id"),
   getChatSessionSettings: vi.fn(async () => ({})),
+  ensureChatSession: vi.fn(async () => "owned" as const),
 }));
 
 vi.mock("../kemma/kemmaMax", () => kmax);

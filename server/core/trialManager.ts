@@ -10,7 +10,7 @@
 
 import { getDb } from "../db";
 import { userQuotas, users } from "../../drizzle/schema";
-import { eq, lt, and } from "drizzle-orm";
+import { eq, lt, and, or, isNull } from "drizzle-orm";
 // import { sendTrialExpiryEmail } from "../_core/email"; // TODO: Implement email sender
 
 // ─── Trial expiry cron ────────────────────────────────────────────────────────
@@ -30,16 +30,18 @@ export async function runTrialExpiry(): Promise<{ expired: number }> {
 
   const now = new Date();
 
+  // Expired trials: past the end date, or an active trial row with no end date at
+  // all (it could never expire on its own, so it is treated as expired).
+  const expiredWhere = and(
+    eq(userQuotas.tier, "trial"),
+    or(lt(userQuotas.trialEndsAt, now), isNull(userQuotas.trialEndsAt))
+  );
+
   // Find all expired trials
   const expired = await db
     .select({ userId: userQuotas.userId })
     .from(userQuotas)
-    .where(
-      and(
-        eq(userQuotas.tier, "trial"),
-        lt(userQuotas.trialEndsAt, now)
-      )
-    );
+    .where(expiredWhere);
 
   if (expired.length === 0) return { expired: 0 };
 
@@ -47,12 +49,7 @@ export async function runTrialExpiry(): Promise<{ expired: number }> {
   await db
     .update(userQuotas)
     .set({ tier: "free" })
-    .where(
-      and(
-        eq(userQuotas.tier, "trial"),
-        lt(userQuotas.trialEndsAt, now)
-      )
-    );
+    .where(expiredWhere);
 
   // Send expiry emails (non-blocking)
   for (const { userId } of expired) {

@@ -61,10 +61,20 @@ export async function getMemoriesContext(
 
     if (memories.length === 0) return undefined;
 
-    // Format for system prompt injection
-    return memories
-      .map((m) => `[${m.type}] ${m.title ? m.title + ": " : ""}${m.content}`)
-      .join("\n");
+    // Format for system prompt injection, capped: one stored memory must not be able
+    // to dominate (or OOM) every future system prompt. Per item, then total.
+    const MAX_ITEM_CHARS = 2000;
+    const MAX_TOTAL_CHARS = 8000;
+    let used = 0;
+    const lines: string[] = [];
+    for (const m of memories) {
+      let body = `[${m.type}] ${m.title ? m.title + ": " : ""}${m.content}`;
+      if (body.length > MAX_ITEM_CHARS) body = body.slice(0, MAX_ITEM_CHARS - 1) + "…";
+      if (used + body.length + 1 > MAX_TOTAL_CHARS) break;
+      used += body.length + 1;
+      lines.push(body);
+    }
+    return lines.length > 0 ? lines.join("\n") : undefined;
 
   } catch {
     return undefined; // never crash the engine over memories

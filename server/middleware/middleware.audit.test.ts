@@ -297,10 +297,14 @@ describe("_core/index.ts wiring tripwires (report-only; file owned by the wiring
     expect(src).toMatch(/app\.use\('\/api\/fn',\s*requireSession,\s*fnRouter\)/);
   });
 
-  it("FINDING MW-4: security headers middleware is implemented but never registered", () => {
-    expect(src).not.toContain("cspMiddleware");
-    expect(src).not.toContain("errorMonitoringMiddleware");
-    expect(src).not.toContain("registerGlobalErrorHandlers");
+  it("FIXED (was MW-4): error monitoring is registered; cspMiddleware stays off deliberately", () => {
+    // The CSP policy in security.ts sets frame-src 'none' and a production
+    // connect-src that omits wss:, which would break the FloatingVideoPlayer
+    // YouTube embeds and the /ws/intelligence socket. Register it only after
+    // the policy accounts for both.
+    expect(src).toContain("app.use(errorMonitoringMiddleware)");
+    expect(src).toContain("registerGlobalErrorHandlers()");
+    expect(src).not.toMatch(/app\.use\(\s*cspMiddleware\s*\)/);
   });
 
   it("FINDING MW-5: the purpose-built auth limiters and rateLimitMiddleware are never registered", () => {
@@ -310,7 +314,7 @@ describe("_core/index.ts wiring tripwires (report-only; file owned by the wiring
     expect(src).not.toContain("rateLimitMiddleware");
   });
 
-  it("FINDING MW-6: no Express 'trust proxy' setting anywhere, so limiter + XFF handling stay broken behind Caddy", () => {
-    expect(src).not.toMatch(/app\.set\(\s*['"]trust proxy['"]/);
+  it("FIXED (was MW-6): Express trusts exactly one proxy hop, so req.ip is the real client", () => {
+    expect(src).toMatch(/app\.set\(\s*['"]trust proxy['"]\s*,\s*1\s*\)/);
   });
 });

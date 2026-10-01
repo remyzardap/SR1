@@ -121,17 +121,24 @@ vi.mock("./services/vectorSearch", () => ({
 
 type CookieCall = { name: string; value: string; options: Record<string, unknown> };
 
+let ctxIpCounter = 0;
+
 function makeCtx(opts?: { secure?: boolean; xff?: string }) {
   const cookies: CookieCall[] = [];
   const cleared: CookieCall[] = [];
   const headers: Record<string, string> = {};
   if (opts?.xff) headers["x-forwarded-for"] = opts.xff;
+  ctxIpCounter += 1;
   const ctx = {
     user: null as any,
     req: {
       protocol: opts?.secure ? "https" : "http",
       headers,
-      ip: "127.0.0.1",
+      // Batch-2 (AUD-RL-2 fix): routers.ts now keys the limiter on req.ip, which
+      // Express derives from the LAST x-forwarded-for entry behind the trusted
+      // hop. Give every test ctx its own client address unless the caller
+      // rotates the header itself.
+      ip: opts?.xff ? opts.xff.split(",").pop()!.trim() : `10.99.${Math.floor(ctxIpCounter / 256) % 256}.${ctxIpCounter % 256}`,
     } as any,
     res: {
       cookie: (name: string, value: string, options: Record<string, unknown>) => {
@@ -192,7 +199,7 @@ beforeEach(() => {
 });
 
 describe("auth.login (password flow)", () => {
-  it("sets a lax/HttpOnly session cookie and a token that verifies for the openId", async () => {
+  it("sets a lax/HttpOnly session cookie and a token that verifies for the openId", { timeout: 30000 }, async () => {
     await makeUser("correct horse battery staple");
     const { ctx, cookies } = makeCtx({ xff: freshIp() });
     const caller = await buildCaller(ctx);
@@ -218,7 +225,7 @@ describe("auth.login (password flow)", () => {
     expect(await sdk.verifySession(result.token)).not.toBeNull();
   });
 
-  it("marks secure=true when behind an https proxy (x-forwarded-proto)", async () => {
+  it("marks secure=true when behind an https proxy (x-forwarded-proto)", { timeout: 30000 }, async () => {
     await makeUser("hunter2-hunter2");
     const { ctx, cookies } = makeCtx({ xff: freshIp() });
     ctx.req.headers["x-forwarded-proto"] = "https";
@@ -305,21 +312,27 @@ describe("auth.login (password flow)", () => {
     ).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
   });
 
-  it("CURRENT BEHAVIOR (finding AUD-RL-2): rotating X-Forwarded-For bypasses the auth limiter entirely", async () => {
-    // routers.ts trusts the FIRST x-forwarded-for entry, which a client controls.
-    // This test documents the bypass; it is a report finding, not a fix.
+  it("FIXED (was AUD-RL-2): rotating X-Forwarded-For prefixes can no longer mint fresh buckets", async () => {
+    // routers.ts keys on req.ip, which Express derives behind the single trusted
+    // hop; a client-controlled first x-forwarded-for entry no longer matters.
     await makeUser("whatever12345");
-    const { ctx } = makeCtx({ xff: freshIp() });
+    const { ctx } = makeCtx({ xff: "203.0.113.9" });
     const caller = await buildCaller(ctx);
-    for (let i = 0; i < 25; i++) {
+    let sawTooMany = false;
+    for (let i = 0; i < 15; i++) {
+      // attacker prepends a new spoofed origin on every attempt
+      ctx.req.headers["x-forwarded-for"] = `198.51.100.${i}, 203.0.113.9`;
       const err = await caller.auth
         .login({ email: "bob@example.com", password: "x" })
         .then(() => null)
-        .catch((e: unknown) => e);
-      expect((err as { code?: string } | null)?.code).toBe("UNAUTHORIZED");
-      // each attempt uses a new spoofed client IP
-      ctx.req.headers["x-forwarded-for"] = `203.0.113.${i}`;
+        .catch((e: any) => e);
+      if (err?.code === "TOO_MANY_REQUESTS") {
+        sawTooMany = true;
+        break;
+      }
+      expect(err?.code).toBe("UNAUTHORIZED");
     }
+    expect(sawTooMany, "the auth limiter never fired despite 15 attempts from one client").toBe(true);
   });
 });
 

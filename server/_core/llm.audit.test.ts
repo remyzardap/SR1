@@ -112,7 +112,7 @@ describe("invokeLLM routing by chat slot", () => {
     expect(sent().headers.authorization).toBe("Bearer forge-key");
   });
 
-  it("an unknown model id in the chat slot is routed to Qwen without a warning", async () => {
+  it("an unknown model id in the chat slot is routed to Qwen and warns once (batch-2 fix #20)", async () => {
     process.env.QWEN_API_KEY = "q";
     process.env.KEMMA_MODEL_CHAT = "gpt-4o";
     const { invokeLLM } = await load();
@@ -122,7 +122,7 @@ describe("invokeLLM routing by chat slot", () => {
     expect(call.url).toBe("https://token-plan.maas.qwencloudapi.com/compatible-mode/v1/chat/completions");
     expect(call.headers.authorization).toBe("Bearer q");
     expect(call.body.model).toBe("gpt-4o");
-    expect(warnSpy.mock.calls.flat().map(String).join(" ")).not.toContain("gpt-4o");
+    expect(warnSpy.mock.calls.flat().map(String).join(" ")).toContain("gpt-4o");
 
     // What the provider answers for that request: the error is surfaced verbatim, no fallback.
     fetchMock.mockResolvedValueOnce(

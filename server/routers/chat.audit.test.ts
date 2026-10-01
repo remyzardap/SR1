@@ -85,9 +85,19 @@ vi.mock("google-auth-library", () => ({
   },
 }));
 
-import { registerChatStreamRoute } from "./chat";
-
-// ─── Fakes ───────────────────────────────────────────────────────────────────
+// vertexEnabled() checks GOOGLE_APPLICATION_CREDENTIALS readability; the harness
+// points it at a path that does not exist on this box, so report it readable
+// while keeping the rest of node:fs real.
+const fsState = vi.hoisted(() => ({ readable: true }));
+vi.mock("node:fs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs")>();
+  return {
+    ...actual,
+    accessSync: (_path: string | Uint8Array, _mode?: number) => {
+      if (!fsState.readable) throw new Error("ENOENT");
+    },
+  };
+});
 
 import { registerChatStreamRoute } from "./chat";
 import { chatMessages, chatSessions } from "../../drizzle/schema";
@@ -424,7 +434,10 @@ describe("SSE frames on the happy path", () => {
   });
 });
 
-describe("vertex backend on the legacy route", () => {
+describe("vertex backend on the legacy route (GEMINI_BACKEND=vertex)", () => {
+  beforeEach(() => {
+    process.env.GEMINI_BACKEND = "vertex";
+  });
   it("exchanges the service account for a bearer and posts to the vertex openai URL", async () => {
     process.env.VERTEX_PROJECT = "env-project";
     process.env.GOOGLE_APPLICATION_CREDENTIALS = "/tmp/private/service-account.json";

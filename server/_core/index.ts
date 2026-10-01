@@ -18,6 +18,7 @@ import { setupVite, serveStatic } from './vite';
 import { loadSecretsFromSecretManager } from './secretManager';
 import { ENV } from './env';
 import { sdk } from './sdk';
+import { errorMonitoringMiddleware, registerGlobalErrorHandlers } from '../middleware/security';
 import { generalApiRateLimiter } from './rateLimiter';
 import { registerFileRoutes } from '../routes/files';
 import { fnRouter } from '../routes/fn';
@@ -33,6 +34,11 @@ if (ENV.isProduction && !ENV.cookieSecret) {
 }
 
 const app = express();
+
+// Behind Caddy exactly one proxy hop sits in front of this server. Trusting it makes
+// req.ip the real client address (the last XFF entry the proxy appended) instead of
+// the proxy's own address, and untrusted leading entries spoofed by clients are ignored.
+app.set("trust proxy", 1);
 
 // Session gate for non-tRPC Express routes (atelier, intelligence, kemma stream).
 // Webhooks and OAuth callbacks are registered before this middleware so they stay public.
@@ -103,6 +109,15 @@ app.use('/api/trpc', createExpressMiddleware({
   router: appRouter,
   createContext,
 }));
+
+// Structured error logging for anything that reaches next(err). cspMiddleware is
+// deliberately NOT registered: its production policy (frame-src 'none', connect-src
+// 'self' https:) would break the YouTube embeds in FloatingVideoPlayer.tsx and the
+// wss connection to /ws/intelligence used by useSutaeruIntelligence. Fix the policy
+// for those two first, then mount it.
+app.use(errorMonitoringMiddleware);
+
+registerGlobalErrorHandlers();
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const server = createServer(app);

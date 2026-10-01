@@ -125,14 +125,22 @@ describe("getMemoriesContext: failure tolerance (a bad db must not blank the cha
 });
 
 describe("getMemoriesContext: injection size", () => {
-  it("has NO total-size cap: one huge memory is injected verbatim (documented gap)", async () => {
+  it("caps each item at 2000 chars and the whole context at 8000 (batch-2 fix)", async () => {
     const huge = "x".repeat(2_000_000);
     dbh.getMemoriesByIdentity.mockResolvedValue([{ id: 1, type: "fact", title: "big", content: huge }]);
 
     const ctx = await getMemoriesContext(7, "hello there friend", 5);
-    // Audit expectation for the CURRENT code: the full 2MB string reaches the system
-    // prompt. If a cap is added later, this test should be updated to assert truncation.
-    expect(ctx).toContain(huge);
-    expect(ctx!.length).toBeGreaterThan(2_000_000);
+    expect(ctx!.length).toBeLessThanOrEqual(2000 + 32); // item cap plus the "[fact] big: " prefix minus ellipsis
+    expect(ctx).not.toContain("x".repeat(10_000));
+    expect(ctx!.endsWith("…")).toBe(true);
+  });
+
+  it("drops items that would overflow the total budget", async () => {
+    const big = "y".repeat(1900);
+    dbh.getMemoriesByIdentity.mockResolvedValue(
+      Array.from({ length: 10 }, (_, i) => ({ id: i, type: "fact", title: null, content: big })),
+    );
+    const ctx = await getMemoriesContext(7, "hello there friend", 10);
+    expect(ctx!.length).toBeLessThanOrEqual(8000);
   });
 });
