@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { buildKemmaSystemPrompt, buildKemmaVoicePrompt } from "./personality";
 import { executeToolCall } from "./kemmaMax";
+import { isAdminUser } from "./executors/vpsFiles";
 import {
   chatRoute,
   reportRoute,
@@ -10,6 +11,7 @@ import {
   plannerRoute,
   callChainFor,
   routeFor,
+  isAdminOnlyModel,
   detectComplexity,
   MAX_STEPS,
   type Tier,
@@ -22,7 +24,7 @@ import {
 import { vertexGenerateContentBody, vertexGenerateContentText } from "../core/vertexAuth";
 import { checkQuota, incrementQuota } from "../core/quotaCheck";
 import { logUsage, checkSpendCap } from "../core/usage";
-import { KEMMA_TOOLS, SKILL_TOOLS, SKILL_TOOL_NAMES, type ToolDefinition } from "./tools";
+import { KEMMA_TOOLS, SKILL_TOOLS, VPS_FILES_TOOL, SKILL_TOOL_NAMES, type ToolDefinition } from "./tools";
 import { getMemoriesContext } from "./memory";
 import { type Source, extractSources, dedupeSources, annotateSearchResult, keepCitedSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
 
@@ -218,6 +220,10 @@ async function runParallelSubAgents(
 
 export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   const startTime = Date.now();
+  // Admin-only models are re-checked against the DB here, whatever the caller passed.
+  if (input.modelOverride && isAdminOnlyModel(input.modelOverride) && !(await isAdminUser(input.userId))) {
+    input = { ...input, modelOverride: undefined };
+  }
   const { userId, userName, messages, tier, isThinking, isVoice = false, sessionId, reportId, polish, onStream, onToolStart, onToolEnd, onStepStart, onStepEnd, onQuotaWarn, onNotice, onSkillUsed } = input;
 
   const msgQuota = await checkQuota(userId, "message");
@@ -280,6 +286,13 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     } catch {
       // Ignore Drive status errors.
     }
+  }
+
+  // Admin-only host file access. The executor re-checks the role, this just keeps it out of other users' tool lists.
+  if (!input.isSubAgent && (!input.allowedTools || input.allowedTools.includes("vps_files"))) {
+    try {
+      if (await isAdminUser(userId)) baseTools = [...baseTools, VPS_FILES_TOOL];
+    } catch { /* non-admin path on any error */ }
   }
 
   // MCP tools join the same registry and the same per-run filter as built-in tools.
@@ -752,8 +765,11 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
   const body = {
     model: target.model,
     messages: [{ role: "system", content: systemPrompt }, ...messages.filter((m) => m.role !== "system").map((m) => adaptToolCallsForProvider(m, route.provider))],
-    tools: tools ? tools.map((t) => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.parameters } })) : undefined,
-    tool_choice: tools ? "auto" : undefined,
+    // Venice: skip its own system prompt so the model is not re-restricted; tools only when VENICE_TOOLS=1
+    // (not every Venice model supports function calling).
+    ...(route.provider === "venice" ? { venice_parameters: { include_venice_system_prompt: false } } : {}),
+    tools: tools && (route.provider !== "venice" || process.env.VENICE_TOOLS === "1") ? tools.map((t) => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.parameters } })) : undefined,
+    tool_choice: tools && (route.provider !== "venice" || process.env.VENICE_TOOLS === "1") ? "auto" : undefined,
     stream: stream && !!onStream,
     max_tokens: 4096,
     reasoning_effort: reasoningEffortFor(route),

@@ -452,6 +452,25 @@ export const SKILL_TOOLS: ToolDefinition[] = [
 ];
 
 /**
+ * Admin-only, read-only host filesystem access. Not part of KEMMA_TOOLS: the engine adds it only
+ * for admin users, and the executor re-checks the role on every call.
+ */
+export const VPS_FILES_TOOL: ToolDefinition = {
+  name: "vps_files",
+  description: "Admin-only, read-only access to files on the VPS (the host server). Actions: list a directory, read a text file (up to 200KB, use offset to continue), stat a path, search file names under a directory. Secret files (.env, keys, secrets folders) are blocked. Paths are relative to the VPS root; use \".\" for the root.",
+  parameters: {
+    type: "object",
+    properties: {
+      action: { type: "string", description: "What to do", enum: ["list", "read", "stat", "search"] },
+      path: { type: "string", description: "File or directory path, relative to the VPS root" },
+      query: { type: "string", description: "File name substring to find (search only)" },
+      offset: { type: "number", description: "Byte offset to start reading from (read only)" }
+    },
+    required: ["action"]
+  }
+};
+
+/**
  * Exported array containing all Kemma tool definitions
  * @type {ToolDefinition[]}
  */

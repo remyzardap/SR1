@@ -60,6 +60,8 @@ export function describeToolStart(id: string, tool: string, input: unknown): Act
       return { id, kind: "code", status: "running", label: `Running ${str(input, "language") === "nodejs" ? "Node.js" : "Python"} code` };
     case "generate_file":
       return { id, kind: "file", status: "running", label: "Creating file", detail: clip(str(input, "filename")) };
+    case "vps_files":
+      return { id, kind: "file", status: "running", label: "Checking the VPS", detail: clip(str(input, "path")) };
     case "safe_files":
       return { id, kind: "file", status: "running", label: "Working with files" };
     case "load_skill":

@@ -45,7 +45,7 @@ import {
 
 export type Tier = "free" | "trial" | "pro" | "max";
 export type TaskComplexity = "simple" | "medium" | "complex";
-export type ModelProvider = "qwen" | "perplexity" | "gemini" | "litellm";
+export type ModelProvider = "qwen" | "perplexity" | "gemini" | "litellm" | "venice";
 
 export interface RouteInput {
   tier: Tier;
@@ -91,6 +91,7 @@ const DEFAULTS = {
   KEMMA_SEARCH_RPM: "40",
   QWEN_BASE_URL: "https://token-plan.maas.qwencloudapi.com/compatible-mode/v1",
   LITELLM_BASE_URL: "https://api.koboillm.com/v1",
+  VENICE_BASE_URL: "https://api.venice.ai/api/v1",
 };
 
 // Endpoint per provider. Static ones are constants; the two configurable gateways are read at
@@ -111,8 +112,13 @@ export function litellmBaseUrl(): string {
   return (process.env.LITELLM_BASE_URL || DEFAULTS.LITELLM_BASE_URL).replace(/\/+$/, "");
 }
 
+export function veniceBaseUrl(): string {
+  return (process.env.VENICE_BASE_URL || DEFAULTS.VENICE_BASE_URL).replace(/\/+$/, "");
+}
+
 function endpointFor(provider: ModelProvider): string {
   if (provider === "litellm") return litellmBaseUrl();
+  if (provider === "venice") return veniceBaseUrl();
   if (provider === "qwen") return qwenBaseUrl();
   return STATIC_ENDPOINTS[provider];
 }
@@ -136,15 +142,25 @@ export const ROUGH_PRICES_USD_PER_1M: Record<string, { input: number; output: nu
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const LITELLM_PREFIX = "litellm/";
+const VENICE_PREFIX = "venice/";
 
-/** Strips the litellm/ routing prefix (case-insensitive); other ids are returned unchanged. */
+/** Strips the litellm/ or venice/ routing prefix (case-insensitive); other ids are returned unchanged. */
 export function stripProviderPrefix(model: string): string {
-  return model.toLowerCase().startsWith(LITELLM_PREFIX) ? model.slice(LITELLM_PREFIX.length) : model;
+  const lower = model.toLowerCase();
+  if (lower.startsWith(LITELLM_PREFIX)) return model.slice(LITELLM_PREFIX.length);
+  if (lower.startsWith(VENICE_PREFIX)) return model.slice(VENICE_PREFIX.length);
+  return model;
+}
+
+/** Venice models are unrestricted chat: only admins may select or run them. */
+export function isAdminOnlyModel(model: string): boolean {
+  return model.toLowerCase().startsWith(VENICE_PREFIX);
 }
 
 export function detectProvider(model: string): ModelProvider {
   const lower = model.toLowerCase();
   if (lower.startsWith(LITELLM_PREFIX)) return "litellm";
+  if (lower.startsWith(VENICE_PREFIX)) return "venice";
   if (lower.includes("qwen") || lower.includes("qwq")) return "qwen";
   if (lower.includes("sonar")) return "perplexity";
   if (lower.includes("gemini") || lower.includes("embedding")) return "gemini";
@@ -157,13 +173,14 @@ export function apiKeyFor(provider: ModelProvider): string {
     case "perplexity": return process.env.SONAR_API_KEY || process.env.PERPLEXITY_API_KEY || "";
     case "gemini": return process.env.GEMINI_API_KEY || "";
     case "litellm": return process.env.LITELLM_API_KEY || process.env.KOBOILLM_API_KEY || "";
+    case "venice": return process.env.VENICE_API_KEY || "";
   }
 }
 
 export function routeFor(model: string): RouteConfig {
   const provider = detectProvider(model);
   const vertex = provider === "gemini" && vertexEnabled();
-  const stripped = provider === "litellm" ? stripProviderPrefix(model) : model;
+  const stripped = provider === "litellm" || provider === "venice" ? stripProviderPrefix(model) : model;
   const project = vertex ? vertexProjectCached() : "";
   return {
     model: vertex ? stripGooglePrefix(stripped) : stripped,
@@ -242,7 +259,7 @@ export function slotModelId(name: SlotName): string {
 
 export interface SelectableModel { id: string; label: string; tier: ModelProvider; hasKey: boolean }
 
-export function listSelectableModels(): SelectableModel[] {
+export function listSelectableModels(isAdmin = false): SelectableModel[] {
   const slots = ["KEMMA_MODEL_CHAT", "KEMMA_MODEL_REPORT", "KEMMA_MODEL_LONG_DOC", "KEMMA_MODEL_VISION", "KEMMA_MODEL_PRO"] as const;
   const seen = new Set<string>();
   const out: SelectableModel[] = [];
@@ -252,6 +269,15 @@ export function listSelectableModels(): SelectableModel[] {
     seen.add(id);
     const provider = detectProvider(id);
     out.push({ id, label: id, tier: provider, hasKey: routeHasAuth(routeFor(id)) });
+  }
+  if (isAdmin) {
+    // Admin-only unrestricted chat models; VENICE_MODELS overrides the list (comma-separated venice/<id>).
+    const venice = (process.env.VENICE_MODELS || "venice/venice-uncensored").split(",").map((m) => m.trim()).filter(Boolean);
+    for (const id of venice) {
+      if (seen.has(id) || !isAdminOnlyModel(id)) continue;
+      seen.add(id);
+      out.push({ id, label: `${stripProviderPrefix(id)} (unrestricted)`, tier: "venice", hasKey: routeHasAuth(routeFor(id)) });
+    }
   }
   return out;
 }

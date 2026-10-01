@@ -17,7 +17,7 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
   if (!Array.isArray(messages) || messages.length === 0) { res.status(400).json({ error: "messages required" }); return; }
 
   const threadSettings: ThreadSettings = sessionId ? (await getChatSessionSettings(sessionId, user.id) as ThreadSettings) : {};
-  const resolved = resolveSettings(threadSettings, settings as MessageSettings);
+  const resolved = resolveSettings(threadSettings, settings as MessageSettings, undefined, { isAdmin: user.role === "admin" });
 
   const msgCheck = await checkQuota(user.id, "message");
   if (!msgCheck.allowed) { res.status(429).json({ error: msgCheck.reason ?? "Daily message limit reached" }); return; }

@@ -13,6 +13,10 @@ services:
     volumes:
       - ./secrets:/run/secrets:ro
       - ./sutaeru-data/files:/root/sr1-data/files
+      # vps_files tool (admin-only, read-only). Secret paths are blocked in code.
+      - ./sutaeru-data/wa-auth:/data/wa-auth
+      - /root/sr1:/vps/sr1:ro
+      - /root/kimi-work:/vps/kimi-work:ro
     restart: unless-stopped
     # The VPS resolver drops lookups now and then (EAI_AGAIN), which made every model call fail.
     # Several public resolvers plus a short timeout with retries keep one lost lookup from failing a chat turn.

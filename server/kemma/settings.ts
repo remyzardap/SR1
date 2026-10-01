@@ -3,7 +3,7 @@
  * Precedence: message settings > thread settings > server defaults.
  */
 
-import { routeFor, stripProviderPrefix, ROUGH_PRICES_USD_PER_1M } from "../core/kemmaRouter";
+import { routeFor, stripProviderPrefix, isAdminOnlyModel, ROUGH_PRICES_USD_PER_1M } from "../core/kemmaRouter";
 
 export type ChatMode = "fast" | "deep" | "document" | "image";
 
@@ -33,10 +33,13 @@ export function defaultToolSet(mode: ChatMode = "fast"): string[] {
 export function resolveSettings(
   thread: ThreadSettings = {},
   message: MessageSettings = {},
-  defaults: { model: string; mode: ChatMode; allowedTools: string[] } = { model: "auto", mode: "fast", allowedTools: defaultToolSet("fast") }
+  defaults: { model: string; mode: ChatMode; allowedTools: string[] } = { model: "auto", mode: "fast", allowedTools: defaultToolSet("fast") },
+  opts: { isAdmin?: boolean } = {}
 ): { model: string; allowedTools: string[]; skills: number[] } {
   // The model is chosen by us, never by the customer: ignore any client-supplied model.
-  const model = defaults.model;
+  // The one exception is an admin picking an admin-only (Venice) model.
+  const requested = message.model ?? thread.model;
+  const model = opts.isAdmin && requested && isAdminOnlyModel(requested) ? requested : defaults.model;
   const mode = thread.mode ?? defaults.mode;
   const threadTools = thread.allowedTools ?? defaultToolSet(mode);
   const allowedTools = thread.allowedTools ?? threadTools;
@@ -94,6 +97,7 @@ function hasProviderKey(provider: string): boolean {
     case "perplexity": return !!(process.env.SONAR_API_KEY || process.env.PERPLEXITY_API_KEY);
     case "gemini": return !!process.env.GEMINI_API_KEY;
     case "litellm": return !!(process.env.LITELLM_API_KEY || process.env.KOBOILLM_API_KEY);
+    case "venice": return !!process.env.VENICE_API_KEY;
     default: return false;
   }
 }

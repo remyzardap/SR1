@@ -7,7 +7,8 @@ const router = Router();
 const WHATSAPP_VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "";
 const WHATSAPP_APP_SECRET = process.env.WHATSAPP_APP_SECRET || "";
 const WHATSAPP_API_TOKEN = process.env.WHATSAPP_API_TOKEN || "";
-const WHATSAPP_API_URL = "https://graph.facebook.com/v18.0";
+const WHATSAPP_GRAPH_VERSION = process.env.WHATSAPP_GRAPH_VERSION || "v24.0";
+const WHATSAPP_API_URL = `https://graph.facebook.com/${WHATSAPP_GRAPH_VERSION}`;
 
 /**
  * Validates the incoming webhook signature from Meta/WhatsApp.
