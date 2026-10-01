@@ -3,6 +3,7 @@ import { useSeoMeta } from "@/hooks/useSeoMeta";
 import { useLocation } from "wouter";
 import { AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
+import { LandingMark } from "@/components/LandingMark";
 import { toast } from "sonner";
 import {
   ProgressIndicator,
@@ -135,23 +136,26 @@ export default function Onboarding() {
   };
 
   return (
-     <div className="sutaeru-onboarding min-h-dvh bg-sutaeru flex items-center justify-center p-3 sm:p-6">
-      <div className="w-full max-w-lg">
-        {/* Progress indicator — hide on welcome and done */}
+    <div className="sk-onboarding">
+      <span className="sk-plus sk-plus-tl" aria-hidden="true" />
+      <span className="sk-plus sk-plus-tr" aria-hidden="true" />
+      <span className="sk-plus sk-plus-bl" aria-hidden="true" />
+      <span className="sk-plus sk-plus-br" aria-hidden="true" />
+      <div className="sk-onboarding-inner">
+        <LandingMark className="sk-onboarding-mark" />
+
+        {/* Progress indicator: hidden on welcome and done */}
         {currentStep !== "welcome" && currentStep !== "done" && (
-          <div className="mb-8">
-            <ProgressIndicator
-              steps={["identity", "skills", "apikey"].map((s) => ({
-                id: s,
-                label: STEP_LABELS[s as Step],
-              }))}
-              currentStepId={currentStep}
-            />
-          </div>
+          <ProgressIndicator
+            steps={["identity", "skills", "apikey"].map((s) => ({
+              id: s,
+              label: STEP_LABELS[s as Step],
+            }))}
+            currentStepId={currentStep}
+          />
         )}
 
-        {/* Step content */}
-         <div className="glass border border-border rounded-md p-4 sm:p-8">
+        <div className="sk-onboarding-step">
           <AnimatePresence mode="wait">
             {currentStep === "welcome" && (
               <WelcomeStep key="welcome" onNext={goNext} />
@@ -195,12 +199,7 @@ export default function Onboarding() {
           </AnimatePresence>
         </div>
 
-        {/* Step counter */}
-        {currentStep !== "welcome" && (
-           <p className="text-center text-xs text-muted-foreground mt-4">
-            Step {stepIndex} of {STEPS.length - 1}
-          </p>
-        )}
+        <p className="sk-auth-foot">Search <i>&middot;</i> Research <i>&middot;</i> Do</p>
       </div>
     </div>
   );

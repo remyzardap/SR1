@@ -47,8 +47,8 @@
 :root {
   --radius: 8px;
   /* ── Sutaeru system tokens ── */
-  --font-d: 'Urbanist', sans-serif;
-  --font-b: 'Epilogue', sans-serif;
+  --font-d: 'Inter Tight', 'Inter', system-ui, sans-serif;
+  --font-b: 'Inter', system-ui, sans-serif;
   --font-m: 'JetBrains Mono', monospace;
   --bg:          #F7F6F2;
   --bg-raise:    #FFFFFF;

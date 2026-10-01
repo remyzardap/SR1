@@ -1,9 +1,5 @@
-import { PAGE_BG, NOISE_OVERLAY, CSS_ANIM } from '@/lib/design';
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -18,23 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import {
-  FileText,
-  Table,
-  Presentation,
-  FileCode,
-  Search,
-  MoreVertical,
-  Download,
-  Pencil,
-  Trash2,
-  Plus,
-  FolderOpen,
-  MessageSquare,
-  Eye,
-  RotateCcw,
-  Folder,
-} from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
 import { BriefDialog } from "@/components/BriefDialog";
@@ -43,19 +23,6 @@ type FileRecord = {
   id: number; name: string; format: string; kind: string; originalPrompt: string;
   styleLabel?: string | null; createdAt: Date | string; fileSizeBytes?: number | null;
   threadId?: string | null; fileUrl: string; trashed?: boolean; spaceId?: string | null;
-};
-
-const FORMAT_ICON: Record<string, React.ElementType> = {
-  pdf: FileText,
-  docx: FileText,
-  xlsx: Table,
-  pptx: Presentation,
-  md: FileCode,
-};
-
-const FORMAT_COLOR: Record<string, string> = {
-  pdf: "bg-secondary text-foreground", docx: "bg-secondary text-foreground",
-  xlsx: "bg-secondary text-foreground", pptx: "bg-secondary text-foreground", md: "bg-secondary text-foreground",
 };
 
 function formatBytes(bytes: number | null | undefined): string {
@@ -195,165 +162,164 @@ export default function Files() {
   };
 
   return (
-    <div className="sutaeru-editorial-page mx-auto max-w-5xl px-3 py-6 sm:px-4 sm:py-8">
+    <div className="sk-page">
       {/* Header */}
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+      <div className="sk-header">
         <div>
-          <h1 className="font-display text-2xl font-700 text-foreground">File Manager</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="sk-h1">File Manager</h1>
+          <p className="sk-sub">
             {files.length} file{files.length !== 1 ? "s" : ""} generated
           </p>
         </div>
-        <Button onClick={() => navigate("/generate")}>
-          <SutaeruIcon name="plus" className="mr-2 h-4 w-4" />
-          New File
-        </Button>
+        <div className="sk-actions">
+          <button type="button" className="sk-btn" onClick={() => navigate("/generate")}>
+            New File
+          </button>
+        </div>
       </div>
 
-      {/* Search */}
-      <div className="relative mb-4">
-        <SutaeruIcon name="search" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search files by name or prompt..."
-          className="pl-9"
-        />
-      </div>
-
-      {/* Type filter */}
-      <div className="mb-4 flex flex-wrap gap-2">
-        {Object.entries(KIND_LABELS).map(([kind, label]) => (
-          <Button
-            key={kind}
-            size="sm"
-            variant={filterKind === kind ? "default" : "outline"}
-            onClick={() => setFilterKind(kind)}
-          >
-            {label}
-          </Button>
-        ))}
+      {/* Search + type filter */}
+      <div className="sk-toolbar">
+        <div className="sk-search">
+          <SutaeruIcon name="search" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search files by name or prompt..."
+          />
+        </div>
+        <div className="sk-filters">
+          {Object.entries(KIND_LABELS).map(([kind, label]) => (
+            <button
+              key={kind}
+              type="button"
+              className={cn("sk-pill", filterKind === kind && "is-active")}
+              aria-pressed={filterKind === kind}
+              onClick={() => setFilterKind(kind)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* View tabs */}
-      <div className="mb-6 flex gap-2">
-        <Button size="sm" variant={view === "active" ? "default" : "outline"} onClick={() => setView("active")}>
+      <div className="sk-filters mb-6">
+        <button
+          type="button"
+          className={cn("sk-pill", view === "active" && "is-active")}
+          aria-pressed={view === "active"}
+          onClick={() => setView("active")}
+        >
           Active
-        </Button>
-        <Button size="sm" variant={view === "trashed" ? "default" : "outline"} onClick={() => setView("trashed")}>
+        </button>
+        <button
+          type="button"
+          className={cn("sk-pill", view === "trashed" && "is-active")}
+          aria-pressed={view === "trashed"}
+          onClick={() => setView("trashed")}
+        >
           Trash
-        </Button>
+        </button>
       </div>
 
       {/* File list */}
       {isLoading ? (
-        <div className="space-y-3">
+        <div className="sk-grid">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-20 animate-pulse rounded-xl bg-muted" />
+            <div key={i} className="sk-tile">
+              <div className="sk-skeleton" style={{ minHeight: 120, borderRadius: 20 }} />
+              <div className="sk-skeleton" style={{ height: 12, width: "38%" }} />
+              <div className="sk-skeleton" style={{ height: 18, width: "78%" }} />
+              <div className="sk-skeleton" style={{ height: 12, width: "56%" }} />
+            </div>
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 py-24 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-muted-foreground">
-             <SutaeruIcon name="files" className="h-8 w-8" />
-          </div>
-          <div>
-            <p className="font-medium text-foreground">
+        <div className="sk-card">
+          <div className="sk-empty">
+            <span className="sk-label">
               {search ? "No files match your search" : "No files yet"}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            </span>
+            <p className="sk-empty-text">
               {search
                 ? "Try a different search term"
                 : "Generate your first file to see it here"}
             </p>
+            {!search && (
+              <button
+                type="button"
+                className="sk-btn mt-3 self-start"
+                onClick={() => navigate("/generate")}
+              >
+                Generate a File
+              </button>
+            )}
           </div>
-          {!search && (
-            <Button onClick={() => navigate("/generate")}>
-               <SutaeruIcon name="plus" className="mr-2 h-4 w-4" />
-              Generate a File
-            </Button>
-          )}
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((file) => {
-            const Icon = FORMAT_ICON[file.format] ?? FileText;
-            const colorClass = FORMAT_COLOR[file.format] ?? "bg-secondary text-foreground";
-            return (
-              <div
-                key={file.id}
-                 className="group flex flex-wrap items-center gap-3 rounded-md border border-border bg-card p-3 sm:p-4 transition-colors hover:border-primary/30 hover:bg-accent/30"
-              >
-                {/* Icon */}
-                <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold", colorClass)}>
-                  <Icon className="h-5 w-5" />
+        <div className="sk-grid">
+          {filtered.map((file) => (
+            <div key={file.id} className="sk-tile">
+              {/* Pale preview block with static placeholder lines */}
+              <div className="sk-preview">
+                <div className="sk-preview-lines">
+                  <span className="sk-preview-line" style={{ width: "46%" }} />
+                  <span className="sk-preview-line" style={{ width: "78%" }} />
+                  <span className="sk-preview-line" style={{ width: "62%" }} />
+                  <span className="sk-preview-line" style={{ width: "30%" }} />
                 </div>
+              </div>
 
-                {/* Info */}
-                 <div className="min-w-0 flex-1 basis-[calc(100%-4rem)] sm:basis-0">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate font-medium text-foreground">{file.name}</p>
-                    <Badge variant="secondary" className="shrink-0 text-xs uppercase">
-                      {file.format}
-                    </Badge>
-                    {file.styleLabel && (
-                      <Badge variant="outline" className="hidden shrink-0 text-xs sm:inline-flex">
-                        {file.styleLabel}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {file.originalPrompt}
-                  </p>
-                  <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-                    <span>{formatDate(file.createdAt)}</span>
-                    <span>{formatBytes(file.fileSizeBytes)}</span>
-                  </div>
-                </div>
+              <span className="sk-label">{file.kind}</span>
+              <p className="sk-tile-title">{file.name}</p>
+              <p className="sk-muted truncate text-xs">{file.originalPrompt}</p>
+              <p className="sk-meta">
+                {formatDate(file.createdAt)} · {file.format} · {formatBytes(file.fileSizeBytes)}
+              </p>
 
-                {/* Actions */}
-                 <div className="flex w-full shrink-0 items-center justify-end gap-1 border-t border-border pt-2 sm:w-auto sm:border-0 sm:pt-0 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
-                   <Button size="icon" variant="ghost" aria-label={`Preview ${file.name}`} title="Preview" onClick={() => setPreviewFile(file)}>
-                     <SutaeruIcon name="review" className="h-4 w-4" />
-                  </Button>
+              {/* Actions */}
+              <div className="sk-between">
+                <div className="sk-row">
+                  <button type="button" className="sk-icon-btn" aria-label={`Preview ${file.name}`} title="Preview" onClick={() => setPreviewFile(file)}>
+                    <SutaeruIcon name="review" />
+                  </button>
                   {file.threadId && (
-                     <Button size="icon" variant="ghost" aria-label={`Open chat for ${file.name}`} title="Open chat" onClick={() => navigate(`/chat/${file.threadId}`)}>
-                       <SutaeruIcon name="ask" className="h-4 w-4" />
-                    </Button>
+                    <button type="button" className="sk-icon-btn" aria-label={`Open chat for ${file.name}`} title="Open chat" onClick={() => navigate(`/chat/${file.threadId}`)}>
+                      <SutaeruIcon name="ask" />
+                    </button>
                   )}
-                   <Button asChild size="icon" variant="ghost">
-                     <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" download aria-label={`Download ${file.name}`} title="Download">
-                       <SutaeruIcon name="download" className="h-4 w-4" />
-                    </a>
-                  </Button>
+                  <a className="sk-icon-btn" href={file.fileUrl} target="_blank" rel="noopener noreferrer" download aria-label={`Download ${file.name}`} title="Download">
+                    <SutaeruIcon name="download" />
+                  </a>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                       <Button size="icon" variant="ghost" aria-label={`More actions for ${file.name}`} title="More actions">
-                         <SutaeruIcon name="more" className="h-4 w-4" />
-                      </Button>
+                      <button type="button" className="sk-icon-btn" aria-label={`More actions for ${file.name}`} title="More actions">
+                        <SutaeruIcon name="more" />
+                      </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       {view === "active" && (
                         <>
                           <DropdownMenuItem onClick={() => openRename(file)}>
-                            <Pencil className="mr-2 h-4 w-4" />
+                            <SutaeruIcon name="edit" className="mr-2 h-4 w-4" />
                             Rename
                           </DropdownMenuItem>
                           {(file.format === "pdf" || file.format === "docx" || file.format === "md") && (
                             <DropdownMenuItem onClick={() => void openAsBrief(file)}>
-                              <FileText className="mr-2 h-4 w-4" />
+                              <SutaeruIcon name="report" className="mr-2 h-4 w-4" />
                               Open as brief
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem onClick={() => setMoveDialog({ open: true, file })}>
-                            <Folder className="mr-2 h-4 w-4" />
+                            <SutaeruIcon name="files" className="mr-2 h-4 w-4" />
                             Move to Space
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onClick={() => trashMutation.mutate({ id: file.id, trashed: true })}
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
+                            <SutaeruIcon name="delete" className="mr-2 h-4 w-4" />
                             Move to trash
                           </DropdownMenuItem>
                         </>
@@ -368,7 +334,7 @@ export default function Files() {
                             className="text-destructive focus:text-destructive"
                             onClick={() => openDelete(file)}
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
+                            <SutaeruIcon name="delete" className="mr-2 h-4 w-4" />
                             Delete forever
                           </DropdownMenuItem>
                         </>
@@ -376,9 +342,12 @@ export default function Files() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
+                {file.styleLabel && (
+                  <span className="sk-chip max-w-[45%] truncate">{file.styleLabel}</span>
+                )}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
 
@@ -394,11 +363,12 @@ export default function Files() {
         open={renameDialog.open}
         onOpenChange={(open) => setRenameDialog((d) => ({ ...d, open }))}
       >
-        <DialogContent>
+        <DialogContent className="sk-dialog">
           <DialogHeader>
             <DialogTitle>Rename File</DialogTitle>
           </DialogHeader>
-          <Input
+          <input
+            className="sk-input"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="File name"
@@ -409,13 +379,16 @@ export default function Files() {
             }}
           />
           <DialogFooter>
-            <Button
-              variant="outline"
+            <button
+              type="button"
+              className="sk-btn sk-btn-ghost"
               onClick={() => setRenameDialog({ open: false, file: null })}
             >
               Cancel
-            </Button>
-            <Button
+            </button>
+            <button
+              type="button"
+              className="sk-btn"
               onClick={() => {
                 if (renameDialog.file) {
                   renameMutation.mutate({ id: renameDialog.file.id, name: newName });
@@ -424,7 +397,7 @@ export default function Files() {
               disabled={!newName.trim() || renameMutation.isPending}
             >
               Rename
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -434,24 +407,26 @@ export default function Files() {
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog((d) => ({ ...d, open }))}
       >
-        <DialogContent>
+        <DialogContent className="sk-dialog">
           <DialogHeader>
             <DialogTitle>Delete File</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
+          <p className="sk-empty-text">
             Are you sure you want to delete{" "}
-            <span className="font-medium text-foreground">{deleteDialog.file?.name}</span>? This
+            <span className="font-medium" style={{ color: "var(--art-ink)" }}>{deleteDialog.file?.name}</span>? This
             action cannot be undone.
           </p>
           <DialogFooter>
-            <Button
-              variant="outline"
+            <button
+              type="button"
+              className="sk-btn sk-btn-ghost"
               onClick={() => setDeleteDialog({ open: false, file: null })}
             >
               Cancel
-            </Button>
-            <Button
-              variant="destructive"
+            </button>
+            <button
+              type="button"
+              className="sk-btn"
               onClick={() => {
                 if (deleteDialog.file) {
                   deleteMutation.mutate({ id: deleteDialog.file.id });
@@ -460,18 +435,24 @@ export default function Files() {
               disabled={deleteMutation.isPending}
             >
               Delete
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Preview Dialog */}
       <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent
+          className="sk-dialog"
+          style={{ maxWidth: "min(768px, calc(100vw - 32px))" }}
+        >
           <DialogHeader>
             <DialogTitle>{previewFile?.name}</DialogTitle>
           </DialogHeader>
-          <div className="max-h-[60vh] overflow-auto rounded-lg border bg-muted p-4">
+          <div
+            className="max-h-[60vh] overflow-auto rounded-[20px] p-4"
+            style={{ background: "#F1EFEA" }}
+          >
             {previewFile?.kind === "image" ? (
               <img src={previewFile.fileUrl} alt={previewFile.name} className="mx-auto max-h-full rounded" />
             ) : previewFile?.kind === "video" ? (
@@ -479,66 +460,74 @@ export default function Files() {
             ) : previewFile?.kind === "audio" ? (
               <audio src={previewFile.fileUrl} controls className="w-full" />
             ) : (
-              <div className="text-center text-sm text-muted-foreground">
-                <p>Preview not available for this file type.</p>
-                <Button asChild className="mt-4" size="sm">
-                  <a href={previewFile?.fileUrl} target="_blank" rel="noopener noreferrer">
-                    Open file
-                  </a>
-                </Button>
+              <div className="sk-empty" style={{ textAlign: "center" }}>
+                <p className="sk-empty-text">Preview not available for this file type.</p>
+                <a
+                  className="sk-btn mt-4"
+                  href={previewFile?.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open file
+                </a>
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPreviewFile(null)}>
+            <button type="button" className="sk-btn sk-btn-ghost" onClick={() => setPreviewFile(null)}>
               Close
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Move to Space Dialog */}
       <Dialog open={moveDialog.open} onOpenChange={(open) => setMoveDialog((d) => ({ ...d, open }))}>
-        <DialogContent>
+        <DialogContent className="sk-dialog">
           <DialogHeader>
             <DialogTitle>Move to Space</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
-            <Button
-              variant="outline"
-              className="w-full justify-start"
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              className="sk-pill w-full"
+              style={{ justifyContent: "flex-start" }}
               onClick={() => moveDialog.file && moveMutation.mutate({ id: moveDialog.file.id, spaceId: null })}
             >
               No Space
-            </Button>
+            </button>
             {spaces.map((space) => (
-              <Button
+              <button
                 key={space.id}
-                variant="outline"
-                className="w-full justify-start"
+                type="button"
+                className="sk-pill w-full"
+                style={{ justifyContent: "flex-start" }}
                 onClick={() => moveDialog.file && moveMutation.mutate({ id: moveDialog.file.id, spaceId: space.id })}
               >
                 {space.name}
-              </Button>
+              </button>
             ))}
             <div className="flex gap-2 pt-2">
-              <Input
+              <input
+                className="sk-input"
                 value={newSpaceName}
                 onChange={(e) => setNewSpaceName(e.target.value)}
                 placeholder="New space name"
               />
-              <Button
+              <button
+                type="button"
+                className="sk-btn"
                 disabled={!newSpaceName.trim() || createSpaceMutation.isPending}
                 onClick={() => createSpaceMutation.mutate({ name: newSpaceName })}
               >
                 Create
-              </Button>
+              </button>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setMoveDialog({ open: false, file: null })}>
+            <button type="button" className="sk-btn sk-btn-ghost" onClick={() => setMoveDialog({ open: false, file: null })}>
               Cancel
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

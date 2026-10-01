@@ -37,29 +37,26 @@ import { FloatingVideoPlayer } from './FloatingVideoPlayer';
 import { Button } from "./ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { LandingMark } from "@/components/LandingMark";
+import { SutaeruGlyph } from "@/components/SutaeruGlyph";
+import { trpc } from "@/lib/trpc";
 import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
 
 const menuItems: Array<{ icon: SutaeruIconName; label: string; path: string; group: string }> = [
-  // ── Sutaeru core ──
-  { icon: "ask", label: "Chat", path: "/chat", group: "sutaeru" },
-  { icon: "agent", label: "Identity", path: "/identity", group: "sutaeru" },
-  { icon: "models", label: "Skills", path: "/skills", group: "sutaeru" },
-  { icon: "memory", label: "Memories", path: "/memories", group: "sutaeru" },
-  { icon: "schedule", label: "Monitors", path: "/monitors", group: "sutaeru" },
-  { icon: "connections", label: "Connections", path: "/connections", group: "sutaeru" },
-  // ── File generation ──
-  { icon: "make", label: "Atelier", path: "/atelier", group: "forge" },
-  { icon: "report", label: "Generate", path: "/generate", group: "forge" },
-  { icon: "image", label: "Images", path: "/images", group: "forge" },
-  { icon: "files", label: "My Files", path: "/files", group: "forge" },
-  // ── Back Office ──
-  // ── Settings ──
+  { icon: "ask", label: "Chat", path: "/chat", group: "workspace" },
+  { icon: "make", label: "Atelier", path: "/atelier", group: "workspace" },
+  { icon: "image", label: "Images", path: "/images", group: "workspace" },
+  { icon: "files", label: "Files", path: "/files", group: "workspace" },
+  { icon: "memory", label: "Memories", path: "/memories", group: "workspace" },
+  { icon: "models", label: "Skills", path: "/skills", group: "workspace" },
+  { icon: "schedule", label: "Monitors", path: "/monitors", group: "workspace" },
+  { icon: "connections", label: "Connections", path: "/connections", group: "workspace" },
+  { icon: "agent", label: "Identity", path: "/identity", group: "workspace" },
   { icon: "settings", label: "Settings", path: "/settings", group: "settings" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
-const DEFAULT_WIDTH = 280;
-const MIN_WIDTH = 200;
+const DEFAULT_WIDTH = 264;
+const MIN_WIDTH = 220;
 const MAX_WIDTH = 480;
 
 // ─── Shared UI primitives (used by KemmaCalls, AgentHub, etc.) ─────────────
@@ -277,6 +274,8 @@ function DashboardLayoutContent({
   const contentRef = useRef<HTMLDivElement>(null);
   const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
+  const quota = trpc.kemma.quota.useQuery(undefined, { retry: false, staleTime: 5 * 60_000 });
+  const planLabel = `${quota.data?.tier ?? "free"} plan`;
 
   // Swipe-to-close: left swipe on main content closes the mobile sidebar
   useSwipeToClose(contentRef, isMobile && openMobile, () => setOpenMobile(false));
@@ -322,145 +321,100 @@ function DashboardLayoutContent({
       <div className="relative" ref={sidebarRef}>
         <Sidebar
           collapsible="icon"
-          className="border-r-0"
+          variant="floating"
+          className="border-r-0 sk-shell-sidebar"
         >
-          <SidebarHeader className="h-16 justify-center" style={{ borderBottom: '1px solid var(--border)' }}>
-            <div className="flex items-center gap-3 px-2 transition-all w-full">
+          <SidebarHeader className="sk-shell-header">
+            <button
+              type="button"
+              onClick={() => setLocation("/chat")}
+              className="sk-shell-brand"
+              aria-label="Sutaeru home"
+            >
+              <SutaeruGlyph className="sk-shell-glyph" />
+              {!isCollapsed ? <span className="sk-shell-wordmark">Sutaeru</span> : null}
+            </button>
+            {!isCollapsed ? (
               <button
                 onClick={toggleSidebar}
-                className="h-8 w-8 flex items-center justify-center hover:bg-accent rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
-                aria-label="Toggle navigation"
+                className="sk-shell-collapse"
+                aria-label="Collapse navigation"
+                title="Collapse navigation"
               >
-                <PanelLeft className="h-4 w-4 text-muted-foreground" />
+                <PanelLeft className="h-4 w-4" />
               </button>
-              {!isCollapsed ? (
-                <div className="flex items-center gap-2 min-w-0">
-                  <LandingMark className="sutaeru-nav-mark" />
-                  <span className="sutaeru-wordmark">SUTAERU</span>
-                </div>
-              ) : null}
-            </div>
+            ) : null}
           </SidebarHeader>
 
-          <SidebarContent className="gap-0" style={{ background: 'transparent' }}>
-            <SidebarMenu className="px-2 py-1">
-              {/* Sutaeru core group */}
-              {!isCollapsed && (
-                <div className="px-3 py-2 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Sora', sans-serif", fontSize: '0.6rem', color: 'var(--accent-color)' }}>
-                  — Sutaeru
-                </div>
-              )}
-              {menuItems.filter(item => item.group === "sutaeru").map(item => {
-                const isActive = location === item.path;
+          <SidebarContent className="sk-shell-content">
+            {isCollapsed ? (
+              <button onClick={toggleSidebar} className="sk-shell-collapse sk-shell-expand" aria-label="Expand navigation">
+                <PanelLeft className="h-4 w-4" />
+              </button>
+            ) : (
+              <div className="sk-shell-kicker">Workspace</div>
+            )}
+            <SidebarMenu className="sk-shell-menu">
+              {menuItems.filter((item) => item.group === "workspace").map((item) => {
+                const isActive = location === item.path || (item.path === "/atelier" && location === "/generate");
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
                       isActive={isActive}
                       onClick={() => setLocation(item.path)}
                       tooltip={item.label}
-                      className="sutaeru-nav-item min-h-11 transition-all font-normal"
+                      className="sutaeru-nav-item sk-shell-item"
                     >
-                      <SutaeruIcon name={item.icon}
-                        className={`h-5 w-5 ${isActive ? "text-primary" : ""}`}
-                      />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-
-              {/* File generation group */}
-              {!isCollapsed && (
-                <div className="px-3 py-2 mt-2 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.6rem', color: 'var(--muted-foreground)' }}>
-                  — Generate
-                </div>
-              )}
-              {menuItems.filter(item => item.group === "forge").map(item => {
-                const isActive = location === item.path;
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      onClick={() => setLocation(item.path)}
-                      tooltip={item.label}
-                      className="sutaeru-nav-item min-h-11 transition-all font-normal"
-                    >
-                      <SutaeruIcon name={item.icon}
-                        className={`h-5 w-5 ${isActive ? "text-primary" : ""}`}
-                      />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-
-              {/* Admin (only for admin users) */}
-              {user?.role === "admin" && (
-                <>
-                  {!isCollapsed && (
-                     <div className="px-3 py-2 mt-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Admin
-                    </div>
-                  )}
-                  <SidebarMenuItem key="/admin">
-                    <SidebarMenuButton
-                      isActive={location === "/admin"}
-                      onClick={() => setLocation("/admin")}
-                      tooltip="Admin"
-                       className="sutaeru-nav-item min-h-11 transition-all font-normal"
-                    >
-                      <Shield className={`h-4 w-4 ${location === "/admin" ? "text-primary" : ""}`} />
-                      <span>Admin</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </>
-              )}
-
-              {/* Settings Group */}
-              {!isCollapsed && (
-                 <div className="px-3 py-2 mt-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Settings
-                </div>
-              )}
-              {menuItems.filter(item => item.group === "settings").map(item => {
-                const isActive = location === item.path;
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      onClick={() => setLocation(item.path)}
-                      tooltip={item.label}
-                     className="sutaeru-nav-item min-h-11 transition-all font-normal"
-                    >
-                      <SutaeruIcon name={item.icon}
-                        className={`h-5 w-5 ${isActive ? "text-primary" : ""}`}
-                      />
+                      <SutaeruIcon name={item.icon} className="sk-shell-icon" />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
               })}
             </SidebarMenu>
+
+            <SidebarMenu className="sk-shell-menu sk-shell-menu-bottom">
+              {menuItems.filter((item) => item.group === "settings").map((item) => {
+                const isActive = location === item.path;
+                return (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton
+                      isActive={isActive}
+                      onClick={() => setLocation(item.path)}
+                      tooltip={item.label}
+                      className="sutaeru-nav-item sk-shell-item"
+                    >
+                      <SutaeruIcon name={item.icon} className="sk-shell-icon" />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+              {user?.role === "admin" && (
+                <SidebarMenuItem key="/admin">
+                  <SidebarMenuButton
+                    isActive={location === "/admin" || location === "/admin/audit-logs"}
+                    onClick={() => setLocation("/admin")}
+                    tooltip="Admin"
+                    className="sutaeru-nav-item sk-shell-item"
+                  >
+                    <SutaeruIcon name="admin" className="sk-shell-icon" />
+                    <span>Admin</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+            </SidebarMenu>
           </SidebarContent>
 
-
-          <SidebarFooter className="p-3">
+          <SidebarFooter className="sk-shell-footer">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <Avatar className="h-9 w-9 border shrink-0">
-                    <AvatarFallback style={{ background: 'var(--accent-dim)', color: 'var(--accent-color)', border: '1px solid var(--border)' }} className="text-xs font-medium">
-                      {user?.name?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-                    <p className="text-sm font-medium truncate leading-none">
-                      {user?.name || "-"}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate mt-1.5">
-                      {user?.email || "-"}
-                    </p>
-                  </div>
+                <button className="sk-shell-user">
+                  <span className="sk-shell-avatar" aria-hidden="true">{(user?.name || user?.email || "?").charAt(0).toUpperCase()}</span>
+                  <span className="sk-shell-user-copy">
+                    <strong>{user?.name || user?.email || "Account"}</strong>
+                    <span>{planLabel}</span>
+                  </span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">

@@ -1,50 +1,27 @@
 import { Link } from 'wouter';
-import { Home, ArrowLeft } from 'lucide-react';
 import { LandingMark } from '@/components/LandingMark';
-import { Button } from '@/components/ui/button';
 
 export default function NotFound() {
   return (
-     <div className="sutaeru-auth-page min-h-dvh bg-sutaeru flex flex-col items-center justify-center px-6 py-12">
-      <div className="text-center max-w-lg">
-         <LandingMark className="sutaeru-login-mark mx-auto mb-8" />
-        {/* Large 404 */}
-         <h1 className="text-8xl sm:text-9xl font-light text-muted-foreground/40 mb-4 select-none">
-          404
-        </h1>
+    <div className="sk-auth sk-notfound">
+      <span className="sk-plus sk-plus-tl" aria-hidden="true" />
+      <span className="sk-plus sk-plus-tr" aria-hidden="true" />
+      <span className="sk-plus sk-plus-bl" aria-hidden="true" />
+      <span className="sk-plus sk-plus-br" aria-hidden="true" />
 
-        {/* Subtitle */}
-         <h2 className="text-2xl sm:text-3xl font-medium text-foreground mb-4">
-          Page not found
-        </h2>
-
-        {/* Message */}
-         <p className="text-muted-foreground mb-10 leading-relaxed">
-          The page you're looking for doesn't exist or has been moved. 
-          Check the URL or navigate back to the dashboard.
-        </p>
-
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-           <Button asChild className="min-h-11"><Link href="/">
-            <Home className="w-4 h-4" />
-             Go Home
-           </Link></Button>
-           <Button variant="outline"
-            onClick={() => window.history.back()}
-             className="min-h-11"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Go Back
-           </Button>
-        </div>
+      <p className="sk-label sk-notfound-kicker">Error <i>&middot;</i> Page not found</p>
+      <h1 className="sk-notfound-code" aria-label="404">
+        <span>4</span><span className="sk-notfound-zero">0</span><span>4</span>
+      </h1>
+      <div className="sk-notfound-art" aria-hidden="true">
+        <LandingMark className="sk-notfound-mark" />
+        <i className="d1" /><i className="d2" /><i className="d3" />
       </div>
-
-      {/* Footer hint */}
-       <div className="mt-12 text-center">
-         <p className="text-muted-foreground text-sm">
-          Sutaeru — One identity. Every model. For life.
-        </p>
+      <h2 className="sk-notfound-title">This page wandered off.</h2>
+      <p className="sk-notfound-copy">The link may be old, or the page was moved. Let us take you back.</p>
+      <div className="sk-notfound-actions">
+        <Link href="/" className="sk-btn sk-btn-dark">Back home</Link>
+        <Link href="/chat" className="sk-btn sk-btn-light">Open chat</Link>
       </div>
     </div>
   );

@@ -1,63 +1,24 @@
-import { PAGE_BG, NOISE_OVERLAY, CSS_ANIM } from '@/lib/design';
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useSearch } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
-import {
-  Plug,
-  Loader2,
-  Plus,
-  Ban,
-  Key,
-  Lock,
-  Globe,
-  Cpu,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Eye,
-  EyeOff,
-  Mail,
-  Calendar,
-  HardDrive,
-  ExternalLink,
-  Unplug,
-} from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
-import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import SutaeruIcon from "@/components/SutaeruIcon";
 
-const connectionTypeIcons = {
-  llm_api_key: Cpu,
-  oauth2: Globe,
-  generic_api_key: Key,
-};
 const connectionTypeLabels = {
   llm_api_key: "LLM API Key",
   oauth2: "OAuth 2.0",
   generic_api_key: "API Key",
 };
-const connectionTypeColors = {
-  llm_api_key: "bg-secondary text-foreground border-border",
-  oauth2: "bg-secondary text-foreground border-border",
-  generic_api_key: "bg-secondary text-foreground border-border",
-};
+
+// active renders as the plain connected indicator (orange dot, no chip);
+// revoked and expired keep a neutral chip so they read as inactive.
 const statusConfig = {
-  active: { icon: CheckCircle2, color: "text-[var(--state-success)]", label: "Active" },
-  revoked: { icon: XCircle, color: "text-destructive", label: "Revoked" },
-  expired: { icon: Clock, color: "text-[var(--state-warning)]", label: "Expired" },
+  active: { label: "Active", cls: "sk-connected", dot: "sk-dot" },
+  revoked: { label: "Revoked", cls: "sk-chip sk-chip-idle", dot: "sk-dot" },
+  expired: { label: "Expired", cls: "sk-chip sk-chip-paused", dot: "sk-dot" },
 };
 
 function GoogleWorkspaceCard() {
@@ -80,98 +41,81 @@ function GoogleWorkspaceCard() {
 
   if (!configured?.configured) {
     return (
-      <Card className="mb-6 border-dashed border-muted-foreground/30" data-testid="card-google-not-configured">
-       <CardContent className="flex flex-wrap items-center gap-4 py-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
-            <SiGoogle className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-medium text-foreground">Google Workspace</h3>
-            <p className="text-sm text-muted-foreground">
-              Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable Gmail, Calendar & Drive
-            </p>
-          </div>
-          <Badge variant="outline" className="text-muted-foreground">Not Configured</Badge>
-        </CardContent>
-      </Card>
+      <section className="sk-card sk-row" style={{ marginBottom: 28 }} data-testid="card-google-not-configured">
+        <span className="sk-icon-tile">
+          <SiGoogle />
+        </span>
+        <div className="sk-col" style={{ flex: "1 1 260px", gap: 2 }}>
+          <h2 className="sk-tile-title">Google Workspace</h2>
+          <p className="sk-muted" style={{ margin: 0 }}>
+            Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable Gmail, Calendar & Drive
+          </p>
+        </div>
+        <span className="sk-label">Not Configured</span>
+      </section>
     );
   }
 
   return (
-    <Card className="mb-6" data-testid="card-google-workspace">
-      <CardHeader className="pb-3">
-         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-             <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-secondary">
-               <SiGoogle className="h-5 w-5 text-foreground" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">Google Workspace</CardTitle>
-              <CardDescription>
-                {status?.connected
-                  ? `Connected as ${status.email}`
-                  : "Connect Gmail, Calendar & Drive to S1"}
-              </CardDescription>
-            </div>
-          </div>
-          {status?.connected ? (
-            <Badge className="bg-secondary text-[var(--state-success)] border-border">Connected</Badge>
-          ) : (
-            <Badge variant="outline" className="text-muted-foreground">Disconnected</Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-         <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-3 mb-4">
-          <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
-             <Mail className="h-4 w-4 text-foreground" />
-            <span className="text-sm">Gmail</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
-             <Calendar className="h-4 w-4 text-foreground" />
-            <span className="text-sm">Calendar</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
-             <HardDrive className="h-4 w-4 text-foreground" />
-            <span className="text-sm">Drive</span>
+    <section className="sk-card sk-col" style={{ marginBottom: 28, gap: 18 }} data-testid="card-google-workspace">
+      <div className="sk-between">
+        <div className="sk-row" style={{ gap: 14 }}>
+          <span className="sk-icon-tile">
+            <SiGoogle />
+          </span>
+          <div className="sk-col" style={{ gap: 2 }}>
+            <h2 className="sk-tile-title">Google Workspace</h2>
+            <p className="sk-muted" style={{ margin: 0 }}>
+              {status?.connected
+                ? `Connected as ${status.email}`
+                : "Connect Gmail, Calendar & Drive to S1"}
+            </p>
           </div>
         </div>
-
         {status?.connected ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full text-destructive hover:bg-destructive/10"
-            onClick={() => disconnectMutation.mutate()}
-            disabled={disconnectMutation.isPending}
-            data-testid="button-disconnect-google"
-          >
-            {disconnectMutation.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Unplug className="mr-2 h-4 w-4" />
-            )}
-            Disconnect Google
-          </Button>
+          <span className="sk-connected">
+            <span className="sk-dot" />
+            Connected
+          </span>
         ) : (
-          <Button
-            className="w-full"
-            onClick={() => {
-              if (authUrlData?.url) window.location.href = authUrlData.url;
-            }}
-            disabled={statusLoading || !authUrlData?.url}
-            data-testid="button-connect-google"
-          >
-            {statusLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <ExternalLink className="mr-2 h-4 w-4" />
-            )}
-            Connect Google Account
-          </Button>
+          <span className="sk-label">Disconnected</span>
         )}
-      </CardContent>
-    </Card>
+      </div>
+
+      <div className="sk-row" style={{ gap: 8 }}>
+        <span className="sk-chip">Gmail</span>
+        <span className="sk-chip">Calendar</span>
+        <span className="sk-chip">Drive</span>
+      </div>
+
+      {status?.connected ? (
+        <button
+          type="button"
+          className="sk-btn"
+          style={{ width: "100%" }}
+          onClick={() => disconnectMutation.mutate()}
+          disabled={disconnectMutation.isPending}
+          data-testid="button-disconnect-google"
+        >
+          {disconnectMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+          Disconnect Google
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="sk-btn"
+          style={{ width: "100%" }}
+          onClick={() => {
+            if (authUrlData?.url) window.location.href = authUrlData.url;
+          }}
+          disabled={statusLoading || !authUrlData?.url}
+          data-testid="button-connect-google"
+        >
+          {statusLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+          Connect Google Account
+        </button>
+      )}
+    </section>
   );
 }
 
@@ -249,241 +193,225 @@ export default function Connections() {
 
   if (isLoading) {
     return (
-     <div className="sutaeru-editorial-page mx-auto max-w-4xl px-3 py-6 sm:px-4 sm:py-8">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span className="text-sm text-muted-foreground">Loading connections...</span>
+      <div className="sk-page">
+        <div className="mx-auto w-full max-w-[1200px]">
+          <div className="sk-card sk-empty">
+            <span className="sk-label">Connections</span>
+            <p className="sk-empty-text" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading connections...
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      {/* Page header */}
-       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-700 text-foreground">Connections</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage external service connections for your agent
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={isAdding ? "secondary" : "default"}
-            onClick={() => setIsAdding(!isAdding)}
-          >
-            {isAdding ? "Cancel" : <><Plus className="mr-2 h-4 w-4" /> Add Connection</>}
-          </Button>
-        </div>
-      </div>
+    <div className="sk-page">
+      <div className="mx-auto w-full max-w-[1200px]">
+        {/* Page header */}
+        <header className="sk-header">
+          <div>
+            <h1 className="sk-h1">Connections</h1>
+            <p className="sk-sub">Manage external service connections for your agent</p>
+          </div>
+          <div className="sk-actions">
+            <button type="button" className="sk-btn" onClick={() => setIsAdding(!isAdding)}>
+              {isAdding ? "Cancel" : "Add Connection"}
+            </button>
+          </div>
+        </header>
 
-      {/* Google Workspace */}
-      <GoogleWorkspaceCard />
+        {/* Google Workspace */}
+        <GoogleWorkspaceCard />
 
-      {/* Add Connection Form */}
-      {isAdding && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Add New Connection</CardTitle>
-            <CardDescription>
-              Connect your agent to external services and APIs
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="provider">Provider *</Label>
-                <Input
+        {/* Add Connection Form */}
+        {isAdding && (
+          <section className="sk-card sk-col" style={{ marginBottom: 28, gap: 20 }}>
+            <div className="sk-col" style={{ gap: 4 }}>
+              <h2 className="sk-tile-title" style={{ fontSize: 20 }}>Add New Connection</h2>
+              <p className="sk-muted" style={{ margin: 0 }}>
+                Connect your agent to external services and APIs
+              </p>
+            </div>
+
+            <div className="sk-grid-2">
+              <div className="sk-field">
+                <label className="sk-label" htmlFor="provider">Provider *</label>
+                <input
                   id="provider"
+                  className="sk-input"
                   placeholder="e.g., OpenAI, Slack, GitHub"
                   value={provider}
                   onChange={(e) => setProvider(e.target.value)}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="connType">Type *</Label>
-                <Select value={type} onValueChange={(v: any) => setType(v)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="llm_api_key">LLM API Key</SelectItem>
-                    <SelectItem value="oauth2">OAuth 2.0</SelectItem>
-                    <SelectItem value="generic_api_key">Generic API Key</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="sk-field">
+                <label className="sk-label" htmlFor="connType">Type *</label>
+                <select
+                  id="connType"
+                  className="sk-select"
+                  value={type}
+                  onChange={(e) => setType(e.target.value as "llm_api_key" | "oauth2" | "generic_api_key")}
+                >
+                  <option value="llm_api_key">LLM API Key</option>
+                  <option value="oauth2">OAuth 2.0</option>
+                  <option value="generic_api_key">Generic API Key</option>
+                </select>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="connDisplayName">Display Name</Label>
-              <Input
+            <div className="sk-field">
+              <label className="sk-label" htmlFor="connDisplayName">Display Name</label>
+              <input
                 id="connDisplayName"
+                className="sk-input"
                 placeholder="My OpenAI Key"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="credentials">Credentials *</Label>
+            <div className="sk-field">
+              <label className="sk-label" htmlFor="credentials">Credentials *</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
+                <input
                   id="credentials"
                   type={showCredentials ? "text" : "password"}
-                  className="pl-9 pr-10"
+                  className="sk-input pr-12"
                   placeholder="API key, token, or credentials"
                   value={credentials}
                   onChange={(e) => setCredentials(e.target.value)}
                 />
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="sm"
-                   className="absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10 p-0"
-                   aria-label={showCredentials ? "Hide credentials" : "Show credentials"}
+                  className="sk-icon-btn absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10"
+                  aria-label={showCredentials ? "Hide credentials" : "Show credentials"}
                   onClick={() => setShowCredentials(!showCredentials)}
                 >
                   {showCredentials ? (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    <EyeOff className="h-4 w-4" />
                   ) : (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    <Eye className="h-4 w-4" />
                   )}
-                </Button>
+                </button>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="sk-muted" style={{ fontSize: 12, margin: 0 }}>
                 Your credentials are encrypted before storage
               </p>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setIsAdding(false)}>
+            <div className="sk-row" style={{ justifyContent: "flex-end" }}>
+              <button type="button" className="sk-btn sk-btn-ghost" onClick={() => setIsAdding(false)}>
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
+                type="button"
+                className="sk-btn"
                 onClick={handleAdd}
                 disabled={!provider || !credentials || addMutation.isPending}
               >
-                {addMutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
+                {addMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Add Connection
-              </Button>
+              </button>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </section>
+        )}
 
-      {/* Connections Grid */}
-      {connections && connections.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {connections.map((connection) => {
-            const TypeIcon = connectionTypeIcons[connection.type];
-            const StatusIcon = statusConfig[connection.status].icon;
-            const statusColor = statusConfig[connection.status].color;
-            const isActive = connection.status === "active";
+        {/* Connections Grid */}
+        {connections && connections.length > 0 ? (
+          <div className="sk-grid">
+            {connections.map((connection) => {
+              const status = statusConfig[connection.status];
+              const isActive = connection.status === "active";
+              const name = connection.displayName || connection.provider;
 
-            return (
-              <Card
-                key={connection.id}
-                className={cn(
-                  !isActive && "opacity-75"
-                )}
-              >
-                <CardHeader className="pb-3">
-                   <div className="flex flex-wrap items-start justify-between gap-3">
-                     <div className="flex min-w-0 items-center gap-3">
-                      <div className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-lg",
-                        connectionTypeColors[connection.type].split(" ")[0]
-                      )}>
-                        <TypeIcon className="h-5 w-5" />
-                      </div>
-                       <div className="min-w-0">
-                         <CardTitle className="text-base break-words">
-                          {connection.displayName || connection.provider}
-                        </CardTitle>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <Badge
-                            variant="outline"
-                            className={cn("text-xs", connectionTypeColors[connection.type])}
-                          >
-                            {connectionTypeLabels[connection.type]}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
+              return (
+                <article key={connection.id} className="sk-tile" style={{ opacity: isActive ? 1 : 0.75 }}>
+                  <span
+                    className="sk-avatar"
+                    style={{ width: 56, height: 56, borderRadius: 20, fontSize: 22 }}
+                  >
+                    {name.charAt(0).toUpperCase()}
+                  </span>
 
-                    <div className="flex items-center gap-1.5">
-                      <StatusIcon className={cn("h-4 w-4", statusColor)} />
-                      <span className={cn("text-xs font-medium", statusColor)}>
-                        {statusConfig[connection.status].label}
-                      </span>
-                    </div>
+                  <div className="sk-col" style={{ gap: 2 }}>
+                    <h3 className="sk-tile-title">{name}</h3>
+                    <p className="sk-muted" style={{ margin: 0, fontSize: 13 }}>
+                      {connectionTypeLabels[connection.type]}
+                    </p>
                   </div>
-                </CardHeader>
 
-                <CardContent className="pt-0">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Provider</span>
-                      <span className="font-medium capitalize">{connection.provider}</span>
+                  <hr className="sk-hairline" />
+
+                  <div className="sk-col" style={{ gap: 6 }}>
+                    <div className="sk-between">
+                      <span className="sk-meta">Provider</span>
+                      <span className="sk-num" style={{ fontSize: 13 }}>{connection.provider}</span>
                     </div>
 
                     {connection.lastUsedAt && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Last Used</span>
-                        <span>{format(new Date(connection.lastUsedAt), "MMM d, yyyy")}</span>
+                      <div className="sk-between">
+                        <span className="sk-meta">Last Used</span>
+                        <span className="sk-num" style={{ fontSize: 13 }}>
+                          {format(new Date(connection.lastUsedAt), "MMM d, yyyy")}
+                        </span>
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Added</span>
-                      <span>{format(new Date(connection.createdAt), "MMM d, yyyy")}</span>
+                    <div className="sk-between">
+                      <span className="sk-meta">Added</span>
+                      <span className="sk-num" style={{ fontSize: 13 }}>
+                        {format(new Date(connection.createdAt), "MMM d, yyyy")}
+                      </span>
                     </div>
                   </div>
 
-                  {isActive && (
-                    <div className="mt-4 pt-3 border-t">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  <div className="sk-between" style={{ marginTop: "auto", gap: 8 }}>
+                    <span className={status.cls}>
+                      <span className={status.dot} />
+                      {status.label}
+                    </span>
+                    {isActive && (
+                      <button
+                        type="button"
+                        className="sk-btn sk-btn-ghost sk-btn-sm"
                         onClick={() => handleRevoke(connection.id)}
                         disabled={revokeMutation.isPending}
                       >
-                        <Ban className="mr-2 h-4 w-4" />
                         Revoke Connection
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                <Plug className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <h3 className="mt-4 text-lg font-medium">No connections yet</h3>
-              <p className="mt-1 text-sm text-muted-foreground text-center max-w-sm">
-                Add connections to enable your Sutaeru agent to interact with external services
-              </p>
-              <Button className="mt-4" onClick={() => setIsAdding(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Connection
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                      </button>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="sk-card sk-empty">
+            <span className="sk-icon-tile">
+              <SutaeruIcon name="connections" width={26} height={26} />
+            </span>
+            <span className="sk-label">No connections yet</span>
+            <p className="sk-empty-text" style={{ maxWidth: 420 }}>
+              Add connections to enable your Sutaeru agent to interact with external services
+            </p>
+            <button type="button" className="sk-btn" style={{ marginTop: 8 }} onClick={() => setIsAdding(true)}>
+              Add Connection
+            </button>
+          </div>
+        )}
+
+        {/* Privacy note */}
+        <section className="sk-card-dark sk-row" style={{ marginTop: 28, gap: 18 }}>
+          <SutaeruIcon name="admin" width={30} height={30} style={{ color: "var(--art-paper)", flex: "none" }} />
+          <div className="sk-col">
+            <p className="sk-dark-title">Your credentials are encrypted before storage</p>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

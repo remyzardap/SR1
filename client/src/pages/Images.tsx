@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Download, ImageIcon, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { SutaeruGlyph } from "@/components/SutaeruGlyph";
+import { SutaeruIcon } from "@/components/SutaeruIcon";
 import { callFunction } from "@/lib/kemmaCloud";
 import { getAuthToken } from "@/lib/authSession";
 import { toast } from "sonner";
@@ -146,163 +146,187 @@ export default function Images() {
   }
 
   return (
-    <div className="sutaeru-editorial-page mx-auto max-w-4xl px-3 py-6 sm:px-4 sm:py-8">
-      <header className="mb-6">
-        <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
-          <ImageIcon className="size-5" aria-hidden="true" /> Images
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Describe a picture and choose which engine draws it. Every image is saved to My Files.
-        </p>
+    <div className="sk-page h-full overflow-y-auto">
+      <header className="sk-header">
+        <div>
+          <h1 className="sk-h1">Images</h1>
+          <p className="sk-sub">
+            Describe a picture and choose which engine draws it. Every image is saved to My Files.
+          </p>
+        </div>
+        <div className="sk-actions">
+          <button type="button" className="sk-btn" onClick={() => void generate()} disabled={!canGenerate}>
+            {generating ? "Drawing..." : "Create image"}
+          </button>
+        </div>
       </header>
 
       {enginesLoading && (
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Loading image engines...
-        </p>
+        <div className="sk-card sk-empty">
+          <span className="sk-label">Images</span>
+          <p className="sk-empty-text">Loading image engines...</p>
+        </div>
       )}
 
       {enginesError && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm">
-          <p>{enginesError}</p>
-          <Button variant="outline" size="sm" className="mt-2" onClick={() => void loadEngines()}>Try again</Button>
+        <div className="sk-card sk-empty">
+          <span className="sk-label">Images</span>
+          <p className="sk-empty-text">{enginesError}</p>
+          <button type="button" className="sk-btn sk-btn-ghost sk-btn-sm mt-3 self-start" onClick={() => void loadEngines()}>
+            Try again
+          </button>
         </div>
       )}
 
       {!enginesLoading && !enginesError && engines.length === 0 && (
-        <p className="py-16 text-center text-sm text-muted-foreground">
-          No image engine is set up on this server yet. Ask the owner to add an engine key.
-        </p>
+        <div className="sk-card sk-empty">
+          <span className="sk-label">Images</span>
+          <p className="sk-empty-text">No image engine is set up on this server yet. Ask the owner to add an engine key.</p>
+        </div>
       )}
 
       {!enginesLoading && !enginesError && engines.length > 0 && (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-          <div className="glass-card flex flex-col gap-4 p-4">
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="image-prompt" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prompt</label>
-              <textarea
-                id="image-prompt"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value.slice(0, MAX_PROMPT))}
-                onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void generate(); }}
-                rows={6}
-                placeholder="A ceramic mug on a wooden table in soft morning light"
-                className="input-glass w-full resize-y px-3 py-2.5 text-sm outline-none"
-              />
-              <p className="text-right text-xs text-muted-foreground tabular-nums">{prompt.length} / {MAX_PROMPT}</p>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Engine</span>
-              <div className="flex flex-col gap-1.5" role="radiogroup" aria-label="Image engine">
+        <div className="sk-stack">
+          <div className="sk-card flex flex-col gap-5">
+            <div className="sk-field">
+              <span className="sk-label">Engine</span>
+              <div className="sk-row" role="radiogroup" aria-label="Image engine">
                 {engines.map((e) => (
                   <button
                     key={e.id}
+                    type="button"
                     role="radio"
                     aria-checked={engine === e.id}
                     onClick={() => setEngine(e.id)}
-                    className={`rounded-lg border px-3 py-2 text-left transition-colors ${engine === e.id ? "border-primary bg-primary/10" : "border-border hover:bg-accent/40"}`}
+                    className={`sk-pill sk-pill-sm ${engine === e.id ? "is-active" : ""}`}
                   >
-                    <span className="block text-sm font-medium text-foreground">{e.label}</span>
-                    <span className="block text-xs text-muted-foreground">{quality === "high" ? e.qualityModel : e.model}</span>
+                    <span>{e.label}</span>
+                    <span className="sk-label" style={{ color: "inherit", opacity: 0.62, margin: 0 }}>
+                      {quality === "high" ? e.qualityModel : e.model}
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Quality</span>
-              <div className="flex w-fit rounded-full border border-border p-0.5" role="group" aria-label="Quality">
+            <div className="sk-field">
+              <span className="sk-label">Quality</span>
+              <div className="sk-row" role="group" aria-label="Quality">
                 {(["standard", "high"] as const).map((q) => (
                   <button
                     key={q}
+                    type="button"
                     onClick={() => setQuality(q)}
                     aria-pressed={quality === q}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider transition-colors ${quality === q ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                    className={`sk-pill sk-pill-sm ${quality === q ? "is-active" : ""}`}
+                    style={{ textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}
                   >
                     {q}
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">High uses the larger model and can take up to a minute.</p>
+              <p className="sk-empty-text">High uses the larger model and can take up to a minute.</p>
             </div>
-
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Shape</span>
-              <div className="flex flex-wrap gap-1.5" role="group" aria-label="Aspect ratio">
-                {RATIOS.map((r) => (
-                  <button
-                    key={r.value}
-                    onClick={() => setRatio(r.value)}
-                    aria-pressed={ratio === r.value}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${ratio === r.value ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-accent/40"}`}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <Button onClick={() => void generate()} disabled={!canGenerate} className="gap-1.5">
-              {generating ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <ImageIcon className="size-4" aria-hidden="true" />}
-              {generating ? "Drawing..." : "Create image"}
-            </Button>
           </div>
 
-          <div className="flex min-w-0 flex-col gap-4">
-            {generating && (
-              <div className="glass-card flex flex-col items-center gap-2 p-8 text-center" role="status" aria-live="polite">
-                <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
-                <p className="text-sm text-foreground">{current?.label} is drawing your image.</p>
-                <p className="text-xs text-muted-foreground tabular-nums">{elapsed}s elapsed. This usually takes 10 to 70 seconds.</p>
-              </div>
-            )}
+          {generating && (
+            <div className="sk-card" role="status" aria-live="polite">
+              <span className="sk-label">Generating</span>
+              <p className="mt-2 text-[15px] leading-6" style={{ color: "var(--art-ink)" }}>
+                {current?.label} is drawing your image.
+              </p>
+              <p className="sk-empty-text sk-num mt-1">{elapsed}s elapsed. This usually takes 10 to 70 seconds.</p>
+            </div>
+          )}
 
-            {!generating && !selected && (
-              <div className="glass-card p-10 text-center">
-                <p className="text-sm text-foreground">Your images will appear here.</p>
-                <p className="mt-1 text-xs text-muted-foreground">Write a prompt, pick an engine and a shape, then press Create image.</p>
-              </div>
-            )}
-
-            {!generating && selected && (
-              <figure className="glass-card overflow-hidden">
-                <img
-                  src={selected.blobUrl}
-                  alt={selected.prompt}
-                  className="mx-auto block max-h-[70vh] w-auto max-w-full"
-                  width={selected.width}
-                  height={selected.height}
-                />
-                <figcaption className="flex flex-col gap-2 border-t border-border p-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="line-clamp-2 text-sm text-foreground">{selected.prompt}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
-                      {selected.engine} ({selected.model}){selected.width && selected.height ? ` · ${selected.width} x ${selected.height}` : ""}
-                    </p>
+          {(generating || renders.length > 0) && (
+            <div className="sk-grid" role="list" aria-label="Recent images">
+              {generating && (
+                <div className="sk-thumb" role="presentation">
+                  <div className="sk-thumb-glyph">
+                    <SutaeruGlyph className="w-16" />
                   </div>
-                  <Button asChild variant="outline" size="sm" className="shrink-0 gap-1.5">
-                    <a href={selected.blobUrl} download={selected.filename}><Download className="size-4" aria-hidden="true" /> Download</a>
-                  </Button>
-                </figcaption>
-              </figure>
-            )}
+                  <div className="sk-thumb-generating">
+                    <span className="sk-dot" aria-hidden="true" />
+                    Generating · {elapsed}s
+                  </div>
+                </div>
+              )}
+              {renders.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  role="listitem"
+                  onClick={() => setSelectedId(r.id)}
+                  aria-label={`Show image: ${r.prompt.slice(0, 60)}`}
+                  className="sk-thumb block cursor-pointer border-0 p-0 text-left"
+                  style={selected?.id === r.id ? { outline: "2px solid var(--art-ink)", outlineOffset: "3px" } : undefined}
+                >
+                  <img src={r.blobUrl} alt="" width={r.width} height={r.height} />
+                  <span className="sk-thumb-bar">
+                    {r.engine} · {r.width && r.height ? `${r.width} x ${r.height}` : r.model}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
 
-            {renders.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1" role="list" aria-label="Recent images">
-                {renders.map((r) => (
-                  <button
-                    key={r.id}
-                    role="listitem"
-                    onClick={() => setSelectedId(r.id)}
-                    aria-label={`Show image: ${r.prompt.slice(0, 60)}`}
-                    className={`size-16 shrink-0 overflow-hidden rounded-md border-2 transition-colors ${selected?.id === r.id ? "border-primary" : "border-transparent hover:border-border"}`}
-                  >
-                    <img src={r.blobUrl} alt="" className="size-full object-cover" />
-                  </button>
-                ))}
+          {!generating && !selected && (
+            <div className="sk-card sk-empty">
+              <span className="sk-label">Images</span>
+              <p className="sk-empty-text">Your images will appear here.</p>
+              <p className="sk-empty-text">Write a prompt, pick an engine and a shape, then press Create image.</p>
+            </div>
+          )}
+
+          {!generating && selected && (
+            <div className="sk-card flex flex-wrap items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="sk-tile-title line-clamp-2">{selected.prompt}</p>
+                <p className="sk-meta sk-num mt-1">
+                  {selected.engine} ({selected.model}){selected.width && selected.height ? ` · ${selected.width} x ${selected.height}` : ""}
+                </p>
               </div>
-            )}
+              <a href={selected.blobUrl} download={selected.filename} className="sk-btn sk-btn-ghost sk-btn-sm shrink-0">
+                <SutaeruIcon name="download" className="size-4" /> Download
+              </a>
+            </div>
+          )}
+
+          <div className="sk-composer flex-wrap">
+            <label htmlFor="image-prompt" className="sr-only">Prompt</label>
+            <textarea
+              id="image-prompt"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value.slice(0, MAX_PROMPT))}
+              onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void generate(); }}
+              rows={1}
+              placeholder="A ceramic mug on a wooden table in soft morning light"
+              className="min-w-0 flex-1 resize-none border-0 bg-transparent text-[15px] leading-6 outline-none text-[var(--art-ink)] placeholder:text-[var(--art-quiet)]"
+            />
+            <span className="sk-label sk-num whitespace-nowrap">{prompt.length} / {MAX_PROMPT}</span>
+            <div className="sk-row" style={{ gap: 8 }} role="group" aria-label="Aspect ratio">
+              {RATIOS.map((r) => (
+                <button
+                  key={r.value}
+                  type="button"
+                  onClick={() => setRatio(r.value)}
+                  aria-pressed={ratio === r.value}
+                  className={`sk-pill sk-pill-sm ${ratio === r.value ? "is-active" : ""}`}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="sk-send"
+              onClick={() => void generate()}
+              disabled={!canGenerate}
+              aria-label={generating ? "Drawing..." : "Create image"}
+            >
+              <SutaeruIcon name="arrow" className="-rotate-90" />
+            </button>
           </div>
         </div>
       )}

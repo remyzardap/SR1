@@ -1,4 +1,3 @@
-import { PAGE_BG, NOISE_OVERLAY, CSS_ANIM } from '@/lib/design';
 import { useState, useEffect, useRef, KeyboardEvent } from "react";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
 import { trpc } from "@/lib/trpc";
@@ -13,8 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { User, Loader2, Save, AtSign, Plus, X, Globe, MessageSquare, Users, Upload, Camera } from "lucide-react";
-import { Sparkles, Brain } from "@/components/brandIcons";
+import { Loader2, Upload } from "lucide-react";
+import { SutaeruIcon } from "@/components/SutaeruIcon";
+import { SutaeruGlyph } from "@/components/SutaeruGlyph";
 
 const LANGUAGES = [
   { value: "en", label: "English" },
@@ -176,451 +176,334 @@ export default function Identity() {
 
   // ─── Stats ─────────────────────────────────────────────────────────────────
   const statItems = [
-    { icon: Brain, label: "Skills", value: stats?.skillsCount ?? 0, color: "var(--accent-color)", dim: "var(--accent-dim)", border: "var(--accent-border)" },
-    { icon: MessageSquare, label: "Memories", value: stats?.memoriesCount ?? 0, color: "var(--secondary-color)", dim: "var(--secondary-dim)", border: "var(--secondary-border)" },
-    { icon: Users, label: "Connections", value: stats?.connectionsCount ?? 0, color: "var(--foreground)", dim: "var(--accent-dim)", border: "var(--accent-border)" },
+    { label: "Skills", value: stats?.skillsCount ?? 0 },
+    { label: "Memories", value: stats?.memoriesCount ?? 0 },
+    { label: "Connections", value: stats?.connectionsCount ?? 0 },
   ];
+
+  const languageLabel = primaryLanguage
+    ? LANGUAGES.find((l) => l.value === primaryLanguage)?.label ?? primaryLanguage
+    : "";
 
   // ─── Loading state ─────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-8">
-        <div className="flex items-center gap-2" style={{ color: "var(--muted-foreground)" }}>
-          <Loader2 className="h-4 w-4 animate-spin" style={{ color: "var(--accent-color)" }} />
-          <span className="text-sm">Loading identity...</span>
+      <div className="sk-page">
+        <div className="sk-card sk-empty max-w-md">
+          <span className="sk-label">Identity</span>
+          <p className="sk-empty-text">Loading identity...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 sm:py-8 space-y-6">
-
-      {/* ── Stats row ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        {statItems.map(({ icon: Icon, label, value, color, dim, border }) => (
-          <div
-            key={label}
-            className="glass-card p-4 flex sm:flex-col items-center sm:items-center gap-3 sm:gap-0 sm:text-center"
+    <div className="sk-page">
+      {/* ── Page header ───────────────────────────────────────────────────── */}
+      <div className="sk-header">
+        <div>
+          <h1 className="sk-h1">
+            {isNewIdentity ? "Create Your Identity" : "Identity Profile"}
+          </h1>
+          <p className="sk-sub">
+            {isNewIdentity
+              ? "Set up your Sutaeru agent identity to personalise your AI experience."
+              : "Manage your Sutaeru agent identity and public profile."}
+          </p>
+        </div>
+        <div className="sk-actions">
+          <button
+            onClick={handleSave}
+            disabled={upsertMutation.isPending}
+            className="sk-btn"
           >
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center sm:mx-auto sm:mb-3 shrink-0"
-              style={{ background: dim, border: `1px solid ${border}` }}
-            >
-              <Icon className="h-4 w-4" style={{ color }} />
-            </div>
-            <div className="flex sm:flex-col items-baseline sm:items-center gap-2 sm:gap-0">
-              <p className="text-2xl font-light" style={{ color }}>{value}</p>
-              <p
-                className="text-xs uppercase tracking-widest font-medium"
-                style={{ color: "var(--muted-foreground)" }}
-              >
-                {label}
-              </p>
-            </div>
-          </div>
-        ))}
+            {upsertMutation.isPending
+              ? "Saving..."
+              : isNewIdentity
+              ? "Create Identity"
+              : "Save Changes"}
+          </button>
+        </div>
       </div>
 
-      {/* ── Page header ─────────────────────────────────────────────────────── */}
-      <div>
-        <h1
-          className="text-xl sm:text-2xl font-bold tracking-tight"
-          style={{ color: "var(--foreground)" }}
-        >
-          {isNewIdentity ? "Create Your Identity" : "Identity Profile"}
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "var(--muted-foreground)" }}>
-          {isNewIdentity
-            ? "Set up your Sutaeru agent identity to personalise your AI experience."
-            : "Manage your Sutaeru agent identity and public profile."}
-        </p>
-      </div>
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+        {/* ── Assistant preview (dark feature card) ───────────────────────── */}
+        <aside className="sk-card-dark self-start">
+          <p className="sk-label">Preview</p>
 
-      {/* ── Profile preview ──────────────────────────────────────────────────── */}
-      <div
-        className="glass-card p-6"
-        style={{
-          background:
-            "radial-gradient(ellipse 70% 50% at 0% 50%, var(--accent-dim) 0%, transparent 60%), var(--glass-bg)",
-        }}
-      >
-        <p className="label-trity mb-4">Preview</p>
-        <div className="flex items-start gap-3 sm:gap-4">
-          <div
-            className="h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-2xl flex items-center justify-center text-lg font-bold overflow-hidden"
-            style={{
-              background: "var(--accent-dim)",
-              border: "1px solid var(--accent-border)",
-              color: "var(--accent-color)",
-              boxShadow: "0 0 16px var(--accent-glow)",
-            }}
-          >
+          {/* Glyph / avatar block */}
+          <div className="mt-4 flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[20px] bg-white/[0.06]">
             {avatarUrl ? (
-              <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+              <img src={avatarUrl} alt="avatar" className="h-full w-full object-cover" />
+            ) : displayName || handle ? (
+              <span className="text-3xl font-semibold text-[var(--art-paper)]">
+                {getInitials()}
+              </span>
             ) : (
-              getInitials()
+              <SutaeruGlyph className="w-40 text-[var(--art-paper)]" />
             )}
           </div>
-          <div className="flex-1 min-w-0">
-            <h3
-              className="font-semibold text-base truncate"
-              style={{ color: "var(--foreground)" }}
-            >
+
+          <div className="mt-6">
+            {/* one-off size: the reference renders the assistant name larger than .sk-dark-title */}
+            <h2 className="sk-dark-title" style={{ fontSize: "30px" }}>
               {displayName || (
-                <span style={{ color: "var(--muted-foreground)", fontStyle: "italic" }}>
+                <span className="font-normal italic text-[rgba(247,246,242,0.5)]">
                   Your Display Name
                 </span>
               )}
-            </h3>
-            <div
-              className="flex items-center gap-1 text-sm mt-0.5"
-              style={{ color: "var(--muted-foreground)" }}
-            >
-              <AtSign className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">
-                {handle || (
-                  <span style={{ fontStyle: "italic" }}>username</span>
-                )}
-              </span>
-            </div>
-            {primaryLanguage && (
-              <div
-                className="flex items-center gap-1 text-xs mt-1"
-                style={{ color: "var(--muted-foreground)" }}
-              >
-                <Globe className="h-3 w-3 shrink-0" />
-                <span>
-                  {LANGUAGES.find((l) => l.value === primaryLanguage)?.label ?? primaryLanguage}
-                </span>
-              </div>
-            )}
-            <p
-              className="mt-2 text-sm line-clamp-3"
-              style={{ color: "var(--muted-foreground)" }}
-            >
+            </h2>
+            <p className="sk-dark-sub">
+              @
+              {handle || (
+                <span className="italic text-[rgba(247,246,242,0.5)]">username</span>
+              )}
+            </p>
+          </div>
+
+          {/* Status line */}
+          <div className="sk-row mt-5">
+            <span className="sk-dot sk-dot-orange" />
+            <span className="sk-label">
+              {statItems.map((s) => `${s.value} ${s.label}`).join(" · ")}
+            </span>
+          </div>
+
+          <div className="mt-4">
+            <p className="sk-dark-sub line-clamp-3">
               {bio || (
-                <span style={{ fontStyle: "italic" }}>
+                <span className="italic text-[rgba(247,246,242,0.5)]">
                   No bio yet. Add one below to tell others about your agent.
                 </span>
               )}
             </p>
-            {personalityTraits.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-3">
+          </div>
+
+          <div className="my-6">
+            <hr className="sk-divider-dark" />
+          </div>
+
+          {personalityTraits.length > 0 && (
+            <div className="mb-6">
+              <p className="sk-label">Personality</p>
+              <div className="mt-3 flex flex-wrap gap-2">
                 {personalityTraits.map((trait) => (
-                  <span
-                    key={trait}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
-                    style={{
-                      background: "var(--accent-dim)",
-                      border: "1px solid var(--accent-border)",
-                      color: "var(--accent-light)",
-                    }}
-                  >
+                  <span key={trait} className="sk-chip">
                     {trait}
                   </span>
                 ))}
               </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Edit form ────────────────────────────────────────────────────────── */}
-      <div className="glass-card p-6 space-y-6">
-        <div>
-          <h2 className="text-base font-semibold" style={{ color: "var(--foreground)" }}>
-            {isNewIdentity ? "Create Profile" : "Edit Profile"}
-          </h2>
-          <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-            {isNewIdentity
-              ? "Fill in the details below to create your agent identity."
-              : "Update your agent's identity information."}
-          </p>
-        </div>
-
-        {/* Avatar Upload */}
-        <div className="space-y-2">
-          <Label
-            className="text-xs font-bold uppercase tracking-widest"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            Avatar
-          </Label>
-          <div className="flex items-center gap-4">
-            {/* Preview */}
-            <div
-              className="h-16 w-16 shrink-0 rounded-2xl flex items-center justify-center text-lg font-bold overflow-hidden"
-              style={{
-                background: "var(--accent-dim)",
-                border: "1px solid var(--accent-border)",
-                color: "var(--accent-color)",
-              }}
-            >
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="avatar preview" className="w-full h-full object-cover" />
-              ) : (
-                <Camera className="h-5 w-5" style={{ color: "var(--accent-color)" }} />
-              )}
             </div>
-            {/* Upload button */}
-            <div className="flex flex-col gap-1.5">
-              <input
-                ref={avatarInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                className="hidden"
-                onChange={handleAvatarFileChange}
+          )}
+
+          {languageLabel && (
+            <div>
+              <p className="sk-label">Languages</p>
+              <div className="mt-2">
+                <p className="sk-dark-sub">{languageLabel}</p>
+              </div>
+            </div>
+          )}
+        </aside>
+
+        {/* ── Editor sections ─────────────────────────────────────────────── */}
+        <div className="sk-stack">
+          {/* Profile */}
+          <section className="sk-card">
+            <p className="sk-label">Profile</p>
+            <h2 className="mt-3 text-[22px] font-semibold tracking-tight">
+              {isNewIdentity ? "Create Profile" : "Edit Profile"}
+            </h2>
+            <p className="sk-sub">
+              {isNewIdentity
+                ? "Fill in the details below to create your agent identity."
+                : "Update your agent's identity information."}
+            </p>
+
+            {/* Avatar Upload */}
+            <div className="sk-field mt-7">
+              <Label className="sk-label">Avatar</Label>
+              <div className="sk-row">
+                {/* Preview */}
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[20px] bg-[#F1EFEA] text-[var(--art-ink)]">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="avatar preview" className="h-full w-full object-cover" />
+                  ) : (
+                    <SutaeruIcon name="image" className="h-6 w-6" />
+                  )}
+                </div>
+                {/* Upload button */}
+                <div className="sk-col">
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handleAvatarFileChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={isUploadingAvatar}
+                    className="sk-btn sk-btn-sm self-start"
+                  >
+                    {isUploadingAvatar ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5" />
+                    )}
+                    {isUploadingAvatar ? "Uploading…" : "Upload image"}
+                  </button>
+                  {avatarUrl && (
+                    <button
+                      type="button"
+                      onClick={() => { setAvatarUrl(""); }}
+                      className="sk-muted min-h-11 text-sm transition-colors hover:underline"
+                    >
+                      Remove avatar
+                    </button>
+                  )}
+                  <p className="sk-meta">JPG, PNG, GIF or WebP · max 5 MB</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="my-7">
+              <hr className="sk-hairline" />
+            </div>
+
+            {/* Handle */}
+            <div className="sk-field">
+              <Label htmlFor="handle" className="sk-label">
+                Handle
+              </Label>
+              <Input
+                id="handle"
+                className="sk-input focus-visible:ring-0"
+                placeholder="username"
+                value={handle}
+                onChange={(e) => setHandle(e.target.value.replace(/[^a-z0-9_-]/gi, ""))}
+                maxLength={64}
               />
-              <button
-                type="button"
-                onClick={() => avatarInputRef.current?.click()}
-                disabled={isUploadingAvatar}
-                 className="flex min-h-11 items-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  background: "var(--accent-dim)",
-                  border: "1px solid var(--accent-border)",
-                  color: "var(--accent-color)",
-                }}
-              >
-                {isUploadingAvatar ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Upload className="h-3.5 w-3.5" />
-                )}
-                {isUploadingAvatar ? "Uploading…" : "Upload image"}
-              </button>
-              {avatarUrl && (
-                <button
-                  type="button"
-                  onClick={() => { setAvatarUrl(""); }}
-                   className="min-h-11 text-xs transition-colors"
-                  style={{ color: "var(--muted-foreground)" }}
-                >
-                  Remove avatar
-                </button>
-              )}
-              <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-                JPG, PNG, GIF or WebP · max 5 MB
+              <p className="sk-muted mt-2 text-xs">
+                Your unique @handle. Letters, numbers, underscores and hyphens only.
               </p>
             </div>
-          </div>
-        </div>
 
-        <hr className="divider-trity" />
+            {/* Display Name */}
+            <div className="sk-field mt-6">
+              <Label htmlFor="displayName" className="sk-label">
+                Display Name
+              </Label>
+              <Input
+                id="displayName"
+                className="sk-input focus-visible:ring-0"
+                placeholder="Your Name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                maxLength={255}
+              />
+            </div>
 
-        {/* Handle */}
-        <div className="space-y-2">
-          <Label
-            htmlFor="handle"
-            className="text-xs font-bold uppercase tracking-widest"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            Handle
-          </Label>
-          <div className="relative">
-            <AtSign
-              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4"
-              style={{ color: "var(--muted-foreground)" }}
-            />
-            <Input
-              id="handle"
-              className="pl-9 input-glass"
-              placeholder="username"
-              value={handle}
-              onChange={(e) => setHandle(e.target.value.replace(/[^a-z0-9_-]/gi, ""))}
-              maxLength={64}
-            />
-          </div>
-          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-            Your unique @handle. Letters, numbers, underscores and hyphens only.
-          </p>
-        </div>
+            {/* Bio */}
+            <div className="sk-field mt-6">
+              <Label htmlFor="bio" className="sk-label">
+                Bio
+              </Label>
+              <Textarea
+                id="bio"
+                placeholder="Tell others about your agent - your goals, expertise, or what makes you unique..."
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={4}
+                className="sk-textarea focus-visible:ring-0"
+              />
+              <p className="sk-meta mt-2">{bio.length} characters</p>
+            </div>
 
-        {/* Display Name */}
-        <div className="space-y-2">
-          <Label
-            htmlFor="displayName"
-            className="text-xs font-bold uppercase tracking-widest"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            Display Name
-          </Label>
-          <div className="relative">
-            <User
-              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4"
-              style={{ color: "var(--muted-foreground)" }}
-            />
-            <Input
-              id="displayName"
-              className="pl-9 input-glass"
-              placeholder="Your Name"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              maxLength={255}
-            />
-          </div>
-        </div>
+            <div className="my-7">
+              <hr className="sk-hairline" />
+            </div>
 
-        {/* Bio */}
-        <div className="space-y-2">
-          <Label
-            htmlFor="bio"
-            className="text-xs font-bold uppercase tracking-widest"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            Bio
-          </Label>
-          <Textarea
-            id="bio"
-            placeholder="Tell others about your agent — your goals, expertise, or what makes you unique..."
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            rows={4}
-            className="input-glass resize-none"
-          />
-        </div>
-
-        <hr className="divider-trity" />
-
-        {/* Primary Language */}
-        <div className="space-y-2">
-          <Label
-            htmlFor="primaryLanguage"
-            className="text-xs font-bold uppercase tracking-widest"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            Primary Language
-          </Label>
-          <Select value={primaryLanguage} onValueChange={setPrimaryLanguage}>
-            <SelectTrigger id="primaryLanguage" className="input-glass w-full">
-              <div className="flex items-center gap-2">
-                <Globe className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
-                <SelectValue placeholder="Select a language..." />
-              </div>
-            </SelectTrigger>
-            <SelectContent
-              style={{
-                background: "var(--popover)",
-                border: "1px solid var(--border)",
-                backdropFilter: "blur(20px)",
-              }}
-            >
-              {LANGUAGES.map((lang) => (
-                <SelectItem key={lang.value} value={lang.value}>
-                  {lang.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-            The language your agent primarily communicates in.
-          </p>
-        </div>
-
-        {/* Personality Traits */}
-        <div className="space-y-2">
-          <Label
-            className="text-xs font-bold uppercase tracking-widest"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            Personality Traits
-          </Label>
-          <div
-            className="flex flex-wrap items-center gap-1.5 min-h-10 px-3 py-2 transition-all"
-            style={{
-              background: "var(--card)",
-              border: "1px solid var(--border)",
-              borderRadius: "12px",
-              backdropFilter: "blur(12px)",
-            }}
-            onFocus={(e) => {
-              (e.currentTarget as HTMLDivElement).style.borderColor =
-                "var(--accent-border)";
-            }}
-            onBlur={(e) => {
-              (e.currentTarget as HTMLDivElement).style.borderColor =
-                "var(--border)";
-            }}
-          >
-            {personalityTraits.map((trait) => (
-              <span
-                key={trait}
-                className="inline-flex items-center gap-1 rounded-full text-xs px-3 py-1"
-                style={{
-                  background: "var(--accent-dim)",
-                  border: "1px solid var(--accent-border)",
-                  color: "var(--accent-light)",
-                }}
-              >
-                {trait}
-                <button
-                  type="button"
-                  onClick={() => removeTrait(trait)}
-                   className="min-h-11 min-w-11 flex items-center justify-center transition-colors hover:opacity-80"
-                  aria-label={`Remove ${trait}`}
+            {/* Primary Language */}
+            <div className="sk-field">
+              <Label htmlFor="primaryLanguage" className="sk-label">
+                Primary Language
+              </Label>
+              <Select value={primaryLanguage} onValueChange={setPrimaryLanguage}>
+                <SelectTrigger
+                  id="primaryLanguage"
+                  className="h-12 w-full rounded-[20px] border-0 bg-[var(--art-paper)] px-4 text-[15px] shadow-none data-[size=default]:h-12 focus-visible:ring-0"
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            ))}
-            <input
-              type="text"
-              value={traitInput}
-              onChange={(e) => setTraitInput(e.target.value)}
-              onKeyDown={handleTraitKeyDown}
-              placeholder={
-                personalityTraits.length === 0
-                  ? "Type a trait and press Enter..."
-                  : personalityTraits.length < 10
-                  ? "Add another..."
-                  : ""
-              }
-              disabled={personalityTraits.length >= 10}
-              className="flex-1 min-w-[6rem] bg-transparent text-sm outline-none"
-              style={{ color: "var(--foreground)" }}
-            />
-            {traitInput.trim() && (
-              <button
-                type="button"
-                onClick={addTrait}
-                 className="min-h-11 min-w-11 shrink-0 flex items-center justify-center transition-colors"
-                style={{ color: "var(--muted-foreground)" }}
-                aria-label="Add trait"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-            Press Enter or , to add. Up to 10 traits.
-          </p>
-        </div>
+                  <SelectValue placeholder="Select a language..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-[20px] border-0 bg-white shadow-lg">
+                  {LANGUAGES.map((lang) => (
+                    <SelectItem key={lang.value} value={lang.value}>
+                      {lang.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="sk-muted mt-2 text-xs">
+                The language your agent primarily communicates in.
+              </p>
+            </div>
+          </section>
 
-        {/* Save Button */}
-        <div className="flex justify-end pt-2">
-          <button
-            onClick={handleSave}
-            disabled={upsertMutation.isPending}
-            className="btn-primary-teal px-6 py-2.5 text-sm inline-flex items-center gap-2 disabled:opacity-50"
-          >
-            {upsertMutation.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : isNewIdentity ? (
-              <>
-                <Sparkles className="h-4 w-4" />
-                Create Identity
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4" />
-                Save Changes
-              </>
-            )}
-          </button>
+          {/* Personality */}
+          <section className="sk-card">
+            <p className="sk-label">Personality</p>
+            <div className="sk-field mt-3">
+              <Label className="sk-label">Personality Traits</Label>
+              <div className="flex min-h-12 flex-wrap items-center gap-1.5 rounded-[20px] bg-[var(--art-paper)] px-3 py-2">
+                {personalityTraits.map((trait) => (
+                  <span
+                    key={trait}
+                    className="inline-flex items-center gap-1 rounded-full bg-[var(--art-ink)] py-1.5 pl-3.5 pr-1.5 text-xs font-medium text-[var(--art-paper)]"
+                  >
+                    {trait}
+                    <button
+                      type="button"
+                      onClick={() => removeTrait(trait)}
+                      className="-my-2 -mr-1.5 flex min-h-11 min-w-11 items-center justify-center rounded-full transition-colors hover:bg-white/15"
+                      aria-label={`Remove ${trait}`}
+                    >
+                      <SutaeruIcon name="close" signal={false} className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+                <input
+                  type="text"
+                  value={traitInput}
+                  onChange={(e) => setTraitInput(e.target.value)}
+                  onKeyDown={handleTraitKeyDown}
+                  placeholder={
+                    personalityTraits.length === 0
+                      ? "Type a trait and press Enter..."
+                      : personalityTraits.length < 10
+                      ? "Add another..."
+                      : ""
+                  }
+                  disabled={personalityTraits.length >= 10}
+                  className="min-w-[6rem] flex-1 bg-transparent text-sm outline-none"
+                />
+                {traitInput.trim() && (
+                  <button
+                    type="button"
+                    onClick={addTrait}
+                    className="flex min-h-11 min-w-11 shrink-0 items-center justify-center transition-colors"
+                    aria-label="Add trait"
+                  >
+                    <SutaeruIcon name="plus" signal={false} className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <p className="sk-muted mt-2 text-xs">
+                Press Enter or , to add. Up to 10 traits.
+              </p>
+            </div>
+          </section>
         </div>
       </div>
     </div>

@@ -1,10 +1,8 @@
 import type React from "react";
-import { PAGE_BG, NOISE_OVERLAY, CSS_ANIM } from '@/lib/design';
 import { useState } from "react";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -31,8 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Trash2, Workflow, Wrench } from "lucide-react";
-import { Wand2, Brain } from "@/components/brandIcons";
+import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
 import { toast } from "sonner";
 import { AgentSkillsPanel } from "@/components/AgentSkillsPanel";
 
@@ -51,35 +48,23 @@ interface Skill {
 
 const typeConfig: Record<
   SkillType,
-  { label: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; bg: string; color: string; border: string }
+  { label: string; icon: SutaeruIconName }
 > = {
   prompt: {
     label: "Prompt",
-    icon: Wand2,
-    bg: "var(--accent-dim)",
-    color: "var(--accent-light)",
-    border: "var(--accent-border)",
+    icon: "make",
   },
   workflow: {
     label: "Workflow",
-    icon: Workflow,
-    bg: "var(--secondary-dim)",
-    color: "var(--secondary-light)",
-    border: "var(--secondary-border)",
+    icon: "plan",
   },
   tool_definition: {
     label: "Tool",
-    icon: Wrench,
-    bg: "var(--accent-dim)",
-    color: "var(--foreground)",
-    border: "var(--border)",
+    icon: "settings",
   },
   behavior: {
     label: "Behavior",
-    icon: Brain,
-    bg: "var(--accent-dim)",
-    color: "var(--foreground)",
-    border: "var(--border)",
+    icon: "agent",
   },
 };
 
@@ -101,7 +86,6 @@ function SkillCard({
 }) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const typeInfo = typeConfig[skill.type];
-  const TypeIcon = typeInfo.icon;
 
   return (
     <>
@@ -110,76 +94,46 @@ function SkillCard({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.3 }}
-        className="group relative glass-card p-5"
+        className="sk-card group relative flex flex-col gap-3"
       >
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-3">
-              <span
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wide"
-                style={{
-                  background: typeInfo.bg,
-                  color: typeInfo.color,
-                  border: `1px solid ${typeInfo.border}`,
-                }}
-              >
-                <TypeIcon className="w-3.5 h-3.5" />
-                {typeInfo.label}
-              </span>
-            </div>
-            <h3
-              className="font-semibold text-lg mb-2 truncate"
-              style={{ color: "var(--foreground)" }}
-            >
-              {skill.name}
-            </h3>
-            <p
-              className="text-sm line-clamp-2 mb-4"
-              style={{ color: "var(--muted-foreground)" }}
-            >
-              {skill.description || "No description provided"}
-            </p>
-            <div className="flex items-center justify-between">
-              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-                {formatDate(skill.createdAt)}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowDeleteDialog(true)}
-                 className="min-h-11 min-w-11 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
-                 aria-label={`Delete ${skill.name}`}
-                style={{ color: "var(--muted-foreground)" }}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
+        <div className="sk-between">
+          <span className="sk-icon-tile">
+            <SutaeruIcon name={typeInfo.icon} />
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowDeleteDialog(true)}
+            aria-label={`Delete ${skill.name}`}
+            className="sk-icon-btn opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
+          >
+            <SutaeruIcon name="delete" />
+          </button>
+        </div>
+        <h3 className="sk-tile-title truncate">{skill.name}</h3>
+        <p className="sk-empty-text line-clamp-2">
+          {skill.description || "No description provided"}
+        </p>
+        <div className="sk-meta mt-auto pt-2">
+          {typeInfo.label} &middot; {formatDate(skill.createdAt)}
         </div>
       </motion.div>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent
-           className="glass-strong w-[calc(100%-2rem)] sm:mx-auto"
-        >
+        <AlertDialogContent className="sk-dialog w-[calc(100%-2rem)] sm:mx-auto">
           <AlertDialogHeader>
-            <AlertDialogTitle style={{ color: "var(--foreground)" }}>
+            <AlertDialogTitle>
               Delete Skill
             </AlertDialogTitle>
-            <AlertDialogDescription style={{ color: "var(--muted-foreground)" }}>
+            <AlertDialogDescription className="sk-muted">
               Are you sure you want to delete &quot;{skill.name}&quot;? This action cannot be
               undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-            <AlertDialogCancel className="btn-liquid border-0">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="sk-btn sk-btn-ghost border-0">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => onDelete(skill.id)}
-              style={{
-                background: "rgba(179,64,42,.08)",
-                color: "var(--destructive)",
-                border: "1px solid rgba(232,68,42,0.3)",
-              }}
+              className="sk-btn"
             >
               Delete
             </AlertDialogAction>
@@ -192,17 +146,15 @@ function SkillCard({
 
 function SkillSkeleton() {
   return (
-    <div className="glass-card p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-20 h-6 glass rounded-full animate-pulse" />
+    <div className="sk-card flex flex-col gap-3">
+      <div className="sk-between">
+        <div className="sk-skeleton h-14 w-14" />
+        <div className="sk-skeleton h-7 w-12" />
       </div>
-      <div className="w-3/4 h-6 glass rounded mb-2 animate-pulse" />
-      <div className="w-full h-4 glass rounded mb-1 animate-pulse" />
-      <div className="w-2/3 h-4 glass rounded mb-4 animate-pulse" />
-      <div className="flex items-center justify-between">
-        <div className="w-24 h-3 glass rounded animate-pulse" />
-        <div className="w-8 h-8 glass rounded animate-pulse" />
-      </div>
+      <div className="sk-skeleton h-5 w-3/4" />
+      <div className="sk-skeleton h-4 w-full" />
+      <div className="sk-skeleton h-4 w-2/3" />
+      <div className="sk-skeleton h-3 w-24 mt-2" />
     </div>
   );
 }
@@ -213,28 +165,20 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4 }}
-      className="flex flex-col items-center justify-center py-20 px-4"
+      className="sk-card sk-empty"
     >
-      <div
-        className="w-16 h-16 glass-card rounded-2xl flex items-center justify-center mb-6"
-      >
-        <Wand2 className="w-8 h-8" style={{ color: "var(--muted-foreground)" }} />
-      </div>
-      <h3
-        className="text-xl font-semibold mb-2"
-        style={{ color: "var(--foreground)" }}
-      >
+      <span className="sk-icon-tile">
+        <SutaeruIcon name="make" />
+      </span>
+      <span className="sk-label">Skills</span>
+      <h3 className="m-0 font-semibold text-xl">
         No skills yet
       </h3>
-      <p
-        className="text-center max-w-md mb-6 text-sm leading-relaxed"
-        style={{ color: "var(--muted-foreground)" }}
-      >
+      <p className="sk-empty-text max-w-md">
         Skills are reusable prompts, workflows, tools, and behaviors that define your AI
         agent&apos;s capabilities.
       </p>
-      <button onClick={onAdd} className="btn-primary-teal px-5 py-2.5 text-sm inline-flex items-center gap-2">
-        <Plus className="w-4 h-4" />
+      <button type="button" onClick={onAdd} className="sk-btn mt-2 self-start">
         Add Skill
       </button>
     </motion.div>
@@ -297,118 +241,119 @@ export default function Skills() {
   };
 
   return (
-    <div className="min-h-screen bg-sutaeru">
+    <div className="sk-page min-h-screen">
       {/* ── Page header ── */}
-       <header className="page-header">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: "var(--foreground)" }}>
-            Skills
-          </h1>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="btn-primary-teal px-4 py-2 text-sm inline-flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-             <span>Add Skill</span>
+      <header className="sk-header">
+        <div>
+          <h1 className="sk-h1">Skills</h1>
+          <p className="sk-sub">
+            Reusable abilities Sutaeru can call. Turn them on, or teach it new ones.
+          </p>
+        </div>
+        <div className="sk-actions">
+          <button type="button" onClick={() => setIsModalOpen(true)} className="sk-btn">
+            Add Skill
           </button>
         </div>
       </header>
 
-      {/* ── Main content ── */}
-       <main className="sutaeru-editorial-page max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <AgentSkillsPanel />
+      <AgentSkillsPanel />
 
-        {/* Search bar */}
-        <div className="mb-6 sm:mb-8">
-          <div className="relative w-full sm:max-w-md">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-              style={{ color: "var(--muted-foreground)" }}
-            />
-            <Input
-              type="text"
-              placeholder="Search skills..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 input-glass"
-            />
-          </div>
+      {/* Search bar */}
+      <div className="sk-toolbar">
+        <div className="sk-search">
+          <SutaeruIcon name="search" />
+          <Input
+            type="text"
+            placeholder="Search skills..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
+      </div>
 
-        {/* Skills grid */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <SkillSkeleton key={i} />
-            ))}
-          </div>
-        ) : filteredSkills.length === 0 ? (
-          searchQuery ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-20"
-            >
-              <p style={{ color: "var(--muted-foreground)" }}>
-                No skills found matching &quot;{searchQuery}&quot;
-              </p>
-            </motion.div>
-          ) : (
-            <EmptyState onAdd={() => setIsModalOpen(true)} />
-          )
-        ) : (
+      {/* Skills grid */}
+      {isLoading ? (
+        <div className="sk-grid-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkillSkeleton key={i} />
+          ))}
+        </div>
+      ) : filteredSkills.length === 0 ? (
+        searchQuery ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+            className="sk-card sk-empty"
           >
-            <AnimatePresence mode="popLayout">
-              {filteredSkills.map((skill) => (
-                <SkillCard key={skill.id} skill={skill} onDelete={handleDelete} />
-              ))}
-            </AnimatePresence>
+            <span className="sk-label">Skills</span>
+            <p className="sk-empty-text">
+              No skills found matching &quot;{searchQuery}&quot;
+            </p>
           </motion.div>
-        )}
-      </main>
+        ) : (
+          <EmptyState onAdd={() => setIsModalOpen(true)} />
+        )
+      ) : (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="sk-grid-3"
+        >
+          <AnimatePresence mode="popLayout">
+            {filteredSkills.map((skill) => (
+              <SkillCard key={skill.id} skill={skill} onDelete={handleDelete} />
+            ))}
+          </AnimatePresence>
+        </motion.div>
+      )}
+
+      {/* Teach a new skill */}
+      <button
+        type="button"
+        onClick={() => setIsModalOpen(true)}
+        className="sk-card sk-row w-full mt-7 text-left hover:bg-[#FBFAF7] transition-colors"
+      >
+        <span className="sk-icon-tile">
+          <SutaeruIcon name="plus" />
+        </span>
+        <span className="sk-col">
+          <span className="font-semibold text-[19px] leading-tight">
+            Teach Sutaeru a new skill
+          </span>
+          <span className="sk-empty-text">
+            Describe a routine once. Sutaeru turns it into a skill you can reuse.
+          </span>
+        </span>
+      </button>
 
       {/* ── Add Skill Modal ── */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent
-           className="glass-strong w-[calc(100%-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto mx-auto"
-        >
+        <DialogContent className="sk-dialog w-[calc(100%-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto mx-auto">
           <DialogHeader>
-            <DialogTitle
-              className="text-xl font-semibold"
-              style={{ color: "var(--foreground)" }}
-            >
+            <DialogTitle>
               Add Skill
             </DialogTitle>
-            <DialogDescription style={{ color: "var(--muted-foreground)" }}>
+            <DialogDescription className="sk-muted">
               Create a new skill to enhance your AI agent&apos;s capabilities.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-5 mt-4">
-            <div className="space-y-2">
-              <label
-                className="text-xs font-bold uppercase tracking-widest"
-                style={{ color: "var(--muted-foreground)" }}
-              >
+            <div className="sk-field">
+              <label className="sk-label">
                 Name
               </label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., Research Assistant"
-                className="input-glass"
+                className="sk-input"
               />
             </div>
 
-            <div className="space-y-2">
-              <label
-                className="text-xs font-bold uppercase tracking-widest"
-                style={{ color: "var(--muted-foreground)" }}
-              >
+            <div className="sk-field">
+              <label className="sk-label">
                 Type
               </label>
               <Select
@@ -417,23 +362,22 @@ export default function Skills() {
                   setFormData({ ...formData, type: value })
                 }
               >
-                <SelectTrigger className="input-glass">
+                <SelectTrigger className="sk-select h-12">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent
                   style={{
-                    background: "var(--popover)",
-                    border: "1px solid var(--border)",
-                    backdropFilter: "blur(20px)",
+                    background: "#fff",
+                    border: "1px solid #EFEEE8",
+                    borderRadius: 20,
                   }}
                 >
                   {skillTypes.map((type) => {
                     const config = typeConfig[type];
-                    const Icon = config.icon;
                     return (
                       <SelectItem key={type} value={type}>
                         <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4" style={{ color: config.color }} />
+                          <SutaeruIcon name={config.icon} className="h-4 w-4" />
                           <span className="capitalize">{config.label}</span>
                         </div>
                       </SelectItem>
@@ -443,11 +387,8 @@ export default function Skills() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <label
-                className="text-xs font-bold uppercase tracking-widest"
-                style={{ color: "var(--muted-foreground)" }}
-              >
+            <div className="sk-field">
+              <label className="sk-label">
                 Description
               </label>
               <Textarea
@@ -455,15 +396,12 @@ export default function Skills() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Brief description of what this skill does..."
                 rows={3}
-                className="input-glass resize-none"
+                className="sk-textarea resize-none"
               />
             </div>
 
-            <div className="space-y-2">
-              <label
-                className="text-xs font-bold uppercase tracking-widest"
-                style={{ color: "var(--muted-foreground)" }}
-              >
+            <div className="sk-field">
+              <label className="sk-label">
                 Content
               </label>
               <Textarea
@@ -471,7 +409,7 @@ export default function Skills() {
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                 placeholder="The actual prompt, instructions, or code for this skill..."
                 rows={6}
-                className="input-glass font-mono text-sm"
+                className="sk-textarea font-mono text-sm"
               />
             </div>
 
@@ -482,14 +420,14 @@ export default function Skills() {
                   setIsModalOpen(false);
                   resetForm();
                 }}
-                className="btn-liquid px-5 py-2.5 text-sm"
+                className="sk-btn sk-btn-ghost"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={createMutation.isPending}
-                className="btn-primary-teal px-5 py-2.5 text-sm disabled:opacity-50"
+                className="sk-btn"
               >
                 {createMutation.isPending ? "Creating..." : "Create Skill"}
               </button>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { FileText, Loader2, Upload, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { SutaeruIcon } from "@/components/SutaeruIcon";
 import { Streamdown } from "streamdown";
 import { streamFunction } from "@/lib/kemmaCloud";
 import { downloadResearchMarkdown, downloadResearchPdf } from "@/lib/researchReports";
@@ -104,18 +104,18 @@ export function BriefDialog({ open, onOpenChange, initialDocument }: BriefDialog
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) reset(); onOpenChange(next); }}>
-      <DialogContent className="max-w-2xl max-h-[85dvh] overflow-y-auto">
+      <DialogContent
+        className="sk-dialog max-h-[85dvh] overflow-y-auto"
+        style={{ maxWidth: "min(672px, calc(100vw - 32px))" }}
+      >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <FileText className="size-4" aria-hidden="true" />
-            Document brief
-          </DialogTitle>
+          <DialogTitle>Document brief</DialogTitle>
         </DialogHeader>
 
         {phase === "pick" && (
           <div className="flex flex-col items-center gap-4 py-10 text-center">
-            <p className="text-sm text-muted-foreground max-w-sm">
-              Drop in a PDF, Word, Markdown, or text file and Kemma will turn it into an interactive brief — overview, key figures with exact quotes, timeline, and section takeaways.
+            <p className="sk-empty-text max-w-sm">
+              Drop in a PDF, Word, Markdown, or text file and Kemma will turn it into an interactive brief: overview, key figures with exact quotes, timeline, and section takeaways.
             </p>
             <input
               ref={fileInputRef}
@@ -124,33 +124,36 @@ export function BriefDialog({ open, onOpenChange, initialDocument }: BriefDialog
               className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f); e.target.value = ""; }}
             />
-            <Button onClick={() => fileInputRef.current?.click()} className="gap-2">
-              <Upload className="size-4" aria-hidden="true" /> Choose a document
-            </Button>
+            <button type="button" className="sk-btn" onClick={() => fileInputRef.current?.click()}>
+              Choose a document
+            </button>
           </div>
         )}
 
         {phase !== "pick" && (
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs text-muted-foreground truncate">{document?.filename}</span>
+            <div className="sk-between">
+              <span className="sk-meta min-w-0 truncate">{document?.filename}</span>
               <div className="flex items-center gap-1">
                 {phase === "done" && (
                   <>
-                    <Button variant="ghost" size="sm" onClick={() => exportReport("md")}>Markdown</Button>
-                    <Button variant="ghost" size="sm" onClick={() => exportReport("pdf")}>PDF</Button>
+                    <button type="button" className="sk-btn sk-btn-ghost sk-btn-sm" onClick={() => exportReport("md")}>Markdown</button>
+                    <button type="button" className="sk-btn sk-btn-ghost sk-btn-sm" onClick={() => exportReport("pdf")}>PDF</button>
                   </>
                 )}
-                <Button variant="ghost" size="icon-sm" onClick={reset} aria-label="Start over"><X className="size-4" aria-hidden="true" /></Button>
+                <button type="button" className="sk-icon-btn" onClick={reset} aria-label="Start over"><SutaeruIcon name="close" /></button>
               </div>
             </div>
             {phase === "working" && !brief && (
-              <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Reading the document…</p>
+              <p className="sk-empty-text flex items-center gap-2"><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Reading the document…</p>
             )}
             {phase === "error" && (
-              <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm">
-                <p>{error}</p>
-                <Button variant="outline" size="sm" className="mt-2" onClick={() => document && startBrief(document)}>Try again</Button>
+              <div className="sk-card">
+                <div className="sk-empty">
+                  <span className="sk-label">Error</span>
+                  <p className="sk-empty-text">{error}</p>
+                  <button type="button" className="sk-btn sk-btn-ghost sk-btn-sm mt-2 self-start" onClick={() => document && startBrief(document)}>Try again</button>
+                </div>
               </div>
             )}
             {brief && (

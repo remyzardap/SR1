@@ -1,13 +1,13 @@
 import type { CSSProperties } from "react";
 
 // ── Fonts ──────────────────────────────────────────────────────────────────
-export const F  = "'Epilogue', system-ui, -apple-system, sans-serif";
-export const FD = "'Urbanist', sans-serif";
+export const F  = "'Inter', system-ui, -apple-system, sans-serif";
+export const FD = "'Inter Tight', 'Inter', sans-serif";
 export const FM = "'JetBrains Mono', 'Menlo', 'Consolas', monospace";
 
 // Opera Neon design language fonts (used by the login page)
-export const NEON_FD = "'Urbanist', sans-serif";
-export const NEON_FB = "'Epilogue', system-ui, -apple-system, sans-serif";
+export const NEON_FD = "'Inter Tight', 'Inter', sans-serif";
+export const NEON_FB = "'Inter', system-ui, -apple-system, sans-serif";
 export const NEON_FM = "'JetBrains Mono', monospace";
 
 // ── Colors ─────────────────────────────────────────────────────────────────

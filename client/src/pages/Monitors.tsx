@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
-import { CalendarClock, Loader2, Pause, Play, Plus, Radar, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Fragment, useCallback, useEffect, useState } from "react";
+import { Loader2, Pause } from "lucide-react";
 import { Streamdown } from "streamdown";
+import { SutaeruIcon } from "@/components/SutaeruIcon";
 import { callFunction } from "@/lib/kemmaCloud";
 import { downloadResearchMarkdown, downloadResearchPdf } from "@/lib/researchReports";
 import { toast } from "sonner";
@@ -25,7 +25,7 @@ interface MonitorRun {
 }
 
 function fmtDate(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "--";
   return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
@@ -99,107 +99,186 @@ export default function Monitors() {
     else downloadResearchPdf(report);
   }
 
+  // Display-only summaries of data the page already holds.
+  const activeCount = monitors.filter((m) => m.active).length;
+  const nextRunAt = monitors.reduce<string | null>(
+    (earliest, m) =>
+      m.active && m.next_run_at && (!earliest || new Date(m.next_run_at) < new Date(earliest)) ? m.next_run_at : earliest,
+    null,
+  );
+
   return (
-    <div className="sutaeru-editorial-page mx-auto max-w-3xl px-3 py-6 sm:px-4 sm:py-8">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
-          <Radar className="size-5" aria-hidden="true" /> Research on autopilot
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Kemma re-investigates your topics on a schedule and files a fresh cited briefing each run.
-        </p>
+    <div className="sk-page mx-auto w-full max-w-[1240px]">
+      <header className="sk-header">
+        <div>
+          <h1 className="sk-h1">Research on autopilot</h1>
+          <p className="sk-sub">
+            Kemma re-investigates your topics on a schedule and files a fresh cited briefing each run.
+          </p>
+        </div>
+        <div className="sk-actions">
+          <button type="button" className="sk-btn" onClick={() => void create()} disabled={creating || topic.trim().length < 5}>
+            {creating && <Loader2 className="size-4 animate-spin" aria-hidden="true" />} Monitor
+          </button>
+        </div>
       </header>
 
       {/* New monitor */}
-      <div className="glass-card mb-6 flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-        <input
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && void create()}
-          placeholder="e.g. Indonesian nickel export policy changes"
-          className="input-glass w-full flex-1 px-3 py-2.5 text-sm outline-none"
-          aria-label="Topic to monitor"
-        />
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-full border border-border p-0.5" role="group" aria-label="Frequency">
+      <div className="sk-card mb-7">
+        <span className="sk-label mb-3">New monitor</span>
+        <div className="sk-row">
+          <input
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && void create()}
+            placeholder="e.g. Indonesian nickel export policy changes"
+            aria-label="Topic to monitor"
+            className="sk-input min-w-0 flex-1"
+          />
+          <div className="sk-filters" role="group" aria-label="Frequency">
             {(["daily", "weekly"] as const).map((f) => (
               <button
                 key={f}
+                type="button"
                 onClick={() => setFrequency(f)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider transition-colors ${frequency === f ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                className={`sk-pill uppercase tracking-wider ${frequency === f ? "is-active" : ""}`}
               >
                 {f}
               </button>
             ))}
           </div>
-          <Button onClick={() => void create()} disabled={creating || topic.trim().length < 5} className="gap-1.5">
-            {creating ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Plus className="size-4" aria-hidden="true" />} Monitor
-          </Button>
         </div>
       </div>
 
-      {loading && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Loading monitors…</p>}
+      {loading && (
+        <div className="sk-card sk-empty">
+          <span className="sk-label">Monitors</span>
+          <p className="sk-empty-text">Loading monitors&hellip;</p>
+        </div>
+      )}
+
       {error && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm">
-          <p>{error}</p>
-          <Button variant="outline" size="sm" className="mt-2" onClick={() => void load()}>Try again</Button>
+        <div className="sk-card sk-empty">
+          <span className="sk-label">Error</span>
+          <p className="sk-empty-text">{error}</p>
+          <button type="button" className="sk-btn sk-btn-sm mt-2 self-start" onClick={() => void load()}>Try again</button>
         </div>
       )}
 
       {!loading && !error && monitors.length === 0 && (
-        <p className="py-16 text-center text-sm text-muted-foreground">No monitors yet — add a topic above and Kemma will keep an eye on it.</p>
+        <div className="sk-card sk-empty">
+          <span className="sk-label">No monitors yet</span>
+          <p className="sk-empty-text">Add a topic above and Kemma will keep an eye on it.</p>
+        </div>
       )}
 
-      <div className="flex flex-col gap-3">
-        {monitors.map((m) => {
-          const monitorRuns = runs.filter((r) => r.monitor_id === m.id);
-          return (
-            <div key={m.id} className="glass-card p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground">{m.topic}</p>
-                  <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <CalendarClock className="size-3.5" aria-hidden="true" />
-                    {m.frequency} · {m.active ? `next run ${fmtDate(m.next_run_at)}` : "paused"} · last run {fmtDate(m.last_run_at)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon-sm" onClick={() => void toggle(m)} aria-label={m.active ? "Pause monitor" : "Resume monitor"} title={m.active ? "Pause" : "Resume"}>
-                    {m.active ? <Pause className="size-4" aria-hidden="true" /> : <Play className="size-4" aria-hidden="true" />}
-                  </Button>
-                  <Button variant="ghost" size="icon-sm" onClick={() => void remove(m)} aria-label="Delete monitor" title="Delete">
-                    <Trash2 className="size-4" aria-hidden="true" />
-                  </Button>
-                </div>
-              </div>
-              {monitorRuns.length > 0 && (
-                <div className="mt-3 flex flex-col gap-1.5 border-t border-border pt-3">
-                  {monitorRuns.slice(0, 3).map((run) => (
-                    <button
-                      key={run.id}
-                      onClick={() => setOpenRun(openRun?.id === run.id ? null : run)}
-                      className="text-left text-xs text-muted-foreground underline-offset-2 hover:underline"
-                    >
-                      Briefing from {fmtDate(run.created_at)} ({run.sources.length} sources)
-                    </button>
-                  ))}
-                </div>
-              )}
-              {openRun && openRun.monitor_id === m.id && (
-                <div className="mt-3 rounded-md border border-border p-3">
-                  <div className="mb-2 flex justify-end gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => exportRun(openRun, "md")}>Markdown</Button>
-                    <Button variant="ghost" size="sm" onClick={() => exportRun(openRun, "pdf")}>PDF</Button>
-                  </div>
-                  <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-                    <Streamdown>{openRun.report}</Streamdown>
-                  </div>
-                </div>
-              )}
+      {monitors.length > 0 && (
+        <>
+          <div className="sk-grid-3 mb-7">
+            <div className="sk-card sk-stat">
+              <span className="sk-label">Active monitors</span>
+              <p className="sk-stat-num">{activeCount}</p>
             </div>
-          );
-        })}
-      </div>
+            <div className="sk-card sk-stat">
+              <span className="sk-label">Briefings on file</span>
+              <p className="sk-stat-num">{runs.length}</p>
+            </div>
+            <div className="sk-card sk-stat">
+              <span className="sk-label">Next run</span>
+              <p className="sk-stat-num" style={{ fontSize: 26, lineHeight: 1.25 }}>{nextRunAt ? fmtDate(nextRunAt) : "--"}</p>
+            </div>
+          </div>
+
+          <div className="sk-tablewrap" style={{ overflowX: "auto" }}>
+            <table className="sk-table">
+              <thead>
+                <tr>
+                  <th>Monitor</th>
+                  <th>Schedule</th>
+                  <th>Last run</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monitors.map((m) => {
+                  const monitorRuns = runs.filter((r) => r.monitor_id === m.id);
+                  return (
+                    <Fragment key={m.id}>
+                      <tr>
+                        <td>
+                          <div className="sk-between">
+                            <p className="sk-td-title min-w-0 flex-1">{m.topic}</p>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                className="sk-icon-btn"
+                                onClick={() => void toggle(m)}
+                                aria-label={m.active ? "Pause monitor" : "Resume monitor"}
+                                title={m.active ? "Pause" : "Resume"}
+                              >
+                                {m.active ? <Pause aria-hidden="true" /> : <SutaeruIcon name="play" />}
+                              </button>
+                              <button
+                                type="button"
+                                className="sk-icon-btn"
+                                onClick={() => void remove(m)}
+                                aria-label="Delete monitor"
+                                title="Delete"
+                              >
+                                <SutaeruIcon name="delete" />
+                              </button>
+                            </div>
+                          </div>
+                          {monitorRuns.length > 0 && (
+                            <div className="mt-1.5 flex flex-col items-start gap-1">
+                              {monitorRuns.slice(0, 3).map((run) => (
+                                <button
+                                  key={run.id}
+                                  type="button"
+                                  onClick={() => setOpenRun(openRun?.id === run.id ? null : run)}
+                                  className="sk-meta cursor-pointer text-left underline-offset-2 hover:underline"
+                                >
+                                  Briefing from {fmtDate(run.created_at)} ({run.sources.length} sources)
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td className="sk-td-mono">
+                          <span className="block">{m.frequency}</span>
+                          <span className="block">{m.active ? `next run ${fmtDate(m.next_run_at)}` : "paused"}</span>
+                        </td>
+                        <td className="sk-td-mono">{fmtDate(m.last_run_at)}</td>
+                        <td>
+                          <span className={`sk-chip ${m.active ? "sk-chip-idle" : "sk-chip-paused"}`}>
+                            <span className="sk-dot" aria-hidden="true" />
+                            {m.active ? "Idle" : "Paused"}
+                          </span>
+                        </td>
+                      </tr>
+                      {openRun && openRun.monitor_id === m.id && (
+                        <tr>
+                          <td colSpan={4} style={{ height: "auto", padding: "0 28px 24px" }}>
+                            <div style={{ background: "var(--art-paper)", borderRadius: 20, padding: 20 }}>
+                              <div className="mb-2 flex justify-end gap-2">
+                                <button type="button" className="sk-btn sk-btn-ghost sk-btn-sm" onClick={() => exportRun(openRun, "md")}>Markdown</button>
+                                <button type="button" className="sk-btn sk-btn-ghost sk-btn-sm" onClick={() => exportRun(openRun, "pdf")}>PDF</button>
+                              </div>
+                              <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+                                <Streamdown>{openRun.report}</Streamdown>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }

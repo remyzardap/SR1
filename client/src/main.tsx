@@ -16,6 +16,7 @@ import "./index.css";
 import "./styles/sutaeru-os.css";
 import "./styles/preview.css";
 import "./styles/pages-reskin.css";
+import "./styles/shell-reskin.css";
 
 const queryClient = new QueryClient();
 
