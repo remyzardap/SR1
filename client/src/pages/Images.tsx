@@ -5,7 +5,7 @@ import { callFunction } from "@/lib/kemmaCloud";
 import { getAuthToken } from "@/lib/authSession";
 import { toast } from "sonner";
 
-type EngineId = "gemini" | "qwen" | "openai";
+type EngineId = "gemini" | "qwen" | "openai" | "forge";
 type Quality = "standard" | "high";
 type AspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
 

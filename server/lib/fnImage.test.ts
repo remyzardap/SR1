@@ -61,6 +61,8 @@ import {
   ENGINE_IDS,
   MAX_IMAGE_BYTES,
   OPENAI_SIZES,
+  FORGE_FLUX_SIZES,
+  FORGE_SD_SIZES,
   PROVIDER_TIMEOUTS_MS,
   QUALITIES,
   QWEN_SIZES,
@@ -93,6 +95,10 @@ const ENV_NAMES = [
   "QWEN_IMAGE_MODEL",
   "QWEN_IMAGE_MODEL_PRO",
   "OPENAI_IMAGE_MODEL",
+  "FORGE_MANAGER_URL",
+  "FORGE_MANAGER_TOKEN",
+  "FORGE_MODEL",
+  "FORGE_MODEL_PRO",
   "GEMINI_BACKEND",
   "GEMINI_API_KEY",
   "GOOGLE_APPLICATION_CREDENTIALS",
@@ -108,6 +114,8 @@ const ENV_NAMES = [
 const FAKE_GOOGLE_KEY = "fake-google-api-key";
 const FAKE_QWEN_KEY = "fake-qwen-key";
 const FAKE_LITELLM_KEY = "fake-litellm-key";
+const FAKE_FORGE_TOKEN = "fake-forge-manager-token";
+const FORGE_URL = "http://host.docker.internal:8788";
 const CRED_PATH = "/tmp/private/service-account.json";
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -266,13 +274,13 @@ describe("models, qualities and ratios", () => {
   });
 
   it("offers exactly the engines and options the function accepts", () => {
-    expect(ENGINE_IDS).toEqual(["gemini", "qwen", "openai"]);
+    expect(ENGINE_IDS).toEqual(["gemini", "qwen", "openai", "forge"]);
     expect(QUALITIES).toEqual(["standard", "high"]);
     expect(ASPECT_RATIOS).toEqual(["1:1", "16:9", "9:16", "4:3", "3:4"]);
   });
 
   it("gives Gemini the longer deadline the pro model needs and 60 s to the others", () => {
-    expect(PROVIDER_TIMEOUTS_MS).toEqual({ gemini: 90000, qwen: 60000, openai: 60000 });
+    expect(PROVIDER_TIMEOUTS_MS).toEqual({ gemini: 90000, qwen: 60000, openai: 60000, forge: 300000 });
   });
 
   it("passes that deadline to the provider call", async () => {
@@ -307,6 +315,14 @@ describe("availability and the engines list", () => {
     expect(engineAvailable("gemini")).toBe(false);
     expect(engineAvailable("qwen")).toBe(false);
     expect(engineAvailable("openai")).toBe(false);
+    expect(engineAvailable("forge")).toBe(false);
+  });
+
+  it("offers forge only with both the manager URL and its token", () => {
+    process.env.FORGE_MANAGER_URL = FORGE_URL;
+    expect(engineAvailable("forge")).toBe(false);
+    process.env.FORGE_MANAGER_TOKEN = FAKE_FORGE_TOKEN;
+    expect(engineAvailable("forge")).toBe(true);
   });
 
   it("counts a key, or readable Vertex credentials, as gemini being configured", () => {
@@ -343,14 +359,14 @@ describe("availability and the engines list", () => {
     expect(defaultEngine()).toBe("gemini");
   });
 
-  it("lists id, label, models, availability and the default flag for all three", () => {
+  it("lists id, label, models, availability and the default flag for every engine", () => {
     process.env.IMAGE_ENGINE_DEFAULT = "qwen";
     process.env.QWEN_API_KEY = FAKE_QWEN_KEY;
     process.env.GEMINI_API_KEY = FAKE_GOOGLE_KEY;
 
     const engines = listEngines();
-    expect(engines.map((entry) => entry.id)).toEqual(["gemini", "qwen", "openai"]);
-    expect(engines.map((entry) => entry.label)).toEqual(["Gemini", "Qwen", "OpenAI"]);
+    expect(engines.map((entry) => entry.id)).toEqual(["gemini", "qwen", "openai", "forge"]);
+    expect(engines.map((entry) => entry.label)).toEqual(["Gemini", "Qwen", "OpenAI", "Stable Diffusion"]);
     expect(engines[0]).toEqual({
       id: "gemini",
       label: "Gemini",
@@ -473,6 +489,96 @@ describe("generateImage with gemini", () => {
     fetchMock.mockResolvedValue(jsonResponse({ candidates: [{ content: { parts: [{ text: "I cannot draw that." }] } }] }));
 
     await expect(generateImage(job())).rejects.toBeInstanceOf(ImageUpstreamError);
+  });
+});
+
+describe("generateImage with forge", () => {
+  const forgeAnswer = (bytes = pngBytes()) => jsonResponse({ images: [bytes.toString("base64")] });
+  const configure = () => {
+    process.env.FORGE_MANAGER_URL = `${FORGE_URL}/`;
+    process.env.FORGE_MANAGER_TOKEN = FAKE_FORGE_TOKEN;
+  };
+
+  it("posts the Realistic Vision body to the manager with its token", async () => {
+    configure();
+    const bytes = pngBytes(512, 512);
+    fetchMock.mockResolvedValueOnce(forgeAnswer(bytes));
+
+    const out = await generateImage(job({ engine: "forge" }));
+
+    expect(callUrl()).toBe(`${FORGE_URL}/v1/txt2img`);
+    expect(callInit().headers).toEqual({ "Content-Type": "application/json", "X-Manager-Token": FAKE_FORGE_TOKEN });
+    expect(sentBody()).toMatchObject({
+      prompt: "a lighthouse at dawn",
+      width: 512,
+      height: 512,
+      steps: 28,
+      sampler_name: "DPM++ 2M",
+      scheduler: "Karras",
+      override_settings: { sd_model_checkpoint: "realisticVision_v60B1.safetensors" },
+    });
+    expect(out.buffer).toEqual(bytes);
+    expect(out).toMatchObject({ engine: "forge", model: "realisticVision_v60B1.safetensors", mimeType: "image/png" });
+  });
+
+  it("uses Flux settings and larger frames for quality high", async () => {
+    configure();
+    fetchMock.mockResolvedValueOnce(forgeAnswer());
+
+    const out = await generateImage(job({ engine: "forge", quality: "high", aspectRatio: "16:9" }));
+
+    expect(sentBody()).toMatchObject({
+      width: 1280,
+      height: 720,
+      steps: 20,
+      cfg_scale: 1,
+      distilled_cfg_scale: 3.5,
+      sampler_name: "Euler",
+      scheduler: "Simple",
+      override_settings: { sd_model_checkpoint: "flux1-dev-bnb-nf4-v2.safetensors" },
+    });
+    expect(sentBody().negative_prompt).toBeUndefined();
+    expect(out.model).toBe("flux1-dev-bnb-nf4-v2.safetensors");
+  });
+
+  it("keeps every frame a multiple of 8 on both model families", () => {
+    for (const sizes of [FORGE_SD_SIZES, FORGE_FLUX_SIZES]) {
+      for (const ratio of ASPECT_RATIOS) {
+        const [w, h] = sizes[ratio];
+        expect(w % 8).toBe(0);
+        expect(h % 8).toBe(0);
+      }
+    }
+  });
+
+  it("reads the checkpoints from env at call time", async () => {
+    configure();
+    process.env.FORGE_MODEL = "other.safetensors";
+    fetchMock.mockResolvedValueOnce(forgeAnswer());
+    await generateImage(job({ engine: "forge" }));
+    expect(sentBody().override_settings).toEqual({ sd_model_checkpoint: "other.safetensors" });
+  });
+
+  it("is not configured without the manager, and never calls out", async () => {
+    await expect(generateImage(job({ engine: "forge" }))).rejects.toBeInstanceOf(ImageNotConfiguredError);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("fails on a 503 from the manager, without leaking the token or URL", async () => {
+    configure();
+    fetchMock.mockResolvedValueOnce(jsonResponse({ error: "gpu_unavailable" }, 503));
+
+    const err = await generateImage(job({ engine: "forge" })).catch((e) => e);
+
+    expect(err).toBeInstanceOf(ImageUpstreamError);
+    expect(`${err.message} ${logged()}`).not.toContain(FAKE_FORGE_TOKEN);
+    expect(`${err.message} ${logged()}`).not.toContain("host.docker.internal");
+  });
+
+  it("fails when the answer carries no image", async () => {
+    configure();
+    fetchMock.mockResolvedValueOnce(jsonResponse({ images: [] }));
+    await expect(generateImage(job({ engine: "forge" }))).rejects.toBeInstanceOf(ImageUpstreamError);
   });
 });
 

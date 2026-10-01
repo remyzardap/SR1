@@ -233,17 +233,27 @@ function allows 20 images an hour and 100 a day.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `IMAGE_ENGINE_DEFAULT` | `gemini` | Engine used when the request names none: `gemini`, `qwen` or `openai`. An unknown value falls back to `gemini` |
+| `IMAGE_ENGINE_DEFAULT` | `gemini` | Engine used when the request names none: `gemini`, `qwen`, `openai` or `forge`. An unknown value falls back to `gemini` |
 | `KEMMA_MODEL_IMAGE` | `gemini-3.1-flash-image` | Gemini image model for quality `standard` |
 | `KEMMA_MODEL_IMAGE_PRO` | `gemini-3-pro-image` | Gemini image model for quality `high` |
 | `QWEN_IMAGE_MODEL` | `wan2.7-image` | Wan image model for quality `standard` |
 | `QWEN_IMAGE_MODEL_PRO` | `wan2.7-image-pro` | Wan image model for quality `high` |
 | `OPENAI_IMAGE_MODEL` | `gpt-image-2` | Gateway image model, used for both qualities |
+| `FORGE_MANAGER_URL` | unset | gpu-manager base URL, `http://172.18.0.1:8788` (the sr1_default gateway; the manager binds only there). The `forge` engine is offered only when this and the token are set |
+| `FORGE_MANAGER_TOKEN` | unset | Shared token sent as `X-Manager-Token` (value in `/root/.gpu_manager_token` on the VPS) |
+| `FORGE_MODEL` | `realisticVision_v60B1.safetensors` | Forge checkpoint for quality `standard` |
+| `FORGE_MODEL_PRO` | `flux1-dev-bnb-nf4-v2.safetensors` | Forge checkpoint for quality `high` (Flux dev is non-commercial) |
 
 An engine is offered only when it is configured: Gemini needs `GEMINI_BACKEND=vertex`
 with readable `GOOGLE_APPLICATION_CREDENTIALS`, or `GEMINI_API_KEY`; Qwen needs
 `QWEN_API_KEY`; the OpenAI route needs `LITELLM_API_KEY` or `KOBOILLM_API_KEY`. Keys,
 URLs with keys and storage paths are never returned to the client.
+
+The `forge` engine runs Stable Diffusion Forge on a Jarvislabs GPU. It never talks to
+Jarvislabs or Forge directly: it posts to the `gpu-manager` systemd service on the VPS
+(`/root/gpu-manager/gpu_manager.py`), which holds the Jarvislabs key and the Forge login,
+resumes the paused instance for a request (about 30 s cold), and pauses it again after
+`IDLE_SECONDS` (120) with nothing running.
 
 The Gemini image models are served from Vertex `global` only: image calls always go to
 `locations/global` and ignore `VERTEX_LOCATION`, which stays reserved for the chat and

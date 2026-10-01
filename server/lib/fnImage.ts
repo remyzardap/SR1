@@ -9,6 +9,9 @@
  *   qwen    Alibaba Wan image models on the Qwen plan host, native route (the
  *           OpenAI images route on that host answers 404)
  *   openai  gpt-image-2 through the LiteLLM gateway
+ *   forge   Stable Diffusion Forge on a Jarvislabs GPU (Realistic Vision for
+ *           standard, Flux for high), reached through the gpu-manager service,
+ *           which wakes the paused GPU for the request and pauses it when idle
  *
  * Keys are read from the environment at call time. Provider response bodies are
  * never read into an error or a log, keys and tokens never reach a response, and
@@ -25,7 +28,7 @@ import { getVertexProject, getVertexToken, stripGooglePrefix, vertexEnabled } fr
 import { getStorageAdapter } from "../storageAdapter";
 import { fetchCapped } from "./fnFetch";
 
-export const ENGINE_IDS = ["gemini", "qwen", "openai"] as const;
+export const ENGINE_IDS = ["gemini", "qwen", "openai", "forge"] as const;
 export type EngineId = (typeof ENGINE_IDS)[number];
 
 export const QUALITIES = ["standard", "high"] as const;
@@ -38,13 +41,20 @@ export const ENGINE_LABELS: Record<EngineId, string> = {
   gemini: "Gemini",
   qwen: "Qwen",
   openai: "OpenAI",
+  forge: "Stable Diffusion",
 };
 
 /**
  * Deadline per provider, from the timings seen live: Gemini pro image calls have
  * run to 66 s, the others answered inside 35 s.
  */
-export const PROVIDER_TIMEOUTS_MS: Record<EngineId, number> = { gemini: 90_000, qwen: 60_000, openai: 60_000 };
+export const PROVIDER_TIMEOUTS_MS: Record<EngineId, number> = {
+  gemini: 90_000,
+  qwen: 60_000,
+  openai: 60_000,
+  // A cold GPU wakes in about 30 to 60 s before the image itself starts.
+  forge: 300_000,
+};
 /** Reading back a provider-hosted image has its own shorter deadline. */
 export const DOWNLOAD_TIMEOUT_MS = 30_000;
 export const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
@@ -74,6 +84,10 @@ const MODEL_SLOTS: Record<EngineId, { standard: ModelSlot; high: ModelSlot }> = 
     standard: { env: "OPENAI_IMAGE_MODEL", fallback: "gpt-image-2" },
     high: { env: "OPENAI_IMAGE_MODEL", fallback: "gpt-image-2" },
   },
+  forge: {
+    standard: { env: "FORGE_MODEL", fallback: "realisticVision_v60B1.safetensors" },
+    high: { env: "FORGE_MODEL_PRO", fallback: "flux1-dev-bnb-nf4-v2.safetensors" },
+  },
 };
 
 /**
@@ -102,6 +116,22 @@ export const OPENAI_SIZES: Record<AspectRatio, string> = {
   "3:4": "1024x1536",
 };
 
+/** SD 1.5 class models draw best near 512 px; Flux takes about a megapixel. All sides are multiples of 8. */
+export const FORGE_SD_SIZES: Record<AspectRatio, [number, number]> = {
+  "1:1": [512, 512],
+  "16:9": [768, 432],
+  "9:16": [432, 768],
+  "4:3": [640, 480],
+  "3:4": [480, 640],
+};
+export const FORGE_FLUX_SIZES: Record<AspectRatio, [number, number]> = {
+  "1:1": [1024, 1024],
+  "16:9": [1280, 720],
+  "9:16": [720, 1280],
+  "4:3": [1152, 864],
+  "3:4": [864, 1152],
+};
+
 /**
  * Rough per-image cost in USD, keyed by the model id that ran. Estimates only:
  * they are for the usage log, not billing, and an unknown model logs 0.
@@ -111,6 +141,9 @@ export const ROUGH_IMAGE_COST_USD_PER_IMAGE: Record<string, number> = {
   "gemini-3-pro-image": 0.13,
   "wan2.7-image": 0.05,
   "gpt-image-2": 0.06,
+  // GPU time at $0.44/hr: a few tenths of a cent per image.
+  "realisticVision": 0.001,
+  "flux1-dev": 0.004,
 };
 
 export class ImageNotConfiguredError extends Error {
@@ -176,6 +209,8 @@ export function engineAvailable(engine: EngineId): boolean {
       return !!apiKeyFor("qwen");
     case "openai":
       return !!apiKeyFor("litellm");
+    case "forge":
+      return !!forgeManager();
   }
 }
 
@@ -214,6 +249,8 @@ export async function generateImage(job: ImageJob): Promise<GeneratedImage> {
       return qwenImage(job);
     case "openai":
       return openaiImage(job);
+    case "forge":
+      return forgeImage(job);
   }
 }
 
@@ -368,6 +405,54 @@ async function openaiImage(job: ImageJob): Promise<GeneratedImage> {
     return finished("openai", model, await downloadImage(first.url));
   }
   throw new ImageUpstreamError();
+}
+
+// ─── Forge: Stable Diffusion on a Jarvislabs GPU, through gpu-manager ────────
+
+/** The manager's URL and shared token, or null when either is missing. */
+export function forgeManager(): { url: string; token: string } | null {
+  const url = (process.env.FORGE_MANAGER_URL || "").trim().replace(/\/+$/, "");
+  const token = (process.env.FORGE_MANAGER_TOKEN || "").trim();
+  return url && token ? { url, token } : null;
+}
+
+export function isFluxModel(model: string): boolean {
+  return model.toLowerCase().includes("flux");
+}
+
+/** txt2img body for Forge. The checkpoint is chosen per request, so the manager needs no state. */
+export function forgeImageBody(prompt: string, model: string, aspectRatio: AspectRatio): Record<string, unknown> {
+  const flux = isFluxModel(model);
+  const [width, height] = (flux ? FORGE_FLUX_SIZES : FORGE_SD_SIZES)[aspectRatio];
+  const common = { prompt, width, height, batch_size: 1, n_iter: 1, override_settings: { sd_model_checkpoint: model } };
+  if (flux) {
+    return { ...common, steps: 20, cfg_scale: 1, distilled_cfg_scale: 3.5, sampler_name: "Euler", scheduler: "Simple" };
+  }
+  return {
+    ...common,
+    negative_prompt: "cartoon, painting, deformed, disfigured, extra limbs, low quality, watermark, text",
+    steps: 28,
+    cfg_scale: 6,
+    sampler_name: "DPM++ 2M",
+    scheduler: "Karras",
+  };
+}
+
+async function forgeImage(job: ImageJob): Promise<GeneratedImage> {
+  const manager = forgeManager();
+  if (!manager) throw new ImageNotConfiguredError(ENGINE_LABELS.forge);
+
+  const model = imageModel("forge", job.quality);
+  const data = await postJson(
+    `${manager.url}/v1/txt2img`,
+    { "X-Manager-Token": manager.token },
+    forgeImageBody(job.prompt, model, job.aspectRatio),
+    PROVIDER_TIMEOUTS_MS.forge
+  );
+
+  const b64 = Array.isArray(data?.images) ? data.images[0] : undefined;
+  if (typeof b64 !== "string" || !b64) throw new ImageUpstreamError();
+  return finished("forge", model, { buffer: Buffer.from(b64, "base64"), mimeType: "image/png" });
 }
 
 // ─── Provider plumbing ───────────────────────────────────────────────────────
