@@ -1,12 +1,8 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { FileText, Table, Presentation, FileCode, Loader2, CheckCircle2, Download, ChevronRight } from "lucide-react";
-import { Sparkles } from "@/components/brandIcons";
-import { cn } from "@/lib/utils";
+import { SutaeruIcon } from "@/components/SutaeruIcon";
+import "@/styles/atelier-reskin.css";
 
 type Format = "pdf" | "docx" | "xlsx" | "pptx" | "md";
 
@@ -21,12 +17,12 @@ interface StyleCard {
   layout: string;
 }
 
-const FORMAT_OPTIONS: { value: Format; label: string; icon: React.ElementType; desc: string }[] = [
-  { value: "pdf", label: "PDF", icon: FileText, desc: "Portable, print-ready" },
-  { value: "docx", label: "Word", icon: FileText, desc: "Editable document" },
-  { value: "xlsx", label: "Excel", icon: Table, desc: "Spreadsheet with data" },
-  { value: "pptx", label: "PowerPoint", icon: Presentation, desc: "Slide presentation" },
-  { value: "md", label: "Markdown", icon: FileCode, desc: "Plain text markup" },
+const FORMAT_OPTIONS: { value: Format; label: string; desc: string }[] = [
+  { value: "pdf", label: "PDF", desc: "Portable, print-ready" },
+  { value: "docx", label: "Word", desc: "Editable document" },
+  { value: "xlsx", label: "Excel", desc: "Spreadsheet with data" },
+  { value: "pptx", label: "PowerPoint", desc: "Slide presentation" },
+  { value: "md", label: "Markdown", desc: "Plain text markup" },
 ];
 
 const STYLE_COLORS: Record<string, { bg: string; accent: string; text: string }> = {
@@ -38,6 +34,34 @@ const STYLE_COLORS: Record<string, { bg: string; accent: string; text: string }>
 };
 
 type Step = "prompt" | "styles" | "generating" | "done";
+
+const STEPS: Step[] = ["prompt", "styles", "generating", "done"];
+const STEP_LABELS: Record<Step, string> = {
+  prompt: "Describe",
+  styles: "Choose Style",
+  generating: "Generating",
+  done: "Done",
+};
+
+/** Vertical step timeline in the running view: done is ink, current is orange, pending is grey. */
+function StepTimeline({ step }: { step: Step }) {
+  const current = STEPS.indexOf(step);
+  return (
+    <ol className="sk-at-timeline">
+      {STEPS.map((s, i) => {
+        const state = i < current ? "is-done" : i === current ? "is-active" : "";
+        const stateLabel = i < current ? "Done" : i === current ? "In progress" : "";
+        return (
+          <li key={s} className={`sk-at-step${state ? ` ${state}` : ""}`} aria-current={i === current ? "step" : undefined}>
+            <span className="sk-at-step-dot" aria-hidden="true" />
+            <span className="sk-at-step-label">{STEP_LABELS[s]}</span>
+            <span className="sk-at-step-state">{stateLabel}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 export default function QuickCreate({ embedded = false }: { embedded?: boolean } = {}) {
   const [step, setStep] = useState<Step>("prompt");
@@ -89,252 +113,252 @@ export default function QuickCreate({ embedded = false }: { embedded?: boolean }
     setGeneratedFile(null);
   };
 
+  const activeFormat = FORMAT_OPTIONS.find((opt) => opt.value === format);
+  const runTitle = prompt.trim() || `${activeFormat?.label ?? "File"} file`;
+  const statusWord = step === "generating" ? "Running" : step === "done" ? "Done" : "Ready";
+
   return (
-    <div className={embedded ? "w-full max-w-3xl py-2" : "sutaeru-editorial-page mx-auto max-w-3xl px-3 py-6 sm:px-4 sm:py-8"}>
-      {/* Progress steps */}
-      <div className="mb-8 flex flex-wrap items-center gap-1 text-xs sm:gap-2 sm:text-sm">
-        {(["prompt", "styles", "generating", "done"] as Step[]).map((s, i) => {
-          const labels: Record<Step, string> = {
-            prompt: "Describe",
-            styles: "Choose Style",
-            generating: "Generating",
-            done: "Done",
-          };
-          const isActive = step === s;
-          const isPast =
-            ["prompt", "styles", "generating", "done"].indexOf(step) >
-            ["prompt", "styles", "generating", "done"].indexOf(s);
-          return (
-            <div key={s} className="flex items-center gap-2">
-              {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-              <span
-                className={cn(
-                   "rounded-md px-2 py-1 font-medium transition-colors sm:px-3",
-                  isActive && "bg-primary text-primary-foreground",
-                  isPast && "text-muted-foreground line-through",
-                  !isActive && !isPast && "text-muted-foreground"
-                )}
-              >
-                {labels[s]}
+    <div className={embedded ? "sk-at-flow w-full" : "sk-page sk-at-flow mx-auto max-w-5xl"}>
+      <div className="sk-at-main">
+        {/* Step 1: Prompt */}
+        {step === "prompt" && (
+          <section className="sk-card flex flex-col gap-6">
+            <div>
+              <h2 className="sk-at-run-title" style={{ marginTop: 0 }}>
+                What would you like to create?
+              </h2>
+              <p className="sk-sub" style={{ margin: 0 }}>
+                Describe the content, purpose, and any key details. The more context, the better the result.
+              </p>
+            </div>
+
+            <div className="sk-field">
+              <span className="sk-label">Output format</span>
+              <div className="sk-row" role="radiogroup" aria-label="Output format">
+                {FORMAT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={format === opt.value}
+                    onClick={() => setFormat(opt.value)}
+                    className={`sk-pill sk-pill-sm${format === opt.value ? " is-active" : ""}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <p className="sk-empty-text" style={{ marginTop: 8 }}>{activeFormat?.desc}</p>
+            </div>
+
+            <div className="sk-field">
+              <label className="sk-label" htmlFor="quick-create-prompt">Prompt</label>
+              <textarea
+                id="quick-create-prompt"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="e.g. A quarterly business report for a SaaS startup showing revenue growth, churn rate, and key milestones for Q3 2025..."
+                className="sk-textarea"
+                style={{ minHeight: 160 }}
+                maxLength={2000}
+              />
+              <span className="sk-label sk-num" style={{ display: "block", marginTop: 8, textAlign: "right" }}>
+                {prompt.length} / 2000
               </span>
             </div>
-          );
-        })}
-      </div>
 
-      {/* Step 1: Prompt */}
-      {step === "prompt" && (
-        <div className="space-y-6">
-          <div>
-            <h1 className="font-display mb-1 text-2xl font-700 text-foreground">
-              What would you like to create?
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Describe the content, purpose, and any key details. The more context, the better the result.
-            </p>
-          </div>
+            <button
+              type="button"
+              className="sk-btn self-start"
+              onClick={handleGetStyles}
+              disabled={!prompt.trim() || getStylesMutation.isPending}
+            >
+              {getStylesMutation.isPending ? (
+                <><span className="sk-at-spin" aria-hidden="true" /> Generating styles...</>
+              ) : (
+                <><SutaeruIcon name="make" className="size-4" /> Choose a Style</>
+              )}
+            </button>
+          </section>
+        )}
 
-          <Textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="e.g. A quarterly business report for a SaaS startup showing revenue growth, churn rate, and key milestones for Q3 2025..."
-            className="min-h-[140px] resize-none text-base"
-            maxLength={2000}
-          />
-          <div className="text-right text-xs text-muted-foreground">{prompt.length}/2000</div>
-
-          {/* Format selector */}
-          <div>
-            <label className="mb-3 block text-sm font-medium text-foreground">Output format</label>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-              {FORMAT_OPTIONS.map((opt) => (
-                 <Button
-                   variant="outline"
-                  key={opt.value}
-                  onClick={() => setFormat(opt.value)}
-                  className={cn(
-                     "min-h-24 h-auto whitespace-normal flex flex-col items-center gap-1.5 rounded-md border p-3 text-center transition-all",
-                    format === opt.value
-                      ? "border-primary bg-accent text-accent-foreground ring-2 ring-primary"
-                      : "border-border bg-card text-card-foreground hover:border-primary/40 hover:bg-accent/50"
-                  )}
-                >
-                  <opt.icon className="h-5 w-5" />
-                  <span className="text-sm font-medium">{opt.label}</span>
-                  <span className="text-xs text-muted-foreground">{opt.desc}</span>
-                 </Button>
-              ))}
+        {/* Step 2: Style cards */}
+        {step === "styles" && (
+          <section className="sk-card flex flex-col gap-6">
+            <div>
+              <h2 className="sk-at-run-title" style={{ marginTop: 0 }}>
+                Pick your visual style
+              </h2>
+              <p className="sk-sub" style={{ margin: 0 }}>
+                Each card represents a different aesthetic. Click one to select it, then generate.
+              </p>
             </div>
-          </div>
 
-          <Button
-            size="lg"
-            className="w-full"
-            onClick={handleGetStyles}
-            disabled={!prompt.trim() || getStylesMutation.isPending}
-          >
             {getStylesMutation.isPending ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating styles...</>
+              <div className="sk-empty">
+                <span className="sk-at-spin" aria-hidden="true" />
+                <p className="sk-empty-text">AI is crafting style options for you...</p>
+              </div>
             ) : (
-              <><Sparkles className="mr-2 h-4 w-4" /> Choose a Style</>
-            )}
-          </Button>
-        </div>
-      )}
-
-      {/* Step 2: Style cards */}
-      {step === "styles" && (
-        <div className="space-y-6">
-          <div>
-            <h1 className="font-display mb-1 text-2xl font-700 text-foreground">
-              Pick your visual style
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Each card represents a different aesthetic. Click one to select it, then generate.
-            </p>
-          </div>
-
-          {getStylesMutation.isPending ? (
-            <div className="flex flex-col items-center gap-4 py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">AI is crafting style options for you...</p>
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {styleCards.map((card) => {
-                const colors = STYLE_COLORS[card.id] ?? STYLE_COLORS["minimal"];
-                const isSelected = selectedStyle === card.id;
-                return (
-                   <Button
-                     variant="outline"
-                    key={card.id}
-                    onClick={() => setSelectedStyle(card.id)}
-                    className={cn(
-                       "style-card group relative flex h-auto min-w-0 flex-col overflow-hidden whitespace-normal rounded-md border p-0 text-left transition-all",
-                      isSelected
-                        ? "selected border-primary ring-2 ring-primary"
-                        : "border-border hover:border-primary/40"
-                    )}
-                  >
-                    {/* Visual preview */}
-                    <div
-                      className="h-28 w-full p-4"
-                      style={{ background: colors.bg }}
+              <div className="sk-at-tiles" role="radiogroup" aria-label="Visual style">
+                {styleCards.map((card) => {
+                  const colors = STYLE_COLORS[card.id] ?? STYLE_COLORS["minimal"];
+                  const isSelected = selectedStyle === card.id;
+                  return (
+                    <button
+                      key={card.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      onClick={() => setSelectedStyle(card.id)}
+                      className={`sk-tile sk-at-tile${isSelected ? " is-active" : ""}`}
                     >
-                      <div
-                        className="mb-1.5 h-2.5 w-3/4 rounded-full"
-                        style={{ background: colors.accent }}
-                      />
-                      <div
-                        className="mb-1 h-1.5 w-full rounded-full opacity-30"
-                        style={{ background: colors.text }}
-                      />
-                      <div
-                        className="mb-1 h-1.5 w-5/6 rounded-full opacity-20"
-                        style={{ background: colors.text }}
-                      />
-                      <div
-                        className="h-1.5 w-4/6 rounded-full opacity-20"
-                        style={{ background: colors.text }}
-                      />
-                      {card.previewText && (
-                        <p
-                          className="mt-2 line-clamp-2 text-xs opacity-60"
-                          style={{ color: colors.text, fontFamily: card.fontStyle === "serif" ? "Georgia, serif" : card.fontStyle === "monospace" ? "monospace" : "inherit" }}
-                        >
-                          {card.previewText}
-                        </p>
+                      {isSelected && (
+                        <span className="sk-at-tile-check" aria-hidden="true">
+                          <SutaeruIcon name="check" />
+                        </span>
                       )}
-                    </div>
 
-                    {/* Card info */}
-                    <div className="flex flex-1 flex-col gap-1 bg-card p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-600 text-foreground">{card.label}</span>
-                        {isSelected && (
-                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                      {/* Visual preview: keeps the style's own swatch colors, it depicts the output */}
+                      <div className="sk-at-swatch" style={{ background: colors.bg }}>
+                        <span className="sk-at-swatch-line" style={{ width: "72%", background: colors.accent }} />
+                        <span className="sk-at-swatch-line" style={{ width: "100%", background: colors.text, opacity: 0.3 }} />
+                        <span className="sk-at-swatch-line" style={{ width: "84%", background: colors.text, opacity: 0.2 }} />
+                        <span className="sk-at-swatch-line" style={{ width: "66%", background: colors.text, opacity: 0.2 }} />
+                        {card.previewText && (
+                          <p
+                            className="sk-at-swatch-text"
+                            style={{ color: colors.text, fontFamily: card.fontStyle === "serif" ? "Georgia, serif" : card.fontStyle === "monospace" ? "monospace" : "inherit" }}
+                          >
+                            {card.previewText}
+                          </p>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground">{card.description}</p>
-                    </div>
-                   </Button>
-                );
-              })}
+
+                      <div className="flex flex-col gap-1">
+                        <p className="sk-tile-title">{card.label}</p>
+                        <p className="sk-empty-text">{card.description}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="sk-row">
+              <button type="button" className="sk-btn sk-btn-ghost" onClick={() => setStep("prompt")}>
+                Back
+              </button>
+              <button
+                type="button"
+                className="sk-btn"
+                onClick={handleGenerate}
+                disabled={!selectedStyle || generateMutation.isPending}
+              >
+                <SutaeruIcon name="make" className="size-4" />
+                Generate {format.toUpperCase()}
+              </button>
             </div>
-          )}
+          </section>
+        )}
 
-           <div className="flex flex-wrap gap-3">
-            <Button variant="outline" onClick={() => setStep("prompt")} className="flex-1">
-              Back
-            </Button>
-            <Button
-              className="flex-1"
-              onClick={handleGenerate}
-              disabled={!selectedStyle || generateMutation.isPending}
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              Generate {format.toUpperCase()}
-            </Button>
-          </div>
-        </div>
-      )}
+        {/* Step 3: Generating */}
+        {step === "generating" && (
+          <section className="sk-card flex flex-col gap-5" role="status" aria-live="polite">
+            <div className="sk-at-run-top">
+              <span className="sk-at-status">
+                <span className="sk-dot" aria-hidden="true" /> Generating
+              </span>
+              <span className="sk-meta sk-num">STEP {STEPS.indexOf(step) + 1} OF {STEPS.length}</span>
+            </div>
+            <div>
+              <h2 className="sk-at-run-title" style={{ marginTop: 0 }}>
+                Generating your {format.toUpperCase()}...
+              </h2>
+              <p className="sk-sub" style={{ margin: 0 }}>
+                The AI is writing and formatting your document. This usually takes 10-30 seconds.
+              </p>
+            </div>
+            <div className="sk-at-progress-live" aria-hidden="true"><span /></div>
+            <div className="sk-at-now">
+              <span className="sk-at-now-label">Now</span>
+              <div className="sk-at-now-row">
+                {["Writing content", "Applying style", "Building file"].map((label, i) => (
+                  <span key={label} className="sk-chip" style={{ animation: "sk-pulse 1.6s ease-in-out infinite", animationDelay: `${i * 0.3}s` }}>
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
-      {/* Step 3: Generating */}
-      {step === "generating" && (
-        <div className="flex flex-col items-center gap-6 py-24 text-center">
-          <div className="relative">
-            <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
-            <Sparkles className="absolute inset-0 m-auto h-6 w-6 text-primary" />
+        {/* Step 4: Done */}
+        {step === "done" && generatedFile && (
+          <section className="sk-card flex flex-col gap-6">
+            <div className="sk-between">
+              <span className="sk-icon-tile">
+                <SutaeruIcon name="check" />
+              </span>
+              <span className="sk-chip sk-chip-idle">
+                <span className="sk-dot sk-dot-ink" aria-hidden="true" /> Done
+              </span>
+            </div>
+            <div>
+              <h2 className="sk-at-run-title" style={{ marginTop: 0 }}>
+                Your file is ready!
+              </h2>
+              <p className="sk-sub" style={{ margin: 0 }}>{generatedFile.name}</p>
+            </div>
+            <div className="sk-row">
+              <a
+                href={generatedFile.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                className="sk-btn"
+              >
+                <SutaeruIcon name="download" className="size-4" /> Download File
+              </a>
+              <button type="button" className="sk-btn sk-btn-ghost" onClick={handleReset}>
+                Generate Another
+              </button>
+            </div>
+            <p className="sk-empty-text">
+              Your file has been saved to the{" "}
+              <a
+                href="/files"
+                style={{ color: "var(--art-ink)", fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 3 }}
+              >
+                File Manager
+              </a>
+            </p>
+          </section>
+        )}
+      </div>
+
+      {/* Running view */}
+      <aside className="sk-at-rail">
+        <div className="sk-card">
+          <div className="sk-at-run-top">
+            <span className="sk-at-status">
+              <span className="sk-dot" aria-hidden="true" /> Generate · {statusWord}
+            </span>
+            <span className="sk-meta sk-num">STEP {STEPS.indexOf(step) + 1} OF {STEPS.length}</span>
           </div>
-          <div>
-            <h2 className="font-display mb-2 text-xl font-700 text-foreground">
-              Generating your {format.toUpperCase()}...
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              The AI is writing and formatting your document. This usually takes 10–30 seconds.
+          <p className="sk-at-run-title">{runTitle}</p>
+          <StepTimeline step={step} />
+          <div className="sk-at-now">
+            <span className="sk-at-now-label">Now</span>
+            <p className="sk-at-now-text">
+              {step === "prompt" && "Write the prompt and pick the output format."}
+              {step === "styles" && "Choose one of the styles, then generate the file."}
+              {step === "generating" && `Building your ${activeFormat?.label ?? "file"}.`}
+              {step === "done" && "The file is finished and saved to the File Manager."}
             </p>
           </div>
-           <div className="flex flex-wrap justify-center gap-2">
-            {["Writing content", "Applying style", "Building file"].map((label, i) => (
-              <Badge key={label} variant="secondary" className="animate-pulse" style={{ animationDelay: `${i * 0.3}s` }}>
-                {label}
-              </Badge>
-            ))}
-          </div>
         </div>
-      )}
-
-      {/* Step 4: Done */}
-      {step === "done" && generatedFile && (
-        <div className="flex flex-col items-center gap-6 py-16 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600">
-            <CheckCircle2 className="h-8 w-8" />
-          </div>
-          <div>
-            <h2 className="font-display mb-2 text-2xl font-700 text-foreground">
-              Your file is ready!
-            </h2>
-            <p className="text-muted-foreground">{generatedFile.name}</p>
-          </div>
-           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-            <Button asChild size="lg">
-              <a href={generatedFile.url} target="_blank" rel="noopener noreferrer" download>
-                <Download className="mr-2 h-4 w-4" />
-                Download File
-              </a>
-            </Button>
-            <Button variant="outline" size="lg" onClick={handleReset}>
-              Generate Another
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Your file has been saved to the{" "}
-            <a href="/files" className="text-primary underline underline-offset-2">
-              File Manager
-            </a>
-          </p>
-        </div>
-      )}
+      </aside>
     </div>
   );
 }

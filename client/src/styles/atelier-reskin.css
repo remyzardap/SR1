@@ -1,0 +1,415 @@
+/*
+ * Atelier reskin (Kimi job, branch kimi/atelier-reskin).
+ * Extra patterns used only by the two Atelier flows: client/src/pages/QuickCreate.tsx
+ * and client/src/pages/AtelierGuided.tsx. Shared page patterns live in pages-reskin.css
+ * and are reused from here, never redefined. Everything is prefixed sk-at- except the
+ * scroll fix for the merged Atelier wrapper (.sk-atelier is set by Atelier.tsx).
+ */
+
+/* ── Merged Atelier wrapper: the flows are taller than the viewport, so the page
+      itself must scroll (DashboardLayout renders this route with overflow hidden). ── */
+.sk-page.sk-atelier {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ── Flow layout: main column plus the running view ────────────────────────── */
+.sk-at-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+  min-width: 0;
+}
+.sk-at-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+/* Single column flow (the guided studio) */
+.sk-at-one {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 980px;
+  margin-inline: auto;
+  min-width: 0;
+}
+.sk-at-rail {
+  min-width: 0;
+}
+@media (min-width: 1100px) {
+  .sk-at-flow {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 24px;
+  }
+  .sk-at-rail {
+    position: sticky;
+    top: 4px;
+  }
+}
+
+/* ── Running view (the right hand card in the reference) ───────────────────── */
+.sk-at-run-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.sk-at-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 500 11px/1.4 var(--sk-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--neon-orange);
+  min-width: 0;
+}
+.sk-at-status .sk-dot {
+  background: var(--neon-orange);
+}
+.sk-at-run-title {
+  margin: 14px 0 22px;
+  font: 700 26px/1.2 var(--font-d);
+  letter-spacing: -0.02em;
+  color: var(--art-ink);
+  overflow-wrap: anywhere;
+}
+.sk-at-run-body {
+  margin: 0 0 18px;
+  font: 400 14px/1.6 var(--font-b);
+  color: var(--art-quiet);
+}
+
+/* ── Vertical step timeline ────────────────────────────────────────────────── */
+.sk-at-timeline {
+  list-style: none;
+  margin: 0 0 22px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sk-at-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 14px;
+  min-width: 0;
+  padding: 8px 0;
+}
+.sk-at-step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 26px;
+  bottom: -6px;
+  width: 2px;
+  border-radius: 999px;
+  background: #E2DFD7;
+}
+.sk-at-step-dot {
+  position: relative;
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--sk-track);
+  justify-self: start;
+}
+.sk-at-step-label {
+  min-width: 0;
+  font: 600 15px/1.4 var(--font-b);
+  color: var(--art-quiet);
+  overflow-wrap: anywhere;
+}
+.sk-at-step-state {
+  font: 500 11px/1.4 var(--sk-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--art-quiet);
+  white-space: nowrap;
+}
+.sk-at-step.is-done .sk-at-step-dot { background: var(--art-ink); }
+.sk-at-step.is-done .sk-at-step-label { color: var(--art-ink); }
+.sk-at-step.is-active .sk-at-step-dot {
+  background: var(--neon-orange);
+  box-shadow: 0 0 0 4px var(--sk-orange-tint);
+}
+.sk-at-step.is-active .sk-at-step-label { color: var(--art-ink); }
+.sk-at-step.is-active .sk-at-step-state { color: var(--neon-orange); }
+
+/* ── Pale "now" box ────────────────────────────────────────────────────────── */
+.sk-at-now {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--sk-soft);
+  border-radius: 20px;
+  padding: 16px 18px;
+  min-width: 0;
+}
+.sk-at-now-label {
+  font: 500 11px/1 var(--sk-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--art-quiet);
+}
+.sk-at-now-text {
+  margin: 0;
+  font: 400 14px/1.55 var(--font-b);
+  color: var(--art-ink);
+}
+.sk-at-now-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+/* ── Live progress bar (unknown duration) ──────────────────────────────────── */
+.sk-at-progress-live {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--sk-track);
+  overflow: hidden;
+}
+.sk-at-progress-live > span {
+  display: block;
+  height: 100%;
+  width: 40%;
+  border-radius: 999px;
+  background: var(--neon-orange);
+  animation: sk-at-slide 1.5s ease-in-out infinite;
+}
+@keyframes sk-at-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(280%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-at-progress-live > span { animation: none; width: 70%; }
+}
+
+/* ── Tiles with a selected state (styles, report types) ────────────────────── */
+.sk-at-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 16px;
+  min-width: 0;
+}
+.sk-at-tile {
+  position: relative;
+  cursor: pointer;
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+.sk-at-tile:hover { transform: translateY(-1px); }
+.sk-at-tile.is-active {
+  box-shadow: 0 0 0 2px var(--art-ink), 0 1px 0 rgba(36, 35, 32, 0.04);
+}
+.sk-at-tile.is-active:hover { transform: none; }
+.sk-at-tile-check {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--art-ink);
+  color: var(--art-paper);
+}
+.sk-at-tile-check svg { width: 14px; height: 14px; }
+@media (prefers-reduced-motion: reduce) {
+  .sk-at-tile:hover { transform: none; }
+}
+
+/* ── Style card swatch (keeps the style's own colors, it depicts the output) ─ */
+.sk-at-swatch {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 20px;
+  padding: 18px;
+  min-height: 116px;
+  overflow: hidden;
+}
+.sk-at-swatch-line {
+  height: 8px;
+  border-radius: 999px;
+}
+.sk-at-swatch-text {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0.7;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Ghost buttons sit on white cards here, so they need the soft fill ─────── */
+.sk-at-flow .sk-btn-ghost,
+.sk-at-one .sk-btn-ghost {
+  background: var(--sk-soft);
+  border-color: var(--sk-soft);
+  color: var(--art-ink);
+}
+.sk-at-flow .sk-btn-ghost:hover,
+.sk-at-one .sk-btn-ghost:hover { background: var(--sk-track); border-color: var(--sk-track); }
+
+/* ── Choice pills with a small color swatch (report themes) ───────────────── */
+.sk-at-swatch-dot {
+  width: 22px;
+  height: 14px;
+  border-radius: 5px;
+  flex: none;
+  position: relative;
+  overflow: hidden;
+}
+.sk-at-swatch-dot > i {
+  position: absolute;
+  left: 4px;
+  right: 6px;
+  top: 5px;
+  height: 4px;
+  border-radius: 999px;
+}
+
+/* ── Spinner for in-flight labels (no lucide loader) ──────────────────────── */
+.sk-at-spin {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid var(--sk-track);
+  border-top-color: var(--neon-orange);
+  animation: sk-at-turn 0.9s linear infinite;
+}
+@keyframes sk-at-turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .sk-at-spin { animation: none; }
+}
+
+/* ── Interview transcript (same language as the main chat) ────────────────── */
+.sk-at-transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 180px;
+  max-height: min(52vh, 520px);
+  overflow-y: auto;
+  padding: 4px 2px;
+  overscroll-behavior: contain;
+}
+.sk-at-row {
+  display: flex;
+  justify-content: flex-start;
+  min-width: 0;
+}
+.sk-at-row.is-user { justify-content: flex-end; }
+.sk-at-bubble {
+  max-width: min(82%, 520px);
+  padding: 14px 22px;
+  border-radius: 26px 26px 8px 26px;
+  background: var(--art-ink);
+  color: var(--art-paper);
+  font: 400 15px/1.55 var(--font-b);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.sk-at-answer {
+  max-width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sk-at-msg-label {
+  font: 600 11px/1.4 var(--sk-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--art-ink);
+}
+.sk-at-answer-text {
+  font: 400 15px/1.6 var(--font-b);
+  color: var(--art-ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.sk-at-typing {
+  display: inline-block;
+  color: var(--art-quiet);
+  animation: sk-at-blink 1.2s ease-in-out infinite;
+}
+@keyframes sk-at-blink {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-at-typing { animation: none; }
+  .sk-at-now-row .sk-chip { animation: none; }
+}
+
+/* ── Composer tweaks (sk-composer is centered, this one grows) ────────────── */
+.sk-at-composer {
+  align-items: flex-end;
+  padding: 10px 10px 10px 22px;
+}
+.sk-at-composer textarea {
+  min-height: 24px;
+  max-height: 120px;
+  caret-color: var(--neon-orange);
+}
+
+/* ── Report preview frame (the document keeps its own theme) ──────────────── */
+.sk-at-report-frame {
+  padding: 20px;
+  overflow-x: auto;
+}
+.sk-at-report-frame > * {
+  min-width: 0;
+}
+@media (min-width: 768px) {
+  .sk-at-report-frame { padding: 28px; }
+}
+
+/* ── Preview toolbar ──────────────────────────────────────────────────────── */
+.sk-at-tool {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+.sk-at-select {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sk-soft);
+  color: var(--art-ink);
+  font: 500 13px var(--font-b);
+  cursor: pointer;
+}
+.sk-at-select:focus { outline: 2px solid var(--neon-orange); outline-offset: 0; }
+
+/* ── Narrow screens: nothing overflows at 375px ───────────────────────────── */
+@media (max-width: 767px) {
+  .sk-at-run-title { font-size: 22px; }
+  .sk-at-bubble { max-width: 88%; padding: 12px 18px; }
+  .sk-at-transcript { max-height: none; }
+  .sk-at-step { grid-template-columns: 12px minmax(0, 1fr); row-gap: 2px; }
+  .sk-at-step-state { grid-column: 2; justify-self: start; }
+}

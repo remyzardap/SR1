@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useSeoMeta } from "@/hooks/useSeoMeta";
-import { ArrowUp, Square, Upload, FileText, Download, Palette, ChevronRight, X, BarChart3, Table as TableIcon, BookOpen, Image as ImageIcon, RefreshCw, Check, Pen, LayoutTemplate } from "lucide-react";
-import { Sparkles } from "@/components/brandIcons";
+import { motion } from "framer-motion";
+import { Square } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
+import "@/styles/atelier-reskin.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -56,12 +56,12 @@ const THEMES: Record<Theme, {
   },
 };
 
-const REPORT_TYPES: { type: ReportType; icon: string; desc: string }[] = [
-  { type: "Business Report",  icon: "📊", desc: "Performance, strategy, operations" },
-  { type: "Pitch Deck",       icon: "🚀", desc: "Investor or client presentation" },
-  { type: "Market Research",  icon: "🔍", desc: "Industry analysis & insights" },
-  { type: "Proposal",         icon: "📋", desc: "Project, service, or deal proposal" },
-  { type: "Executive Brief",  icon: "⚡", desc: "Concise leadership summary" },
+const REPORT_TYPES: { type: ReportType; icon: SutaeruIconName; desc: string }[] = [
+  { type: "Business Report",  icon: "report",  desc: "Performance, strategy, operations" },
+  { type: "Pitch Deck",       icon: "play",    desc: "Investor or client presentation" },
+  { type: "Market Research",  icon: "research", desc: "Industry analysis & insights" },
+  { type: "Proposal",         icon: "plan",    desc: "Project, service, or deal proposal" },
+  { type: "Executive Brief",  icon: "review",  desc: "Concise leadership summary" },
 ];
 
 // ─── SSE parser ───────────────────────────────────────────────────────────────
@@ -82,6 +82,7 @@ function parseSse(raw: string): { events: Array<{ event: string; data: string }>
 }
 
 // ─── Report Section Renderers ─────────────────────────────────────────────────
+// The document below keeps its own selectable themes: it is user output, not app chrome.
 
 function CoverSection({ section, t }: { section: ReportSection; t: typeof THEMES[Theme] }) {
   return (
@@ -203,7 +204,7 @@ function ImageSection({ section, t }: { section: ReportSection; t: typeof THEMES
   return (
     <div className="mb-5 rounded-2xl overflow-hidden" style={{ border: `1px solid ${t.border}` }}>
       <div className="aspect-video flex flex-col items-center justify-center gap-3" style={{ background: t.surface }}>
-        <ImageIcon className="w-8 h-8" style={{ color: t.muted }} />
+        <SutaeruIcon name="image" signal={false} className="w-8 h-8" style={{ color: t.muted }} />
         <p className="text-[13px] text-center max-w-xs px-4" style={{ color: t.muted }}>{section.content ?? section.title}</p>
       </div>
       {section.title && (
@@ -218,8 +219,8 @@ function ImageSection({ section, t }: { section: ReportSection; t: typeof THEMES
 function ReportPreview({ report }: { report: ReportStructure }) {
   const t = THEMES[report.theme] ?? THEMES.corporate;
   return (
-    <div className="w-full rounded-2xl overflow-hidden shadow-xl" style={{ background: t.bg, fontFamily: "'Manrope', sans-serif" }}>
-      <div className="p-8 max-w-3xl mx-auto">
+    <div className="w-full rounded-2xl overflow-hidden" style={{ background: t.bg, fontFamily: "'Manrope', sans-serif" }}>
+      <div className="p-4 sm:p-8 max-w-3xl mx-auto">
         {report.sections.map((section) => {
           switch (section.type) {
             case "cover":   return <CoverSection   key={section.id} section={section} t={t} />;
@@ -232,6 +233,26 @@ function ReportPreview({ report }: { report: ReportStructure }) {
         })}
       </div>
     </div>
+  );
+}
+
+// ─── Running view (shared by both phases that build) ──────────────────────────
+
+function RunTimeline({ steps, current }: { steps: string[]; current: number }) {
+  return (
+    <ol className="sk-at-timeline">
+      {steps.map((label, i) => {
+        const state = i < current ? "is-done" : i === current ? "is-active" : "";
+        const stateLabel = i < current ? "Done" : i === current ? "In progress" : "";
+        return (
+          <li key={label} className={`sk-at-step${state ? ` ${state}` : ""}`} aria-current={i === current ? "step" : undefined}>
+            <span className="sk-at-step-dot" aria-hidden="true" />
+            <span className="sk-at-step-label">{label}</span>
+            <span className="sk-at-step-state">{stateLabel}</span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -398,7 +419,7 @@ export default function AtelierGuided({ embedded = false }: { embedded?: boolean
               setReport(parsed);
               setPhase("preview");
             } catch {
-              toast.error("Report structure error — please try again");
+              toast.error("Report structure error, please try again");
               setPhase("interview");
             }
           } else if (event === "error") {
@@ -501,79 +522,69 @@ export default function AtelierGuided({ embedded = false }: { embedded?: boolean
   // ─── Phase: Select ──────────────────────────────────────────────────────────
   if (phase === "select") {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="sutaeru-editorial-page flex flex-col gap-8 p-4 sm:p-8 max-w-3xl mx-auto w-full"
-      >
+      <div className={embedded ? "sk-at-one w-full" : "sk-page sk-at-one mx-auto"}>
         {/* Header (the Atelier wrapper page provides it when embedded) */}
         {!embedded && (
           <div>
-            <h1 className="text-2xl font-semibold mb-1" style={{ color: "var(--foreground)", fontFamily: "var(--font-d)" }}>
-              Atelier
-            </h1>
-            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-              Professional report studio, powered by S1
-            </p>
+            <h1 className="sk-h1">Atelier</h1>
+            <p className="sk-sub">Professional report studio, powered by S1</p>
           </div>
         )}
 
         {/* Two entry points */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="sk-grid-2">
           {/* Chat intake */}
-          <div className="rounded-2xl p-5 flex flex-col gap-3" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "var(--muted-foreground)", border: "1px solid var(--border)" }}>
-                <Pen className="w-4 h-4" style={{ color: "var(--foreground)" }} />
-              </div>
-              <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Chat with Kemma</span>
+          <div className="sk-card flex flex-col gap-3">
+            <div className="sk-row">
+              <span className="sk-icon-tile">
+                <SutaeruIcon name="ask" />
+              </span>
+              <h2 className="sk-tile-title">Chat with Kemma</h2>
             </div>
-            <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
+            <p className="sk-empty-text">
               S1 interviews you with targeted questions to gather everything needed, then builds your report automatically.
             </p>
           </div>
 
           {/* Upload */}
           <div
-            className="rounded-2xl p-5 flex flex-col gap-3 cursor-pointer transition-all duration-200"
-            style={{ background: uploadedFile ? "var(--accent-dim)" : "var(--card)", border: uploadedFile ? "1px solid var(--border)" : "1px solid var(--border)" }}
+            className={`sk-card sk-at-tile flex flex-col gap-3${uploadedFile ? " is-active" : ""}`}
             onClick={() => fileInputRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFileUpload(f); }}
           >
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: uploadedFile ? "var(--accent-dim)" : "var(--card)", border: uploadedFile ? "1px solid var(--border)" : "1px solid var(--border)" }}>
-                {uploadParsing ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}><RefreshCw className="w-4 h-4" style={{ color: "var(--foreground)" }} /></motion.div>
-                  : uploadedFile ? <Check className="w-4 h-4" style={{ color: "var(--foreground)" }} />
-                  : <Upload className="w-4 h-4" style={{ color: "var(--foreground)" }} />}
-              </div>
-              <span className="text-sm font-semibold" style={{ color: uploadedFile ? "var(--foreground)" : "var(--foreground)" }}>
-                {uploadedFile ? uploadedFile.name : "Upload a file"}
+            <div className="sk-row">
+              <span className="sk-icon-tile">
+                {uploadParsing
+                  ? <span className="sk-at-spin" aria-hidden="true" />
+                  : uploadedFile ? <SutaeruIcon name="check" />
+                  : <SutaeruIcon name="files" />}
               </span>
+              <h2 className="sk-tile-title">
+                {uploadedFile ? uploadedFile.name : "Upload a file"}
+              </h2>
             </div>
             {uploadedFile ? (
               <>
-                <p className="text-[12px] font-mono line-clamp-2" style={{ color: "var(--muted-foreground)" }}>{uploadedFile.preview}</p>
-                <div className="flex flex-wrap gap-2 mt-1">
+                <p className="sk-meta line-clamp-2" style={{ fontFamily: "var(--sk-mono)" }}>{uploadedFile.preview}</p>
+                <div className="sk-row">
                   {(["rewrite", "reformat"] as UploadMode[]).map((m) => (
-                    <button key={m} onClick={(e) => { e.stopPropagation(); setUploadMode(m); }}
-                      className="px-3 py-1 rounded-full text-[11px] font-medium transition-all"
-                      style={uploadMode === m
-                        ? { background: "var(--accent-dim)", border: "1px solid var(--border)", color: "var(--foreground)" }
-                        : { background: "var(--card)", border: "1px solid var(--border)", color: "var(--muted-foreground)" }}
+                    <button key={m} type="button" onClick={(e) => { e.stopPropagation(); setUploadMode(m); }}
+                      aria-pressed={uploadMode === m}
+                      className={`sk-pill sk-pill-sm${uploadMode === m ? " is-active" : ""}`}
                     >
                       {m === "rewrite" ? "Rewrite" : "Reformat only"}
                     </button>
                   ))}
-                  <button onClick={(e) => { e.stopPropagation(); setUploadedFile(null); }}
-                    aria-label="Remove upload" className="ml-auto min-w-11 min-h-11 flex items-center justify-center rounded-md" style={{ color: "var(--muted-foreground)" }}>
-                    <X className="w-3 h-3" />
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setUploadedFile(null); }}
+                    aria-label="Remove upload" className="sk-icon-btn ml-auto">
+                    <SutaeruIcon name="close" />
                   </button>
                 </div>
               </>
             ) : (
-              <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
-                PDF, DOCX, MD, TXT, CSV — Atelier extracts and rebuilds it.
+              <p className="sk-empty-text">
+                PDF, DOCX, MD, TXT, CSV. Atelier extracts and rebuilds it.
               </p>
             )}
             <input ref={fileInputRef} type="file" className="hidden"
@@ -584,18 +595,20 @@ export default function AtelierGuided({ embedded = false }: { embedded?: boolean
 
         {/* Report type */}
         <div>
-          <p className="text-[11px] uppercase tracking-widest font-medium mb-3" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-d)" }}>Report Type</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          <span className="sk-label sk-section">Report Type</span>
+          <div className="sk-at-tiles" role="radiogroup" aria-label="Report type">
             {REPORT_TYPES.map(({ type, icon, desc }) => (
-              <button key={type} onClick={() => setReportType(type)}
-                className="text-left min-h-28 p-3.5 rounded-md transition-all duration-150"
-                style={reportType === type
-                  ? { background: "var(--accent-dim)", border: "1px solid var(--border)" }
-                  : { background: "var(--card)", border: "1px solid var(--border)" }}
+              <button key={type} type="button" onClick={() => setReportType(type)}
+                role="radio" aria-checked={reportType === type}
+                className={`sk-tile sk-at-tile${reportType === type ? " is-active" : ""}`}
               >
-                <div className="text-xl mb-2">{icon}</div>
-                <p className="text-[13px] font-medium" style={{ color: reportType === type ? "var(--foreground)" : "var(--foreground)" }}>{type}</p>
-                <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>{desc}</p>
+                <span className="sk-icon-tile">
+                  <SutaeruIcon name={icon} />
+                </span>
+                <div className="flex flex-col gap-1">
+                  <p className="sk-tile-title">{type}</p>
+                  <p className="sk-empty-text">{desc}</p>
+                </div>
               </button>
             ))}
           </div>
@@ -603,111 +616,99 @@ export default function AtelierGuided({ embedded = false }: { embedded?: boolean
 
         {/* Theme */}
         <div>
-          <p className="text-[11px] uppercase tracking-widest font-medium mb-3" style={{ color: "var(--muted-foreground)", fontFamily: "var(--font-d)" }}>Report Theme</p>
-          <div className="grid grid-cols-3 gap-2 min-w-0">
+          <span className="sk-label sk-section">Report Theme</span>
+          <div className="sk-row" role="radiogroup" aria-label="Report theme">
             {(Object.entries(THEMES) as [Theme, typeof THEMES[Theme]][]).map(([key, t]) => (
-              <button key={key} onClick={() => setTheme(key)}
-                className="min-w-0 flex-1 p-2 sm:p-3 rounded-md transition-all duration-150 text-left"
-                style={theme === key
-                  ? { background: "var(--accent-dim)", border: "1px solid var(--border)" }
-                  : { background: "var(--card)", border: "1px solid var(--border)" }}
+              <button key={key} type="button" onClick={() => setTheme(key)}
+                role="radio" aria-checked={theme === key}
+                className={`sk-pill${theme === key ? " is-active" : ""}`}
               >
-                <div className="w-full h-8 rounded-lg mb-2" style={{ background: t.bg, border: `1px solid ${t.border}` }}>
-                  <div className="m-2 h-1.5 rounded-full w-3/4" style={{ background: t.accent }} />
-                </div>
-                <p className="text-[12px] font-medium" style={{ color: theme === key ? "var(--foreground)" : "var(--muted-foreground)" }}>{t.label}</p>
+                <span className="sk-at-swatch-dot" style={{ background: t.bg, boxShadow: `inset 0 0 0 1px ${t.border}` }}>
+                  <i style={{ background: t.accent }} />
+                </span>
+                {t.label}
               </button>
             ))}
           </div>
         </div>
 
         {/* CTA */}
-        <button
-          onClick={startInterview}
-          className="w-full py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200"
-          style={{ background: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-d)" }}
-        >
-          <Sparkles className="w-4 h-4" />
+        <button type="button" onClick={startInterview} className="sk-btn w-full" style={{ minHeight: 56 }}>
+          <SutaeruIcon name="make" className="size-4" />
           {uploadedFile ? `Build ${reportType} from upload` : `Start ${reportType} with S1`}
-          <ChevronRight className="w-4 h-4" />
         </button>
-      </motion.div>
+      </div>
     );
   }
 
   // ─── Phase: Interview ───────────────────────────────────────────────────────
   if (phase === "interview") {
     return (
-      <div className="sutaeru-editorial-page flex flex-col h-full min-h-0 max-w-2xl mx-auto w-full">
+      <div className={embedded ? "sk-at-one w-full" : "sk-page sk-at-one mx-auto"}>
         {/* Header */}
-        <div className="flex-none flex items-center justify-between px-4 sm:px-6 py-3"
-          style={{ borderBottom: "1px solid var(--border)", background: "var(--background)", backdropFilter: "blur(20px)" }}>
-          <div>
-            <p className="text-sm font-semibold" style={{ color: "var(--foreground)", fontFamily: "var(--font-d)" }}>Atelier · {reportType}</p>
-            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>S1 is gathering information</p>
+        <div className="sk-card sk-at-tool">
+          <div className="min-w-0">
+            <span className="sk-at-status">
+              <span className="sk-dot" aria-hidden="true" /> Atelier · {reportType}
+            </span>
+            <p className="sk-sub" style={{ margin: "6px 0 0" }}>S1 is gathering information</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="sk-row">
             {readyToGenerate && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
+              <button
+                type="button"
                 onClick={() => { setPhase("select"); setReadyToGenerate(false); setTimeout(generateReport, 100); }}
-                className="flex min-h-11 items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold transition-all"
-                style={{ background: "var(--primary)", color: "var(--primary-foreground)", fontFamily: "var(--font-d)" }}
+                className="sk-btn sk-btn-sm"
               >
-                <Sparkles className="w-3 h-3" />
+                <SutaeruIcon name="make" className="size-4" />
                 Build Report
-              </motion.button>
+              </button>
             )}
-            <button onClick={() => setPhase("select")} aria-label="Close interview" className="min-h-11 min-w-11 flex items-center justify-center" style={{ color: "var(--muted-foreground)" }}>
-              <X className="w-4 h-4" />
+            <button type="button" onClick={() => setPhase("select")} aria-label="Close interview" className="sk-icon-btn">
+              <SutaeruIcon name="close" />
             </button>
           </div>
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 flex flex-col gap-4">
-          <AnimatePresence>
+        {/* Transcript */}
+        <div className="sk-card flex flex-col gap-4">
+          <div className="sk-at-transcript">
             {messages.map((msg, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div
-                  className="max-w-[82%] px-4 py-3 rounded-2xl text-[14px] leading-relaxed"
-                  style={msg.role === "user"
-                    ? { background: "var(--primary)", color: "var(--primary-foreground)", borderRadius: "20px 20px 4px 20px" }
-                    : { background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)", borderRadius: "20px 20px 20px 4px" }}
-                >
-                  {msg.content || <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1 }}>●●●</motion.span>}
-                </div>
-              </motion.div>
+              <div key={i} className={`sk-at-row${msg.role === "user" ? " is-user" : ""}`}>
+                {msg.role === "user" ? (
+                  <div className="sk-at-bubble">{msg.content}</div>
+                ) : (
+                  <div className="sk-at-answer">
+                    <span className="sk-at-msg-label">Kemma</span>
+                    <div className="sk-at-answer-text">
+                      {msg.content || <span className="sk-at-typing">...</span>}
+                    </div>
+                  </div>
+                )}
+              </div>
             ))}
-          </AnimatePresence>
-          <div ref={messagesEndRef} />
-        </div>
+            <div ref={messagesEndRef} />
+          </div>
 
-        {/* Input */}
-        <div className="flex-none px-4 sm:px-6 pb-4 pt-2">
-          <div className="flex items-end gap-2 px-4 py-3 rounded-2xl"
-            style={{ background: "var(--card)", backdropFilter: "blur(28px)", border: "1px solid var(--border)" }}>
+          {/* Composer */}
+          <div className="sk-composer sk-at-composer">
+            <label htmlFor="atelier-interview-answer" className="sr-only">Answer</label>
             <textarea
+              id="atelier-interview-answer"
               value={input}
               onChange={(e) => { setInput(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`; }}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendMessage(); } }}
-              placeholder="Answer S1's question…"
+              placeholder="Answer S1's question..."
               rows={1}
               disabled={streaming}
-              className="flex-1 resize-none bg-transparent text-[14px] outline-none leading-relaxed min-h-[24px] max-h-[120px]"
-              style={{ color: "var(--foreground)", fontFamily: "'Manrope', sans-serif", caretColor: "var(--foreground)" }}
             />
             <button
+              type="button"
               onClick={streaming ? () => abortRef.current?.abort() : () => void sendMessage()}
               aria-label={streaming ? "Stop response" : "Send message"}
-               className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all"
-              style={streaming
-                ? { background: "rgba(179,64,42,.1)", border: "1px solid var(--border)", color: "var(--destructive)" }
-                : { background: input.trim() ? "var(--foreground)" : "var(--accent-dim)", color: input.trim() ? "var(--primary-foreground)" : "var(--muted-foreground)" }}
+              className="sk-send"
             >
-              {streaming ? <Square className="w-3 h-3 fill-current" /> : <ArrowUp className="w-3.5 h-3.5" strokeWidth={2.5} />}
+              {streaming ? <Square className="w-3 h-3 fill-current" /> : <SutaeruIcon name="arrow" className="-rotate-90" />}
             </button>
           </div>
         </div>
@@ -720,28 +721,21 @@ export default function AtelierGuided({ embedded = false }: { embedded?: boolean
     const steps = ["Analysing context", "Structuring sections", "Writing content", "Adding data & charts", "Finalising layout"];
     const approxStep = Math.min(Math.floor(generatingText.length / 600), steps.length - 1);
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-8 px-6">
-        <motion.div className="relative w-16 h-16">
-          <motion.div className="absolute inset-0 rounded-full" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-            style={{ border: "2px solid transparent", borderTopColor: "var(--foreground)", borderRightColor: "var(--muted-foreground)" }} />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Sparkles className="w-6 h-6" style={{ color: "var(--foreground)" }} />
+      <div className={embedded ? "sk-at-one w-full" : "sk-page sk-at-one mx-auto"}>
+        <div className="sk-card" role="status" aria-live="polite">
+          <div className="sk-at-run-top">
+            <span className="sk-at-status">
+              <span className="sk-dot" aria-hidden="true" /> Atelier · Running
+            </span>
+            <span className="sk-meta sk-num">STEP {approxStep + 1} OF {steps.length}</span>
           </div>
-        </motion.div>
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2" style={{ color: "var(--foreground)", fontFamily: "var(--font-d)" }}>Building your {reportType}</h2>
-          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>S1 is writing your report now…</p>
-        </div>
-        <div className="flex flex-col gap-2 w-full max-w-xs">
-          {steps.map((step, i) => (
-            <motion.div key={step} initial={{ opacity: 0.2 }} animate={{ opacity: i <= approxStep ? 1 : 0.25 }}
-              className="flex items-center gap-3 text-[13px]"
-              style={{ color: i <= approxStep ? "var(--foreground)" : "var(--muted-foreground)" }}>
-              <div className="w-1.5 h-1.5 rounded-full" style={{ background: i <= approxStep ? "var(--foreground)" : "var(--muted-foreground)" }} />
-              {step}
-              {i === approxStep && <motion.span animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1 }} style={{ color: "var(--muted-foreground)" }}>…</motion.span>}
-            </motion.div>
-          ))}
+          <h2 className="sk-at-run-title">Building your {reportType}</h2>
+          <p className="sk-at-run-body">S1 is writing your report now...</p>
+          <RunTimeline steps={steps} current={approxStep} />
+          <div className="sk-at-now">
+            <span className="sk-at-now-label">Now</span>
+            <p className="sk-at-now-text">{steps[approxStep]}</p>
+          </div>
         </div>
       </div>
     );
@@ -750,55 +744,47 @@ export default function AtelierGuided({ embedded = false }: { embedded?: boolean
   // ─── Phase: Preview ─────────────────────────────────────────────────────────
   if (phase === "preview" && report) {
     return (
-      <div className="sutaeru-editorial-page flex flex-col h-full min-h-0">
+      <div className={embedded ? "sk-at-one w-full" : "sk-page sk-at-one mx-auto"}>
         {/* Toolbar */}
-        <div className="flex-none flex items-center justify-between px-4 sm:px-6 py-3 flex-wrap gap-2"
-          style={{ borderBottom: "1px solid var(--border)", background: "var(--background)", backdropFilter: "blur(20px)" }}>
-          <div>
-            <p className="text-sm font-semibold" style={{ color: "var(--foreground)", fontFamily: "var(--font-d)" }}>{report.title}</p>
-            <p className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Atelier · {reportType}</p>
+        <div className="sk-card sk-at-tool">
+          <div className="min-w-0">
+            <span className="sk-label">Atelier · {reportType}</span>
+            <h2 className="sk-at-run-title" style={{ margin: "8px 0 0" }}>{report.title}</h2>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="sk-row">
             {/* Theme switcher */}
-            <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="sk-row" role="radiogroup" aria-label="Report theme">
               {(Object.keys(THEMES) as Theme[]).map((t) => (
-                <button key={t} onClick={() => { setTheme(t); setReport((r) => r ? { ...r, theme: t } : r); }}
-                  className="min-h-11 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all"
-                  style={theme === t
-                    ? { background: "var(--accent)", color: "var(--foreground)" }
-                    : { color: "var(--muted-foreground)" }}>
+                <button key={t} type="button" onClick={() => { setTheme(t); setReport((r) => r ? { ...r, theme: t } : r); }}
+                  role="radio" aria-checked={theme === t}
+                  className={`sk-pill sk-pill-sm${theme === t ? " is-active" : ""}`}
+                >
                   {THEMES[t].label}
                 </button>
               ))}
             </div>
-            <button onClick={() => { setPhase("select"); setReport(null); setMessages([]); }}
-              className="min-h-11 text-[12px] px-3 py-1.5 rounded-md transition-all"
-              style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--muted-foreground)" }}>
+            <button type="button" onClick={() => { setPhase("select"); setReport(null); setMessages([]); }}
+              className="sk-btn sk-btn-ghost sk-btn-sm">
               New Report
             </button>
             <select value={exportFormat} onChange={(e) => setExportFormat(e.target.value as typeof exportFormat)}
               aria-label="Export format"
-              className="min-h-11 text-[12px] px-2 py-1.5 rounded-md"
-              style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}>
+              className="sk-at-select">
               <option value="pdf">PDF</option>
               <option value="docx">Word (DOCX)</option>
               <option value="xlsx">Excel (XLSX)</option>
               <option value="md">Markdown</option>
             </select>
-            <button disabled={exporting} className="flex min-h-11 items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-md font-semibold transition-all disabled:opacity-60"
-              style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}
-              onClick={exportReport}>
-              <Download className="w-3.5 h-3.5" />
+            <button type="button" disabled={exporting} className="sk-btn sk-btn-sm" onClick={exportReport}>
+              <SutaeruIcon name="download" className="size-4" />
               {exporting ? "Exporting..." : "Export"}
             </button>
           </div>
         </div>
 
-        {/* Report preview */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <ReportPreview report={report} />
-          </motion.div>
+        {/* Report preview: the document keeps its own theme, the frame is the app's */}
+        <div className="sk-card sk-at-report-frame">
+          <ReportPreview report={report} />
         </div>
       </div>
     );
