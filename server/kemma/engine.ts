@@ -75,6 +75,12 @@ export interface EngineOutput {
   tokensUsed: { input: number; output: number; total: number };
   modelsUsed: string[]; stepsUsed: number; durationMs: number;
   sources: Source[];
+  /**
+   * True when `response` holds an error message (quota block, all models failed) that never
+   * went through onStream. Callers streaming to a client must surface it as an error, not as
+   * an assistant answer.
+   */
+  isError?: boolean;
 }
 
 import { MAX_TOOL_CALLS } from "./kemmaMax";
@@ -699,6 +705,29 @@ function adaptToolCallsForProvider(m: KemmaMessage, provider: ModelProvider): Ke
   };
 }
 
+// Shared non-streaming completion parse: final message text, tool calls, and usage.
+function parseCompletionJson(data: any): { content: string | null; toolCalls?: ToolCall[]; usage?: { input: number; output: number; total: number } } {
+  const choice = data.choices?.[0];
+  const toolCalls = (choice?.message?.tool_calls ?? []).map((tc: any) => ({
+    id: tc.id,
+    type: "function" as const,
+    function: { name: tc.function.name, arguments: tc.function.arguments },
+    ...(tc.extra_content ? { extra_content: tc.extra_content } : {}),
+  }));
+  // Vertex bills thinking as completion_tokens_details.reasoning_tokens; add it to the output
+  // count so cost estimates do not drop it (AI Studio responses simply lack the field).
+  const reasoningTokens = data.usage?.completion_tokens_details?.reasoning_tokens ?? 0;
+  return {
+    content: choice?.message?.content ?? null,
+    toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+    usage: {
+      input: data.usage?.prompt_tokens ?? 0,
+      output: (data.usage?.completion_tokens ?? 0) + reasoningTokens,
+      total: data.usage?.total_tokens ?? 0,
+    },
+  };
+}
+
 async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string | null; toolCalls?: ToolCall[]; usage?: { input: number; output: number; total: number } }> {
   const { route, systemPrompt, messages, tools, stream, onStream } = input;
 
@@ -733,12 +762,15 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
     const reader = res.body?.getReader();
     const decoder = new TextDecoder();
     let sseBuffer = "";
+    let rawBody = "";
     if (reader) {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         // SSE lines can be split across network chunks; only parse complete lines.
-        sseBuffer += decoder.decode(value, { stream: true });
+        const text = decoder.decode(value, { stream: true });
+        rawBody += text;
+        sseBuffer += text;
         const parts = sseBuffer.split("\n");
         sseBuffer = parts.pop() ?? "";
         const lines = parts.filter((l) => l.startsWith("data: "));
@@ -749,31 +781,21 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
         }
       }
     }
+    // Some OpenAI-compatible providers ignore stream=true and answer with a single plain JSON
+    // completion body. Without this fallback the client would get zero token events (blank chat).
+    if (!fullContent && rawBody.trimStart().startsWith("{")) {
+      try {
+        const parsed = parseCompletionJson(JSON.parse(rawBody));
+        if (parsed.content) onStream(parsed.content);
+        return parsed;
+      } catch { /* not a JSON completion either; keep the streamed result */ }
+    }
     return { content: fullContent, toolCalls: undefined };
   }
 
-  const data = await res.json();
-  const choice = data.choices?.[0];
-  const toolCalls = (choice?.message?.tool_calls ?? []).map((tc: any) => ({
-    id: tc.id,
-    type: "function" as const,
-    function: { name: tc.function.name, arguments: tc.function.arguments },
-    ...(tc.extra_content ? { extra_content: tc.extra_content } : {}),
-  }));
-  // Vertex bills thinking as completion_tokens_details.reasoning_tokens; add it to the output
-  // count so cost estimates do not drop it (AI Studio responses simply lack the field).
-  const reasoningTokens = data.usage?.completion_tokens_details?.reasoning_tokens ?? 0;
-  return {
-    content: choice?.message?.content ?? null,
-    toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-    usage: {
-      input: data.usage?.prompt_tokens ?? 0,
-      output: (data.usage?.completion_tokens ?? 0) + reasoningTokens,
-      total: data.usage?.total_tokens ?? 0,
-    },
-  };
+  return parseCompletionJson(await res.json());
 }
 
 function makeErrorResponse(message: string, startTime: number): EngineOutput {
-  return { response: message, toolCalls: [], isAgentic: false, tokensUsed: { input: 0, output: 0, total: 0 }, modelsUsed: [], stepsUsed: 0, durationMs: Date.now() - startTime, sources: [] };
+  return { response: message, toolCalls: [], isAgentic: false, tokensUsed: { input: 0, output: 0, total: 0 }, modelsUsed: [], stepsUsed: 0, durationMs: Date.now() - startTime, sources: [], isError: true };
 }

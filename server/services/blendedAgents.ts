@@ -2,7 +2,7 @@
 // BLENDED AGENTS SERVICE — Qwen + Gemini
 // ============================================================================
 
-import { chatRoute, plannerRoute } from '../core/kemmaRouter';
+import { chatRoute, plannerRoute, resolveRouteAuth, routeHasAuth } from '../core/kemmaRouter';
 import { vertexEnabled, vertexGenerateContentBody, vertexGenerateContentText } from '../core/vertexAuth';
 
 interface AgentConfig {
@@ -29,9 +29,12 @@ interface BlendedResponse {
   blended: boolean;
 }
 
-// Agent configurations (load from environment)
+// Agent configurations. Static fields are display snapshots; requests
+// re-resolve credentials at call time (Vertex-backed slots carry no static key).
 const qwenRoute = chatRoute();
 const geminiRoute = plannerRoute();
+
+const AI_STUDIO_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 const AGENTS: AgentConfig[] = [
   {
@@ -47,7 +50,7 @@ const AGENTS: AgentConfig[] = [
     id: 'gemini',
     name: 'Gemini',
     apiKey: process.env.GEMINI_API_KEY || '',
-    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    baseUrl: AI_STUDIO_BASE,
     model: geminiRoute.model,
     specialties: ['multimodal', 'factual', 'research', 'summarization', 'speed'],
     latency: 500,
@@ -98,18 +101,21 @@ export function selectBestAgent(queryType: string, activeAgents: AgentConfig[] =
   return [...activeAgents].sort((a, b) => a.latency - b.latency)[0] || AGENTS[0];
 }
 
-// Call Qwen API (OpenAI-compatible)
-async function callQwen(message: string, config: AgentConfig): Promise<AgentResponse> {
+// Call the OpenAI-compatible endpoint of the chat slot. Credentials and URL are
+// resolved per call: a Vertex-backed chat slot has an empty apiKey and a stale
+// baseUrl on the RouteConfig, so resolveRouteAuth() is mandatory here.
+async function callQwen(message: string, _config: AgentConfig): Promise<AgentResponse> {
   const startTime = Date.now();
-  
-  const response = await fetch(`${config.baseUrl}/chat/completions`, {
+  const target = await resolveRouteAuth(chatRoute());
+
+  const response = await fetch(`${target.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${config.apiKey}`,
+      'Authorization': `Bearer ${target.auth}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: config.model,
+      model: target.model,
       messages: [
         { role: 'system', content: 'You are a helpful AI assistant.' },
         { role: 'user', content: message },
@@ -134,15 +140,16 @@ async function callQwen(message: string, config: AgentConfig): Promise<AgentResp
 }
 
 // Call Gemini (AI Studio key in the query string, or native Vertex generateContent with a bearer token)
-async function callGemini(message: string, config: AgentConfig): Promise<AgentResponse> {
+async function callGemini(message: string, _config: AgentConfig): Promise<AgentResponse> {
   const startTime = Date.now();
+  const route = plannerRoute();
 
   if (vertexEnabled()) {
     const body = vertexGenerateContentBody({
       texts: [message],
       generationConfig: { temperature: 0.7, maxOutputTokens: 2000 },
     });
-    const content = await vertexGenerateContentText(config.model, body);
+    const content = await vertexGenerateContentText(route.model, body);
     if (!content) {
       throw new Error('Vertex AI Gemini returned no content');
     }
@@ -154,8 +161,13 @@ async function callGemini(message: string, config: AgentConfig): Promise<AgentRe
     };
   }
 
+  const apiKey = process.env.GEMINI_API_KEY || '';
+  if (!apiKey) {
+    throw new Error('Gemini API key is not configured');
+  }
+
   const response = await fetch(
-    `${config.baseUrl}/models/${config.model}:generateContent?key=${config.apiKey}`,
+    `${AI_STUDIO_BASE}/models/${route.model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: {
@@ -278,7 +290,9 @@ export function getAgentStatus() {
     name: agent.name,
     specialties: agent.specialties,
     latency: agent.latency,
-    isAvailable: agent.id === 'gemini' ? vertexEnabled() || !!agent.apiKey : !!agent.apiKey,
+    isAvailable: agent.id === 'gemini'
+      ? vertexEnabled() || !!(process.env.GEMINI_API_KEY || '').trim()
+      : routeHasAuth(chatRoute()),
   }));
 }
 

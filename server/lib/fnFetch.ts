@@ -16,8 +16,8 @@ const MAX_REDIRECTS = 3;
 
 /**
  * v6 blocks we treat as private: unspecified and loopback, unique-local
- * fc00::/7, link-local fe80::/10, multicast ff00::/8, and the v4-mapped forms
- * of all of the above.
+ * fc00::/7, link-local fe80::/10, multicast ff00::/8, and every address that
+ * forwards to a private IPv4.
  */
 function isPrivateAddressV6(ip: string): boolean {
   const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(ip);
@@ -25,6 +25,13 @@ function isPrivateAddressV6(ip: string): boolean {
 
   const groups = expandV6(ip);
   if (!groups) return true; // unparsable is never fetched
+
+  // new URL() rewrites [::ffff:127.0.0.1] into the hex form [::ffff:7f00:1] before this
+  // runs, and Linux connects a mapped address to that IPv4. 6to4 carries one in its
+  // second and third groups. What they embed is what actually gets reached.
+  const embedded = embeddedV4(groups);
+  if (embedded) return isPrivateAddress(embedded);
+
   const first = groups[0];
   const isZero = groups.every((group) => group === 0);
   if (isZero) return true; // ::
@@ -33,6 +40,24 @@ function isPrivateAddressV6(ip: string): boolean {
   if ((first & 0xffc0) === 0xfe80) return true; // fe80::/10 link-local
   if ((first & 0xff00) === 0xff00) return true; // ff00::/8 multicast and reserved
   return false;
+}
+
+/**
+ * The IPv4 an v6 address hands traffic to, or null when it carries none: the
+ * v4-mapped ::ffff:0:0/96 form (what URL writes for a dotted mapped address), the
+ * obsolete ::/96 form, 6to4 2002::/16 and the NAT64 well-known prefix 64:ff9b::/96.
+ * A mapped loopback is loopback as surely as the dotted one, so the caller runs the
+ * v4 rules on the address inside it.
+ */
+function embeddedV4(groups: number[]): string | null {
+  const low = (high: number, tail: number) => `${high >> 8}.${high & 0xff}.${tail >> 8}.${tail & 0xff}`;
+  const zero = (from: number, to: number) => groups.slice(from, to).every((group) => group === 0);
+
+  if (groups[0] === 0x2002) return low(groups[1], groups[2]); // 6to4 2002::/16
+  if (groups[5] === 0xffff && zero(0, 5)) return low(groups[6], groups[7]); // ::ffff:0:0/96
+  if (groups[6] !== 0 && zero(0, 6)) return low(groups[6], groups[7]); // ::/96, the obsolete form
+  if (groups[0] === 0x0064 && groups[1] === 0xff9b && zero(2, 6)) return low(groups[6], groups[7]); // NAT64 64:ff9b::/96
+  return null;
 }
 
 /** Eight 16 bit groups, with the :: compression filled in. Null when malformed. */

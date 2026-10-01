@@ -6,7 +6,17 @@ import { FORBIDDEN_MCP_WORDS, loadMcpConfig, type McpConfig, type McpToolMode } 
 
 export const MCP_TOOL_PREFIX = "mcp__";
 const CALL_TIMEOUT_MS = 30_000;
+const CONNECT_TIMEOUT_MS = 15_000;
 const MAX_RESULT_CHARS = 20_000;
+
+/** Reject if `p` has not settled within `ms`; used so one wedged MCP server can never hang a chat run. */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => reject(new Error(`MCP ${label} timed out after ${ms / 1000}s`)), ms);
+  });
+  return Promise.race([p, timeout]).finally(() => clearTimeout(timer));
+}
 
 interface ExposedTool {
   fullName: string;
@@ -43,14 +53,14 @@ export class McpRegistry {
                 // Minimal environment: PATH/HOME plus the credential variables this server declares.
                 const env: Record<string, string> = {};
                 for (const k of ["PATH", "HOME", ...cfg.envVars]) if (process.env[k]) env[k] = process.env[k]!;
-                await client.connect(new StdioClientTransport({ command: cfg.command!, args: cfg.args, env, stderr: "ignore" }));
+                await withTimeout(client.connect(new StdioClientTransport({ command: cfg.command!, args: cfg.args, env, stderr: "ignore" })), CONNECT_TIMEOUT_MS, `connect "${name}"`);
               } else {
                 const headers: Record<string, string> = {};
                 const tokenVar = cfg.envVars[0];
                 if (tokenVar && process.env[tokenVar]) headers.Authorization = `Bearer ${process.env[tokenVar]}`;
-                await client.connect(new StreamableHTTPClientTransport(new URL(cfg.url!), { requestInit: { headers } }));
+                await withTimeout(client.connect(new StreamableHTTPClientTransport(new URL(cfg.url!), { requestInit: { headers } })), CONNECT_TIMEOUT_MS, `connect "${name}"`);
               }
-              const listed = await client.listTools();
+              const listed = await withTimeout(client.listTools(), CONNECT_TIMEOUT_MS, `listTools "${name}"`);
               const tools: ExposedTool[] = [];
               for (const t of listed.tools) {
                 const mode = cfg.tools[t.name];

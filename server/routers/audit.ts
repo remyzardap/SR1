@@ -1,16 +1,17 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, adminProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import { auditLogs } from "../../drizzle/schema";
 import { desc, eq, gte, lte, and, like } from "drizzle-orm";
 import { cleanupOldAuditLogs } from "../middleware/audit-logging";
 
+// Audit logs cover every user (login events, failures, resource ids). Reading
+// and pruning them is an admin capability, enforced here on the server.
 export const auditRouter = router({
   /**
-   * List audit logs with optional filtering.
-   * Admin-only in practice — callers should verify role before exposing in UI.
+   * List audit logs with optional filtering. Admin only.
    */
-  list: protectedProcedure
+  list: adminProcedure
     .input(
       z.object({
         limit: z.number().min(1).max(500).default(100),
@@ -54,7 +55,7 @@ export const auditRouter = router({
   /**
    * Get a list of distinct action types for filter dropdowns.
    */
-  getActions: protectedProcedure.query(async () => {
+  getActions: adminProcedure.query(async () => {
     const db = await getDb();
     if (!db) return [];
     const rows = await db
@@ -67,7 +68,7 @@ export const auditRouter = router({
   /**
    * Get aggregate stats for the admin dashboard.
    */
-  getStats: protectedProcedure.query(async () => {
+  getStats: adminProcedure.query(async () => {
     const db = await getDb();
     if (!db) return { total: 0, failures: 0, critical: 0, last24h: 0 };
 
@@ -92,7 +93,7 @@ export const auditRouter = router({
   /**
    * Delete audit logs older than the specified number of days.
    */
-  cleanup: protectedProcedure
+  cleanup: adminProcedure
     .input(z.object({ daysToKeep: z.number().min(7).max(365).default(90) }))
     .mutation(async ({ input }) => {
       const deleted = await cleanupOldAuditLogs(input.daysToKeep);

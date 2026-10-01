@@ -65,8 +65,8 @@ export const blocksRouter = router({
       sessionId: z.string().optional(),
       pinned: z.boolean().optional(),
       archived: z.boolean().default(false),
-      limit: z.number().min(1).max(100).default(50),
-      offset: z.number().default(0),
+      limit: z.number().int().min(1).max(100).default(50),
+      offset: z.number().int().min(0).default(0),
     }))
     .query(async ({ ctx, input }) => {
       const db = await requireDb();
@@ -149,7 +149,7 @@ export const blocksRouter = router({
       const db = await requireDb();
       const [original] = await db.select().from(blocks)
         .where(and(eq(blocks.id, input.id), eq(blocks.userId, ctx.user.id)));
-      if (!original) throw new Error("Block not found");
+      if (!original) throw new TRPCError({ code: "NOT_FOUND", message: "Block not found" });
 
       const [forked] = await db.insert(blocks).values({
         id: randomUUID(),
@@ -184,7 +184,7 @@ export const blocksRouter = router({
   // ── Reorder pinned blocks ─────────────────────────────────────────────────
   reorder: protectedProcedure
     .input(z.object({
-      items: z.array(z.object({ id: z.string(), position: z.number() })),
+      items: z.array(z.object({ id: z.string(), position: z.number().int() })).max(200),
     }))
     .mutation(async ({ ctx, input }) => {
       const db = await requireDb();

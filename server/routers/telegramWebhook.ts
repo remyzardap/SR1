@@ -122,15 +122,29 @@ export function registerTelegramWebhookRoute(app: Express) {
 
 async function sendTelegramMessage(chatId: number | string, text: string, token: string) {
   try {
-    const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    const body = {
+      chat_id: chatId,
+      text: text.substring(0, 4096), // Telegram max message length
+      parse_mode: "Markdown",
+    };
+    let response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: text.substring(0, 4096), // Telegram max message length
-        parse_mode: "Markdown",
-      }),
+      body: JSON.stringify(body),
     });
+
+    if (!response.ok) {
+      // Telegram rejects unparseable Markdown (400 "can't parse entities") for
+      // ordinary model output like "2 * 3 * 4". Retry as plain text so the
+      // reply still reaches the user.
+      console.warn(`[Telegram] Markdown send failed (${response.status}); retrying as plain text`);
+      const { parse_mode: _drop, ...plainBody } = body;
+      response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(plainBody),
+      });
+    }
 
     if (!response.ok) {
       console.error(`[Telegram] Failed to send message: ${response.status}`);

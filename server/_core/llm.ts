@@ -1,5 +1,14 @@
 import { ENV } from "./env";
-import { apiKeyFor, detectProvider, litellmBaseUrl, resolveRouteAuth, routeFor, routeHasAuth, stripProviderPrefix } from "../core/kemmaRouter";
+import {
+  apiKeyFor,
+  detectProvider,
+  litellmBaseUrl,
+  qwenBaseUrl,
+  resolveRouteAuth,
+  routeFor,
+  routeHasAuth,
+  stripProviderPrefix,
+} from "../core/kemmaRouter";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
 
@@ -224,7 +233,7 @@ const resolveApiUrl = () => {
   if (detectProvider(chatModelId()) === "litellm") return `${litellmBaseUrl()}/chat/completions`;
   return ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
     ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
-    : `${(process.env.QWEN_BASE_URL || "https://token-plan.maas.qwencloudapi.com/compatible-mode/v1").replace(/\/$/, "")}/chat/completions`;
+    : `${qwenBaseUrl()}/chat/completions`;
 };
 
 const assertApiKey = () => {
@@ -297,6 +306,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     tools,
     toolChoice,
     tool_choice,
+    maxTokens,
+    max_tokens,
     outputSchema,
     output_schema,
     responseFormat,
@@ -322,8 +333,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.tool_choice = normalizedToolChoice;
   }
 
-  payload.max_tokens = 8192
-
+  payload.max_tokens = maxTokens ?? max_tokens ?? 8192;
   const normalizedResponseFormat = normalizeResponseFormat({
     responseFormat,
     response_format,

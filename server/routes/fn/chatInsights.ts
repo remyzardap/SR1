@@ -90,10 +90,20 @@ export async function handleChatInsights(userId: number, req: Request, res: Resp
 
   startSse(res);
   const stopHeartbeat = startHeartbeat(res);
+  // The client closes this dialog by aborting the fetch. Node destroys the request
+  // stream as soon as the body has been read, while this response is still open, so a
+  // req "close" after a full body is not a disconnect: watch the response instead, and
+  // treat a half-read request as one.
   let aborted = false;
-  req.on("close", () => {
+  const clientGone = () => {
     aborted = true;
     stopHeartbeat();
+  };
+  req.on("close", () => {
+    if (!req.readableEnded) clientGone();
+  });
+  res.on("close", () => {
+    if (!res.writableEnded) clientGone();
   });
   const send = (event: "token" | "done" | "error", data: unknown) => {
     if (!aborted && !res.writableEnded) writeSseEvent(res, event, data);

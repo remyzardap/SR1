@@ -18,8 +18,16 @@ import { memories, identities } from "../../drizzle/schema";
 import { eq, sql } from "drizzle-orm";
 import { vertexEmbed, vertexEnabled } from "../core/vertexAuth";
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const EMBEDDING_MODEL = process.env.KEMMA_MODEL_EMBEDDING || "gemini-embedding-2";
+// Both are read per call: Secret Manager fills process.env after this module is first imported
+// (server/_core/index.ts awaits it below the static imports), so an import-time snapshot would
+// pin an empty key for the whole process.
+function geminiApiKey(): string {
+  return process.env.GEMINI_API_KEY || "";
+}
+
+function embeddingModel(): string {
+  return process.env.KEMMA_MODEL_EMBEDDING || "gemini-embedding-2";
+}
 
 // In-memory vector cache (production: use pgvector or Redis)
 const vectorCache = new Map<string, { vector: number[]; timestamp: number }>();
@@ -37,7 +45,8 @@ const CACHE_TTL = 1000 * 60 * 60; // 1 hour
  */
 export async function embed(text: string): Promise<number[]> {
   const backend = vertexEnabled() ? "vertex" : "aistudio";
-  if (backend === "aistudio" && !GEMINI_API_KEY) {
+  const apiKey = geminiApiKey();
+  if (backend === "aistudio" && !apiKey) {
     throw new Error("GEMINI_API_KEY is not configured");
   }
 
@@ -50,10 +59,10 @@ export async function embed(text: string): Promise<number[]> {
 
   let embedding: number[];
   if (backend === "vertex") {
-    embedding = await vertexEmbed(text, process.env.KEMMA_MODEL_EMBEDDING || EMBEDDING_MODEL);
+    embedding = await vertexEmbed(text, embeddingModel());
   } else {
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || "");
-    const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: embeddingModel() });
 
     const result = await model.embedContent(text);
     embedding = result.embedding.values;
@@ -258,7 +267,7 @@ export async function searchMemoriesByText(
 
 /** Returns true if Gemini Embedding is configured (AI Studio key, or the Vertex backend) */
 export function isVectorSearchConfigured(): boolean {
-  return vertexEnabled() || !!GEMINI_API_KEY;
+  return vertexEnabled() || !!geminiApiKey();
 }
 
 /**

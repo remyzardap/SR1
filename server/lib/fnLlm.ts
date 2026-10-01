@@ -130,29 +130,43 @@ export async function stream(
       if (!reader) throw new Error("Empty LLM response stream");
       const decoder = new TextDecoder();
       let buffer = "";
-      while (true) {
+      let closed = false;
+      const takeLine = (line: string): boolean => {
+        if (!line.startsWith("data:")) return false;
+        const payload = line.slice(5).trim();
+        if (payload === "[DONE]") return true;
+        try {
+          const parsed = JSON.parse(payload) as { choices?: Array<{ delta?: { content?: string } }> };
+          const delta = parsed.choices?.[0]?.delta?.content;
+          if (delta) {
+            text += delta;
+            onToken(delta);
+          }
+        } catch {
+          // Keep-alives and partial frames carry no JSON payload.
+        }
+        return false;
+      };
+      while (!closed) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          // The last line of a stream usually has no newline after it: read what is left.
+          if (buffer.trim()) closed = takeLine(buffer.trim());
+          break;
+        }
         buffer += decoder.decode(value, { stream: true });
         let idx: number;
         while ((idx = buffer.indexOf("\n")) !== -1) {
           const line = buffer.slice(0, idx).trim();
           buffer = buffer.slice(idx + 1);
-          if (!line.startsWith("data:")) continue;
-          const payload = line.slice(5).trim();
-          if (payload === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(payload) as { choices?: Array<{ delta?: { content?: string } }> };
-            const delta = parsed.choices?.[0]?.delta?.content;
-            if (delta) {
-              text += delta;
-              onToken(delta);
-            }
-          } catch {
-            // Keep-alives and partial frames carry no JSON payload.
+          if (takeLine(line)) {
+            closed = true;
+            break;
           }
         }
       }
+      // [DONE] is the end of the answer; the provider may keep the connection open.
+      if (closed) await Promise.resolve(reader.cancel?.()).catch(() => {});
       if (!text.trim()) throw new Error("Empty LLM response");
       void logUsage({ userId: options.userId, provider: route.provider, model: route.model, inputTokens: 0, outputTokens: 0, purpose: options.purpose });
       return { text, model: route.model, provider: route.provider, inputTokens: 0, outputTokens: 0 };

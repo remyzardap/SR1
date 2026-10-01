@@ -149,8 +149,8 @@ async function getAuthenticatedClient(userId: number) {
     try {
       const { credentials } = await oauth2Client.refreshAccessToken();
       const updates: Record<string, unknown> = { updatedAt: new Date() };
-      if (credentials.access_token) updates.accessToken = credentials.access_token;
-      if (credentials.refresh_token) updates.refreshToken = credentials.refresh_token;
+      if (credentials.access_token) updates.accessToken = encryptToken(credentials.access_token);
+      if (credentials.refresh_token) updates.refreshToken = encryptToken(credentials.refresh_token);
       if (credentials.expiry_date) updates.expiresAt = new Date(credentials.expiry_date);
       await db.update(googleTokens).set(updates).where(eq(googleTokens.userId, userId));
       oauth2Client.setCredentials(credentials);
@@ -161,8 +161,8 @@ async function getAuthenticatedClient(userId: number) {
 
   oauth2Client.on("tokens", async (newTokens) => {
     const updates: Record<string, unknown> = { updatedAt: new Date() };
-    if (newTokens.access_token) updates.accessToken = newTokens.access_token;
-    if (newTokens.refresh_token) updates.refreshToken = newTokens.refresh_token;
+    if (newTokens.access_token) updates.accessToken = encryptToken(newTokens.access_token);
+    if (newTokens.refresh_token) updates.refreshToken = encryptToken(newTokens.refresh_token);
     if (newTokens.expiry_date) updates.expiresAt = new Date(newTokens.expiry_date);
     await db.update(googleTokens).set(updates).where(eq(googleTokens.userId, userId));
   });

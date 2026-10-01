@@ -27,7 +27,7 @@ function generateToken(): string {
 export const fileSharingRouter = router({
   createShareLink: protectedProcedure
     .input(z.object({
-      fileId: z.number(),
+      fileId: z.number().int().positive(),
       options: z.object({
         expiresInHours: z.number().min(1).max(720).optional(),
         maxAccessCount: z.number().min(1).optional(),
@@ -96,7 +96,7 @@ export const fileSharingRouter = router({
     }),
 
   listShareLinks: protectedProcedure
-    .input(z.object({ fileId: z.number() }))
+    .input(z.object({ fileId: z.number().int().positive() }))
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) return [];

@@ -120,14 +120,16 @@ export function registerChatStreamRoute(app: Router) {
     }
 
     // ── 2. Parse body ────────────────────────────────────────────────────────
+    // A non-JSON Content-Type leaves req.body unset; destructuring undefined would reject this
+    // async handler and leave the request hanging with no response at all.
     const {
       messages,
       max = false,
       sessionId: rawSessionId,
       // Legacy field — accepted but ignored (S1 routes automatically)
       provider: _provider,
-    } = req.body as {
-      messages: Array<{ role: "user" | "assistant"; content: string }>;
+    } = ((req.body ?? {}) as unknown) as {
+      messages?: Array<{ role: "user" | "assistant"; content: string }>;
       max?: boolean;
       sessionId?: string;
       provider?: string;
@@ -257,8 +259,11 @@ export function registerChatStreamRoute(app: Router) {
         const client = await auth.getClient();
         const tokenResponse = await client.getAccessToken();
         bearerToken = tokenResponse.token ?? "";
+        if (!bearerToken) throw new Error("no access token");
       } catch (err) {
-        sseWrite(res, "error", `Vertex auth error: ${String(err)}`);
+        // The library error text can name the credentials file, so keep the client message generic.
+        console.warn("[chat/stream] Vertex token exchange failed:", String(err));
+        sseWrite(res, "error", "Vertex AI authentication failed. Check GOOGLE_APPLICATION_CREDENTIALS.");
         res.end();
         return;
       }
@@ -313,6 +318,7 @@ export function registerChatStreamRoute(app: Router) {
         await _db.insert(chatMessages).values({
           id: randomUUID(),
           sessionId,
+          userId: user.id,
           role: "user",
           content: lastUserMsg.content,
           createdAt: new Date(),
@@ -370,6 +376,7 @@ export function registerChatStreamRoute(app: Router) {
             await _db.insert(chatMessages).values({
               id: randomUUID(),
               sessionId,
+              userId: user.id,
               role: "assistant",
               content: fullResponse,
               createdAt: new Date(),

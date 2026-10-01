@@ -93,11 +93,18 @@ const DEFAULTS = {
   LITELLM_BASE_URL: "https://api.koboillm.com/v1",
 };
 
-const ENDPOINTS: Record<Exclude<ModelProvider, "litellm">, string> = {
-  qwen: process.env.QWEN_BASE_URL || DEFAULTS.QWEN_BASE_URL,
+// Endpoint per provider. Static ones are constants; the two configurable gateways are read at
+// call time so a value that lands in process.env after this module was imported (Secret Manager
+// fills it later: see _core/index.ts and the note in _core/env.ts) still takes effect.
+const STATIC_ENDPOINTS: Record<"perplexity" | "gemini", string> = {
   perplexity: "https://api.perplexity.ai",
   gemini: "https://generativelanguage.googleapis.com/v1beta/openai",
 };
+
+/** Configurable OpenAI-compatible base for the Qwen provider. Trailing slashes trimmed. */
+export function qwenBaseUrl(): string {
+  return (process.env.QWEN_BASE_URL || DEFAULTS.QWEN_BASE_URL).replace(/\/+$/, "");
+}
 
 // Read at call time so env changes take effect without a restart. Trailing slash trimmed.
 export function litellmBaseUrl(): string {
@@ -105,7 +112,9 @@ export function litellmBaseUrl(): string {
 }
 
 function endpointFor(provider: ModelProvider): string {
-  return provider === "litellm" ? litellmBaseUrl() : ENDPOINTS[provider];
+  if (provider === "litellm") return litellmBaseUrl();
+  if (provider === "qwen") return qwenBaseUrl();
+  return STATIC_ENDPOINTS[provider];
 }
 
 // Very rough per-million-token prices for cost estimation only.
@@ -202,6 +211,29 @@ export function routeHasAuth(route: RouteConfig): boolean {
 
 function getEnvModel(name: keyof typeof DEFAULTS): string {
   return (process.env[name] || DEFAULTS[name]).trim();
+}
+
+/** Names of the slots that hold a model id. */
+export type SlotName =
+  | "KEMMA_MODEL_CHAT"
+  | "KEMMA_MODEL_SEARCH"
+  | "KEMMA_MODEL_VISION"
+  | "KEMMA_MODEL_EMBEDDING"
+  | "KEMMA_MODEL_IMAGE"
+  | "KEMMA_MODEL_REPORT"
+  | "KEMMA_MODEL_LONG_DOC"
+  | "KEMMA_MODEL_PLANNER"
+  | "KEMMA_MODEL_VERIFY"
+  | "KEMMA_MODEL_PRO"
+  | "KEMMA_MODEL_PRO_FALLBACK";
+
+/**
+ * The configured id for a slot exactly as env has it, provider prefix included. Slot builders
+ * return a routed RouteConfig; consumers that must keep the routing prefix (S1, the picker)
+ * read the id through this.
+ */
+export function slotModelId(name: SlotName): string {
+  return getEnvModel(name);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

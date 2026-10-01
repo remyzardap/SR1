@@ -24,7 +24,7 @@ const msgs = [{ role: "system", content: "SYS" }, { role: "user", content: "hell
 describe("s1Blend", () => {
   it("blends gemini+qwen drafts into one synthesis request", async () => {
     stub();
-    const { s1Blend } = await import("/root/sr1/server/routers/s1Router");
+    const { s1Blend } = await import("./routers/s1Router");
     const plan = await s1Blend("explain recursion", msgs);
     expect(calls).toHaveLength(2);
     expect(plan.contributors.sort()).toEqual(["gemini", "qwen"]);
@@ -36,28 +36,28 @@ describe("s1Blend", () => {
   });
   it("adds sonar (with citations) for web questions", async () => {
     stub();
-    const { s1Blend } = await import("/root/sr1/server/routers/s1Router");
+    const { s1Blend } = await import("./routers/s1Router");
     const plan = await s1Blend("latest news today", msgs);
     expect(plan.contributors.sort()).toEqual(["gemini", "qwen", "sonar"]);
     expect(plan.messages[0].content).toContain("https://a.example");
   });
   it("falls back to a single answer when only one draft works", async () => {
     stub(["qwen"]);
-    const { s1Blend } = await import("/root/sr1/server/routers/s1Router");
+    const { s1Blend } = await import("./routers/s1Router");
     const plan = await s1Blend("hi", msgs);
     expect(plan.contributors).toEqual(["gemini"]);
     expect(plan.messages).toEqual(msgs);
   });
   it("skips drafts entirely with one configured provider", async () => {
     stub(); delete process.env.QWEN_API_KEY; delete process.env.SONAR_API_KEY;
-    const { s1Blend } = await import("/root/sr1/server/routers/s1Router");
+    const { s1Blend } = await import("./routers/s1Router");
     const plan = await s1Blend("hi", msgs);
     expect(calls).toHaveLength(0);
     expect(plan.contributors).toEqual(["gemini"]);
   });
   it("throws when nothing is configured", async () => {
     stub(); delete process.env.GEMINI_API_KEY; delete process.env.QWEN_API_KEY; delete process.env.SONAR_API_KEY;
-    const { s1Blend } = await import("/root/sr1/server/routers/s1Router");
+    const { s1Blend } = await import("./routers/s1Router");
     await expect(s1Blend("hi", msgs)).rejects.toThrow(/No LLM provider/);
   });
 });
