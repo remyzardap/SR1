@@ -37,6 +37,8 @@ const history = new Map<string, KemmaMessage[]>();
 const sentIds = new Set<string>();
 let sock: WASocket | null = null;
 let stopping = false;
+let failures = 0;
+let resets: number[] = [];
 
 export const waStatus: { state: "off" | "waiting" | "connecting" | "open"; pairingCode?: string; number?: string; note?: string } = { state: "off" };
 
@@ -118,7 +120,8 @@ async function connect() {
   const pairNumber = (process.env.WHATSAPP_PAIR_NUMBER ?? "").replace(/\D/g, "");
   let pairRequested = false;
 
-  s.ev.on("creds.update", saveCreds);
+  let dead = false; // set once this socket is logged out, so it cannot re-save stale creds
+  s.ev.on("creds.update", () => { if (!dead) saveCreds(); });
   s.ev.on("connection.update", async (u) => {
     if (u.qr) {
       if (pairNumber && !pairRequested && !s.authState.creds.registered) {
@@ -137,6 +140,7 @@ async function connect() {
       }
     }
     if (u.connection === "open") {
+      failures = 0;
       waStatus.state = "open";
       waStatus.pairingCode = undefined;
       waStatus.number = digits(s.user?.id);
@@ -148,12 +152,25 @@ async function connect() {
       waStatus.state = "connecting";
       waStatus.pairingCode = undefined;
       if (code === DisconnectReason.loggedOut) {
+        dead = true;
+        s.ev.removeAllListeners("creds.update");
+        const now = Date.now();
+        resets = resets.filter((t) => now - t < 10 * 60_000).concat(now);
+        if (resets.length > 3) {
+          waStatus.state = "off";
+          waStatus.note = "Stopped after repeated logouts. Wait a few minutes, then restart the server.";
+          console.warn("[WhatsApp] Too many logouts in a row; giving up so the number is not hammered");
+          return;
+        }
         console.warn("[WhatsApp] Logged out; clearing the session and starting a fresh link");
         await rm(authDir, { recursive: true, force: true }).catch(() => {});
         waStatus.number = undefined;
+        return void setTimeout(() => connect().catch((e) => console.error("[WhatsApp] Reconnect failed:", e)), 30_000);
       }
-      console.warn(`[WhatsApp] Connection closed (${code ?? "unknown"}), reconnecting in 5s`);
-      setTimeout(() => connect().catch((e) => console.error("[WhatsApp] Reconnect failed:", e)), 5000);
+      failures += 1;
+      const delay = Math.min(5000 * 2 ** (failures - 1), 5 * 60_000);
+      console.warn(`[WhatsApp] Connection closed (${code ?? "unknown"}), reconnecting in ${Math.round(delay / 1000)}s`);
+      setTimeout(() => connect().catch((e) => console.error("[WhatsApp] Reconnect failed:", e)), delay);
     }
   });
 

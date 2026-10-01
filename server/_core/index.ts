@@ -101,7 +101,7 @@ app.get('/api/admin/whatsapp', requireSession, (req, res) => {
     ? `<h1>Connected</h1><p>Linked as +${waStatus.number}. Send yourself a message to talk to Kemma.</p>`
     : waStatus.pairingCode
       ? `<h1 style="font:700 48px monospace;letter-spacing:6px">${waStatus.pairingCode}</h1><p>WhatsApp &gt; Settings &gt; Linked devices &gt; Link a device &gt; Link with phone number instead. Enter this code now.</p>`
-      : `<h1>${waStatus.state === 'off' ? 'Bridge is off' : 'Getting a code…'}</h1><p>This page refreshes by itself.</p>`;
+      : `<h1>${waStatus.state === 'off' ? 'Bridge is off' : 'Getting a code…'}</h1><p>${waStatus.note ?? 'This page refreshes by itself.'}</p>`;
   res.setHeader('Cache-Control', 'no-store');
   res.send(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="4"><title>WhatsApp link</title><body style="font-family:system-ui;padding:32px;max-width:520px;margin:auto">${body}</body>`);
 });
