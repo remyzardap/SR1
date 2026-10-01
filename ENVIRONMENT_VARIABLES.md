@@ -201,6 +201,7 @@ rules: 3.x requires `VERTEX_LOCATION=global`. There is no `gemini-3.8-pro` on Ve
 | `KEMMA_MODEL_VERIFY` | `gemini-3.8-flash` | Citation verification |
 | `KEMMA_MODEL_PRO` | `gemini-3.1-pro-preview` | Pro reasoning slot (exposed in the model list; no role switches to it automatically). 3.x is Vertex `global` only |
 | `KEMMA_MODEL_PRO_FALLBACK` | `gemini-2.5-pro` | Tried when a `KEMMA_MODEL_PRO` call fails; empty disables it |
+| `KEMMA_REASONING_EFFORT` | `low` | Thinking effort sent with Gemini flash chat calls (`low`, `medium`, `high`, or `off` to send nothing). Gemini flash can think for 3 to 20 seconds before answering, so the default is low. Pro models are never limited |
 | `KEMMA_SEARCH_RPM` | `40` | Perplexity Sonar rate limit |
 | `KEMMA_MAX_SUBAGENTS` | `1` | Parallel research sub-agents (max 5) |
 | `KEMMA_TOOL_BUDGET` | `60` | Tool-call budget for Deep Research |
