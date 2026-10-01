@@ -575,8 +575,8 @@ input, textarea, select { font-size: 16px; }
 /* Faster tap response on touch devices */
 button, a { touch-action: manipulation; }
 
-/* Prevent pull-to-refresh on mobile browsers */
-body { overscroll-behavior-y: none; }
+/* Prevent pull-to-refresh on mobile browsers. Keep this on html: on body it traps the mouse wheel, because html and body are both overflow:auto (from overflow-x:hidden). */
+html { overscroll-behavior-y: none; }
 /* ── Opera Neon Design Language ───────────────────────────────────────────────
    Cream and black panels, pill buttons, monospace caps labels, flat pastel
    tags, and orange accent reserved for active steps / status dots.
