@@ -6,7 +6,5 @@ useDefault = true
 [allowlist]
 description = "Built static bundle and lockfile contain high-entropy strings that are not secrets"
 paths = [
-  '''lovable-public/.*''',
-  '''old-public-backup/.*''',
   '''package-lock\.json''',
 ]

@@ -11,9 +11,6 @@ vertex-*.json
 .gitignore
 README.md
 CHANGELOG.md
-.replit
-replit.md
-open-browser.ts
 .vscode
 .idea
 *.log
