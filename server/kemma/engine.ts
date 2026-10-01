@@ -11,6 +11,7 @@ import {
   plannerRoute,
   callChainFor,
   routeFor,
+  isAdminOnlyModel,
   detectComplexity,
   MAX_STEPS,
   type Tier,
@@ -219,6 +220,10 @@ async function runParallelSubAgents(
 
 export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   const startTime = Date.now();
+  // Admin-only models are re-checked against the DB here, whatever the caller passed.
+  if (input.modelOverride && isAdminOnlyModel(input.modelOverride) && !(await isAdminUser(input.userId))) {
+    input = { ...input, modelOverride: undefined };
+  }
   const { userId, userName, messages, tier, isThinking, isVoice = false, sessionId, reportId, polish, onStream, onToolStart, onToolEnd, onStepStart, onStepEnd, onQuotaWarn, onNotice, onSkillUsed } = input;
 
   const msgQuota = await checkQuota(userId, "message");
@@ -748,8 +753,11 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
   const body = {
     model: target.model,
     messages: [{ role: "system", content: systemPrompt }, ...messages.filter((m) => m.role !== "system").map((m) => adaptToolCallsForProvider(m, route.provider))],
-    tools: tools ? tools.map((t) => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.parameters } })) : undefined,
-    tool_choice: tools ? "auto" : undefined,
+    // Venice: skip its own system prompt so the model is not re-restricted; tools only when VENICE_TOOLS=1
+    // (not every Venice model supports function calling).
+    ...(route.provider === "venice" ? { venice_parameters: { include_venice_system_prompt: false } } : {}),
+    tools: tools && (route.provider !== "venice" || process.env.VENICE_TOOLS === "1") ? tools.map((t) => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.parameters } })) : undefined,
+    tool_choice: tools && (route.provider !== "venice" || process.env.VENICE_TOOLS === "1") ? "auto" : undefined,
     stream: stream && !!onStream,
     max_tokens: 4096,
   };

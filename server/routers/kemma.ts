@@ -56,7 +56,7 @@ export const kemmaRouter = router({
       const threadSettings: ThreadSettings = input.sessionId
         ? (await getChatSessionSettings(input.sessionId, ctx.user.id) as ThreadSettings)
         : {};
-      const resolved = resolveSettings(threadSettings, input.settings as MessageSettings);
+      const resolved = resolveSettings(threadSettings, input.settings as MessageSettings, undefined, { isAdmin: ctx.user.role === "admin" });
 
       const skillIds = resolved.skills;
       const db = await getDb();
@@ -103,7 +103,7 @@ export const kemmaRouter = router({
       catch (e) { throw new TRPCError({ code: "BAD_REQUEST", message: (e as Error).message }); }
     }),
 
-  availableModels: protectedProcedure.query(() => listSelectableModels()),
+  availableModels: protectedProcedure.query(({ ctx }) => listSelectableModels(ctx.user.role === "admin")),
 
   approvedSkills: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
