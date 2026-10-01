@@ -101,6 +101,7 @@ import { STYLE_DEFINITIONS, type StructuredContent, type StyleOption } from "../
 import { BrowserUse } from "browser-use-sdk";
 import fsp from "fs/promises";
 import nodePath from "path";
+import { runVpsFiles, VpsFilesError } from "./executors/vpsFiles";
 import { getEnabledSkills } from "./skillReviews";
 import { getMcpRegistry, MCP_TOOL_PREFIX } from "./mcp/client";
 import { toLoadedSkill, readSkillFileContent, type FileSkill } from "./fileSkills";
@@ -484,7 +485,7 @@ export async function runSkillScript(skill: FileSkill, script: string, args: str
 // 3. TOOL DISPATCHER — replaces executor.ts, with 3 bugs fixed
 // ═══════════════════════════════════════════════════════════════════════════
 
-type ToolName = "load_skill" | "read_skill_file" | "run_skill_script" | "safe_files" | "web_search" | "browse" | "run_code" | "generate_file" | "phone_scan" | "drive_search" | "drive_read" | "drive_create" | "drive_edit" | "drive_move";
+type ToolName = "vps_files" | "load_skill" | "read_skill_file" | "run_skill_script" | "safe_files" | "web_search" | "browse" | "run_code" | "generate_file" | "phone_scan" | "drive_search" | "drive_read" | "drive_create" | "drive_edit" | "drive_move";
 
 type SafeFilesAction = "create" | "read" | "edit" | "list" | "versions";
 
@@ -507,7 +508,7 @@ function createErrorResult(error: string, code: string): ErrorResult {
 }
 
 function isValidToolName(value: unknown): value is ToolName {
-  const valid: ToolName[] = ["load_skill", "read_skill_file", "run_skill_script", "safe_files", "web_search", "browse", "run_code", "generate_file", "phone_scan", "drive_search", "drive_read", "drive_create", "drive_edit", "drive_move"];
+  const valid: ToolName[] = ["vps_files", "load_skill", "read_skill_file", "run_skill_script", "safe_files", "web_search", "browse", "run_code", "generate_file", "phone_scan", "drive_search", "drive_read", "drive_create", "drive_edit", "drive_move"];
   return typeof value === "string" && valid.includes(value as ToolName);
 }
 
@@ -571,6 +572,15 @@ export async function executeToolCall(userId: number, toolName: string, args: un
     const safeArgs = typeof args === "object" && args !== null ? (args as Record<string, unknown>) : {};
 
     switch (toolName) {
+      case "vps_files": {
+        try {
+          return createSuccessResult(await runVpsFiles(userId, safeArgs.action, safeArgs));
+        } catch (err) {
+          if (err instanceof VpsFilesError) return createErrorResult(err.message, err.code);
+          throw err;
+        }
+      }
+
       case "load_skill":
       case "read_skill_file":
       case "run_skill_script": {

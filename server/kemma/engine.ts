@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { buildKemmaSystemPrompt, buildKemmaVoicePrompt } from "./personality";
 import { executeToolCall } from "./kemmaMax";
+import { isAdminUser } from "./executors/vpsFiles";
 import {
   chatRoute,
   reportRoute,
@@ -22,7 +23,7 @@ import {
 import { vertexGenerateContentBody, vertexGenerateContentText } from "../core/vertexAuth";
 import { checkQuota, incrementQuota } from "../core/quotaCheck";
 import { logUsage, checkSpendCap } from "../core/usage";
-import { KEMMA_TOOLS, SKILL_TOOLS, SKILL_TOOL_NAMES, type ToolDefinition } from "./tools";
+import { KEMMA_TOOLS, SKILL_TOOLS, VPS_FILES_TOOL, SKILL_TOOL_NAMES, type ToolDefinition } from "./tools";
 import { getMemoriesContext } from "./memory";
 import { type Source, extractSources, dedupeSources, annotateSearchResult, keepCitedSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
 
@@ -280,6 +281,13 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     } catch {
       // Ignore Drive status errors.
     }
+  }
+
+  // Admin-only host file access. The executor re-checks the role, this just keeps it out of other users' tool lists.
+  if (!input.isSubAgent && (!input.allowedTools || input.allowedTools.includes("vps_files"))) {
+    try {
+      if (await isAdminUser(userId)) baseTools = [...baseTools, VPS_FILES_TOOL];
+    } catch { /* non-admin path on any error */ }
   }
 
   // MCP tools join the same registry and the same per-run filter as built-in tools.

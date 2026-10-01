@@ -21,6 +21,8 @@ import { sdk } from './sdk';
 import { generalApiRateLimiter } from './rateLimiter';
 import { registerFileRoutes } from '../routes/files';
 import { fnRouter } from '../routes/fn';
+import { startWhatsAppBaileys, waStatus } from '../services/whatsappBaileys';
+import whatsappWebhookRouter from '../routes/webhooks/whatsapp';
 import { registerExportRoutes } from '../routes/export';
 
 // Load secrets from Secret Manager before starting
@@ -86,12 +88,23 @@ app.use((req, res, next) => {
 // Public / webhook routes (must stay reachable without a session)
 registerGoogleCallbackRoute(app);
 registerTelegramWebhookRoute(app);
+app.use('/webhooks/whatsapp', whatsappWebhookRouter); // Meta verifies with a GET, posts signed events
 
 // Protected Express routes
 registerChatStreamRoute(app as any); // already has its own auth
 app.use('/api/atelier', requireSession);
 registerAtelierRoutes(app);
 app.use('/api/intelligence', requireSession, intelligenceRouter);
+app.get('/api/admin/whatsapp', requireSession, (req, res) => {
+  if ((req as any).user?.role !== 'admin') return res.status(403).send('Admin only');
+  const body = waStatus.state === 'open'
+    ? `<h1>Connected</h1><p>Linked as +${waStatus.number}. Send yourself a message to talk to Kemma.</p>`
+    : waStatus.pairingCode
+      ? `<h1 style="font:700 48px monospace;letter-spacing:6px">${waStatus.pairingCode}</h1><p>WhatsApp &gt; Settings &gt; Linked devices &gt; Link a device &gt; Link with phone number instead. Enter this code now.</p>`
+      : `<h1>${waStatus.state === 'off' ? 'Bridge is off' : 'Getting a code…'}</h1><p>This page refreshes by itself.</p>`;
+  res.setHeader('Cache-Control', 'no-store');
+  res.send(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="4"><title>WhatsApp link</title><body style="font-family:system-ui;padding:32px;max-width:520px;margin:auto">${body}</body>`);
+});
 app.post('/api/kemma/stream', requireSession, kemmaStreamRoute);
 app.use('/api/fn', requireSession, fnRouter);
 registerJobsTick(app);
@@ -119,6 +132,7 @@ const server = createServer(app);
   // Start trial expiry background job
   startTrialExpiryJob();
   startJobRunner();
+  startWhatsAppBaileys();
 
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`Sutaeru server running on port ${PORT}`);
