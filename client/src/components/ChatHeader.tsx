@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { Loader2, Maximize2, Minimize2, MoveHorizontal } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { NEON, NEON_FD, NEON_FM } from "@/lib/design";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,8 @@ interface ChatHeaderProps {
   onExport?: (format: "md" | "pdf") => void;
   exportPending?: boolean;
   onInsights?: () => void;
+  chatWidth?: "normal" | "wide" | "full";
+  onCycleWidth?: () => void;
 }
 
 export function ChatHeader({
@@ -52,6 +54,8 @@ export function ChatHeader({
   onExport,
   exportPending = false,
   onInsights,
+  chatWidth = "normal",
+  onCycleWidth,
 }: ChatHeaderProps) {
   const reduceMotion = useReducedMotion();
   return (
@@ -166,6 +170,20 @@ export function ChatHeader({
               <SutaeruIcon name="research" className="h-4 w-4" />
               <span className="hidden sm:inline">Max</span>
              </Button>
+          )}
+
+          {!agentHandle && onCycleWidth && (
+            <Button
+              variant="ghost"
+              title={`Chat width: ${chatWidth}. Click to change (normal, wide, full).`}
+              aria-label={`Chat width: ${chatWidth}. Click to change`}
+              onClick={onCycleWidth}
+              className="flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition-all duration-200"
+              style={{ background: "rgba(10,10,10,0.05)", border: "1px solid rgba(10,10,10,0.06)", color: NEON.muted }}
+            >
+              {chatWidth === "full" ? <Minimize2 className="h-4 w-4" /> : chatWidth === "wide" ? <Maximize2 className="h-4 w-4" /> : <MoveHorizontal className="h-4 w-4" />}
+              <span className="hidden sm:inline">{chatWidth === "full" ? "Full" : chatWidth === "wide" ? "Wide" : "Width"}</span>
+            </Button>
           )}
 
           {!agentHandle && onInsights && (

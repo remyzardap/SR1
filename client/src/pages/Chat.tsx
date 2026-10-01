@@ -135,6 +135,20 @@ export default function Chat() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [agentPanelOpen, setAgentPanelOpen] = useState(true);
+  type ChatWidth = "normal" | "wide" | "full";
+  const [chatWidth, setChatWidth] = useState<ChatWidth>(() => {
+    try {
+      const saved = window.localStorage.getItem("sutaeru.chatWidth");
+      return saved === "wide" || saved === "full" ? saved : "normal";
+    } catch { return "normal"; }
+  });
+  const cycleChatWidth = () => setChatWidth((current) => {
+    const next: ChatWidth = current === "normal" ? "wide" : current === "wide" ? "full" : "normal";
+    try { window.localStorage.setItem("sutaeru.chatWidth", next); } catch { /* storage may be unavailable */ }
+    return next;
+  });
+  // Full width gives the whole screen to the conversation: no side panel, no history drawer.
+  const showAgentPanel = agentPanelOpen && chatWidth !== "full";
 
   // Thread-level settings
   const [mode, setMode] = useState<string>("fast");
@@ -591,7 +605,7 @@ export default function Chat() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="sutaeru-chat" style={{ ...NEON_PAGE_BG, display: "flex", minHeight: "100vh" }}>
+    <div className="sutaeru-chat" data-chat-width={chatWidth} style={{ ...NEON_PAGE_BG, display: "flex", minHeight: "100vh" }}>
       <div style={NOISE_OVERLAY} />
 
       {/* Session sidebar */}
@@ -630,6 +644,8 @@ export default function Chat() {
           onExport={(format) => void exportThreadFromServer(format)}
           exportPending={exportPending}
           onInsights={() => setInsightsOpen(true)}
+          chatWidth={chatWidth}
+          onCycleWidth={cycleChatWidth}
         />
         <ChatInsightsDialog
           open={insightsOpen}
@@ -778,7 +794,7 @@ export default function Chat() {
               </div>
               {mobileDetailsOpen && <div className="sutaeru-mobile-details"><strong>Run details</strong><p>{isStreaming ? currentStep || "Thinking…" : error ? "Run failed" : "No active run"}</p>{agentSteps.map(step => <p key={step.id}>{step.label}</p>)}{sources.length > 0 && <div className="sutaeru-inline-sources"><strong>Sources</strong>{sources.map((source, index) => <a key={`${source.url}-${index}`} href={source.url} target="_blank" rel="noreferrer"><span>{index + 1}. {source.title}</span><ExternalLink size={14} /></a>)}</div>}</div>}
               <div className="sutaeru-run-composer">
-              <div className="mx-auto flex max-w-2xl items-center gap-2">
+              <div className="sutaeru-composer-row mx-auto flex max-w-2xl items-center gap-2">
                 <div className="flex-1">
                    <ChatInput
                     value={input}
@@ -799,11 +815,11 @@ export default function Chat() {
           <div
             className={cn(
               "hidden xl:flex flex-col transition-all duration-200 overflow-hidden",
-              agentPanelOpen ? "w-72" : "w-0"
+              showAgentPanel ? "w-72" : "w-0"
             )}
-            style={{ borderLeft: agentPanelOpen ? "1px solid rgba(10,10,10,0.06)" : "none", background: "rgba(255,255,255,0.35)" }}
+            style={{ borderLeft: showAgentPanel ? "1px solid rgba(10,10,10,0.06)" : "none", background: "rgba(255,255,255,0.35)" }}
           >
-            {agentPanelOpen && (
+            {showAgentPanel && (
               <div className="flex flex-col h-full p-4 gap-4">
                 <div className="flex items-center justify-between">
                   <span className="neon-label">Agent status</span>
@@ -916,7 +932,7 @@ export default function Chat() {
       </div>
 
       {/* Floating toggle for agent panel when collapsed */}
-      {!agentPanelOpen && (
+      {!agentPanelOpen && chatWidth !== "full" && (
          <Button
           onClick={() => setAgentPanelOpen(true)}
            variant="outline"

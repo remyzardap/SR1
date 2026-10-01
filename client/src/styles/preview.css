@@ -254,3 +254,18 @@
   .sutaeru-chat .sutaeru-attach-button:hover,.sutaeru-nav-item:hover { transform: none; }
   .sutaeru-chat .sutaeru-editorial-prompt { transition: none; }
 }
+
+/* Chat width: normal (default) / wide / full. Toggled from the chat header, stored in localStorage. */
+.sutaeru-chat[data-chat-width="wide"] .sutaeru-chat-transcript > div,
+.sutaeru-chat[data-chat-width="wide"] .sutaeru-run-composer > div { max-width: min(1240px, 100%); }
+.sutaeru-chat[data-chat-width="full"] .sutaeru-chat-transcript > div,
+.sutaeru-chat[data-chat-width="full"] .sutaeru-run-composer > div { max-width: 100%; }
+.sutaeru-chat[data-chat-width="wide"] .sutaeru-chat-transcript .sutaeru-editorial-message:not(.flex-row-reverse) > div:nth-child(2),
+.sutaeru-chat[data-chat-width="full"] .sutaeru-chat-transcript .sutaeru-editorial-message:not(.flex-row-reverse) > div:nth-child(2) { max-width: 100%; }
+.sutaeru-chat[data-chat-width="wide"] .sutaeru-composer-row,
+.sutaeru-chat[data-chat-width="wide"] .sutaeru-composer-textarea { max-width: none; }
+.sutaeru-chat[data-chat-width="full"] .sutaeru-composer-row,
+.sutaeru-chat[data-chat-width="full"] .sutaeru-composer-textarea { max-width: none; }
+.sutaeru-chat[data-chat-width="wide"] .sutaeru-composer-textarea { max-height: 40vh; }
+.sutaeru-chat[data-chat-width="full"] .sutaeru-composer-textarea { max-height: 55vh; }
+.sutaeru-chat[data-chat-width="full"] .sutaeru-chat-content { padding-inline: clamp(16px, 3vw, 48px); }
