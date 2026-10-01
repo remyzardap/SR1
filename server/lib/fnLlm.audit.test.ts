@@ -53,6 +53,8 @@ const json = (body: unknown) => ({ ok: true, status: 200, json: async () => body
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // These suites assert immediate fallback to the next route; same-route retries are covered in fnLlm.efficiency.test.ts.
+  vi.stubEnv("KEMMA_HTTP_ATTEMPTS", "1");
   router.routeHasAuth.mockImplementation((r: { apiKey?: string; authKind?: string }) => r.authKind === "vertex" || !!r.apiKey);
   router.resolveRouteAuth.mockImplementation(async (r: { baseUrl: string; model: string; apiKey: string }) => ({
     baseUrl: r.baseUrl,
@@ -65,6 +67,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
 
@@ -120,19 +123,19 @@ describe("the end of a streamed answer", () => {
     expect(received).toEqual(["keep"]);
   });
 
-  it("bills a streamed call with zero tokens even when the provider reports usage", async () => {
+  it("bills a streamed call with the usage the provider reports", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        sseBody([frame("answer"), `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: 900, completion_tokens: 120 } })}\n\n`, "data: [DONE]\n\n"])
+        sseBody([frame("answer"), `data: ${JSON.stringify({ choices: [], usage: { prompt_tokens: 900, completion_tokens: 120, prompt_tokens_details: { cached_tokens: 700 } } })}\n\n`, "data: [DONE]\n\n"])
       )
     );
     const out = await stream([{ role: "user", content: "hi" }], options, () => {});
     expect(out.text).toBe("answer");
-    // Parsed and thrown away: usage_logs gets 0/0 for every streamed brief and insight.
-    expect(usage.logUsage).toHaveBeenCalledWith(expect.objectContaining({ inputTokens: 0, outputTokens: 0 }));
-    expect(out.inputTokens).toBe(0);
-    expect(out.outputTokens).toBe(0);
+    // The final usage chunk used to be parsed and thrown away, so usage_logs got 0/0 for every streamed brief.
+    expect(usage.logUsage).toHaveBeenCalledWith(expect.objectContaining({ inputTokens: 900, outputTokens: 120, cachedInputTokens: 700 }));
+    expect(out.inputTokens).toBe(900);
+    expect(out.outputTokens).toBe(120);
   });
 });
 

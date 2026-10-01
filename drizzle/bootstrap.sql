@@ -475,6 +475,7 @@ CREATE TABLE IF NOT EXISTS "usage_logs" (
 	"input_tokens" integer DEFAULT 0 NOT NULL,
 	"output_tokens" integer DEFAULT 0 NOT NULL,
 	"total_tokens" integer DEFAULT 0 NOT NULL,
+	"cached_input_tokens" integer DEFAULT 0 NOT NULL,
 	"estimated_cost_usd" numeric(12, 6) DEFAULT '0',
 	"purpose" varchar(64),
 	"created_at" timestamp DEFAULT now() NOT NULL

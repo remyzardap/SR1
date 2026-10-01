@@ -149,9 +149,11 @@ async function sleep(ms: number): Promise<void> {
 
 // ─── Main function ───────────────────────────────────────────────────────────
 
-export async function webSearch(
+type SearchHit = { title: string; url: string; snippet: string; date?: string };
+
+async function searchUpstream(
   query: string
-): Promise<Array<{ title: string; url: string; snippet: string }>> {
+): Promise<SearchHit[]> {
   if (!query || query.trim() === '') {
     throw new Error('Search query cannot be empty');
   }
@@ -259,6 +261,77 @@ export async function webSearch(
   }
 
   throw new PerplexityAPIError('Perplexity API rate limit persisted after retries.', 429);
+}
+
+// ─── Response cache + in-flight dedupe ───────────────────────────────────────
+// Deep research and parallel sub-agents often issue the same query several times; every upstream
+// call is a paid Sonar request. Identical queries within the TTL are served from memory, and
+// identical queries already in flight share one request. Errors and empty answers are never cached.
+// KEMMA_SEARCH_CACHE_TTL_SEC (default 900, 0 disables). Queries that read as time-sensitive are
+// capped at 120 s so "latest" and "today" do not go stale.
+
+const SEARCH_CACHE_MAX = 200;
+const SHORT_TTL_MS = 120_000;
+const RECENCY_WORDS = /\b(now|today|tonight|latest|breaking|live|right now|this (hour|morning|week)|current (price|score|status))\b/i;
+
+const searchCache = new Map<string, { at: number; results: SearchHit[] }>();
+const searchInflight = new Map<string, Promise<SearchHit[]>>();
+
+function searchCacheTtlMs(query: string): number {
+  const raw = process.env.KEMMA_SEARCH_CACHE_TTL_SEC;
+  const sec = raw === undefined || raw.trim() === '' ? 900 : Number(raw);
+  if (!Number.isFinite(sec) || sec <= 0) return 0;
+  const ms = sec * 1000;
+  return RECENCY_WORDS.test(query) ? Math.min(ms, SHORT_TTL_MS) : ms;
+}
+
+const cloneHits = (hits: SearchHit[]): SearchHit[] => hits.map((h) => ({ ...h }));
+
+export function clearSearchCache(): void {
+  searchCache.clear();
+  searchInflight.clear();
+}
+
+export async function webSearch(
+  query: string
+): Promise<SearchHit[]> {
+  const ttl = typeof query === 'string' ? searchCacheTtlMs(query) : 0;
+  if (ttl <= 0 || !query || query.trim() === '') return searchUpstream(query);
+
+  // Same contract as an uncached call: a missing key is a configuration error even when an answer is cached.
+  const route = searchRoute();
+  if (!routeHasAuth(route)) return searchUpstream(query);
+
+  const key = `${route.model}|${query.trim().replace(/\s+/g, ' ').toLowerCase()}`;
+  const now = Date.now();
+
+  const hit = searchCache.get(key);
+  if (hit && now - hit.at < ttl) {
+    // Re-insert so the oldest-touched entry is the one evicted.
+    searchCache.delete(key);
+    searchCache.set(key, hit);
+    return cloneHits(hit.results);
+  }
+  if (hit) searchCache.delete(key);
+
+  const pending = searchInflight.get(key);
+  if (pending) return cloneHits(await pending);
+
+  const request = searchUpstream(query)
+    .then((results) => {
+      if (results.length > 0) {
+        searchCache.set(key, { at: Date.now(), results: cloneHits(results) });
+        while (searchCache.size > SEARCH_CACHE_MAX) {
+          const oldest = searchCache.keys().next().value;
+          if (oldest === undefined) break;
+          searchCache.delete(oldest);
+        }
+      }
+      return results;
+    })
+    .finally(() => { searchInflight.delete(key); });
+  searchInflight.set(key, request);
+  return cloneHits(await request);
 }
 
 export { PerplexityAPIError, PerplexityConfigError };

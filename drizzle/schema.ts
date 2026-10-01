@@ -525,6 +525,8 @@ export const usageLogs = pgTable("usage_logs", {
   inputTokens: integer("input_tokens").notNull().default(0),
   outputTokens: integer("output_tokens").notNull().default(0),
   totalTokens: integer("total_tokens").notNull().default(0),
+  // Prompt tokens served from the provider's prompt cache (a subset of inputTokens).
+  cachedInputTokens: integer("cached_input_tokens").notNull().default(0),
   estimatedCostUsd: numeric("estimated_cost_usd", { precision: 12, scale: 6 }).default("0"),
   purpose: varchar("purpose", { length: 64 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),

@@ -380,9 +380,22 @@ export function monthlySpendCapUsd(_provider: ModelProvider): number {
   return 0;
 }
 
-export function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number {
+/**
+ * What a cached prompt token costs relative to a normal input token. Estimates: Qwen implicit cache
+ * hits bill at 20% (explicit markers at 10%, but the API merges both into one count), Gemini
+ * implicit hits are discounted by Google. Override with KEMMA_CACHED_INPUT_MULTIPLIER (0 to 1).
+ */
+export function cachedInputMultiplier(model: string): number {
+  const override = Number(process.env.KEMMA_CACHED_INPUT_MULTIPLIER);
+  if (process.env.KEMMA_CACHED_INPUT_MULTIPLIER && Number.isFinite(override) && override >= 0 && override <= 1) return override;
+  return detectProvider(model) === "qwen" ? 0.2 : 0.25;
+}
+
+export function estimateCostUsd(model: string, inputTokens: number, outputTokens: number, cachedInputTokens = 0): number {
   const price = ROUGH_PRICES_USD_PER_1M[stripProviderPrefix(model)] || { input: 2, output: 6 };
-  return (inputTokens * price.input + outputTokens * price.output) / 1_000_000;
+  const cached = Math.min(Math.max(cachedInputTokens, 0), inputTokens);
+  const billedInput = inputTokens - cached + cached * cachedInputMultiplier(model);
+  return (billedInput * price.input + outputTokens * price.output) / 1_000_000;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
