@@ -1,8 +1,26 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { PgDialect } from "drizzle-orm/pg-core";
 
 // quotaCheck.ts against the QUOTA_LIMITS tier table in kemmaRouter.ts.
 // Fake db emulates the single user_quotas row with the drizzle call chain used
 // by the module; vitest fake timers control the UTC day/month boundaries.
+// Patches are applied the way Postgres would: plain values assign, and a
+// sql`col + n` fragment (atomic increment, batch-2 fix) is evaluated against
+// the current stored row instead of assigning the fragment itself.
+const dialect = new PgDialect();
+
+function applyPatchToRow(patch: Record<string, unknown>) {
+  for (const [key, value] of Object.entries(patch)) {
+    if (value && typeof value === "object" && "queryChunks" in (value as any)) {
+      const rendered = dialect.sqlToQuery(value as never);
+      const m = rendered.sql.match(/\+ \$1$/);
+      if (!m) throw new Error(`fake db: unexpected SQL patch: ${rendered.sql}`);
+      (state.row as any)[key] = ((state.row as any)[key] ?? 0) + Number(rendered.params[0]);
+    } else {
+      (state.row as any)[key] = value;
+    }
+  }
+}
 
 const state = vi.hoisted(() => ({
   row: null as any,
@@ -37,24 +55,28 @@ const fakeDb = {
     }),
   }),
   insert: () => ({
-    values: async (v: any) => {
-      state.insertValues.push(v);
-      state.row = {
-        id: 1,
-        tier: "free",
-        messagesToday: 0,
-        thinkPressesToday: 0,
-        tokensToday: 0,
-        agenticTasksThisMonth: 0,
-        voiceMinutesThisMonth: 0,
-        dailyResetAt: new Date(),
-        monthlyResetAt: new Date(),
-        trialEndsAt: null,
-        hasByos: false,
-        byosBonusTasks: 0,
-        ...state.row,
-        ...v,
+    values: (v: any) => {
+      const run = async () => {
+        state.insertValues.push(v);
+        state.row = {
+          id: 1,
+          tier: "free",
+          messagesToday: 0,
+          thinkPressesToday: 0,
+          tokensToday: 0,
+          agenticTasksThisMonth: 0,
+          voiceMinutesThisMonth: 0,
+          dailyResetAt: new Date(),
+          monthlyResetAt: new Date(),
+          trialEndsAt: null,
+          hasByos: false,
+          byosBonusTasks: 0,
+          ...state.row,
+          ...v,
+        };
       };
+      // The atomic-create path calls .onConflictDoNothing(); a bare await still works.
+      return { onConflictDoNothing: run, then: (res: any) => run().then(res) };
     },
   }),
   update: () => ({
@@ -62,7 +84,7 @@ const fakeDb = {
       where: async () => {
         state.updatePatches.push(patch);
         if (state.delaySelects) { await Promise.resolve(); await Promise.resolve(); }
-        Object.assign(state.row, patch);
+        applyPatchToRow(patch);
       },
     }),
   }),
@@ -277,14 +299,12 @@ describe("incrementQuota", () => {
     await expect(incrementQuota(7, "message")).resolves.toBeUndefined();
   });
 
-  it("KNOWN RACE (report): concurrent increments lose updates (read-modify-write)", async () => {
+  it("concurrent increments both land (atomic SQL update, batch-2 fix)", async () => {
     state.delaySelects = true;
     freshRow({ messagesToday: 0 });
     await Promise.all([incrementQuota(7, "message"), incrementQuota(7, "message")]);
-    // Correct outcome is 2; the lost update leaves 1. This test documents current
-    // behavior. If incrementQuota is switched to an atomic `sql\`x + 1\`` update,
-    // change the expectation to 2.
-    expect(state.row.messagesToday).toBe(1);
+    // The old read-modify-write left 1 here; SET col = col + 1 applied twice gives 2.
+    expect(state.row.messagesToday).toBe(2);
   });
 });
 
@@ -312,13 +332,21 @@ describe("getQuotaSummary shape", () => {
 });
 
 describe("activateTrial / setUserTier", () => {
-  it("activateTrial grants 7 days and can RE-grant to a downgraded (previously trialed) free user", async () => {
+  it("activateTrial grants 7 days once and refuses a second grant", async () => {
+    // Batch-2 fix (trial re-grant finding): trialStartedAt is a permanent marker.
     freshRow({ tier: "free", trialStartedAt: new Date("2026-01-01T00:00:00Z"), trialEndsAt: new Date("2026-01-08T00:00:00Z") });
-    await activateTrial(7);
+    const granted = await activateTrial(7);
+    expect(granted).toBe(false);
+    expect(state.row.tier).toBe("free");
+    expect(state.row.trialEndsAt).toEqual(new Date("2026-01-08T00:00:00Z"));
+  });
+
+  it("activateTrial grants on a fresh free row", async () => {
+    freshRow({ tier: "free" });
+    const granted = await activateTrial(7);
+    expect(granted).toBe(true);
     expect(state.row.tier).toBe("trial");
     expect(state.row.trialEndsAt.getTime()).toBe(new Date("2026-02-22T10:00:00Z").getTime());
-    // no first-time guard here; routers/kemma.ts gates on current tier only,
-    // so an expired-then-downgraded user can re-activate (reported finding)
   });
 
   it("activateTrial inserts when no quota row exists yet", async () => {

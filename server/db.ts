@@ -187,9 +187,8 @@ export async function getFilesCountByUser(userId: number) {
 export async function createReceipt(data: InsertReceipt) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
-  await db.insert(receipts).values(data);
-  const result = await db.select().from(receipts).orderBy(desc(receipts.createdAt)).limit(1);
-  return result[0];
+  const [row] = await db.insert(receipts).values(data).returning();
+  return row;
 }
 
 export async function getReceipts(filters?: { status?: string; limit?: number; offset?: number }) {
@@ -231,9 +230,8 @@ export async function deleteReceipt(id: number) {
 export async function createTask(data: InsertTask) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
-  await db.insert(tasks).values(data);
-  const result = await db.select().from(tasks).orderBy(desc(tasks.createdAt)).limit(1);
-  return result[0];
+  const [row] = await db.insert(tasks).values(data).returning();
+  return row;
 }
 
 export async function getTasks(filters?: { status?: string; category?: string; limit?: number; offset?: number }) {
@@ -276,9 +274,8 @@ export async function deleteTask(id: number) {
 export async function createProcurement(data: InsertProcurementRequest) {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
-  await db.insert(procurementRequests).values(data);
-  const result = await db.select().from(procurementRequests).orderBy(desc(procurementRequests.createdAt)).limit(1);
-  return result[0];
+  const [row] = await db.insert(procurementRequests).values(data).returning();
+  return row;
 }
 
 export async function getProcurements(filters?: { status?: string; limit?: number; offset?: number }) {
@@ -833,6 +830,42 @@ export async function createChatSession(userId: number, title: string) {
     lastMessageAt: now,
   });
   return id;
+}
+
+/**
+ * Idempotently make sure a client-chosen sessionId exists as a chat_sessions row
+ * owned by userId (the Chat page generates the uuid client-side; without a row,
+ * history, per-thread settings and export have nothing to attach to).
+ * "foreign" means the id already belongs to another user and nothing was written.
+ */
+export async function ensureChatSession(
+  sessionId: string,
+  userId: number,
+  title: string,
+): Promise<"owned" | "foreign" | "unavailable"> {
+  const db = await getDb();
+  if (!db) return "unavailable";
+  const { chatSessions } = await import("../drizzle/schema");
+  const existing = await db
+    .select({ userId: chatSessions.userId })
+    .from(chatSessions)
+    .where(eq(chatSessions.id, sessionId))
+    .limit(1);
+  if (existing.length > 0) {
+    return existing[0].userId === userId ? "owned" : "foreign";
+  }
+  await db
+    .insert(chatSessions)
+    .values({ id: sessionId, userId, title: title.slice(0, 60), lastMessageAt: Date.now() })
+    .onConflictDoNothing();
+  // The insert may have lost a race against another user claiming the same id.
+  const after = await db
+    .select({ userId: chatSessions.userId })
+    .from(chatSessions)
+    .where(eq(chatSessions.id, sessionId))
+    .limit(1);
+  if (after.length > 0 && after[0].userId !== userId) return "foreign";
+  return "owned";
 }
 
 export async function updateChatSessionTitle(sessionId: string, title: string) {

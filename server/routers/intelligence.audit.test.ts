@@ -286,16 +286,19 @@ describe("intelligence kemma/analyze handler (audit)", () => {
 // ─── WebSocket /ws/intelligence ──────────────────────────────────────────────
 
 describe("intelligence websocket (audit)", () => {
-  it("accepts the /ws/intelligence upgrade with NO session check", async () => {
+  it("refuses the /ws/intelligence upgrade without a session (batch-2 fix)", async () => {
     const { setupIntelligenceWebSocket } = await loadModule();
     const server = new EventEmitter();
     setupIntelligenceWebSocket(server as any);
     const socket = new EventEmitter() as any;
     socket.write = () => {};
-    socket.destroy = () => {};
+    const destroyed: boolean[] = [];
+    socket.destroy = () => { destroyed.push(true); };
     // Anonymous request: no Cookie header, nothing to authenticate against.
     server.emit("upgrade", { url: "/ws/intelligence?id=x&type=kemma", headers: { host: "srv" } }, socket, Buffer.alloc(0));
-    expect(wsState.handleUpgradeCalls).toHaveLength(1);
+    await new Promise((r) => setTimeout(r, 30)); // the auth check is async
+    expect(wsState.handleUpgradeCalls).toHaveLength(0);
+    expect(destroyed).toEqual([true]);
   });
 
   it("ignores upgrades for other paths", async () => {
@@ -307,21 +310,35 @@ describe("intelligence websocket (audit)", () => {
     expect(wsState.handleUpgradeCalls).toHaveLength(0);
   });
 
-  it("opens a server-side WebSocket to ANY caller-supplied signedUrl (SSRF seam, unauthenticated)", async () => {
+  it("refuses to dial a non-ElevenLabs signedUrl (batch-2 host allowlist)", async () => {
     const { setupIntelligenceWebSocket } = await loadModule();
     const { WebSocket: FakeWS } = await import("ws");
     const server = new EventEmitter();
     const wss = setupIntelligenceWebSocket(server as any) as any;
     const client = new (FakeWS as unknown as new () => any)();
     wss.emit("connection", client, { url: "/ws/intelligence?id=c1", headers: { host: "srv" } });
-    // Handshake message proves the connection is live without any auth.
+    // Handshake message proves the connection is live.
     const hello = JSON.parse(client.sent[0]);
     expect(hello.type).toBe("connected");
     client.emit(
       "message",
       Buffer.from(JSON.stringify({ type: "kemma_init", signedUrl: "ws://169.254.169.254/latest/meta-data/", conversationId: "c" }))
     );
-    // The server connected out to the attacker-chosen URL.
-    expect(wsState.createdSockets).toContain("ws://169.254.169.254/latest/meta-data/");
+    // The server refuses to relay to the attacker-chosen URL and reports an error frame.
+    expect(wsState.createdSockets).not.toContain("ws://169.254.169.254/latest/meta-data/");
+    const last = JSON.parse(client.sent[client.sent.length - 1]);
+    expect(last).toMatchObject({ type: "error" });
+  });
+
+  it("dials a genuine wss://api.elevenlabs.io signedUrl", async () => {
+    const { setupIntelligenceWebSocket } = await loadModule();
+    const { WebSocket: FakeWS } = await import("ws");
+    const server = new EventEmitter();
+    const wss = setupIntelligenceWebSocket(server as any) as any;
+    const client = new (FakeWS as unknown as new () => any)();
+    wss.emit("connection", client, { url: "/ws/intelligence?id=c2", headers: { host: "srv" } });
+    const good = "wss://api.elevenlabs.io/v1/realtime?conversation_id=abc";
+    client.emit("message", Buffer.from(JSON.stringify({ type: "kemma_init", signedUrl: good, conversationId: "c" })));
+    expect(wsState.createdSockets).toContain(good);
   });
 });

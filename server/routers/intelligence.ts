@@ -20,6 +20,21 @@ import {
   detectQueryType,
   AGENTS 
 } from '../services/blendedAgents';
+import { sdk } from '../_core/sdk';
+
+// The server relays client audio to ElevenLabs by opening the signedUrl the client
+// supplies. Only ever dial the real ElevenLabs API host, never an arbitrary URL,
+// so the relay cannot be turned into an SSRF proxy.
+const ELEVENLABS_WS_HOST = "api.elevenlabs.io";
+function isAllowedSignedUrl(raw: unknown): raw is string {
+  if (typeof raw !== "string") return false;
+  try {
+    const u = new URL(raw);
+    return u.protocol === "wss:" && u.hostname === ELEVENLABS_WS_HOST;
+  } catch {
+    return false;
+  }
+}
 
 const router = Router();
 
@@ -192,13 +207,20 @@ router.post('/kemma/analyze', async (req, res) => {
 export function setupIntelligenceWebSocket(server: Server) {
   const wss = new WebSocketServer({ noServer: true });
 
-  server.on('upgrade', (req, socket, head) => {
+  server.on('upgrade', async (req, socket, head) => {
     const url = new URL(req.url!, `http://${req.headers.host}`);
-    if (url.pathname === '/ws/intelligence') {
-      wss.handleUpgrade(req, socket as any, head, (ws) => {
-        wss.emit('connection', ws, req);
-      });
+    if (url.pathname !== '/ws/intelligence') return;
+    // Same cookie/bearer session logic as the HTTP intelligence routes. An
+    // anonymous upgrade gets its socket destroyed, no WebSocket is ever created.
+    try {
+      await sdk.authenticateRequest(req as any);
+    } catch {
+      socket.destroy();
+      return;
     }
+    wss.handleUpgrade(req, socket as any, head, (ws) => {
+      wss.emit('connection', ws, req);
+    });
   });
 
   const connections = new Map<string, {
@@ -226,6 +248,11 @@ export function setupIntelligenceWebSocket(server: Server) {
         switch (message.type) {
           case 'kemma_init':
             // Initialize Kemma connection to ElevenLabs
+            if (message.signedUrl && !isAllowedSignedUrl(message.signedUrl)) {
+              console.warn(`[WebSocket] Rejected signedUrl for a non-ElevenLabs host`);
+              ws.send(JSON.stringify({ type: 'error', message: 'Invalid signed URL' }));
+              break;
+            }
             if (message.signedUrl) {
               const elevenWs = new WebSocket(message.signedUrl);
               

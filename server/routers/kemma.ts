@@ -141,7 +141,8 @@ export const kemmaRouter = router({
   activateTrial: protectedProcedure.mutation(async ({ ctx }) => {
     const quota = await getQuotaSummary(ctx.user.id);
     if (quota.tier !== "free") throw new TRPCError({ code: "BAD_REQUEST", message: "Trial can only be activated from free tier" });
-    await activateTrial(ctx.user.id);
+    const granted = await activateTrial(ctx.user.id);
+    if (!granted) throw new TRPCError({ code: "BAD_REQUEST", message: "The 7-day trial can only be activated once per account" });
     return { success: true };
   }),
 

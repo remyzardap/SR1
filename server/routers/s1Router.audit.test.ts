@@ -183,6 +183,7 @@ describe("agent config backends", () => {
   });
 
   it("the vertex branch builds the vertex URL, a google/ prefixed model and a service-account bearer", async () => {
+    process.env.GEMINI_BACKEND = "vertex";
     process.env.VERTEX_PROJECT = "env-project";
     process.env.GOOGLE_APPLICATION_CREDENTIALS = "/tmp/private/service-account.json";
     process.env.QWEN_API_KEY = "q";
@@ -197,9 +198,9 @@ describe("agent config backends", () => {
     expect(call.headers.Authorization).not.toBe("Bearer ");
   });
 
-  it("the vertex branch is chosen from VERTEX_PROJECT + credentials, whatever GEMINI_BACKEND says", async () => {
-    // Documents a divergence from kemmaRouter: GEMINI_BACKEND is not consulted here, so the
-    // legacy blend can talk to Vertex while the agent engine talks to AI Studio.
+  it("the vertex branch is chosen only when GEMINI_BACKEND=vertex (batch-2 fix #19)", async () => {
+    // Divergence with the kemma engine removed: with the backend left on aistudio,
+    // VERTEX_PROJECT + credentials no longer pull S1 onto Vertex.
     process.env.GEMINI_BACKEND = "aistudio";
     process.env.GEMINI_API_KEY = "g";
     process.env.VERTEX_PROJECT = "env-project";
@@ -207,11 +208,22 @@ describe("agent config backends", () => {
     process.env.QWEN_API_KEY = "q";
     const { s1Blend } = await load();
     await s1Blend("hi", [{ role: "user", content: "hi" }]);
-    expect(byUrlPart("aiplatform")).toHaveLength(1);
-    expect(byUrlPart(AI_STUDIO)).toHaveLength(0);
+    expect(byUrlPart("aiplatform")).toHaveLength(0);
+    expect(byUrlPart(AI_STUDIO)).toHaveLength(1);
+  });
+
+  it("unset GEMINI_BACKEND also stays on AI Studio (vertex is opt-in)", async () => {
+    process.env.GEMINI_API_KEY = "g";
+    process.env.VERTEX_PROJECT = "env-project";
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = "/tmp/private/service-account.json";
+    process.env.QWEN_API_KEY = "q";
+    const { s1Blend } = await load();
+    await s1Blend("hi", [{ role: "user", content: "hi" }]);
+    expect(byUrlPart("aiplatform")).toHaveLength(0);
   });
 
   it("VERTEX_LOCATION moves the vertex member to the regional host", async () => {
+    process.env.GEMINI_BACKEND = "vertex";
     process.env.VERTEX_PROJECT = "env-project";
     process.env.VERTEX_LOCATION = "eu-west1";
     process.env.GOOGLE_APPLICATION_CREDENTIALS = "/tmp/private/service-account.json";
@@ -242,6 +254,7 @@ describe("agent config backends", () => {
   });
 
   it("a vertex token that cannot be resolved drops the draft instead of calling with an empty bearer", async () => {
+    process.env.GEMINI_BACKEND = "vertex";
     process.env.VERTEX_PROJECT = "env-project";
     process.env.GOOGLE_APPLICATION_CREDENTIALS = "/tmp/private/service-account.json";
     process.env.QWEN_API_KEY = "q";

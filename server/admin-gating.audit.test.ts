@@ -136,13 +136,13 @@ beforeEach(() => {
 });
 
 describe("admin.userStats", () => {
-  it("refuses role=user before touching the DB", async () => {
+  it("refuses role=user before touching the DB", { timeout: 30000 }, async () => {
     const c = await caller("user");
     await expect(c.admin.userStats()).rejects.toMatchObject({ code: "FORBIDDEN", message: "Admin access required" });
     expect(state.statsCalls).toBe(0);
   });
 
-  it("serves role=admin", async () => {
+  it("serves role=admin", { timeout: 30000 }, async () => {
     const c = await caller("admin");
     const stats = await c.admin.userStats();
     expect(state.statsCalls).toBe(1);

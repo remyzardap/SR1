@@ -266,9 +266,27 @@ describe("base URL env timing", () => {
 describe("detectProvider falls through to qwen for unknown ids", () => {
   it("returns qwen for ids from other vendors without any warning", async () => {
     const r = await load();
-    for (const id of ["gpt-4o", "claude-3-5-sonnet", "llama3.1-70b", "mistral-large", "", "o3-mini"]) {
+    for (const id of ["gpt-4o", "claude-3-5-sonnet", "llama3.1-70b", "mistral-large", "o3-mini"]) {
       expect([id, r.detectProvider(id)]).toEqual([id, "qwen"]);
     }
+  });
+
+  it("warns once per unknown id when the fallback to qwen kicks in (batch-2 fix #20)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const r = await load();
+    expect(r.detectProvider("gpt-4o")).toBe("qwen");
+    expect(r.detectProvider("gpt-4o")).toBe("qwen");
+    const oops = warn.mock.calls.filter((c) => String(c[0]).includes("gpt-4o"));
+    expect(oops).toHaveLength(1);
+    expect(String(oops[0][0])).toMatch(/unknown provider|no known provider/i);
+    // known ids never warn
+    warn.mockClear();
+    r.detectProvider("qwen3.8-max");
+    r.detectProvider("gemini-3.8-flash");
+    r.detectProvider("sonar-pro");
+    r.detectProvider("litellm/deepseek");
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it("an unknown id in a slot sends that id to the Qwen endpoint with the Qwen key", async () => {
@@ -281,11 +299,12 @@ describe("detectProvider falls through to qwen for unknown ids", () => {
       "qwen", QWEN_DEFAULT, "q", "gpt-4o",
     ]);
     // The label hides the misroute: it advertises the qwen provider, so the picker
-    // shows "gpt-4o (qwen)" and nothing warns that OpenAI is not configured.
+    // shows "gpt-4o (qwen)". Batch-2 fix #20: detectProvider now warns once per
+    // unknown id, so the operator sees where the request actually goes.
     expect(route.label).toBe("gpt-4o (qwen)");
     expect(r.routeHasAuth(route)).toBe(true); // it looks usable
     const warnings = vi.mocked(console.warn).mock.calls.flat().join(" ");
-    expect(warnings).not.toContain("gpt-4o");
+    expect(warnings).toContain("gpt-4o");
   });
 
   it("a slot id containing embedding or gemini keeps the gemini provider", async () => {

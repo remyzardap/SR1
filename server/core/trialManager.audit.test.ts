@@ -32,7 +32,7 @@ const fakeDb = {
             state.selectCount++;
             const now = new Date();
             const expired = state.quotaRows.filter(
-              (r) => r.tier === "trial" && r.trialEndsAt instanceof Date && r.trialEndsAt < now,
+              (r) => r.tier === "trial" && (!(r.trialEndsAt instanceof Date) || r.trialEndsAt < now),
             );
             return thenable(expired.map((r) => ({ userId: r.userId })));
           }
@@ -46,7 +46,7 @@ const fakeDb = {
       where: async () => {
         const now = new Date();
         for (const r of state.quotaRows) {
-          if (r.tier === "trial" && r.trialEndsAt instanceof Date && r.trialEndsAt < now) Object.assign(r, patch);
+          if (r.tier === "trial" && (!(r.trialEndsAt instanceof Date) || r.trialEndsAt < now)) Object.assign(r, patch);
         }
       },
     }),
@@ -68,21 +68,21 @@ afterEach(() => {
 });
 
 describe("runTrialExpiry", () => {
-  it("downgrades exactly the expired trials, leaves active trials and free users alone", async () => {
+  it("downgrades expired trials and rows stuck with no end date (batch-2 rule: null = expired)", async () => {
     state.quotaRows = [
       { userId: 1, tier: "trial", trialEndsAt: new Date("2026-02-14T09:00:00Z") },
       { userId: 2, tier: "trial", trialEndsAt: new Date("2026-02-20T00:00:00Z") },
       { userId: 3, tier: "free", trialEndsAt: new Date("2026-01-01T00:00:00Z") },
       { userId: 4, tier: "trial", trialEndsAt: new Date("2026-02-15T09:59:00Z") }, // expired 1 min ago, NO grace
-      { userId: 5, tier: "trial", trialEndsAt: null }, // malformed row must not be downgraded
+      { userId: 5, tier: "trial", trialEndsAt: null }, // no end date: treated as expired
     ];
     const r = await runTrialExpiry();
-    expect(r.expired).toBe(2);
+    expect(r.expired).toBe(3);
     expect(state.quotaRows[0].tier).toBe("free");
     expect(state.quotaRows[1].tier).toBe("trial");
     expect(state.quotaRows[2].tier).toBe("free");
     expect(state.quotaRows[3].tier).toBe("free"); // expiry is instant: there is no grace period
-    expect(state.quotaRows[4].tier).toBe("trial");
+    expect(state.quotaRows[4].tier).toBe("free");
   });
 
   it("nothing expired => no update attempted, returns 0", async () => {

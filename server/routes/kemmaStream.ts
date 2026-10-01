@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { kemmaExecute, type KemmaMessage } from "../kemma/engine";
 import { describePhase, describeToolEnd, describeToolStart, type ActivityEvent } from "../kemma/activity";
 import { getQuotaSummary, checkQuota } from "../core/quotaCheck";
-import { getChatSessionSettings, addChatMessage } from "../db";
+import { getChatSessionSettings, addChatMessage, ensureChatSession } from "../db";
 import { resolveSettings, type ThreadSettings, type MessageSettings } from "../kemma/settings";
 
 function sendEvent(res: Response, event: string, data: unknown) {
@@ -15,6 +15,20 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
 
   const { messages, sessionId, isThinking = false, isVoice = false, settings = {} } = req.body as any;
   if (!Array.isArray(messages) || messages.length === 0) { res.status(400).json({ error: "messages required" }); return; }
+
+  // The Chat page mints thread ids client-side; without a chat_sessions row, history,
+  // per-thread settings and export have nothing to attach to. Create the row (title from
+  // the first user message) before anything is persisted, and refuse ids that already
+  // belong to another user.
+  if (sessionId) {
+    const firstUser = (messages as KemmaMessage[]).find((m) => m.role === "user");
+    const title = (typeof firstUser?.content === "string" ? firstUser.content.trim() : "") || "New chat";
+    const ownership = await ensureChatSession(sessionId, user.id, title.slice(0, 60));
+    if (ownership === "foreign") {
+      res.status(403).json({ error: "This session belongs to another user" });
+      return;
+    }
+  }
 
   const threadSettings: ThreadSettings = sessionId ? (await getChatSessionSettings(sessionId, user.id) as ThreadSettings) : {};
   const resolved = resolveSettings(threadSettings, settings as MessageSettings, undefined, { isAdmin: user.role === "admin" });

@@ -135,8 +135,9 @@ function rateLimitAuth(key: string) {
 }
 
 function getClientIp(req: any): string {
-  const forwarded = req.headers?.["x-forwarded-for"] as string | undefined;
-  if (forwarded) return forwarded.split(",")[0].trim();
+  // req.ip is derived by Express through the single trusted proxy hop (app.set("trust
+  // proxy", 1) in _core/index.ts). Never key limits on the raw x-forwarded-for header:
+  // its first entry is attacker-controlled.
   return req.ip || req.socket?.remoteAddress || "unknown";
 }
 
@@ -525,7 +526,16 @@ export const appRouter = router({
           handle: z.string().max(64).optional(),
           displayName: z.string().max(255).optional(),
           bio: z.string().optional(),
-          avatarUrl: z.string().url().optional().or(z.literal("")),
+          // Absolute http(s) URLs or root-relative storage paths (the local driver
+          // returns "/files/..."). Empty string clears it. Rejects other schemes like javascript:.
+          avatarUrl: z
+            .string()
+            .max(2048)
+            .refine(
+              (v) => v === "" || /^https?:\/\//.test(v) || v.startsWith("/"),
+              { message: "avatarUrl must be an http(s) URL or a path starting with /" },
+            )
+            .optional(),
           personalityTraits: z.array(z.string()).optional(),
           primaryLanguage: z.string().max(64).optional(),
         })
@@ -686,7 +696,7 @@ export const appRouter = router({
         z.object({
           type: z.enum(["preference", "project", "document", "interaction", "fact"]),
           title: z.string().max(255).optional(),
-          content: z.string().min(1),
+          content: z.string().min(1).max(4000),
           tags: z.string().optional(),
           sourceApp: z.string().max(128).optional(),
         })
@@ -849,6 +859,12 @@ export const appRouter = router({
     deleteSession: protectedProcedure
       .input(z.object({ sessionId: z.string().uuid() }))
       .mutation(async ({ ctx, input }) => {
+        // db.deleteChatSession removes chat_messages before filtering by userId,
+        // so the ownership check has to happen here first.
+        const sessions = await listChatSessions(ctx.user.id);
+        if (!sessions.some((s) => s.id === input.sessionId)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Session not found" });
+        }
         await deleteChatSession(input.sessionId, ctx.user.id);
         return { success: true };
       }),

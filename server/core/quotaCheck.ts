@@ -1,6 +1,6 @@
 import { getDb } from "../db";
 import { userQuotas } from "../../drizzle/schema";
-import { eq, lt, and } from "drizzle-orm";
+import { eq, lt, and, sql } from "drizzle-orm";
 import { QUOTA_LIMITS, type Tier } from "./kemmaRouter";
 
 export type QuotaAction = "message" | "agentic_task" | "think" | "voice_minute" | "token";
@@ -18,7 +18,8 @@ export async function checkQuota(userId: number, action: QuotaAction, amount = 1
   const db = await getDb();
   if (!db) return { allowed: true, remaining: 999, limit: 999, resetAt: new Date() };
   let quota = await getOrCreateQuota(userId);
-  if (quota.tier === "trial" && quota.trialEndsAt && quota.trialEndsAt < new Date()) {
+  // A trial row with no end date can never expire on its own: treat it as expired.
+  if (quota.tier === "trial" && (!quota.trialEndsAt || quota.trialEndsAt < new Date())) {
     await db.update(userQuotas).set({ tier: "free" }).where(eq(userQuotas.userId, userId));
     quota = { ...quota, tier: "free" };
   }
@@ -61,13 +62,15 @@ export async function checkQuota(userId: number, action: QuotaAction, amount = 1
 export async function incrementQuota(userId: number, action: QuotaAction, amount = 1): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  const quota = await getOrCreateQuota(userId);
+  await getOrCreateQuota(userId);
+  // UPDATE SET col = col + n runs the arithmetic in Postgres, so two concurrent
+  // increments can no longer read the same snapshot and lose one of the adds.
   switch (action) {
-    case "message": await db.update(userQuotas).set({ messagesToday: (quota.messagesToday ?? 0) + amount }).where(eq(userQuotas.userId, userId)); break;
-    case "agentic_task": await db.update(userQuotas).set({ agenticTasksThisMonth: (quota.agenticTasksThisMonth ?? 0) + amount }).where(eq(userQuotas.userId, userId)); break;
-    case "think": await db.update(userQuotas).set({ thinkPressesToday: (quota.thinkPressesToday ?? 0) + amount }).where(eq(userQuotas.userId, userId)); break;
-    case "voice_minute": await db.update(userQuotas).set({ voiceMinutesThisMonth: (quota.voiceMinutesThisMonth ?? 0) + amount }).where(eq(userQuotas.userId, userId)); break;
-    case "token": await db.update(userQuotas).set({ tokensToday: (quota.tokensToday ?? 0) + amount }).where(eq(userQuotas.userId, userId)); break;
+    case "message": await db.update(userQuotas).set({ messagesToday: sql`${userQuotas.messagesToday} + ${amount}` }).where(eq(userQuotas.userId, userId)); break;
+    case "agentic_task": await db.update(userQuotas).set({ agenticTasksThisMonth: sql`${userQuotas.agenticTasksThisMonth} + ${amount}` }).where(eq(userQuotas.userId, userId)); break;
+    case "think": await db.update(userQuotas).set({ thinkPressesToday: sql`${userQuotas.thinkPressesToday} + ${amount}` }).where(eq(userQuotas.userId, userId)); break;
+    case "voice_minute": await db.update(userQuotas).set({ voiceMinutesThisMonth: sql`${userQuotas.voiceMinutesThisMonth} + ${amount}` }).where(eq(userQuotas.userId, userId)); break;
+    case "token": await db.update(userQuotas).set({ tokensToday: sql`${userQuotas.tokensToday} + ${amount}` }).where(eq(userQuotas.userId, userId)); break;
   }
 }
 
@@ -86,17 +89,21 @@ export async function getQuotaSummary(userId: number) {
   };
 }
 
-export async function activateTrial(userId: number): Promise<void> {
+export async function activateTrial(userId: number): Promise<boolean> {
   const db = await getDb();
-  if (!db) return;
+  if (!db) return false;
   const now = new Date();
   const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
   const existing = await db.select().from(userQuotas).where(eq(userQuotas.userId, userId)).limit(1);
   if (existing.length > 0) {
+    // One trial per user, ever: trialStartedAt is the marker, so an expired trial
+    // that was downgraded back to free cannot re-arm a new seven-day window.
+    if (existing[0].trialStartedAt) return false;
     await db.update(userQuotas).set({ tier: "trial", trialStartedAt: now, trialEndsAt: trialEnd }).where(eq(userQuotas.userId, userId));
   } else {
     await db.insert(userQuotas).values({ userId, tier: "trial", trialStartedAt: now, trialEndsAt: trialEnd });
   }
+  return true;
 }
 
 export async function setUserTier(userId: number, tier: Tier): Promise<void> {
@@ -110,7 +117,9 @@ async function getOrCreateQuota(userId: number) {
   if (!db) throw new Error("DB unavailable");
   const existing = await db.select().from(userQuotas).where(eq(userQuotas.userId, userId)).limit(1);
   if (existing.length > 0) return existing[0];
-  await db.insert(userQuotas).values({ userId, tier: "free" });
+  // A concurrent first message can insert the row between the select above and this
+  // insert: ignore the unique violation and re-read the winner instead of throwing.
+  await db.insert(userQuotas).values({ userId, tier: "free" }).onConflictDoNothing();
   const created = await db.select().from(userQuotas).where(eq(userQuotas.userId, userId)).limit(1);
   return created[0];
 }

@@ -8,12 +8,14 @@
  * synthesis pass merges the drafts into a single S1 answer. If only one backend
  * is configured (or only one draft succeeds) it answers alone.
  *
- * Vertex AI (Gemini 2.5) is the preferred Gemini backend when GOOGLE_APPLICATION_CREDENTIALS
- * or VERTEX_PROJECT is set. Uses the OpenAI-compatible Vertex AI endpoint.
+ * Vertex AI is the preferred Gemini backend only when GEMINI_BACKEND=vertex with a
+ * readable GOOGLE_APPLICATION_CREDENTIALS and a project (VERTEX_PROJECT /
+ * GOOGLE_CLOUD_PROJECT), the same rule the kemma engine uses. Uses the
+ * OpenAI-compatible Vertex AI endpoint.
  */
 
 import { detectProvider, routeFor, slotModelId, type SlotName } from "../core/kemmaRouter";
-import { stripGooglePrefix, vertexChatBaseUrl } from "../core/vertexAuth";
+import { stripGooglePrefix, vertexChatBaseUrl, vertexEnabled } from "../core/vertexAuth";
 
 export interface S1Agent {
   id: string;
@@ -96,8 +98,6 @@ const AGENTS: Record<string, { info: AgentInfo; model: (max: boolean) => string 
 function getAgentConfig(agentId: string, max: boolean, fallback = true): AgentConfig | null {
   const VERTEX_PROJECT = process.env.VERTEX_PROJECT || process.env.GOOGLE_CLOUD_PROJECT;
   const VERTEX_LOCATION = process.env.VERTEX_LOCATION || "global";
-  // Service account key path — used to get an access token
-  const GOOGLE_CREDS = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
   const agent = AGENTS[agentId];
   if (!agent) return null;
@@ -107,7 +107,10 @@ function getAgentConfig(agentId: string, max: boolean, fallback = true): AgentCo
   switch (agentId) {
     case "gemini": {
       if (!model) return null; // no Gemini slot configured: this member cannot answer
-      if (VERTEX_PROJECT && GOOGLE_CREDS) {
+      // Same rule as the kemma engine: Vertex is opt-in via GEMINI_BACKEND=vertex plus
+      // readable credentials. Without it S1 must not drift onto Vertex while the agent
+      // talks to AI Studio (or vice versa).
+      if (VERTEX_PROJECT && vertexEnabled()) {
         // Vertex AI OpenAI-compatible endpoint (global uses the bare host; model needs the google/ prefix)
         return {
           baseUrl: vertexChatBaseUrl(VERTEX_PROJECT),

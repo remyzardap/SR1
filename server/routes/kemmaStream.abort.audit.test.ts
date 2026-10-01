@@ -17,7 +17,7 @@ import type { Server } from "node:http";
 
 const engine = vi.hoisted(() => ({ kemmaExecute: vi.fn() }));
 const quota = vi.hoisted(() => ({ getQuotaSummary: vi.fn(), checkQuota: vi.fn() }));
-const db = vi.hoisted(() => ({ getChatSessionSettings: vi.fn(), addChatMessage: vi.fn() }));
+const db = vi.hoisted(() => ({ getChatSessionSettings: vi.fn(), addChatMessage: vi.fn(), ensureChatSession: vi.fn(async () => "owned" as const) }));
 
 vi.mock("../kemma/engine", () => engine);
 vi.mock("../core/quotaCheck", () => quota);
@@ -69,6 +69,7 @@ function withRoute(run: (base: string) => Promise<void>) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  db.ensureChatSession.mockImplementation(async () => "owned" as const);
   quota.checkQuota.mockResolvedValue({ allowed: true, remaining: 5 });
   quota.getQuotaSummary.mockResolvedValue({ tier: "pro" });
   db.getChatSessionSettings.mockResolvedValue({});
@@ -137,6 +138,42 @@ describe("kemma stream over a real connection", () => {
       expect(stream.body).toContain("event: error");
       expect(stream.body).not.toContain("event: done");
     });
+  });
+
+  it("creates the thread row before persisting, with a 60-char title from the first message", async () => {
+    const long = "Plan the Q3 marketing budget ".repeat(10);
+    await withRoute(async (base) => {
+      const res = await fetch(`${base}/api/kemma/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: "sess-new", messages: [{ role: "user", content: long }] }),
+      });
+      expect(res.status).toBe(200);
+      await readStream(res, 1500);
+    });
+    expect(db.ensureChatSession).toHaveBeenCalledWith("sess-new", 7, long.trim().slice(0, 60));
+    const order = [
+      db.ensureChatSession.mock.invocationCallOrder[0],
+      db.addChatMessage.mock.invocationCallOrder[0],
+    ];
+    expect(order[0]).toBeLessThan(order[1]); // row first, messages after
+    expect(db.addChatMessage).toHaveBeenCalled();
+  });
+
+  it("refuses a sessionId owned by another user with 403 JSON, before any SSE frame", async () => {
+    db.ensureChatSession.mockResolvedValueOnce("foreign" as never);
+    await withRoute(async (base) => {
+      const res = await fetch(`${base}/api/kemma/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: "sess-other", messages: [{ role: "user", content: "hi" }] }),
+      });
+      expect(res.status).toBe(403);
+      expect(res.headers.get("content-type")).toContain("application/json");
+      expect(await res.json()).toMatchObject({ error: /another user/i });
+    });
+    expect(engine.kemmaExecute).not.toHaveBeenCalled();
+    expect(db.addChatMessage).not.toHaveBeenCalled();
   });
 
   it("a client that really hangs up stops the writes without an unhandled fault", async () => {
