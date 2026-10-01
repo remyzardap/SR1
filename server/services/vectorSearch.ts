@@ -120,7 +120,7 @@ export async function upsertVector(
   await db
     .update(memories)
     .set({
-      structuredData: sql`COALESCE(structured_data, '{}'::jsonb) || ${JSON.stringify({
+      structuredData: sql`COALESCE("structuredData"::jsonb, '{}'::jsonb) || ${JSON.stringify({
         embedding: vector,
         embeddedAt: new Date().toISOString(),
       })}::jsonb`,
