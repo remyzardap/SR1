@@ -27,6 +27,7 @@ import { asc, eq } from "drizzle-orm";
 import { getDb } from "../db";
 import { users } from "../../drizzle/schema";
 import { kemmaExecute, type KemmaMessage } from "../kemma/engine";
+import { CHAT_IMAGE_USAGE, chatImageAck, parseImageCommand, runChatImage } from "../lib/chatImage";
 
 const HISTORY_LIMIT = 12;
 const MAX_REPLY_CHARS = 3500;
@@ -81,6 +82,16 @@ async function handle(s: WASocket, m: any) {
   if (!jid || jid === "status@broadcast" || (m.key.id && sentIds.has(m.key.id))) return;
   const text = textOf(m).trim();
   if (!text || !isAllowed(s, m)) return;
+
+  const image = parseImageCommand(text);
+  if (image) {
+    if (image.kind === "help") return reply(s, jid, CHAT_IMAGE_USAGE);
+    await reply(s, jid, chatImageAck(image.engine));
+    const drawn = await runChatImage({ chatKey: `whatsapp:${jid}`, parsed: image });
+    return drawn.ok
+      ? s.sendMessage(jid, { image: drawn.buffer, caption: drawn.caption })
+      : reply(s, jid, drawn.message);
+  }
 
   const user = await resolveUser();
   if (!user) return void console.warn("[WhatsApp] No admin user to run as; ignoring message");
