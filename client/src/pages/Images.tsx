@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SutaeruGlyph } from "@/components/SutaeruGlyph";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
+import { AttachMenu } from "@/components/AttachMenu";
 import { callFunction } from "@/lib/kemmaCloud";
 import { getAuthToken } from "@/lib/authSession";
+import { type Attachment } from "@/lib/attachments";
 import { toast } from "sonner";
 import "@/styles/engine-cards.css";
 
@@ -17,6 +19,8 @@ interface Engine {
   qualityModel: string;
   available: boolean;
   defaultEngine: boolean;
+  /** Whether this engine can take reference photos. Engines that do not report it cannot. */
+  supportsReference: boolean;
 }
 
 interface GenerateResult {
@@ -88,6 +92,7 @@ function EngineMark({ id }: { id: string }) {
 }
 
 const MAX_PROMPT = 2000;
+const MAX_REFERENCE = 2;
 const KEPT_RENDERS = 8;
 
 /** The saved image lives behind the session gate, so fetch it with the same credentials as the API calls. */
@@ -114,6 +119,7 @@ export default function Images() {
   const [quality, setQuality] = useState<Quality>("standard");
   const [ratio, setRatio] = useState<AspectRatio>("1:1");
   const [prompt, setPrompt] = useState("");
+  const [refs, setRefs] = useState<Attachment[]>([]);
   const [generating, setGenerating] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [renders, setRenders] = useState<Render[]>([]);
@@ -163,6 +169,7 @@ export default function Images() {
         engine: current.id,
         quality,
         aspectRatio: ratio,
+        ...(current.supportsReference && refs.length > 0 ? { referenceImages: refs } : {}),
       });
       const blob = await loadImageBlob(result.imageUrl);
       const blobUrl = URL.createObjectURL(blob);
@@ -241,7 +248,7 @@ export default function Images() {
                       type="button"
                       role="radio"
                       aria-checked={active}
-                      onClick={() => setEngine(e.id)}
+                      onClick={() => { setEngine(e.id); if (!e.supportsReference) setRefs([]); }}
                       className={`sk-engine${active ? " is-active" : ""}`}
                     >
                       <span className="sk-engine-hero">
@@ -396,6 +403,22 @@ export default function Images() {
               <SutaeruIcon name="arrow" className="-rotate-90" />
             </button>
           </div>
+
+          {current?.supportsReference ? (
+            <div className="sk-card">
+              <AttachMenu
+                attachments={refs}
+                onChange={setRefs}
+                max={MAX_REFERENCE}
+                imagesOnly
+                disabled={generating}
+                label="Reference photo"
+              />
+              <p className="sk-empty-text mt-3">Up to {MAX_REFERENCE} photos this engine should look at while it draws.</p>
+            </div>
+          ) : (
+            <p className="sk-empty-text">This engine cannot use reference photos.</p>
+          )}
         </div>
       )}
     </div>
