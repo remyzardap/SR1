@@ -2,8 +2,12 @@
 .sk-engine-grid {
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   padding-bottom: 6px;
+}
+/* --sk-cols is set from the engine count (3 across for three engines, 2 by 2 for four), so no card sits alone. */
+@media (min-width: 900px) {
+  .sk-engine-grid { grid-template-columns: repeat(var(--sk-cols, 3), minmax(0, 1fr)); }
 }
 
 .sk-engine {

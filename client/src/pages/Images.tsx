@@ -69,6 +69,11 @@ const ENGINE_META: Record<string, EngineMeta> = {
     time: { standard: "13 to 35 s", high: "13 to 35 s" },
     img: "/engines/openai.jpg",
   },
+  forge: {
+    blurb: "Open Stable Diffusion models on our own GPU, started on demand. The first image can take a few minutes.",
+    tags: ["Open models", "On demand"],
+    time: { standard: "up to 5 min", high: "up to 5 min" },
+  },
 };
 const FALLBACK_META: EngineMeta = { blurb: "Creates an image from your prompt.", tags: [], time: { standard: "10 to 60 s", high: "up to 70 s" } };
 
@@ -77,6 +82,7 @@ function EngineMark({ id }: { id: string }) {
   const common = { viewBox: "0 0 96 96", fill: "none", stroke: "currentColor", strokeWidth: 6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   if (id === "gemini") return <svg {...common}><circle cx="37" cy="48" r="21" /><circle cx="59" cy="48" r="21" /></svg>;
   if (id === "qwen") return <svg {...common}><path d="M16 64a32 32 0 0 1 64 0" /><path d="M29 64a19 19 0 0 1 38 0" /><path d="M42 64a6 6 0 0 1 12 0" /></svg>;
+  if (id === "forge") return <svg {...common}><rect x="18" y="22" width="60" height="14" rx="7" /><rect x="18" y="41" width="60" height="14" rx="7" /><rect x="18" y="60" width="60" height="14" rx="7" /></svg>;
   if (id === "openai") return <svg {...common}><rect x="19" y="19" width="58" height="58" rx="17" /><circle cx="48" cy="48" r="12" /></svg>;
   return <svg {...common}><circle cx="48" cy="48" r="27" /></svg>;
 }
@@ -225,7 +231,7 @@ export default function Images() {
           <div className="sk-card flex flex-col gap-5">
             <div className="sk-field">
               <span className="sk-label">Engine</span>
-              <div className="sk-engine-grid" role="radiogroup" aria-label="Image engine">
+              <div className="sk-engine-grid" role="radiogroup" aria-label="Image engine" style={{ ["--sk-cols" as string]: engines.length === 4 ? 2 : Math.max(1, Math.min(engines.length, 3)) } as React.CSSProperties}>
                 {engines.map((e) => {
                   const meta = ENGINE_META[e.id] ?? FALLBACK_META;
                   const active = engine === e.id;
