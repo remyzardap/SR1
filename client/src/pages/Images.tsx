@@ -4,6 +4,7 @@ import { SutaeruIcon } from "@/components/SutaeruIcon";
 import { callFunction } from "@/lib/kemmaCloud";
 import { getAuthToken } from "@/lib/authSession";
 import { toast } from "sonner";
+import "@/styles/engine-cards.css";
 
 type EngineId = "gemini" | "qwen" | "openai" | "forge";
 type Quality = "standard" | "high";
@@ -45,6 +46,40 @@ const RATIOS: Array<{ value: AspectRatio; label: string }> = [
   { value: "3:4", label: "Portrait 3:4" },
   { value: "9:16", label: "Tall 9:16" },
 ];
+
+interface EngineMeta { blurb: string; tags: string[]; time: Record<Quality, string>; img?: string }
+
+/** What each engine is good at, from side-by-side test renders. Unknown engines fall back to a plain card. */
+const ENGINE_META: Record<string, EngineMeta> = {
+  gemini: {
+    blurb: "Fast and clean. Sharp lettering, and steady products and characters across images.",
+    tags: ["Fast", "Lettering", "Consistent"],
+    time: { standard: "10 to 17 s", high: "up to 70 s" },
+    img: "/engines/gemini.jpg",
+  },
+  qwen: {
+    blurb: "Crisp studio detail and natural light. Fine texture stays sharp.",
+    tags: ["Detail", "Natural light"],
+    time: { standard: "16 to 25 s", high: "20 to 40 s" },
+    img: "/engines/qwen.jpg",
+  },
+  openai: {
+    blurb: "Rich, cinematic and highly detailed. A strong pick for portraits and mood.",
+    tags: ["Cinematic", "Portraits"],
+    time: { standard: "13 to 35 s", high: "13 to 35 s" },
+    img: "/engines/openai.jpg",
+  },
+};
+const FALLBACK_META: EngineMeta = { blurb: "Creates an image from your prompt.", tags: [], time: { standard: "10 to 60 s", high: "up to 70 s" } };
+
+/** Abstract marks in the app's own icon style. Not vendor logos. */
+function EngineMark({ id }: { id: string }) {
+  const common = { viewBox: "0 0 96 96", fill: "none", stroke: "currentColor", strokeWidth: 6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  if (id === "gemini") return <svg {...common}><circle cx="37" cy="48" r="21" /><circle cx="59" cy="48" r="21" /></svg>;
+  if (id === "qwen") return <svg {...common}><path d="M16 64a32 32 0 0 1 64 0" /><path d="M29 64a19 19 0 0 1 38 0" /><path d="M42 64a6 6 0 0 1 12 0" /></svg>;
+  if (id === "openai") return <svg {...common}><rect x="19" y="19" width="58" height="58" rx="17" /><circle cx="48" cy="48" r="12" /></svg>;
+  return <svg {...common}><circle cx="48" cy="48" r="27" /></svg>;
+}
 
 const MAX_PROMPT = 2000;
 const KEPT_RENDERS = 8;
@@ -190,22 +225,49 @@ export default function Images() {
           <div className="sk-card flex flex-col gap-5">
             <div className="sk-field">
               <span className="sk-label">Engine</span>
-              <div className="sk-row" role="radiogroup" aria-label="Image engine">
-                {engines.map((e) => (
-                  <button
-                    key={e.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={engine === e.id}
-                    onClick={() => setEngine(e.id)}
-                    className={`sk-pill sk-pill-sm ${engine === e.id ? "is-active" : ""}`}
-                  >
-                    <span>{e.label}</span>
-                    <span className="sk-label" style={{ color: "inherit", opacity: 0.62, margin: 0 }}>
-                      {quality === "high" ? e.qualityModel : e.model}
-                    </span>
-                  </button>
-                ))}
+              <div className="sk-engine-grid" role="radiogroup" aria-label="Image engine">
+                {engines.map((e) => {
+                  const meta = ENGINE_META[e.id] ?? FALLBACK_META;
+                  const active = engine === e.id;
+                  return (
+                    <button
+                      key={e.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setEngine(e.id)}
+                      className={`sk-engine${active ? " is-active" : ""}`}
+                    >
+                      <span className="sk-engine-hero">
+                        {meta.img ? (
+                          <img src={meta.img} alt="" width={960} height={540} loading="lazy" decoding="async" />
+                        ) : (
+                          <span className="sk-engine-hero-empty"><SutaeruGlyph className="w-14" /></span>
+                        )}
+                        <span className="sk-engine-time sk-num">{meta.time[quality]}</span>
+                        {active && (
+                          <span className="sk-engine-check" aria-hidden="true">
+                            <SutaeruIcon name="check" className="size-4" />
+                          </span>
+                        )}
+                      </span>
+                      <span className="sk-engine-body">
+                        <span className="sk-engine-head">
+                          <span className="sk-engine-mark" aria-hidden="true"><EngineMark id={e.id} /></span>
+                          <span className="sk-engine-name">{e.label}</span>
+                          <span className="sk-engine-kind">Image</span>
+                        </span>
+                        <span className="sk-engine-blurb">{meta.blurb}</span>
+                        {meta.tags.length > 0 && (
+                          <span className="sk-engine-tags">
+                            {meta.tags.map((t) => <span key={t} className="sk-engine-tag">{t}</span>)}
+                          </span>
+                        )}
+                        <span className="sk-engine-model">{quality === "high" ? e.qualityModel : e.model}</span>
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

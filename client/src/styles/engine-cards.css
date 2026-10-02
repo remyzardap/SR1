@@ -1,0 +1,150 @@
+/* Image engine picker: one card per engine, with a real sample render as its hero. */
+.sk-engine-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  padding-bottom: 6px;
+}
+
+.sk-engine {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 28px;
+  overflow: hidden;
+  background: var(--art-paper);
+  color: var(--art-ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(36, 35, 32, 0.07);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.sk-engine:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px rgba(36, 35, 32, 0.1), 0 16px 34px rgba(36, 35, 32, 0.1);
+}
+.sk-engine:focus-visible { outline: 2px solid var(--neon-orange); outline-offset: 3px; }
+.sk-engine.is-active {
+  box-shadow: 0 0 0 2px var(--art-ink), 0 16px 34px rgba(36, 35, 32, 0.12);
+}
+
+.sk-engine-hero {
+  position: relative;
+  display: block;
+  margin: 8px 8px 0;
+  border-radius: 22px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: #F1EFEA;
+}
+.sk-engine-hero img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+.sk-engine:hover .sk-engine-hero img { transform: scale(1.04); }
+.sk-engine-hero-empty { display: grid; height: 100%; place-items: center; }
+
+.sk-engine-time {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(247, 246, 242, 0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--art-ink);
+  font: 500 10px/1 var(--font-m, 'JetBrains Mono'), monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.sk-engine-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--art-ink);
+  color: var(--art-paper);
+}
+
+.sk-engine-body { display: flex; flex-direction: column; gap: 11px; padding: 16px 20px 20px; }
+.sk-engine-head { display: flex; align-items: center; gap: 10px; }
+.sk-engine-mark {
+  display: grid;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--art-ink);
+  color: var(--art-paper);
+}
+.sk-engine-mark svg { width: 20px; height: 20px; }
+.sk-engine-name { font: 600 17px/1.2 var(--font-d, inherit); letter-spacing: -0.01em; }
+.sk-engine-kind {
+  margin-left: auto;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #F1EFEA;
+  color: var(--art-quiet);
+  font: 500 10px/1 var(--font-m, 'JetBrains Mono'), monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.sk-engine-blurb { font-size: 13.5px; line-height: 1.5; color: var(--art-quiet); }
+.sk-engine-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.sk-engine-tag {
+  padding: 5px 10px;
+  border: 1px solid rgba(36, 35, 32, 0.16);
+  border-radius: 999px;
+  color: var(--art-ink);
+  font: 500 10px/1 var(--font-m, 'JetBrains Mono'), monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.sk-engine-model {
+  margin-top: auto;
+  padding-top: 2px;
+  color: var(--art-quiet);
+  font: 500 10.5px/1.4 var(--font-m, 'JetBrains Mono'), monospace;
+  letter-spacing: 0.06em;
+  overflow-wrap: anywhere;
+}
+
+/* On a phone the cards sit in a swipeable row instead of a tall stack. */
+@media (max-width: 640px) {
+  .sk-engine-grid {
+    grid-auto-flow: column;
+    grid-auto-columns: min(82%, 300px);
+    grid-template-columns: none;
+    margin: 0 -24px;
+    padding: 4px 24px 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 24px;
+    scrollbar-width: none;
+  }
+  .sk-engine-grid::-webkit-scrollbar { display: none; }
+  .sk-engine { scroll-snap-align: start; }
+  /* A lighter shadow, because the scroll row clips anything taller than its padding. */
+  .sk-engine:hover { transform: none; box-shadow: 0 0 0 1px rgba(36, 35, 32, 0.1); }
+  .sk-engine.is-active,
+  .sk-engine.is-active:hover { box-shadow: 0 0 0 2px var(--art-ink), 0 6px 12px rgba(36, 35, 32, 0.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-engine,
+  .sk-engine-hero img { transition: none; }
+  .sk-engine:hover { transform: none; }
+  .sk-engine:hover .sk-engine-hero img { transform: none; }
+}
