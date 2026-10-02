@@ -175,6 +175,8 @@ rules: 3.x requires `VERTEX_LOCATION=global`. There is no `gemini-3.8-pro` on Ve
 | Variable | Description |
 |----------|-------------|
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token |
+| `TELEGRAM_ALLOWED_USER_IDS` | Comma-separated numeric Telegram user ids allowed to talk to the bot. Empty means nobody: everyone is ignored |
+| `TELEGRAM_WEBHOOK_SECRET` | Secret Telegram sends in `X-Telegram-Bot-Api-Secret-Token`; must match the `secret_token` given to `setWebhook` |
 
 ---
 

@@ -2,6 +2,16 @@ import type { Express } from "express";
 import crypto from "crypto";
 import { s1Blend, buildS1SystemPrompt, resolveBearer } from "./s1Router";
 
+/**
+ * Who may talk to the bot. TELEGRAM_ALLOWED_USER_IDS is a comma-separated list of numeric Telegram user ids.
+ * Empty means nobody: the bot ignores everyone, so a stranger who finds it cannot spend model budget.
+ */
+export function isTelegramUserAllowed(userId: unknown, env: string | undefined = process.env.TELEGRAM_ALLOWED_USER_IDS): boolean {
+  const id = String(userId ?? "").trim();
+  if (!/^\d+$/.test(id)) return false;
+  return (env ?? "").split(",").map((v) => v.trim()).filter(Boolean).includes(id);
+}
+
 export function registerTelegramWebhookRoute(app: Express) {
   const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
   const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
@@ -35,6 +45,8 @@ export function registerTelegramWebhookRoute(app: Express) {
       }
 
       const telegramUserId = update.message.from.id;
+      // Ignore anyone who is not on the allowlist: no reply, no model call, no message text in the log.
+      if (!isTelegramUserAllowed(telegramUserId)) return res.json({ ok: true });
       const messageText = update.message.text;
       const chatId = update.message.chat.id;
       const username = update.message.from.username || `user_${telegramUserId}`;
