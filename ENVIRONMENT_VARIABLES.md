@@ -268,6 +268,27 @@ image function reads the same variable and expects a Gemini image model id.
 
 ---
 
+## Chat image commands
+
+`/image`, `/img` and `/draw` in an allowlisted Telegram chat, or from a linked
+WhatsApp number that is allowed, draw one picture and send it back as a photo
+(`server/lib/chatImage.ts`, the same engines as the image function above).
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CHAT_IMAGE_ENGINE` | `forge` | Engine a chat command runs on when the message names none: `gemini`, `qwen`, `openai` or `forge` (`gpu` in the message). An unknown value falls back to `forge` |
+| `CHAT_IMAGE_PER_HOUR` | `6` | Images per chat in a rolling hour. Anything that is not a positive integer uses the default |
+| `CHAT_IMAGE_PER_DAY` | `30` | Images per chat in a rolling 24 hours. Attempts count, failures included. Both windows are in memory, so a server restart clears them |
+
+A message may put `high` (quality high, Flux on the GPU), one of `gpu`, `gemini`,
+`qwen`, `openai` and one of `square`, `wide`, `tall`, `landscape`, `portrait` in
+front of the prompt, in any order. One job runs per chat at a time, and an engine
+that is not configured is answered as unavailable: the command never switches to
+another one. The picture is also stored under the account the WhatsApp bridge
+runs as (`WHATSAPP_KEMMA_USER_ID`, else the lowest admin id).
+
+---
+
 ## 🔍 Verification Commands
 
 Production runs on Cloud Run (service `sutaeru`, region `asia-southeast2`), not a local container.

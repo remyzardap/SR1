@@ -16,6 +16,15 @@ vi.mock("./s1Router", () => ({
   resolveBearer: s1.resolveBearer,
 }));
 
+// The parser and the shared chat lines stay real (the webhook is what this suite
+// is about); only the part that pays for an image is replaced.
+const chat = vi.hoisted(() => ({ runChatImage: vi.fn() }));
+
+vi.mock("../lib/chatImage", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/chatImage")>();
+  return { ...actual, runChatImage: chat.runChatImage };
+});
+
 import { registerTelegramWebhookRoute } from "./telegramWebhook";
 
 const SECRET = "hook-secret-123";
@@ -64,6 +73,29 @@ function stubFetch(handler: (url: string, init: any) => Response | Promise<Respo
   return calls;
 }
 
+/**
+ * The photo goes out as multipart, which JSON.parse cannot read, so this stub
+ * keeps the raw init: `form` when the body was a FormData, `json` otherwise.
+ */
+type RawCall = { url: string; form: FormData | null; json: any };
+
+function stubRawFetch(handler: (url: string, init: any) => Response | Promise<Response>) {
+  const calls: RawCall[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: unknown, init: any) => {
+      const body = init?.body;
+      calls.push({
+        url: String(url),
+        form: body instanceof FormData ? body : null,
+        json: typeof body === "string" ? JSON.parse(body) : undefined,
+      });
+      return handler(String(url), init);
+    })
+  );
+  return calls;
+}
+
 const okJson = (obj: unknown) =>
   new Response(JSON.stringify(obj), { status: 200, headers: { "content-type": "application/json" } });
 
@@ -77,12 +109,19 @@ const update = (text: string, updateId = 1) => ({
   },
 });
 
-const ENV_NAMES = ["TELEGRAM_BOT_TOKEN", "TELEGRAM_WEBHOOK_SECRET", "OPENCLAW_WEBHOOK_URL", "TELEGRAM_ALLOWED_USER_IDS"];
+const ENV_NAMES = [
+  "TELEGRAM_BOT_TOKEN",
+  "TELEGRAM_WEBHOOK_SECRET",
+  "OPENCLAW_WEBHOOK_URL",
+  "TELEGRAM_ALLOWED_USER_IDS",
+  "CHAT_IMAGE_ENGINE",
+];
 const saved = new Map<string, string | undefined>();
 
 beforeEach(() => {
   vi.resetModules();
   s1.blend.mockClear();
+  chat.runChatImage.mockReset();
   for (const name of ENV_NAMES) {
     saved.set(name, process.env[name]);
     delete process.env[name];
@@ -107,6 +146,11 @@ async function register() {
   reg(app);
   return routes;
 }
+
+const hookHeaders = { "x-telegram-bot-api-secret-token": SECRET };
+
+/** Waits for something that happens in the background, with room for a loaded CI worker. */
+const settle = (check: () => void) => vi.waitFor(check, { timeout: 15_000, interval: 25 });
 
 describe("telegram webhook registration (audit)", () => {
   it("does not register the route when the webhook secret is unset", async () => {
@@ -232,7 +276,7 @@ describe("telegram webhook message flow (audit)", () => {
     });
     const routes = await register();
     const { res, out } = fakeRes();
-    await routes[0].handler(fakeReq(update("hello"), { "x-telegram-bot-api-secret-token": SECRET }), res);
+    await routes[0].handler(fakeReq(update("hello"), hookHeaders), res);
     expect(out.json).toEqual({ ok: true });
     const urls = calls.map((c) => c.url);
     expect(urls.some((u) => u.includes(`bot${TOKEN}/sendChatAction`))).toBe(true);
@@ -242,7 +286,19 @@ describe("telegram webhook message flow (audit)", () => {
     expect(sent?.body.text).toBe("S1 answer");
   });
 
-  it("processes the SAME update_id twice: there is no duplicate-update dedup", async () => {
+  it("leaves a plain text message on the S1 path and never draws", async () => {
+    stubFetch((url) => {
+      if (url.includes("/chat/completions")) return okJson({ choices: [{ message: { content: "S1 answer" } }] });
+      return okJson({ ok: true });
+    });
+    const routes = await register();
+    const { res } = fakeRes();
+    await routes[0].handler(fakeReq(update("hello"), hookHeaders), res);
+    expect(s1.blend).toHaveBeenCalledTimes(1);
+    expect(chat.runChatImage).not.toHaveBeenCalled();
+  });
+
+  it("processes the SAME update_id twice: there is no duplicate-update dedup for text", async () => {
     const calls = stubFetch((url) => {
       if (url.includes("/chat/completions")) return okJson({ choices: [{ message: { content: "answer" } }] });
       return okJson({ ok: true });
@@ -250,10 +306,7 @@ describe("telegram webhook message flow (audit)", () => {
     const routes = await register();
     for (let i = 0; i < 2; i++) {
       const { res } = fakeRes();
-      await routes[0].handler(
-        fakeReq(update("hello", 42), { "x-telegram-bot-api-secret-token": SECRET }),
-        res
-      );
+      await routes[0].handler(fakeReq(update("hello", 42), hookHeaders), res);
     }
     // Telegram retries deliveries at-least-once; both passes call the LLM.
     expect(s1.blend).toHaveBeenCalledTimes(2);
@@ -261,15 +314,16 @@ describe("telegram webhook message flow (audit)", () => {
     expect(sends).toHaveLength(2);
   });
 
-  it("answers an allowlisted chat with NO Sutaeru user linkage or quota check", async () => {
-    // getOrCreateTelegramUser (services/telegram.ts) is never called from the webhook, so an allowlisted
-    // chat is not tied to a Sutaeru account or its quota. The allowlist is what keeps strangers out.
+  it("answers any allowlisted telegram chat with NO Sutaeru user linkage or quota check", async () => {
+    // getOrCreateTelegramUser (services/telegram.ts) is never called from the
+    // webhook: an allowlisted Telegram account can consume LLM budget with no
+    // Sutaeru user behind it.
     process.env.OPENCLAW_WEBHOOK_URL = "https://claw.test/hook";
     const calls = stubFetch(() => okJson({ response: "from openclaw" }));
     const routes = await register();
     const { res, out } = fakeRes();
     await routes[0].handler(
-      fakeReq({ update_id: 3, message: { from: { id: 999 }, chat: { id: 999 }, text: "hi" } }, { "x-telegram-bot-api-secret-token": SECRET }),
+      fakeReq({ update_id: 3, message: { from: { id: 999 }, chat: { id: 999 }, text: "hi" } }, hookHeaders),
       res
     );
     expect(out.json).toEqual({ ok: true });
@@ -283,7 +337,7 @@ describe("telegram webhook message flow (audit)", () => {
     const calls = stubFetch((url) => (url.includes("claw.test") ? new Response("boom", { status: 503 }) : okJson({ ok: true })));
     const routes = await register();
     const { res, out } = fakeRes();
-    await routes[0].handler(fakeReq(update("hi"), { "x-telegram-bot-api-secret-token": SECRET }), res);
+    await routes[0].handler(fakeReq(update("hi"), hookHeaders), res);
     expect(out.json).toEqual({ ok: true });
     const sent = calls.find((c) => c.url.includes("sendMessage"));
     expect(sent?.body.text).toContain("OpenClaw is thinking");
@@ -300,7 +354,7 @@ describe("telegram webhook message flow (audit)", () => {
     });
     const routes = await register();
     const { res } = fakeRes();
-    await routes[0].handler(fakeReq(update("hi"), { "x-telegram-bot-api-secret-token": SECRET }), res);
+    await routes[0].handler(fakeReq(update("hi"), hookHeaders), res);
     const sent = calls.find((c) => c.url.includes("sendMessage"));
     expect(sent?.body.text).toHaveLength(4096);
   });
@@ -319,7 +373,7 @@ describe("telegram webhook message flow (audit)", () => {
     });
     const routes = await register();
     const { res, out } = fakeRes();
-    await routes[0].handler(fakeReq(update("hi"), { "x-telegram-bot-api-secret-token": SECRET }), res);
+    await routes[0].handler(fakeReq(update("hi"), hookHeaders), res);
     expect(out.json).toEqual({ ok: true });
     const sends = calls.filter((c) => c.url.includes("sendMessage"));
     expect(sends.length).toBeGreaterThanOrEqual(2);
@@ -333,7 +387,181 @@ describe("telegram webhook message flow (audit)", () => {
     stubFetch(() => okJson({ ok: true }));
     const routes = await register();
     const { res, out } = fakeRes();
-    await routes[0].handler(fakeReq(update("hi"), { "x-telegram-bot-api-secret-token": SECRET }), res);
+    await routes[0].handler(fakeReq(update("hi"), hookHeaders), res);
     expect(out.json).toEqual({ ok: false });
+  });
+});
+
+describe("telegram webhook image commands", { timeout: 30_000 }, () => {
+  const photo = { ok: true as const, buffer: Buffer.from("fake png bytes"), mimeType: "image/png", caption: "Stable Diffusion · realisticVision_v60B1.safetensors" };
+
+  beforeEach(() => {
+    process.env.TELEGRAM_BOT_TOKEN = TOKEN;
+    process.env.TELEGRAM_WEBHOOK_SECRET = SECRET;
+    process.env.TELEGRAM_ALLOWED_USER_IDS = "777";
+    chat.runChatImage.mockResolvedValue(photo);
+  });
+
+  it("answers the webhook at once and sends the photo when the drawing is done", async () => {
+    let finish: (value: typeof photo) => void = () => {};
+    chat.runChatImage.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+    const calls = stubRawFetch(() => okJson({ ok: true }));
+    const routes = await register();
+    const { res, out } = fakeRes();
+
+    await routes[0].handler(fakeReq(update("/img a red fox"), hookHeaders), res);
+
+    // The update is answered while the job is still running.
+    expect(out.json).toEqual({ ok: true });
+    expect(calls.some((c) => c.url.includes("sendPhoto"))).toBe(false);
+    await settle(() => expect(chat.runChatImage).toHaveBeenCalledTimes(1));
+
+    finish(photo);
+    await settle(() => expect(calls.some((c) => c.url.includes("sendPhoto"))).toBe(true));
+  });
+
+  it("sends the picture as multipart to the same chat with the engine caption", async () => {
+    const calls = stubRawFetch(() => okJson({ ok: true }));
+    const routes = await register();
+    const { res } = fakeRes();
+
+    await routes[0].handler(fakeReq(update("/img wide a red fox"), hookHeaders), res);
+    await settle(() => expect(calls.some((c) => c.url.includes("sendPhoto"))).toBe(true));
+
+    const sent = chat.runChatImage.mock.calls[0][0];
+    expect(sent.chatKey).toBe("telegram:777");
+    expect(sent.parsed).toEqual({ kind: "image", prompt: "a red fox", engine: "forge", quality: "standard", aspectRatio: "16:9" });
+
+    const photoCall = calls.find((c) => c.url.includes(`bot${TOKEN}/sendPhoto`));
+    expect(photoCall?.form).toBeInstanceOf(FormData);
+    expect(photoCall?.form?.get("chat_id")).toBe("777");
+    expect(photoCall?.form?.get("caption")).toBe("Stable Diffusion · realisticVision_v60B1.safetensors");
+    const file = photoCall?.form?.get("photo") as File;
+    expect(file.name).toBe("image.png");
+    expect(file.type).toBe("image/png");
+  });
+
+  it("warns about the cold GPU on forge and just says Drawing for the rest", async () => {
+    const calls = stubRawFetch(() => okJson({ ok: true }));
+    const routes = await register();
+    const { res } = fakeRes();
+    await routes[0].handler(fakeReq(update("/img a red fox"), hookHeaders), res);
+    await settle(() => expect(calls.some((c) => c.url.includes("sendPhoto"))).toBe(true));
+
+    const ack = calls.find((c) => c.url.includes("sendMessage"));
+    expect(ack?.json?.text).toBe("Starting the GPU. The first image can take a few minutes.");
+    expect(ack?.json?.chat_id).toBe(777);
+
+    process.env.CHAT_IMAGE_ENGINE = "gemini";
+    const other = stubRawFetch(() => okJson({ ok: true }));
+    const { res: res2 } = fakeRes();
+    await routes[0].handler(fakeReq(update("/img a blue fox", 500), hookHeaders), res2);
+    await settle(() => expect(other.some((c) => c.url.includes("sendPhoto"))).toBe(true));
+    expect(other.find((c) => c.url.includes("sendMessage"))?.json?.text).toBe("Drawing...");
+  });
+
+  it("keeps the upload_photo action alive every 4 seconds until the photo is sent", async () => {
+    vi.useFakeTimers();
+    try {
+      let finish: (value: typeof photo) => void = () => {};
+      chat.runChatImage.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+      const calls: string[] = [];
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: unknown) => {
+          calls.push(String(url));
+          return okJson({ ok: true });
+        })
+      );
+      const routes = await register();
+      const { res } = fakeRes();
+      void routes[0].handler(fakeReq(update("/img a red fox"), hookHeaders), res);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(calls.some((u) => u.includes("sendChatAction"))).toBe(true);
+
+      const actions = () => calls.filter((u) => u.includes("sendChatAction")).length;
+      const before = actions();
+      await vi.advanceTimersByTimeAsync(4_000);
+      await vi.advanceTimersByTimeAsync(4_000);
+      expect(actions()).toBe(before + 2);
+
+      finish(photo);
+      await vi.advanceTimersByTimeAsync(12_000);
+      expect(actions()).toBe(before + 2); // the loop stopped with the job
+      expect(calls.filter((u) => u.includes("sendPhoto"))).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("dedupes a redelivered update_id and never draws it twice", async () => {
+    const calls = stubRawFetch(() => okJson({ ok: true }));
+    const routes = await register();
+
+    for (let i = 0; i < 2; i++) {
+      const { res, out } = fakeRes();
+      await routes[0].handler(fakeReq(update("/img a red fox", 900), hookHeaders), res);
+      expect(out.json).toEqual({ ok: true });
+    }
+    await settle(() => expect(calls.some((c) => c.url.includes("sendPhoto"))).toBe(true));
+
+    expect(chat.runChatImage).toHaveBeenCalledTimes(1);
+    expect(calls.filter((c) => c.url.includes("sendPhoto"))).toHaveLength(1);
+    expect(calls.filter((c) => c.url.includes("sendMessage"))).toHaveLength(1);
+  });
+
+  it("answers a bare command with the usage line and draws nothing", async () => {
+    const calls = stubRawFetch(() => okJson({ ok: true }));
+    const routes = await register();
+    const { res, out } = fakeRes();
+
+    await routes[0].handler(fakeReq(update("/img", 901), hookHeaders), res);
+
+    expect(out.json).toEqual({ ok: true });
+    await settle(() => expect(calls.filter((c) => c.url.includes("sendMessage"))).toHaveLength(1));
+    expect(String(calls.find((c) => c.url.includes("sendMessage"))?.json?.text)).toContain("Draw a picture");
+    expect(chat.runChatImage).not.toHaveBeenCalled();
+  });
+
+  it("answers a failed draw with one short line and sends no photo", async () => {
+    chat.runChatImage.mockResolvedValueOnce({ ok: false, message: "Stable Diffusion is not available right now." });
+    const calls = stubRawFetch(() => okJson({ ok: true }));
+    const routes = await register();
+    const { res } = fakeRes();
+
+    await routes[0].handler(fakeReq(update("/img a red fox", 902), hookHeaders), res);
+    await settle(() => expect(calls.filter((c) => c.url.includes("sendMessage"))).toHaveLength(2));
+
+    const failure = calls.filter((c) => c.url.includes("sendMessage"))[1];
+    expect(failure?.json?.text).toBe("Stable Diffusion is not available right now.");
+    expect(calls.filter((c) => c.url.includes("sendPhoto"))).toHaveLength(0);
+  });
+
+  it("ignores an image command from a user who is not allowlisted", async () => {
+    const calls = stubRawFetch(() => okJson({ ok: true }));
+    const routes = await register();
+    const { res, out } = fakeRes();
+
+    await routes[0].handler(
+      fakeReq({ update_id: 903, message: { from: { id: 555 }, chat: { id: 555 }, text: "/img a red fox" } }, hookHeaders),
+      res
+    );
+
+    expect(out.json).toEqual({ ok: true });
+    expect(chat.runChatImage).not.toHaveBeenCalled();
+    expect(calls).toHaveLength(0);
+  });
+
+  it("still acks the update when the background job throws", async () => {
+    chat.runChatImage.mockRejectedValueOnce(new Error("gpu manager exploded"));
+    const calls = stubRawFetch(() => okJson({ ok: true }));
+    const routes = await register();
+    const { res, out } = fakeRes();
+
+    await routes[0].handler(fakeReq(update("/img a red fox", 904), hookHeaders), res);
+
+    expect(out.json).toEqual({ ok: true });
+    await settle(() => expect(chat.runChatImage).toHaveBeenCalledTimes(1));
+    expect(calls.filter((c) => c.url.includes("sendPhoto"))).toHaveLength(0);
   });
 });
