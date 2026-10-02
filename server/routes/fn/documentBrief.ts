@@ -3,8 +3,10 @@
  *
  * Request body, from client/src/components/BriefDialog.tsx:
  *   { filename: string, text?: string, file?: string, mediaType?: string }
+ *   { attachment: Attachment }
  * `text` carries .txt and .md uploads; `file` is a base64 data URL with
- * `mediaType` for .pdf and .docx uploads.
+ * `mediaType` for .pdf and .docx uploads; `attachment` is the shared attachment
+ * shape of server/lib/attachments.ts, from the device or from Google Drive.
  *
  * The response is a server-sent-event stream using the event names
  * kemmaCloud.ts dispatches on: token, done, error.
@@ -12,6 +14,13 @@
 
 import type { Request, Response } from "express";
 import { LlmUnavailableError, stream, type ChatMessage } from "../../lib/fnLlm";
+import {
+  attachmentBody,
+  hasDriveAttachment,
+  parseAttachmentFrom,
+  requireDriveConnection,
+  type Attachment,
+} from "../../lib/attachments";
 import { documentText, type DocumentPayload } from "../../lib/fnDocument";
 import { FnError } from "../../lib/fnErrors";
 import { asRecord, optionalText, requireText, startHeartbeat, startSse, writeSseEvent } from "./shared";
@@ -40,12 +49,23 @@ One short line per major section of the document.
 Anything unclear, undated, unexplained or internally inconsistent.
 Use only what the document says. Quote exactly. Say "not stated in the document" rather than guessing.`;
 
+/** A brief request: the legacy inline fields, or one shared attachment. */
+export interface BriefPayload extends DocumentPayload {
+  attachment?: Attachment;
+}
+
 export async function handleDocumentBrief(userId: number, req: Request, res: Response): Promise<void> {
   const payload = readPayload(req.body);
 
   let source: { text: string; chars: number };
   try {
-    source = await documentText(payload, userId);
+    if (payload.attachment) {
+      if (hasDriveAttachment([payload.attachment])) await requireDriveConnection(userId);
+      const body = await attachmentBody(userId, payload.attachment);
+      source = { text: body.text, chars: body.text.length };
+    } else {
+      source = await documentText(payload, userId);
+    }
   } catch (err) {
     if (err instanceof FnError) throw err;
     if (err instanceof LlmUnavailableError) throw new FnError(503, "Document briefs are not configured yet.");
@@ -95,10 +115,17 @@ export async function handleDocumentBrief(userId: number, req: Request, res: Res
   }
 }
 
-/** Validates the shape BriefDialog.tsx sends. */
-export function readPayload(body: unknown): DocumentPayload {
+/**
+ * Validates the shape BriefDialog.tsx sends. A filename is required with the
+ * inline fields (the dialog knows it); with an attachment the file brings its
+ * own name, and a Drive file that has none is briefed as "document".
+ */
+export function readPayload(body: unknown): BriefPayload {
   const obj = asRecord(body);
-  const filename = requireText(obj, "filename", 255);
+  const attachment = obj.attachment === undefined || obj.attachment === null ? undefined : parseAttachmentFrom(obj.attachment);
+  const filename = attachment
+    ? (typeof obj.filename === "string" && obj.filename.trim() ? obj.filename.trim() : attachment.filename ?? "document")
+    : requireText(obj, "filename", 255);
   const text = optionalText(obj, "text", MAX_BRIEF_DOC_CHARS);
   const mediaType = optionalText(obj, "mediaType", 100);
   const rawFile = obj.file;
@@ -108,10 +135,12 @@ export function readPayload(body: unknown): DocumentPayload {
   }
   const file = rawFile ? String(rawFile) : undefined;
 
-  if (!text && !file) throw new FnError(400, "A document is required.");
+  if (!text && !file && !attachment) throw new FnError(400, "A document is required.");
   if (file && file.length > MAX_BRIEF_FILE_CHARS) {
     throw new FnError(413, "Uploaded documents must stay under 7 MB.");
   }
 
-  return { filename, text, file, mediaType };
+  const payload: BriefPayload = { filename, text, file, mediaType };
+  if (attachment) payload.attachment = attachment;
+  return payload;
 }

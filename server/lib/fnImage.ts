@@ -13,6 +13,11 @@
  *           standard, Flux for high), reached through the gpu-manager service,
  *           which wakes the paused GPU for the request and pauses it when idle
  *
+ * Reference photos go to the first three: an image part before the text part
+ * for Gemini, image content items before the text item for Wan, and the
+ * multipart `images/edits` route for the gateway. Forge stays text to image
+ * only, so a request that carries references is refused with 400.
+ *
  * Keys are read from the environment at call time. Provider response bodies are
  * never read into an error or a log, keys and tokens never reach a response, and
  * a provider-hosted image URL is downloaded here instead of being handed to the
@@ -168,11 +173,28 @@ export class ImageTimeoutError extends Error {
   }
 }
 
+/** The engine cannot work from reference photos. */
+export class ImageReferenceError extends Error {
+  constructor(label: string) {
+    super(`${label} on the GPU cannot use reference photos yet.`);
+    this.name = "ImageReferenceError";
+  }
+}
+
+/** One attached picture an engine draws from. */
+export interface ImageReference {
+  filename: string;
+  mimeType: string;
+  bytes: Buffer;
+}
+
 export interface ImageJob {
   prompt: string;
   engine: EngineId;
   quality: ImageQuality;
   aspectRatio: AspectRatio;
+  /** Reference photos, already resolved to bytes. At most two, images only. */
+  references?: ImageReference[];
 }
 
 export interface GeneratedImage {
@@ -191,6 +213,19 @@ export interface EngineInfo {
   qualityModel: string;
   available: boolean;
   defaultEngine: boolean;
+  supportsReference: boolean;
+}
+
+/** Engines that can draw from reference photos. Forge (Stable Diffusion) cannot. */
+export const REFERENCE_ENGINES: readonly EngineId[] = ["gemini", "qwen", "openai"];
+
+export function supportsReference(engine: EngineId): boolean {
+  return REFERENCE_ENGINES.includes(engine);
+}
+
+/** The 400 text an engine that cannot take references answers with. */
+export function referenceRejection(engine: EngineId): string {
+  return new ImageReferenceError(ENGINE_LABELS[engine]).message;
 }
 
 // ─── Catalogue: models, availability, listing ────────────────────────────────
@@ -230,6 +265,7 @@ export function listEngines(): EngineInfo[] {
     qualityModel: imageModel(id, "high"),
     available: engineAvailable(id),
     defaultEngine: id === fallback,
+    supportsReference: supportsReference(id),
   }));
 }
 
@@ -242,6 +278,7 @@ export function roughImageCostUsd(model: string): number {
 
 /** Runs exactly the engine in the job. Never another one. */
 export async function generateImage(job: ImageJob): Promise<GeneratedImage> {
+  if (job.references?.length && !supportsReference(job.engine)) throw new ImageReferenceError(ENGINE_LABELS[job.engine]);
   switch (job.engine) {
     case "gemini":
       return geminiImage(job);
@@ -273,16 +310,25 @@ export function aiStudioImageEndpoint(model: string): string {
  * Native generateContent body asking for an image back. Same shape on both
  * backends. All five ratios are accepted: 1:1 came back 1024x1024, 9:16
  * 768x1376 and 3:4 896x1200, so the frame is the model's to choose.
+ *
+ * Reference photos go in as inlineData parts ahead of the text part, which is
+ * the order the image models document for edit-style prompts.
  */
-export function geminiImageBody(prompt: string, aspectRatio: AspectRatio): Record<string, unknown> {
+export function geminiImageBody(prompt: string, aspectRatio: AspectRatio, references: ImageReference[] = []): Record<string, unknown> {
   return {
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    contents: [{ role: "user", parts: [...referenceParts(references), { text: prompt }] }],
     generationConfig: { responseModalities: ["IMAGE"], imageConfig: { aspectRatio } },
   };
 }
 
-async function geminiImage(job: ImageJob): Promise<GeneratedImage> {  const model = imageModel("gemini", job.quality);
-  const body = geminiImageBody(job.prompt, job.aspectRatio);
+/** One image part per reference, in the order the caller sent them. */
+export function referenceParts(references: ImageReference[]): Record<string, unknown>[] {
+  return references.map((image) => ({ inlineData: { mimeType: image.mimeType, data: image.bytes.toString("base64") } }));
+}
+
+async function geminiImage(job: ImageJob): Promise<GeneratedImage> {
+  const model = imageModel("gemini", job.quality);
+  const body = geminiImageBody(job.prompt, job.aspectRatio, job.references ?? []);
 
   let url: string;
   let headers: Record<string, string>;
@@ -340,12 +386,21 @@ export function qwenImageEndpoint(): string {
   return `${origin}${QWEN_IMAGE_PATH}`;
 }
 
-export function qwenImageBody(prompt: string, model: string, aspectRatio: AspectRatio): Record<string, unknown> {
+/**
+ * Native Wan body. Reference photos go in as `image` content items ahead of the
+ * `text` item, which is the multimodal-generation editing shape.
+ */
+export function qwenImageBody(prompt: string, model: string, aspectRatio: AspectRatio, references: ImageReference[] = []): Record<string, unknown> {
   return {
     model,
-    input: { messages: [{ role: "user", content: [{ text: prompt }] }] },
+    input: { messages: [{ role: "user", content: [...referenceContent(references), { text: prompt }] }] },
     parameters: { size: QWEN_SIZES[aspectRatio], n: 1, watermark: false },
   };
+}
+
+/** One `data:` image item per reference, ahead of the text item. */
+export function referenceContent(references: ImageReference[]): Record<string, unknown>[] {
+  return references.map((image) => ({ image: `data:${image.mimeType};base64,${image.bytes.toString("base64")}` }));
 }
 
 async function qwenImage(job: ImageJob): Promise<GeneratedImage> {
@@ -356,7 +411,7 @@ async function qwenImage(job: ImageJob): Promise<GeneratedImage> {
   const data = await postJson(
     qwenImageEndpoint(),
     { Authorization: `Bearer ${key}` },
-    qwenImageBody(job.prompt, model, job.aspectRatio),
+    qwenImageBody(job.prompt, model, job.aspectRatio, job.references ?? []),
     PROVIDER_TIMEOUTS_MS.qwen
   );
 
@@ -381,8 +436,31 @@ export function openaiImageEndpoint(): string {
   return `${litellmBaseUrl()}/images/generations`;
 }
 
+/** The gateway route that takes reference images: the same answer shape, a form body. */
+export function openaiImageEditEndpoint(): string {
+  return `${litellmBaseUrl()}/images/edits`;
+}
+
 export function openaiImageBody(prompt: string, model: string, aspectRatio: AspectRatio): Record<string, unknown> {
   return { model, prompt, n: 1, size: OPENAI_SIZES[aspectRatio] };
+}
+
+/**
+ * multipart/form-data body of an edit request: one `image[]` part per reference,
+ * then prompt, model and size. The gateway answers with the same `data` array as
+ * a generation call, so the reply is read the same way.
+ */
+export function openaiImageEditForm(prompt: string, model: string, aspectRatio: AspectRatio, references: ImageReference[]): FormData {
+  const form = new FormData();
+  references.forEach((image, index) => {
+    const name = image.filename || `reference-${index + 1}.${extensionFor(image.mimeType) || "png"}`;
+    // A copy, not the Buffer itself: BlobPart wants an ArrayBuffer, not a pooled one.
+    form.append("image[]", new Blob([new Uint8Array(image.bytes)], { type: image.mimeType }), name);
+  });
+  form.append("prompt", prompt);
+  form.append("model", model);
+  form.append("size", OPENAI_SIZES[aspectRatio]);
+  return form;
 }
 
 async function openaiImage(job: ImageJob): Promise<GeneratedImage> {
@@ -390,12 +468,11 @@ async function openaiImage(job: ImageJob): Promise<GeneratedImage> {
   if (!key) throw new ImageNotConfiguredError(ENGINE_LABELS.openai);
 
   const model = imageModel("openai", job.quality);
-  const data = await postJson(
-    openaiImageEndpoint(),
-    { Authorization: `Bearer ${key}`, "User-Agent": "sutaeru/1.0" },
-    openaiImageBody(job.prompt, model, job.aspectRatio),
-    PROVIDER_TIMEOUTS_MS.openai
-  );
+  const references = job.references ?? [];
+  const headers = { Authorization: `Bearer ${key}`, "User-Agent": "sutaeru/1.0" };
+  const data = references.length
+    ? await postForm(openaiImageEditEndpoint(), headers, openaiImageEditForm(job.prompt, model, job.aspectRatio, references), PROVIDER_TIMEOUTS_MS.openai)
+    : await postJson(openaiImageEndpoint(), headers, openaiImageBody(job.prompt, model, job.aspectRatio), PROVIDER_TIMEOUTS_MS.openai);
 
   const first = Array.isArray(data?.data) ? data.data[0] : undefined;
   if (first && typeof first.b64_json === "string" && first.b64_json) {
@@ -458,14 +535,21 @@ async function forgeImage(job: ImageJob): Promise<GeneratedImage> {
 // ─── Provider plumbing ───────────────────────────────────────────────────────
 
 async function postJson(url: string, headers: Record<string, string>, body: unknown, timeoutMs: number): Promise<any> {
+  return post(url, { "Content-Type": "application/json", ...headers }, JSON.stringify(body), timeoutMs);
+}
+
+/**
+ * Multipart post for the edit route. The Content-Type is left to fetch: it owns
+ * the boundary the server has to match.
+ */
+async function postForm(url: string, headers: Record<string, string>, body: FormData, timeoutMs: number): Promise<any> {
+  return post(url, headers, body, timeoutMs);
+}
+
+async function post(url: string, headers: Record<string, string>, body: BodyInit, timeoutMs: number): Promise<any> {
   let res: Response;
   try {
-    res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...headers },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(timeoutMs),
-    });
+    res = await fetch(url, { method: "POST", headers, body, signal: AbortSignal.timeout(timeoutMs) });
   } catch (err) {
     if (isTimeout(err)) throw new ImageTimeoutError();
     throw new ImageUpstreamError();

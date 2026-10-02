@@ -2,7 +2,11 @@
  * research function (POST /api/fn/research), the Deep Research path of the chat.
  *
  * Request body, from client/src/pages/Chat.tsx with mode "deep":
- *   { messages: [{ role, content }], files?: [{ filename, mediaType?, url }] }
+ *   { messages: [{ role, content }], files?: [{ filename, mediaType?, url }],
+ *     attachments?: Attachment[] }
+ * `files` takes http(s) URLs, which are fetched through the SSRF guard, and
+ * data: URLs, which are read straight from the body. `attachments` is the
+ * shared attachment shape of server/lib/attachments.ts (device or Drive).
  *
  * The SSE stream carries exactly the events that loop reads:
  *   token      JSON string delta
@@ -17,13 +21,23 @@
  *   error      JSON string message
  *
  * Research runs on the existing Kemma pipeline (planner, web tools, citation
- * verification). Reference files are fetched from the URLs the client supplies
- * through the SSRF-guarded reader in server/lib/fnFetch.ts.
+ * verification).
  */
 
 import type { Request, Response } from "express";
 import { kemmaExecute, type KemmaMessage } from "../../kemma/engine";
 import { getQuotaSummary, checkQuota } from "../../core/quotaCheck";
+import {
+  attachmentLimits,
+  attachmentsToContext,
+  hasDriveAttachment,
+  isDataUrl,
+  parseAttachment,
+  parseAttachments,
+  requireDriveConnection,
+  withContextOnLastUserMessage,
+  type Attachment,
+} from "../../lib/attachments";
 import { bytesToText } from "../../lib/fnDocument";
 import { MAX_REFERENCE_FILES, fetchCapped } from "../../lib/fnFetch";
 import { FnError } from "../../lib/fnErrors";
@@ -45,6 +59,8 @@ export async function handleResearch(userId: number, req: Request, res: Response
   const body = asRecord(req.body);
   const messages = readMessages(body);
   const files = readFiles(body);
+  const attachments = readAttachments(body, files);
+  if (hasDriveAttachment(attachments)) await requireDriveConnection(userId);
 
   const msgCheck = await checkQuota(userId, "message");
   if (!msgCheck.allowed) {
@@ -77,7 +93,16 @@ export async function handleResearch(userId: number, req: Request, res: Response
   };
 
   try {
-    const context = await referenceContext(files, userId, (message) => send("notice", { message }));
+    const notice = (message: string) => send("notice", { message });
+    const hosted = files.filter((file) => !isDataUrl(file.url));
+
+    const fetched = await referenceContext(hosted, userId, notice);
+    const read = await attachmentsToContext(userId, attachments, {
+      maxTotalChars: Math.max(0, MAX_TOTAL_FILE_CHARS - fetched.length),
+      limits: attachmentLimits(),
+    });
+    for (const message of read.notices) notice(message);
+    const context = [fetched, read.text].filter(Boolean).join("\n\n");
     const prepared = context ? withReferenceContext(messages, context) : messages;
 
     // With KEMMA_MAX_SUBAGENTS above 1 the engine plans and fans out on its own;
@@ -162,7 +187,11 @@ export function readMessages(body: Record<string, unknown>): KemmaMessage[] {
   return out;
 }
 
-/** Validates the file list: at most five entries, each with an http(s) url. */
+/**
+ * Validates the file list: at most five entries, each an http(s) url or an
+ * inline base64 data url. The hosted entries go through the SSRF-guarded
+ * reader; the inline ones are treated as device attachments.
+ */
 export function readFiles(body: Record<string, unknown>): IncomingFile[] {
   const raw = body.files;
   if (raw === undefined || raw === null) return [];
@@ -173,14 +202,45 @@ export function readFiles(body: Record<string, unknown>): IncomingFile[] {
     if (!item || typeof item !== "object") throw new FnError(400, "A file reference is not valid.");
     const file = item as { filename?: unknown; mediaType?: unknown; url?: unknown };
     if (typeof file.url !== "string") throw new FnError(400, "A file reference is not a valid URL.");
-    const protocol = /^([a-zA-Z]+):/.exec(file.url.trim())?.[1]?.toLowerCase();
-    if (protocol !== "http" && protocol !== "https") throw new FnError(400, "File references must be http or https URLs.");
+    // A hosted url is shortened for safety; an inline one is bounded by the
+    // attachment size ceiling instead, so slicing it would only corrupt it.
+    const inline = isDataUrl(file.url);
+    const url = inline ? file.url.trim() : file.url.trim().slice(0, 2000);
+    if (!inline) {
+      const protocol = /^([a-zA-Z]+):/.exec(url)?.[1]?.toLowerCase();
+      if (protocol !== "http" && protocol !== "https") throw new FnError(400, "File references must be http or https URLs.");
+    }
     return {
       filename: typeof file.filename === "string" && file.filename.trim() ? file.filename.trim().slice(0, 255) : "reference",
       mediaType: typeof file.mediaType === "string" ? file.mediaType.slice(0, 100) : undefined,
-      url: file.url.trim().slice(0, 2000),
+      url,
     };
   });
+}
+
+/**
+ * The attachment list of a research request: the shared `attachments` shape,
+ * plus the `files` entries the browser sent as inline data URLs. All of them
+ * share the five-file ceiling with the hosted references.
+ */
+export function readAttachments(body: Record<string, unknown>, files: IncomingFile[]): Attachment[] {
+  const inline = files.filter((file) => isDataUrl(file.url));
+  const hosted = files.length - inline.length;
+  const attached = [
+    ...inline.map((file) =>
+      parseAttachment({
+        source: "device",
+        filename: file.filename,
+        ...(file.mediaType ? { mediaType: file.mediaType } : {}),
+        dataUrl: file.url,
+      })
+    ),
+    ...parseAttachments(body.attachments),
+  ];
+  if (hosted + attached.length > MAX_REFERENCE_FILES) {
+    throw new FnError(400, `Up to ${MAX_REFERENCE_FILES} files can be researched at once.`);
+  }
+  return attached;
 }
 
 /**
@@ -224,12 +284,5 @@ export async function referenceContext(
 
 /** Attaches the reference block to the last user message. */
 export function withReferenceContext(messages: KemmaMessage[], context: string): KemmaMessage[] {
-  const out = [...messages];
-  for (let i = out.length - 1; i >= 0; i--) {
-    if (out[i].role === "user") {
-      out[i] = { ...out[i], content: `${out[i].content ?? ""}\n\n${context}` };
-      break;
-    }
-  }
-  return out;
+  return withContextOnLastUserMessage(messages, context);
 }

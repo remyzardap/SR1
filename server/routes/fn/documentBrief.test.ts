@@ -1,13 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const doc = vi.hoisted(() => ({ documentText: vi.fn() }));
+const doc = vi.hoisted(() => ({ documentText: vi.fn(), bytesToText: vi.fn() }));
 const llm = vi.hoisted(() => ({
   stream: vi.fn(),
   LlmUnavailableError: class LlmUnavailableError extends Error {},
 }));
+// The Drive half of an attachment request is faked at the Google service: no
+// network, no credentials, obvious ids.
+const google = vi.hoisted(() => ({
+  getConnectionStatus: vi.fn(),
+  getDriveFileMeta: vi.fn(),
+  downloadDriveFile: vi.fn(),
+  exportDriveFile: vi.fn(),
+}));
 
-vi.mock("../../lib/fnDocument", () => doc);
+vi.mock("../../lib/fnDocument", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../lib/fnDocument")>()),
+  documentText: doc.documentText,
+  bytesToText: doc.bytesToText,
+}));
 vi.mock("../../lib/fnLlm", () => ({ stream: llm.stream, LlmUnavailableError: llm.LlmUnavailableError }));
+vi.mock("../../services/google", () => google);
 
 import { MAX_BRIEF_DOC_CHARS, MAX_BRIEF_FILE_CHARS, handleDocumentBrief, readPayload } from "./documentBrief";
 import { FnError } from "../../lib/fnErrors";
@@ -39,6 +52,11 @@ function fakeRes() {
 beforeEach(() => {
   vi.clearAllMocks();
   doc.documentText.mockResolvedValue({ text: "Quarterly report. Revenue 12.4B.", chars: 34 });
+  doc.bytesToText.mockResolvedValue("Quarterly report. Revenue 12.4B.");
+  google.getConnectionStatus.mockResolvedValue({ connected: true, email: "user@example.test" });
+  google.downloadDriveFile.mockResolvedValue(Buffer.from("%PDF-1.4 fake bytes"));
+  google.exportDriveFile.mockResolvedValue(Buffer.from("# exported markdown"));
+  google.getDriveFileMeta.mockResolvedValue({ id: "drive-1", name: "Q3", mimeType: "application/pdf", size: 200, isFolder: false });
   llm.stream.mockImplementation(async (_messages: unknown, _options: unknown, onToken: (t: string) => void) => {
     onToken("## Overview\n");
     onToken("A quarterly report.");
@@ -75,6 +93,108 @@ describe("readPayload", () => {
 
   it("accepts an upload right up to that ceiling", () => {
     expect(readPayload({ filename: "ok.pdf", file: "A".repeat(MAX_BRIEF_FILE_CHARS) }).file).toHaveLength(MAX_BRIEF_FILE_CHARS);
+  });
+
+  it("takes the attachment shape instead of the inline fields", () => {
+    const att = { source: "device", filename: "deck.pdf", mediaType: "application/pdf", dataUrl: "data:application/pdf;base64,AAAA" };
+    const payload = readPayload({ attachment: att });
+    expect(payload.filename).toBe("deck.pdf");
+    expect(payload.attachment).toMatchObject({ source: "device", filename: "deck.pdf", mediaType: "application/pdf" });
+    expect(payload.text).toBeUndefined();
+    expect(payload.file).toBeUndefined();
+  });
+
+  it("prefers the top-level filename when an attachment brings its own", () => {
+    const att = { source: "drive", fileId: "drive-1", filename: "Google Doc" };
+    expect(readPayload({ filename: "kept.name.md", attachment: att }).filename).toBe("kept.name.md");
+  });
+
+  it("names a Drive file with no name of its own document", () => {
+    const payload = readPayload({ attachment: { source: "drive", fileId: "drive-1" } });
+    expect(payload.filename).toBe("document");
+    expect(payload.attachment).toMatchObject({ source: "drive", fileId: "drive-1" });
+  });
+
+  it("still needs some content alongside an invalid attachment", () => {
+    expect(() => readPayload({ attachment: { source: "device", filename: "a.txt" } })).toThrow("a.txt has no file data.");
+    expect(() => readPayload({ attachment: "nope" })).toThrow("attachment is not valid.");
+  });
+});
+
+describe("document-brief from an attachment", () => {
+  const drivePdf = { source: "drive", fileId: "drive-1", filename: "Q3 report.pdf" };
+
+  it("briefs the Drive file's text, not its id", async () => {
+    const res = fakeRes();
+    await handleDocumentBrief(7, request({ attachment: drivePdf }), res as never);
+
+    expect(google.getDriveFileMeta).toHaveBeenCalledWith(7, "drive-1");
+    expect(google.downloadDriveFile).toHaveBeenCalledWith(7, "drive-1", 10 * 1024 * 1024);
+    expect(doc.documentText).not.toHaveBeenCalled();
+    const prompt = llm.stream.mock.calls[0][0][1].content as string;
+    expect(prompt).toContain("Filename: Q3 report.pdf");
+    expect(prompt).toContain("Quarterly report");
+    expect(prompt).not.toContain("drive-1");
+    expect(JSON.parse(res.frames[2].split("data: ")[1])).toMatchObject({ filename: "Q3 report.pdf" });
+  });
+
+  it("exports a Google-native file and briefs the export", async () => {
+    google.getDriveFileMeta.mockResolvedValue({
+      id: "drive-2",
+      name: "Meeting notes",
+      mimeType: "application/vnd.google-apps.document",
+      isFolder: false,
+    });
+    await handleDocumentBrief(7, request({ attachment: { source: "drive", fileId: "drive-2", filename: "Meeting notes" } }), fakeRes() as never);
+
+    expect(google.exportDriveFile).toHaveBeenCalledWith(7, "drive-2", "text/markdown", 10 * 1024 * 1024);
+    expect(google.downloadDriveFile).not.toHaveBeenCalled();
+    expect(doc.bytesToText).toHaveBeenCalledWith({ filename: "Meeting notes.md", mediaType: "text/markdown" }, expect.any(Buffer), 7);
+  });
+
+  it("reads a device attachment from the body without touching Drive", async () => {
+    const att = {
+      source: "device",
+      filename: "notes.md",
+      mediaType: "text/markdown",
+      dataUrl: "data:text/markdown;base64," + Buffer.from("# Quarterly report").toString("base64"),
+    };
+    const res = fakeRes();
+    await handleDocumentBrief(7, request({ attachment: att }), res as never);
+    expect(google.getDriveFileMeta).not.toHaveBeenCalled();
+    expect(doc.bytesToText).toHaveBeenCalledWith({ filename: "notes.md", mediaType: "text/markdown" }, Buffer.from("# Quarterly report"), 7);
+    expect(llm.stream).toHaveBeenCalled();
+    expect(res.frames[2]).toContain("event: done");
+  });
+
+  it("answers 409 for a Drive file when Google is not connected, before the stream opens", async () => {
+    google.getConnectionStatus.mockResolvedValue({ connected: false, email: null });
+    const res = fakeRes();
+    await expect(handleDocumentBrief(7, request({ attachment: drivePdf }), res as never)).rejects.toMatchObject({
+      status: 409,
+      message: "Connect Google on the Connections page first.",
+    });
+    expect(res.frames).toHaveLength(0);
+    expect(google.downloadDriveFile).not.toHaveBeenCalled();
+  });
+
+  it("refuses a Drive file that is not readable without leaking the upstream fault", async () => {
+    google.getDriveFileMeta.mockRejectedValue(new Error("403, bearer abc123 rejected"));
+    let caught: unknown;
+    try {
+      await handleDocumentBrief(7, request({ attachment: drivePdf }), fakeRes() as never);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toMatchObject({ status: 404, message: "Q3 report.pdf is not available to this Google account." });
+    expect(String(caught)).not.toContain("abc123");
+  });
+
+  it("says a file over the size ceiling is refused, at 413", async () => {
+    google.getDriveFileMeta.mockResolvedValue({ id: "drive-3", name: "Huge.pdf", mimeType: "application/pdf", size: 40 * 1024 * 1024, isFolder: false });
+    await expect(
+      handleDocumentBrief(7, request({ attachment: { source: "drive", fileId: "drive-3", filename: "Huge.pdf" } }), fakeRes() as never)
+    ).rejects.toMatchObject({ status: 413, message: "Huge.pdf is over the 10 MB limit." });
   });
 });
 

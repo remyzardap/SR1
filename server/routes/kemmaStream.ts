@@ -4,6 +4,16 @@ import { describePhase, describeToolEnd, describeToolStart, type ActivityEvent }
 import { getQuotaSummary, checkQuota } from "../core/quotaCheck";
 import { getChatSessionSettings, addChatMessage, ensureChatSession } from "../db";
 import { resolveSettings, type ThreadSettings, type MessageSettings } from "../kemma/settings";
+import {
+  attachmentNote,
+  attachmentsToContext,
+  hasDriveAttachment,
+  parseAttachments,
+  requireDriveConnection,
+  withContextOnLastUserMessage,
+  type Attachment,
+} from "../lib/attachments";
+import { FnError } from "../lib/fnErrors";
 
 function sendEvent(res: Response, event: string, data: unknown) {
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -13,8 +23,20 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
   const user = (req as any).user;
   if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-  const { messages, sessionId, isThinking = false, isVoice = false, settings = {} } = req.body as any;
+  const { messages, sessionId, isThinking = false, isVoice = false, settings = {}, attachments } = req.body as any;
   if (!Array.isArray(messages) || messages.length === 0) { res.status(400).json({ error: "messages required" }); return; }
+
+  // Attachments are checked before the stream opens, so a bad list is a plain
+  // `{ error }` answer. Reading them happens after: that can take seconds.
+  let attached: Attachment[];
+  try {
+    attached = parseAttachments(attachments);
+    if (hasDriveAttachment(attached)) await requireDriveConnection(user.id);
+  } catch (err) {
+    const failure = err instanceof FnError ? err : new FnError(400, "The attachments are not valid.");
+    res.status(failure.status).json({ error: failure.message });
+    return;
+  }
 
   // The Chat page mints thread ids client-side; without a chat_sessions row, history,
   // per-thread settings and export have nothing to attach to. Create the row (title from
@@ -60,10 +82,23 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
 
   let assistantContent = "";
   try {
+    // Reading the files happens once the stream is open: a Drive download or an
+    // image description takes seconds, and a file that fails is a notice rather
+    // than an error. Only the names are stored; the text goes on the wire.
+    let wireMessages = messages as KemmaMessage[];
+    let attachedNote = "";
+    if (attached.length > 0) {
+      const read = await attachmentsToContext(user.id, attached);
+      for (const message of read.notices) if (!aborted) sendEvent(res, "notice", { message });
+      wireMessages = withContextOnLastUserMessage(wireMessages, read.text);
+      attachedNote = attachmentNote(read.names);
+    }
+
     if (sessionId) {
       const lastUser = [...messages].reverse().find((m) => m.role === "user");
       if (lastUser?.content) {
-        await addChatMessage(sessionId, user.id, lastUser.content, "user", undefined, settings);
+        const stored = attachedNote ? `${lastUser.content}\n\n${attachedNote}` : lastUser.content;
+        await addChatMessage(sessionId, user.id, stored, "user", undefined, settings);
       }
     }
 
@@ -79,7 +114,7 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
     const output = await kemmaExecute({
       userId: user.id,
       userName: user.name ?? undefined,
-      messages: messages as KemmaMessage[],
+      messages: wireMessages,
       tier: quota.tier,
       isThinking,
       isVoice,

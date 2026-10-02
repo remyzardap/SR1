@@ -1,7 +1,9 @@
 import { google } from "googleapis";
 import { eq } from "drizzle-orm";
+import type { Readable } from "node:stream";
 import { getDb } from "../db";
 import { googleTokens } from "../../drizzle/schema";
+import { FnError } from "../lib/fnErrors";
 import crypto from "crypto";
 
 const ENCRYPTION_KEY = process.env.GOOGLE_TOKEN_ENCRYPTION_KEY;
@@ -429,4 +431,152 @@ export async function updateDriveFile(userId: number, fileId: string, buffer: Bu
 
 export function isGoogleConfigured(): boolean {
   return !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+}
+
+// ─── Drive reads for chat attachments (server/lib/attachments.ts) ────────────
+
+/**
+ * Every Drive row the attachment picker may offer: the formats this server can
+ * turn into text or show to the vision slot, plus folders to browse into.
+ * Google-native types are listed here and exported by the server on read.
+ */
+export const ATTACHABLE_DRIVE_MIME_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
+  "text/markdown",
+  "text/csv",
+  "application/vnd.google-apps.document",
+  "application/vnd.google-apps.spreadsheet",
+  "application/vnd.google-apps.presentation",
+];
+
+const FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
+const DRIVE_PAGE_SIZE = 50;
+const DRIVE_TRANSFER_TIMEOUT_MS = 120_000;
+
+export interface DriveAttachmentEntry {
+  id: string;
+  name: string;
+  mimeType: string;
+  size?: number;
+  modifiedTime?: string;
+  isFolder: boolean;
+}
+
+/** A Drive row small enough to describe: name, type, and the size Google reports. */
+export async function getDriveFileMeta(userId: number, fileId: string): Promise<DriveAttachmentEntry> {
+  const auth = await getAuthenticatedClient(userId);
+  const drive = google.drive({ version: "v3", auth });
+  const { data } = await drive.files.get({
+    fileId,
+    fields: "id, name, mimeType, size, modifiedTime",
+    supportsAllDrives: true,
+  });
+  if (!data.id) throw new Error("Google Drive returned no file for that id");
+  return toAttachmentEntry(data);
+}
+
+/**
+ * Reads a Drive file's own bytes, capped: the limit is checked again chunk by
+ * chunk, so an over-size file stops the transfer instead of filling memory.
+ */
+export async function downloadDriveFile(userId: number, fileId: string, maxBytes: number): Promise<Buffer> {
+  const auth = await getAuthenticatedClient(userId);
+  const drive = google.drive({ version: "v3", auth });
+  const res = await drive.files.get(
+    { fileId, alt: "media", supportsAllDrives: true },
+    { responseType: "stream", timeout: DRIVE_TRANSFER_TIMEOUT_MS }
+  );
+  return readCapped(res.data as Readable, maxBytes);
+}
+
+/**
+ * Converts a Google-native file to a readable export format. Google answers the
+ * export call itself, so no native type ever reaches this server as bytes.
+ */
+export async function exportDriveFile(userId: number, fileId: string, mimeType: string, maxBytes: number): Promise<Buffer> {
+  const auth = await getAuthenticatedClient(userId);
+  const drive = google.drive({ version: "v3", auth });
+  const res = await drive.files.export(
+    { fileId, mimeType },
+    { responseType: "stream", timeout: DRIVE_TRANSFER_TIMEOUT_MS }
+  );
+  return readCapped(res.data as Readable, maxBytes);
+}
+
+/**
+ * One page of the attachment picker: folders first, then files by modification
+ * time, only the attachable types, 50 rows at most. The page token is Google's
+ * own and is passed straight through.
+ */
+export async function listDriveAttachments(
+  userId: number,
+  options: { query?: string; folderId?: string; pageToken?: string } = {}
+): Promise<{ files: DriveAttachmentEntry[]; nextPageToken?: string }> {
+  const auth = await getAuthenticatedClient(userId);
+  const drive = google.drive({ version: "v3", auth });
+
+  const types = [FOLDER_MIME_TYPE, ...ATTACHABLE_DRIVE_MIME_TYPES].map((m) => `mimeType = '${escapeDriveValue(m)}'`);
+  const clauses = ["trashed = false", `(${types.join(" or ")})`];
+  if (options.folderId) clauses.push(`'${escapeDriveValue(options.folderId)}' in parents`);
+  if (options.query) clauses.push(`name contains '${escapeDriveValue(options.query)}'`);
+
+  const { data } = await drive.files.list({
+    q: clauses.join(" and "),
+    pageSize: DRIVE_PAGE_SIZE,
+    pageToken: options.pageToken,
+    fields: "files(id, name, mimeType, size, modifiedTime), nextPageToken",
+    orderBy: "modifiedTime desc",
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
+  });
+
+  const entries = (data.files || []).map(toAttachmentEntry);
+  // Folders first, whatever Google's order was: the picker browses before it picks.
+  entries.sort((a, b) => Number(b.isFolder) - Number(a.isFolder));
+
+  return { files: entries, ...(data.nextPageToken ? { nextPageToken: data.nextPageToken } : {}) };
+}
+
+function toAttachmentEntry(file: {
+  id?: string | null;
+  name?: string | null;
+  mimeType?: string | null;
+  size?: string | null;
+  modifiedTime?: string | null;
+}): DriveAttachmentEntry {
+  const size = Number(file.size);
+  return {
+    id: file.id ?? "",
+    name: file.name ?? "Untitled",
+    mimeType: file.mimeType ?? "",
+    ...(Number.isFinite(size) && size > 0 ? { size } : {}),
+    ...(file.modifiedTime ? { modifiedTime: file.modifiedTime } : {}),
+    isFolder: file.mimeType === FOLDER_MIME_TYPE,
+  };
+}
+
+/** Drive query strings take values in single quotes, so a quote has to be escaped. */
+function escapeDriveValue(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+async function readCapped(stream: Readable, maxBytes: number): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for await (const raw of stream) {
+    const chunk = Buffer.isBuffer(raw) ? raw : Buffer.from(raw as Uint8Array);
+    total += chunk.byteLength;
+    if (total > maxBytes) {
+      stream.destroy();
+      throw new FnError(413, "That Drive file is over the attachment size limit.");
+    }
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks, total);
 }

@@ -22,6 +22,8 @@ const handlers = vi.hoisted(() => ({
   handleChatInsights: vi.fn(),
   handleResearch: vi.fn(),
   handleVoice: vi.fn(),
+  handleImage: vi.fn(),
+  handleDrive: vi.fn(),
   parseAudio: vi.fn(),
 }));
 
@@ -32,6 +34,8 @@ vi.mock("./documentBrief", () => ({ handleDocumentBrief: handlers.handleDocument
 vi.mock("./chatInsights", () => ({ handleChatInsights: handlers.handleChatInsights }));
 vi.mock("./research", () => ({ handleResearch: handlers.handleResearch }));
 vi.mock("./voice", () => ({ handleVoice: handlers.handleVoice, parseAudio: handlers.parseAudio }));
+vi.mock("./image", () => ({ handleImage: handlers.handleImage }));
+vi.mock("./drive", () => ({ handleDrive: handlers.handleDrive }));
 
 import { handleFnRequest, resolveFunction } from "./index";
 import { FnError } from "../../lib/fnErrors";
@@ -63,13 +67,15 @@ beforeEach(() => {
 });
 
 describe("the /api/fn mount point", () => {
-  it("routes the six names the client calls", () => {
+  it("routes the seven names the client calls", () => {
     expect(resolveFunction("memories")).toBe(handlers.handleMemories);
     expect(resolveFunction("monitors")).toBe(handlers.handleMonitors);
     expect(resolveFunction("document-brief")).toBe(handlers.handleDocumentBrief);
     expect(resolveFunction("chat-insights")).toBe(handlers.handleChatInsights);
     expect(resolveFunction("research")).toBe(handlers.handleResearch);
     expect(resolveFunction("voice")).toBe(handlers.handleVoice);
+    expect(resolveFunction("image")).toBe(handlers.handleImage);
+    expect(resolveFunction("drive")).toBe(handlers.handleDrive);
   });
 
   it("does not resolve object properties that are not functions", () => {
