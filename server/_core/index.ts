@@ -76,6 +76,17 @@ app.use(cors({
   credentials: true,
 }));
 app.use(cookieParser());
+// Attachments travel as base64 inside the JSON body (up to 20 MB of files, about 27 MB encoded), so the two
+// routes that take them accept bigger bodies than the rest. requireSession runs first, so an anonymous caller
+// can never make the server read a large body. The global parser below skips a body that is already parsed.
+const attachmentBody = express.json({ limit: '32mb', verify: (req, _res, buf) => { (req as any).rawBody = buf; } });
+app.use('/api/fn', requireSession, attachmentBody);
+app.use('/api/kemma/stream', requireSession, attachmentBody);
+app.use(['/api/fn', '/api/kemma/stream'], (err: any, _req: any, res: any, next: any) => {
+  if (err?.type === 'entity.too.large') return res.status(413).json({ error: 'That upload is too large. Keep attachments under 20 MB in total.' });
+  next(err);
+});
+
 app.use(express.json({
   limit: '10mb',
   verify: (req, _res, buf) => {

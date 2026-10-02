@@ -27,6 +27,9 @@ export const MAX_FILES = 5;
 /** Mirrors the server default for ATTACH_MAX_MB; there is no endpoint that reports the limit. */
 export const MAX_MB = 10;
 export const MAX_BYTES = MAX_MB * 1024 * 1024;
+/** All device files in one request together; the server enforces the same number. */
+export const MAX_TOTAL_MB = 20;
+export const MAX_TOTAL_BYTES = MAX_TOTAL_MB * 1024 * 1024;
 
 /** Types the server accepts for both sources. Google native files are Drive only and exported there. */
 export const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"] as const;
@@ -93,6 +96,8 @@ export interface ValidateOptions {
   max?: number;
   imagesOnly?: boolean;
   documentsOnly?: boolean;
+  /** Bytes already attached to this composer, so the total cap counts them. */
+  attachedBytes?: number;
 }
 
 /**
@@ -119,6 +124,7 @@ export function validateDeviceFiles(
 
   const accepted: File[] = [];
   const kept: File[] = [];
+  let runningBytes = options.attachedBytes ?? 0;
   const rejected: string[] = [];
 
   for (const file of incoming) {
@@ -132,6 +138,11 @@ export function validateDeviceFiles(
       rejected.push(`${name} is ${formatBytes(file.size)}. Each attachment must be ${MAX_MB} MB or smaller.`);
       continue;
     }
+    if (runningBytes + file.size > MAX_TOTAL_BYTES) {
+      rejected.push(`${name} would take your attachments over ${MAX_TOTAL_MB} MB in total.`);
+      continue;
+    }
+    runningBytes += file.size;
     kept.push(file);
   }
 
@@ -212,4 +223,13 @@ export function attachmentSize(att: Attachment): number {
 export function attachmentKey(att: Attachment, index: number): string {
   if (att.source === "drive") return `drive:${att.fileId}`;
   return `device:${att.filename}:${attachmentSize(att)}:${index}`;
+}
+
+/** Decoded size of a device attachment, worked out from its data URL. Drive attachments count as 0 here. */
+export function attachmentBytes(a: { source: string; dataUrl?: string }): number {
+  if (a.source !== "device" || !a.dataUrl) return 0;
+  const comma = a.dataUrl.indexOf(",");
+  const b64 = comma >= 0 ? a.dataUrl.slice(comma + 1) : "";
+  const padding = b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0;
+  return Math.max(0, Math.floor((b64.length * 3) / 4) - padding);
 }

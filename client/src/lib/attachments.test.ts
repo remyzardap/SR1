@@ -17,6 +17,7 @@ import {
   mediaTypeOf,
   sizeFromDataUrl,
   validateDeviceFiles,
+  attachmentBytes,
 } from "./attachments";
 
 function makeFile(name: string, type: string, bytes: number): File {
@@ -203,5 +204,28 @@ describe("attachment helpers", () => {
   it("keys Drive by id and device by content", () => {
     expect(attachmentKey(drive, 0)).toBe("drive:123");
     expect(attachmentKey(device, 1)).toBe("device:a.png:1:1");
+  });
+});
+
+
+describe("total size cap", () => {
+  const big = (name: string, mb: number) => new File([new Uint8Array(mb * 1024 * 1024)], name, { type: "application/pdf" });
+
+  it("refuses a file that would push the request over the total cap", () => {
+    const { accepted, rejected } = validateDeviceFiles([big("a.pdf", 9), big("b.pdf", 9), big("c.pdf", 9)], 0);
+    expect(accepted.map((f) => f.name)).toEqual(["a.pdf", "b.pdf"]);
+    expect(rejected.join(" ")).toMatch(/c\.pdf would take your attachments over 20 MB in total/);
+  });
+
+  it("counts what is already attached", () => {
+    const { accepted, rejected } = validateDeviceFiles([big("d.pdf", 6)], 1, { attachedBytes: 15 * 1024 * 1024 });
+    expect(accepted).toHaveLength(0);
+    expect(rejected).toHaveLength(1);
+  });
+
+  it("works out a device attachment's decoded size from its data URL", () => {
+    const dataUrl = "data:text/plain;base64," + btoa("hello world!!");
+    expect(attachmentBytes({ source: "device", dataUrl })).toBe(13);
+    expect(attachmentBytes({ source: "drive" })).toBe(0);
   });
 });

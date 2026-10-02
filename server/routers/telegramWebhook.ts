@@ -62,7 +62,11 @@ export function registerTelegramWebhookRoute(app: Express) {
 
       const telegramUserId = update.message.from.id;
       // Ignore anyone who is not on the allowlist: no reply, no model call, no message text in the log.
-      if (!isTelegramUserAllowed(telegramUserId)) return res.json({ ok: true });
+      if (!isTelegramUserAllowed(telegramUserId)) {
+        // Only the numeric id is logged, never the message, so the owner can find their id and add it to the allowlist.
+        console.log(`[Telegram] Ignored a message from user id ${telegramUserId} (not on TELEGRAM_ALLOWED_USER_IDS)`);
+        return res.json({ ok: true });
+      }
       const messageText = update.message.text;
       const chatId = update.message.chat.id;
       const username = update.message.from.username || `user_${telegramUserId}`;

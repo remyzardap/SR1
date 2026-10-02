@@ -229,13 +229,25 @@ function sizeError(label: string, limits: AttachmentLimits): FnError {
  * Validates one attachment list: count, shape, data URL, type and size. Device
  * files must carry a base64 data URL; Drive files must carry a file id.
  */
+/** All device files in one request together. Mirrors MAX_TOTAL_MB in the browser code. */
+export const MAX_TOTAL_ATTACH_MB = 20;
+const MAX_TOTAL_ATTACH_BYTES = MAX_TOTAL_ATTACH_MB * 1024 * 1024;
+
 export function parseAttachments(value: unknown, limits: AttachmentLimits = attachmentLimits()): Attachment[] {
   if (value === undefined || value === null) return [];
   if (!Array.isArray(value)) throw new FnError(400, "attachments is not valid.");
   if (value.length > limits.maxCount) {
     throw new FnError(400, `Up to ${limits.maxCount} files can be attached to one request.`);
   }
-  return value.map((item) => parseAttachment(item, limits));
+  const parsed = value.map((item) => parseAttachment(item, limits));
+  // Device files travel inside the JSON body, so cap what one request can carry in total.
+  let total = 0;
+  for (const item of parsed) {
+    if (item.source !== "device") continue;
+    total += base64Bytes(item.dataUrl.slice(item.dataUrl.indexOf(",") + 1));
+    if (total > MAX_TOTAL_ATTACH_BYTES) throw new FnError(413, `Attachments are over the ${MAX_TOTAL_ATTACH_MB} MB total limit.`);
+  }
+  return parsed;
 }
 
 /** The reference-image list of an image generation request: at most two images. */

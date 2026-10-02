@@ -259,6 +259,20 @@ describe("telegram webhook message flow (audit)", () => {
     expect(calls).toHaveLength(0);
   });
 
+  it("logs only the numeric id of an ignored sender, never the message text", async () => {
+    stubFetch(() => okJson({ ok: true }));
+    const log = vi.spyOn(console, "log");
+    const routes = await register();
+    const { res } = fakeRes();
+    await routes[0].handler(
+      fakeReq({ update_id: 11, message: { from: { id: 4242 }, chat: { id: 4242 }, text: "secret words" } }, { "x-telegram-bot-api-secret-token": SECRET }),
+      res
+    );
+    const lines = log.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(lines).toContain("4242");
+    expect(lines).not.toContain("secret words");
+  });
+
   it("ignores everyone when the allowlist is empty", async () => {
     process.env.TELEGRAM_ALLOWED_USER_IDS = "";
     const calls = stubFetch(() => okJson({ ok: true }));

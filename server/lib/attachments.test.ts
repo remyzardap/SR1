@@ -472,3 +472,26 @@ describe("helpers the routes reuse", () => {
     expect(isDataUrl("")).toBe(false);
   });
 });
+
+
+describe("total size cap per request", () => {
+  const device = (name: string, mb: number) => ({
+    source: "device" as const,
+    filename: name,
+    mediaType: "text/plain",
+    dataUrl: "data:text/plain;base64," + Buffer.alloc(mb * 1024 * 1024, 97).toString("base64"),
+  });
+
+  it("accepts several files that fit together", () => {
+    expect(parseAttachments([device("a.txt", 7), device("b.txt", 7), device("c.txt", 5)])).toHaveLength(3);
+  });
+
+  it("refuses a request whose files add up to more than 20 MB, even when each file is under the per-file limit", () => {
+    expect(() => parseAttachments([device("a.txt", 9), device("b.txt", 9), device("c.txt", 9)])).toThrow(/20 MB total/);
+  });
+
+  it("does not count Drive attachments, which are downloaded and capped on the server", () => {
+    const drive = { source: "drive" as const, fileId: "abc123" };
+    expect(parseAttachments([device("a.txt", 9), device("b.txt", 9), drive, drive])).toHaveLength(4);
+  });
+});

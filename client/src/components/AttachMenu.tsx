@@ -19,6 +19,7 @@ import {
   formatBytes,
   isImageType,
   validateDeviceFiles,
+  attachmentBytes,
   type Attachment,
 } from "@/lib/attachments";
 import "@/styles/attach.css";
@@ -71,7 +72,7 @@ export function AttachMenu({ attachments, onChange, max = MAX_FILES, imagesOnly 
   }
 
   async function addDeviceFiles(list: FileList | File[] | null) {
-    const { accepted, rejected } = validateDeviceFiles(list, attachments.length, { max, imagesOnly, documentsOnly });
+    const { accepted, rejected } = validateDeviceFiles(list, attachments.length, { max, imagesOnly, documentsOnly, attachedBytes: attachments.reduce((sum, a) => sum + attachmentBytes(a), 0) });
     if (accepted.length === 0) {
       setErrors(rejected);
       return;
