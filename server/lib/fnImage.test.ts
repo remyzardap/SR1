@@ -384,7 +384,7 @@ describe("availability and the engines list", () => {
       supportsReference: true,
     });
     // Only the GPU engine cannot work from a photo.
-    expect(engines.map((entry) => entry.supportsReference)).toEqual([true, true, true, false]);
+    expect(engines.map((entry) => entry.supportsReference)).toEqual([true, true, false, false]);
     expect(engines.filter((entry) => entry.defaultEngine).map((entry) => entry.id)).toEqual(["qwen"]);
     expect(engines[2]).toMatchObject({ id: "openai", available: false, model: "gpt-image-2", qualityModel: "gpt-image-2" });
   });
@@ -454,12 +454,14 @@ describe("reference photos in the request bodies", () => {
     bytes: Buffer.from(bytes),
   });
 
-  it("offers references on every engine but the GPU one", () => {
+  it("offers references on gemini and qwen only", () => {
     expect(supportsReference("gemini")).toBe(true);
     expect(supportsReference("qwen")).toBe(true);
-    expect(supportsReference("openai")).toBe(true);
+    // The gateway rejects every /images/edits request for gpt-image-2 (verified live), so openai is not offered.
+    expect(supportsReference("openai")).toBe(false);
     expect(supportsReference("forge")).toBe(false);
     expect(referenceRejection("forge")).toBe("Stable Diffusion on the GPU cannot use reference photos yet.");
+    expect(referenceRejection("openai")).toBe("OpenAI cannot use reference photos yet.");
   });
 
   it("gemini carries each photo as an inlineData part before the text part", () => {
@@ -524,20 +526,19 @@ describe("reference photos in the request bodies", () => {
     expect(content[1]).toEqual({ text: "a lighthouse at dawn" });
   });
 
-  it("posts openai references to the edit route as a form, not as JSON", async () => {
-    process.env.LITELLM_API_KEY = FAKE_LITELLM_KEY;
-    fetchMock.mockResolvedValue(jsonResponse({ data: [{ b64_json: pngBytes().toString("base64") }] }));
-
-    const image = await generateImage(job({ engine: "openai", references: [reference("one")] }));
-
-    expect(callUrl()).toBe("https://api.koboillm.com/v1/images/edits");
-    const init = callInit();
-    const form = init.body as FormData;
+  it("builds the openai edit request as a multipart form (kept ready for when the gateway handles edits)", () => {
+    const form = openaiImageEditForm("a lighthouse at dawn", "gpt-image-2", "16:9", [reference("one")]);
     expect(form).toBeInstanceOf(FormData);
-    expect(init.headers["Content-Type"]).toBeUndefined();
-    expect(init.headers.Authorization).toBe(`Bearer ${FAKE_LITELLM_KEY}`);
     expect(form.get("model")).toBe("gpt-image-2");
-    expect(image.model).toBe("gpt-image-2");
+    expect(form.get("prompt")).toBe("a lighthouse at dawn");
+    expect(form.get("size")).toBe("1536x1024");
+    expect(form.getAll("image[]")).toHaveLength(1);
+  });
+
+  it("refuses openai references before any request is made", async () => {
+    process.env.LITELLM_API_KEY = FAKE_LITELLM_KEY;
+    await expect(generateImage(job({ engine: "openai", references: [reference("one")] }))).rejects.toThrow(/cannot use reference photos/);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("keeps openai on the generation route when no photo came", async () => {

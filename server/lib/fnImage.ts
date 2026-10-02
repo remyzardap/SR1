@@ -176,7 +176,7 @@ export class ImageTimeoutError extends Error {
 /** The engine cannot work from reference photos. */
 export class ImageReferenceError extends Error {
   constructor(label: string) {
-    super(`${label} on the GPU cannot use reference photos yet.`);
+    super(label === ENGINE_LABELS.forge ? `${label} on the GPU cannot use reference photos yet.` : `${label} cannot use reference photos yet.`);
     this.name = "ImageReferenceError";
   }
 }
@@ -216,8 +216,13 @@ export interface EngineInfo {
   supportsReference: boolean;
 }
 
-/** Engines that can draw from reference photos. Forge (Stable Diffusion) cannot. */
-export const REFERENCE_ENGINES: readonly EngineId[] = ["gemini", "qwen", "openai"];
+/**
+ * Engines that can draw from reference photos. Forge (Stable Diffusion) cannot. OpenAI cannot through the
+ * KoboiLLM gateway for now: its /images/edits route answers 400 "Unknown parameter: additional_drop_params"
+ * for every request shape (tested live 2026-10-02), so the form code stays but the engine is not offered
+ * for references. Add "openai" back once the gateway handles edits.
+ */
+export const REFERENCE_ENGINES: readonly EngineId[] = ["gemini", "qwen"];
 
 export function supportsReference(engine: EngineId): boolean {
   return REFERENCE_ENGINES.includes(engine);
