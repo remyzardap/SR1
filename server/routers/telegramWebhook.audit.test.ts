@@ -77,7 +77,7 @@ const update = (text: string, updateId = 1) => ({
   },
 });
 
-const ENV_NAMES = ["TELEGRAM_BOT_TOKEN", "TELEGRAM_WEBHOOK_SECRET", "OPENCLAW_WEBHOOK_URL"];
+const ENV_NAMES = ["TELEGRAM_BOT_TOKEN", "TELEGRAM_WEBHOOK_SECRET", "OPENCLAW_WEBHOOK_URL", "TELEGRAM_ALLOWED_USER_IDS"];
 const saved = new Map<string, string | undefined>();
 
 beforeEach(() => {
@@ -198,6 +198,31 @@ describe("telegram webhook message flow (audit)", () => {
   beforeEach(() => {
     process.env.TELEGRAM_BOT_TOKEN = TOKEN;
     process.env.TELEGRAM_WEBHOOK_SECRET = SECRET;
+    // The test chats (777 and 999) are on the allowlist; everyone else is ignored.
+    process.env.TELEGRAM_ALLOWED_USER_IDS = "777,999";
+  });
+
+  it("ignores a Telegram account that is not on the allowlist: no model call, no reply", async () => {
+    const calls = stubFetch(() => okJson({ ok: true }));
+    const routes = await register();
+    const { res, out } = fakeRes();
+    await routes[0].handler(
+      fakeReq({ update_id: 9, message: { from: { id: 555 }, chat: { id: 555 }, text: "hi" } }, { "x-telegram-bot-api-secret-token": SECRET }),
+      res
+    );
+    expect(out.json).toEqual({ ok: true });
+    expect(s1.blend).not.toHaveBeenCalled();
+    expect(calls).toHaveLength(0);
+  });
+
+  it("ignores everyone when the allowlist is empty", async () => {
+    process.env.TELEGRAM_ALLOWED_USER_IDS = "";
+    const calls = stubFetch(() => okJson({ ok: true }));
+    const routes = await register();
+    const { res } = fakeRes();
+    await routes[0].handler(fakeReq(update("hello"), { "x-telegram-bot-api-secret-token": SECRET }), res);
+    expect(s1.blend).not.toHaveBeenCalled();
+    expect(calls).toHaveLength(0);
   });
 
   it("answers a text message via S1 and posts it back to the same chat", async () => {
@@ -236,9 +261,9 @@ describe("telegram webhook message flow (audit)", () => {
     expect(sends).toHaveLength(2);
   });
 
-  it("answers any telegram chat with NO Sutaeru user linkage or quota check", async () => {
-    // getOrCreateTelegramUser (services/telegram.ts) is never called from the
-    // webhook: any Telegram account can consume LLM budget anonymously.
+  it("answers an allowlisted chat with NO Sutaeru user linkage or quota check", async () => {
+    // getOrCreateTelegramUser (services/telegram.ts) is never called from the webhook, so an allowlisted
+    // chat is not tied to a Sutaeru account or its quota. The allowlist is what keeps strangers out.
     process.env.OPENCLAW_WEBHOOK_URL = "https://claw.test/hook";
     const calls = stubFetch(() => okJson({ response: "from openclaw" }));
     const routes = await register();

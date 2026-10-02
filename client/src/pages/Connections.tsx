@@ -6,6 +6,7 @@ import { Loader2, Eye, EyeOff } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
 import { format } from "date-fns";
 import SutaeruIcon from "@/components/SutaeruIcon";
+import MessagingCard from "@/components/MessagingLink";
 
 const connectionTypeLabels = {
   llm_api_key: "LLM API Key",
@@ -225,6 +226,9 @@ export default function Connections() {
 
         {/* Google Workspace */}
         <GoogleWorkspaceCard />
+
+        {/* WhatsApp and Telegram (owner only) */}
+        <MessagingCard />
 
         {/* Add Connection Form */}
         {isAdding && (

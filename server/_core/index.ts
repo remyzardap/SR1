@@ -24,6 +24,7 @@ import { registerFileRoutes } from '../routes/files';
 import { fnRouter } from '../routes/fn';
 import { startWhatsAppBaileys, waStatus } from '../services/whatsappBaileys';
 import whatsappWebhookRouter from '../routes/webhooks/whatsapp';
+import { adminMessagingRouter } from '../routes/adminMessaging';
 import { registerExportRoutes } from '../routes/export';
 
 // Load secrets from Secret Manager before starting
@@ -101,6 +102,7 @@ registerChatStreamRoute(app as any); // already has its own auth
 app.use('/api/atelier', requireSession);
 registerAtelierRoutes(app);
 app.use('/api/intelligence', requireSession, intelligenceRouter);
+app.use('/api/admin/messaging', requireSession, adminMessagingRouter); // status and pairing for the in-app WhatsApp screen
 app.get('/api/admin/whatsapp', requireSession, (req, res) => {
   if ((req as any).user?.role !== 'admin') return res.status(403).send('Admin only');
   const body = waStatus.state === 'open'
