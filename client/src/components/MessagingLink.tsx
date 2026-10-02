@@ -107,7 +107,7 @@ export default function MessagingCard() {
           {wa?.state === "open" ? (
             <span className="sk-connected"><span className="sk-dot" />Linked</span>
           ) : (
-            <span className="sk-label">{wa?.state === "waiting" ? "Waiting for you" : wa?.state === "connecting" ? "Connecting" : "Not linked"}</span>
+            <span className="sk-label" style={{ whiteSpace: "nowrap" }}>{wa?.state === "waiting" ? "Waiting for you" : wa?.state === "connecting" ? "Connecting" : "Not linked"}</span>
           )}
         </div>
 
@@ -133,7 +133,7 @@ export default function MessagingCard() {
               </span>
               <button type="button" className="sk-btn sk-btn-ghost sk-btn-sm" onClick={() => void copyCode(wa.pairingCode!)}>Copy</button>
             </div>
-            <ol className="sk-muted" style={{ margin: 0, paddingLeft: 20, display: "grid", gap: 4 }}>
+            <ol className="sk-muted" style={{ margin: 0, paddingLeft: 22, display: "grid", gap: 4, listStyleType: "decimal" }}>
               <li>Open WhatsApp on the phone with this number{wa.pairNumberEnding ? ` (ending ${wa.pairNumberEnding})` : ""}.</li>
               <li>Go to Settings, then Linked devices, then Link a device.</li>
               <li>Choose Link with phone number instead, and type the code above.</li>
@@ -196,7 +196,7 @@ export default function MessagingCard() {
           )}
         </div>
         {status && !status.telegram.connected && (
-          <ol className="sk-muted" style={{ margin: 0, paddingLeft: 20, display: "grid", gap: 4 }}>
+          <ol className="sk-muted" style={{ margin: 0, paddingLeft: 22, display: "grid", gap: 4, listStyleType: "decimal" }}>
             <li>In Telegram, message @BotFather, send /newbot and follow the steps.</li>
             <li>Put the token it gives you in the server setting TELEGRAM_BOT_TOKEN.</li>
             <li>Add your own numeric Telegram id to TELEGRAM_ALLOWED_USER_IDS (the bot ignores everyone else).</li>
