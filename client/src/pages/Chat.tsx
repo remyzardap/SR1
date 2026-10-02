@@ -13,6 +13,8 @@ import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/authSession";
 import { callFunction } from "@/lib/kemmaCloud";
+import { AttachMenu } from "@/components/AttachMenu";
+import { MAX_FILES, attachmentName, type Attachment } from "@/lib/attachments";
 import { NEON_PAGE_BG, NOISE_OVERLAY, NEON, NEON_FD, NEON_FM } from "@/lib/design";
 import { Settings, X, Cpu, Wrench, Download, PanelRightOpen, PanelRightClose, Zap, Search, FileText, Image as ImageIcon, ExternalLink } from "lucide-react";
 import { Sparkles } from "@/components/brandIcons";
@@ -120,7 +122,8 @@ export default function Chat() {
   const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastInput, setLastInput] = useState("");
-  const [lastFiles, setLastFiles] = useState<FileUIPart[]>([]);
+  const [lastAttachments, setLastAttachments] = useState<Attachment[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [historyState, setHistoryState] = useState<"loading" | "ready" | "error">("loading");
   const [historyAttempt, setHistoryAttempt] = useState(0);
   const [insightsOpen, setInsightsOpen] = useState(false);
@@ -245,6 +248,7 @@ export default function Chat() {
       setSessionId(sid);
       setMessages([]);
       setInput("");
+      setAttachments([]);
       setError(null);
       setSidebarOpen(false);
       setMode("fast");
@@ -270,6 +274,7 @@ export default function Chat() {
     setSessionId(newId);
     setMessages([]);
     setInput("");
+    setAttachments([]);
     setError(null);
     setSidebarOpen(false);
     setMode("fast");
@@ -319,25 +324,37 @@ export default function Chat() {
 
   // ─── Send message ─────────────────────────────────────────────────────────
   const handleSend = useCallback(
-    async (submission?: string | { text: string; files: FileUIPart[] }) => {
+    async (submission?: string | { text: string; files?: FileUIPart[]; attachments?: Attachment[] }) => {
       const messageText = (typeof submission === "string" ? submission : submission?.text ?? input).trim();
-      const attachedFiles = typeof submission === "object" ? submission.files : [];
       if (!messageText || isStreaming) return;
+
+      // Files dropped on the composer still arrive through the prompt input; they use the same device shape.
+      const dropped: Attachment[] = (typeof submission === "object" ? submission.files ?? [] : [])
+        .filter((file) => (file.url || "").startsWith("data:"))
+        .map((file) => ({
+          source: "device" as const,
+          filename: file.filename || "attachment",
+          mediaType: file.mediaType || "application/octet-stream",
+          dataUrl: file.url,
+        }));
+      const attached = typeof submission === "object" && submission.attachments ? submission.attachments : attachments;
+      const sent: Attachment[] = [...attached, ...dropped].slice(0, MAX_FILES);
 
       const userMsg: Message = {
         id: crypto.randomUUID(),
         role: "user",
         content: messageText,
         createdAt: new Date(),
-        references: attachedFiles.map((file) => file.filename || "Reference file"),
+        references: sent.map(attachmentName),
       };
 
       setMessages((prev) => [...prev, userMsg]);
       sessionStorage.setItem("sutaeru_chat_has_history", "1");
       setHasPersistedHistory(true);
       setInput("");
+      setAttachments([]);
       setLastInput(messageText);
-      setLastFiles(attachedFiles);
+      setLastAttachments(sent);
       setError(null);
       setIsStreaming(true);
       setElapsed(0);
@@ -394,7 +411,8 @@ export default function Chat() {
           signal: controller.signal,
           body: JSON.stringify({
             messages: conversationSoFar.map((m) => ({ role: m.role, content: m.content })),
-            ...(mode === "deep" ? { files: attachedFiles.map((file) => ({ filename: file.filename || "reference", mediaType: file.mediaType, url: file.url })) } : { sessionId, max: false, settings }),
+            ...(mode === "deep" ? {} : { sessionId, max: false, settings }),
+            ...(sent.length > 0 ? { attachments: sent } : {}),
           }),
         });
 
@@ -532,7 +550,7 @@ export default function Chat() {
         setCurrentStep("");
       }
     },
-    [input, isStreaming, messages, sessionId, mode, messageModel, taggedSkills]
+    [input, isStreaming, messages, sessionId, mode, messageModel, taggedSkills, attachments]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -548,7 +566,7 @@ export default function Chat() {
     toast.success(`${option.title} selected`);
   }, []);
 
-  const retry = () => void handleSend(lastFiles.length ? { text: lastInput, files: lastFiles } : lastInput);
+  const retry = () => void handleSend(lastAttachments.length ? { text: lastInput, attachments: lastAttachments } : lastInput);
   const stopRun = () => {
     abortRef.current?.abort();
     setIsStreaming(false);
@@ -800,7 +818,10 @@ export default function Chat() {
               {mobileDetailsOpen && <div className="sutaeru-mobile-details"><strong>Run details</strong><p>{isStreaming ? currentStep || "Thinking…" : error ? "Run failed" : "No active run"}</p>{agentSteps.map(step => <p key={step.id}>{step.label}</p>)}{sources.length > 0 && <div className="sutaeru-inline-sources"><strong>Sources</strong>{sources.map((source, index) => <a key={`${source.url}-${index}`} href={source.url} target="_blank" rel="noreferrer"><span>{index + 1}. {source.title}</span><ExternalLink size={14} /></a>)}</div>}</div>}
               <div className="sutaeru-run-composer">
               <div className="sutaeru-composer-row mx-auto flex max-w-2xl items-center gap-2">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
+                  <div className="sk-attach-slot">
+                    <AttachMenu attachments={attachments} onChange={setAttachments} disabled={isStreaming} />
+                  </div>
                    <ChatInput
                     value={input}
                     isStreaming={isStreaming}
@@ -808,7 +829,7 @@ export default function Chat() {
                     onKeyDown={handleKeyDown}
                      onSend={(message) => handleSend(message)}
                     onStop={stopRun}
-                     allowAttachments={mode === "deep"}
+                     allowAttachments={false}
                   />
                 </div>
               </div>

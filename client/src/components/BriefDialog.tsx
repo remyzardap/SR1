@@ -1,49 +1,32 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AttachMenu } from "@/components/AttachMenu";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
 import { Streamdown } from "streamdown";
 import { streamFunction } from "@/lib/kemmaCloud";
 import { downloadResearchMarkdown, downloadResearchPdf } from "@/lib/researchReports";
-import { toast } from "sonner";
+import { dataUrlToText, isTextType, type Attachment } from "@/lib/attachments";
 
-const ACCEPT = ".pdf,.txt,.md,.docx";
-const MAX_BYTES = 15 * 1024 * 1024;
+/** What the brief is built from: text, inline bytes, or a Drive reference. */
+type BriefSource = { filename: string; text?: string; file?: string; mediaType?: string; attachment?: Attachment };
 
 interface BriefDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Pre-filled document (e.g. opened from My Files). */
-  initialDocument?: { filename: string; text?: string; file?: string; mediaType?: string } | null;
-}
-
-function readAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("Could not read the file."));
-    reader.readAsDataURL(file);
-  });
-}
-
-function readAsText(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("Could not read the file."));
-    reader.readAsText(file);
-  });
+  initialDocument?: BriefSource | null;
 }
 
 export function BriefDialog({ open, onOpenChange, initialDocument }: BriefDialogProps) {
-  const [document, setDocument] = useState<{ filename: string; text?: string; file?: string; mediaType?: string } | null>(null);
+  const [document, setDocument] = useState<BriefSource | null>(null);
+  const [picked, setPicked] = useState<Attachment[]>([]);
   const [brief, setBrief] = useState("");
   const [phase, setPhase] = useState<"pick" | "working" | "done" | "error">("pick");
   const [error, setError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  async function startBrief(doc: { filename: string; text?: string; file?: string; mediaType?: string }) {
+  async function startBrief(doc: BriefSource) {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -72,25 +55,26 @@ export function BriefDialog({ open, onOpenChange, initialDocument }: BriefDialog
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialDocument]);
 
-  async function handleFile(file: File) {
-    if (file.size > MAX_BYTES) { toast.error("Files up to 15 MB are supported."); return; }
-    try {
-      if (file.type === "text/plain" || file.type === "text/markdown" || /\.(txt|md)$/i.test(file.name)) {
-        const text = await readAsText(file);
-        await startBrief({ filename: file.name, text });
-      } else {
-        const dataUrl = await readAsDataUrl(file);
-        const mediaType = file.type || (file.name.endsWith(".docx") ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : "application/pdf");
-        await startBrief({ filename: file.name, file: dataUrl, mediaType });
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not read the file.");
+  /** One document, from this device or Drive, starts the brief straight away. */
+  function handlePicked(next: Attachment[]) {
+    setPicked(next);
+    const att = next[0];
+    if (!att) return;
+    if (att.source === "drive") {
+      void startBrief({ filename: att.filename || "Google Drive file", attachment: att });
+      return;
     }
+    if (isTextType(att.mediaType)) {
+      void startBrief({ filename: att.filename, text: dataUrlToText(att.dataUrl) });
+      return;
+    }
+    void startBrief({ filename: att.filename, file: att.dataUrl, mediaType: att.mediaType });
   }
 
   function reset() {
     abortRef.current?.abort();
     setDocument(null);
+    setPicked([]);
     setBrief("");
     setError("");
     setPhase("pick");
@@ -117,16 +101,13 @@ export function BriefDialog({ open, onOpenChange, initialDocument }: BriefDialog
             <p className="sk-empty-text max-w-sm">
               Drop in a PDF, Word, Markdown, or text file and Kemma will turn it into an interactive brief: overview, key figures with exact quotes, timeline, and section takeaways.
             </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ACCEPT}
-              className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f); e.target.value = ""; }}
+            <AttachMenu
+              attachments={picked}
+              onChange={handlePicked}
+              max={1}
+              documentsOnly
+              label="Document"
             />
-            <button type="button" className="sk-btn" onClick={() => fileInputRef.current?.click()}>
-              Choose a document
-            </button>
           </div>
         )}
 
