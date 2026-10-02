@@ -45,6 +45,8 @@ const options = { userId: 7, purpose: "test_purpose" };
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // These suites assert immediate fallback to the next route; same-route retries are covered in fnLlm.efficiency.test.ts.
+  vi.stubEnv("KEMMA_HTTP_ATTEMPTS", "1");
   router.routeHasAuth.mockImplementation((route: { apiKey?: string; authKind?: string }) => route.authKind === "vertex" || !!route.apiKey);
   router.resolveRouteAuth.mockImplementation(async (route: { baseUrl: string; model: string; apiKey: string }) => ({
     baseUrl: route.baseUrl,
@@ -57,6 +59,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
 

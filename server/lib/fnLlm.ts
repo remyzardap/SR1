@@ -16,6 +16,7 @@ import {
   type RouteConfig,
 } from "../core/kemmaRouter";
 import { logUsage } from "../core/usage";
+import { fetchWithRetry, parseUsage, isStreamOptionsRejection, supportsStreamUsageOption, type TokenUsage } from "../core/llmHttp";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -69,11 +70,32 @@ async function request(
   { stream, maxTokens = 2000 }: { stream: boolean; maxTokens?: number }
 ): Promise<Response> {
   const target = await resolveRouteAuth(route);
-  const res = await fetch(endpointFor(target.baseUrl), {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${target.auth}` },
-    body: JSON.stringify({ model: target.model, messages, max_tokens: maxTokens, stream }),
-  });
+  // Transient failures (429, 5xx, network) retry on the same model before the caller tries the next
+  // route. Streams ask for a final usage chunk so they are metered; a provider that rejects the
+  // option gets one retry without it.
+  const send = (streamUsage: boolean) =>
+    fetchWithRetry(endpointFor(target.baseUrl), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${target.auth}` },
+      body: JSON.stringify({
+        model: target.model,
+        messages,
+        max_tokens: maxTokens,
+        stream,
+        ...(stream && streamUsage ? { stream_options: { include_usage: true } } : {}),
+      }),
+    });
+
+  const wantUsage = stream && supportsStreamUsageOption(route.provider);
+  let res = await send(wantUsage);
+  if (!res.ok && wantUsage && res.status === 400) {
+    const detail = await res.text().catch(() => "");
+    if (isStreamOptionsRejection(400, detail)) {
+      res = await send(false);
+    } else {
+      throw new Error(`LLM API error (400)${detail ? `: ${detail.slice(0, 200)}` : ""}`);
+    }
+  }
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new Error(`LLM API error (${res.status})${detail ? `: ${detail.slice(0, 200)}` : ""}`);
@@ -92,14 +114,15 @@ export async function complete(messages: ChatMessage[], options: LlmOptions): Pr
       const res = await request(route, messages, { stream: false, maxTokens: options.maxTokens });
       const data = (await res.json()) as {
         choices?: Array<{ message?: { content?: string } }>;
-        usage?: { prompt_tokens?: number; completion_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } };
+        usage?: unknown;
       };
       const text = data.choices?.[0]?.message?.content;
       if (!text) throw new Error("Empty LLM response");
-      const inputTokens = data.usage?.prompt_tokens ?? 0;
-      // Vertex bills thinking as completion_tokens_details.reasoning_tokens; keep it in the output count.
-      const outputTokens = (data.usage?.completion_tokens ?? 0) + (data.usage?.completion_tokens_details?.reasoning_tokens ?? 0);
-      void logUsage({ userId: options.userId, provider: route.provider, model: route.model, inputTokens, outputTokens, purpose: options.purpose });
+      // parseUsage keeps Vertex reasoning tokens in the output count and reads cached prompt tokens.
+      const used = parseUsage(data.usage);
+      const inputTokens = used.input;
+      const outputTokens = used.output;
+      void logUsage({ userId: options.userId, provider: route.provider, model: route.model, inputTokens, outputTokens, cachedInputTokens: used.cachedInput ?? 0, purpose: options.purpose });
       return { text, model: route.model, provider: route.provider, inputTokens, outputTokens };
     } catch (err) {
       lastError = err;
@@ -124,6 +147,7 @@ export async function stream(
   let lastError: unknown;
   for (const route of routes) {
     let text = "";
+    let streamed: TokenUsage | undefined;
     try {
       const res = await request(route, messages, { stream: true, maxTokens: options.maxTokens });
       const reader = res.body?.getReader();
@@ -136,7 +160,8 @@ export async function stream(
         const payload = line.slice(5).trim();
         if (payload === "[DONE]") return true;
         try {
-          const parsed = JSON.parse(payload) as { choices?: Array<{ delta?: { content?: string } }> };
+          const parsed = JSON.parse(payload) as { choices?: Array<{ delta?: { content?: string } }>; usage?: unknown };
+          if (parsed.usage) streamed = parseUsage(parsed.usage);
           const delta = parsed.choices?.[0]?.delta?.content;
           if (delta) {
             text += delta;
@@ -168,8 +193,10 @@ export async function stream(
       // [DONE] is the end of the answer; the provider may keep the connection open.
       if (closed) await Promise.resolve(reader.cancel?.()).catch(() => {});
       if (!text.trim()) throw new Error("Empty LLM response");
-      void logUsage({ userId: options.userId, provider: route.provider, model: route.model, inputTokens: 0, outputTokens: 0, purpose: options.purpose });
-      return { text, model: route.model, provider: route.provider, inputTokens: 0, outputTokens: 0 };
+      const inputTokens = streamed?.input ?? 0;
+      const outputTokens = streamed?.output ?? 0;
+      void logUsage({ userId: options.userId, provider: route.provider, model: route.model, inputTokens, outputTokens, cachedInputTokens: streamed?.cachedInput ?? 0, purpose: options.purpose });
+      return { text, model: route.model, provider: route.provider, inputTokens, outputTokens };
     } catch (err) {
       lastError = err;
       if (text.length > 0) break; // something already reached the client

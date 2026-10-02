@@ -44,6 +44,7 @@ const ENV_NAMES = [
   "KEMMA_MODEL_FALLBACK", "KEMMA_MODEL_SEARCH", "KEMMA_TOOL_BUDGET", "KEMMA_MAX_SUBAGENTS",
   "KEMMA_UNLIMITED_USER_IDS", "QWEN_API_KEY", "GEMINI_API_KEY", "SONAR_API_KEY",
   "PERPLEXITY_API_KEY", "LITELLM_BASE_URL", "LITELLM_API_KEY", "KOBOILLM_API_KEY",
+  "KEMMA_PROMPT_CACHE", "KEMMA_HTTP_ATTEMPTS",
 ];
 const savedEnv = new Map<string, string | undefined>();
 
@@ -57,6 +58,10 @@ beforeEach(() => {
   }
   process.env.QWEN_API_KEY = "q";
   process.env.GEMINI_API_KEY = "studio-key";
+  // This suite asserts the plain wire format and the immediate-fallback chain. Request-side cache
+  // markers and same-model retries are covered in engine.promptCache.test.ts.
+  process.env.KEMMA_PROMPT_CACHE = "off";
+  process.env.KEMMA_HTTP_ATTEMPTS = "1";
 
   quota.checkQuota.mockImplementation(async () => ALLOWED);
   quota.incrementQuota.mockResolvedValue(undefined);

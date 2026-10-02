@@ -369,7 +369,10 @@ describe("stream route: thinking and voice flags", () => {
     const res = fakeRes();
     await kemmaStreamRoute(req, res);
     expect(net.calls[0].body.model).toBe("qwen-long");
-    expect(net.calls[0].body.messages[0].content).toContain("## Voice mode");
+    // Qwen requests carry the system prompt as a marked text-part array (prompt-cache markers), others as a string.
+    const sys = net.calls[0].body.messages[0].content;
+    const sysText = typeof sys === "string" ? sys : sys.map((p: { text?: string }) => p.text ?? "").join("");
+    expect(sysText).toContain("## Voice mode");
     expect(quota.checkQuota).toHaveBeenCalledWith(1, "think");
     expect(quota.incrementQuota).toHaveBeenCalledWith(1, "think");
   });

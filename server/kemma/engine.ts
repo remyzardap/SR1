@@ -22,6 +22,18 @@ import {
   routeHasAuth,
 } from "../core/kemmaRouter";
 import { vertexGenerateContentBody, vertexGenerateContentText } from "../core/vertexAuth";
+import {
+  fetchWithRetry,
+  parseUsage,
+  placeDynamicContext,
+  applyQwenCacheMarkers,
+  usesExplicitCacheMarkers,
+  disableQwenExplicitCache,
+  isCacheMarkerRejection,
+  isStreamOptionsRejection,
+  supportsStreamUsageOption,
+  type TokenUsage,
+} from "../core/llmHttp";
 import { checkQuota, incrementQuota } from "../core/quotaCheck";
 import { logUsage, checkSpendCap } from "../core/usage";
 import { KEMMA_TOOLS, SKILL_TOOLS, VPS_FILES_TOOL, SKILL_TOOL_NAMES, type ToolDefinition } from "./tools";
@@ -247,9 +259,12 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     try { enabledSkills = await getEnabledSkills(); } catch { /* skills are optional */ }
   }
 
+  // Retrieved memories change on every message, so they are NOT part of the system prompt: a
+  // changing system prompt would invalidate the provider's prompt cache for the whole request.
+  // They travel as `dynamicContext` and are attached to the last user message (see placeDynamicContext).
   let systemPrompt = isVoice
-    ? buildKemmaVoicePrompt({ userId, tier, memories, userName })
-    : buildKemmaSystemPrompt({ userId, tier, memories, userName });
+    ? buildKemmaVoicePrompt({ userId, tier, userName })
+    : buildKemmaSystemPrompt({ userId, tier, userName });
 
   const skillIndex = buildSkillIndex(enabledSkills);
   if (skillIndex) systemPrompt += `\n\n${skillIndex}`;
@@ -361,6 +376,8 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
       llmResponse = await callLLM({
         route,
         systemPrompt,
+        dynamicContext: memories,
+        cachePrefix: true,
         messages: currentMessages,
         tools: offerTools ? baseTools : undefined,
         stream: !!onStream && !offerTools,
@@ -632,6 +649,10 @@ Return the extracted text in a structured format.`;
 interface CallLLMOptions {
   route: RouteConfig;
   systemPrompt: string;
+  /** Per-message context (retrieved memories). Kept out of the system prompt so the cached prefix stays stable. */
+  dynamicContext?: string;
+  /** The prefix of this request will be re-read soon (agent loop, chat turn): worth explicit cache markers. */
+  cachePrefix?: boolean;
   messages: KemmaMessage[];
   tools?: any[];
   stream: boolean;
@@ -643,8 +664,10 @@ interface CallLLMOptions {
   purpose?: string;
 }
 
-async function callLLM(input: CallLLMOptions): Promise<{ content: string | null; toolCalls?: ToolCall[]; usage?: { input: number; output: number; total: number } }> {
-  const { route, systemPrompt, messages, tools, stream, onStream, onNotice, userId, sessionId, reportId, purpose } = input;
+interface LLMResult { content: string | null; toolCalls?: ToolCall[]; usage?: TokenUsage }
+
+async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
+  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onNotice, userId, sessionId, reportId, purpose } = input;
 
   const cap = await checkSpendCap(route.provider);
   if (!cap.allowed) {
@@ -663,7 +686,7 @@ async function callLLM(input: CallLLMOptions): Promise<{ content: string | null;
     }
 
     try {
-      const result = await callSingleLLM({ route: tryRoute, systemPrompt, messages, tools, stream, onStream });
+      const result = await callSingleLLM({ route: tryRoute, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream });
 
       await logUsage({
         userId,
@@ -673,6 +696,7 @@ async function callLLM(input: CallLLMOptions): Promise<{ content: string | null;
         model: tryRoute.model,
         inputTokens: result.usage?.input ?? 0,
         outputTokens: result.usage?.output ?? 0,
+        cachedInputTokens: result.usage?.cachedInput ?? 0,
         purpose: purpose ?? "chat",
       });
 
@@ -696,11 +720,16 @@ async function callLLM(input: CallLLMOptions): Promise<{ content: string | null;
 interface SingleLLMOptions {
   route: RouteConfig;
   systemPrompt: string;
+  dynamicContext?: string;
+  cachePrefix?: boolean;
   messages: KemmaMessage[];
   tools?: any[];
   stream: boolean;
   onStream?: (chunk: string) => void;
 }
+
+// Providers that rejected stream_options once; not sent again for the life of the process.
+const streamOptionsRejected = new Set<ModelProvider>();
 
 // Gemini 3.x rejects tool-call history that lacks the thought_signature it issued. Keep it for Gemini,
 // use Google's documented placeholder for calls made by another model, and strip it for other providers.
@@ -719,7 +748,7 @@ function adaptToolCallsForProvider(m: KemmaMessage, provider: ModelProvider): Ke
 }
 
 // Shared non-streaming completion parse: final message text, tool calls, and usage.
-function parseCompletionJson(data: any): { content: string | null; toolCalls?: ToolCall[]; usage?: { input: number; output: number; total: number } } {
+function parseCompletionJson(data: any): LLMResult {
   const choice = data.choices?.[0];
   const toolCalls = (choice?.message?.tool_calls ?? []).map((tc: any) => ({
     id: tc.id,
@@ -727,17 +756,11 @@ function parseCompletionJson(data: any): { content: string | null; toolCalls?: T
     function: { name: tc.function.name, arguments: tc.function.arguments },
     ...(tc.extra_content ? { extra_content: tc.extra_content } : {}),
   }));
-  // Vertex bills thinking as completion_tokens_details.reasoning_tokens; add it to the output
-  // count so cost estimates do not drop it (AI Studio responses simply lack the field).
-  const reasoningTokens = data.usage?.completion_tokens_details?.reasoning_tokens ?? 0;
   return {
     content: choice?.message?.content ?? null,
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-    usage: {
-      input: data.usage?.prompt_tokens ?? 0,
-      output: (data.usage?.completion_tokens ?? 0) + reasoningTokens,
-      total: data.usage?.total_tokens ?? 0,
-    },
+    // parseUsage folds Vertex reasoning tokens into output and reads cached prompt tokens.
+    usage: parseUsage(data.usage),
   };
 }
 
@@ -753,8 +776,8 @@ export function reasoningEffortFor(route: { provider: string; model: string }, e
   return v === "medium" || v === "high" ? v : "low";
 }
 
-async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string | null; toolCalls?: ToolCall[]; usage?: { input: number; output: number; total: number } }> {
-  const { route, systemPrompt, messages, tools, stream, onStream } = input;
+async function callSingleLLM(input: SingleLLMOptions): Promise<LLMResult> {
+  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream } = input;
 
   if (!routeHasAuth(route)) {
     throw new Error(`${route.provider} API key is not configured.`);
@@ -762,24 +785,59 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
 
   // OpenAI-compatible path (Qwen, Perplexity, Gemini via AI Studio or Vertex)
   const target = await resolveRouteAuth(route);
-  const body = {
-    model: target.model,
-    messages: [{ role: "system", content: systemPrompt }, ...messages.filter((m) => m.role !== "system").map((m) => adaptToolCallsForProvider(m, route.provider))],
-    // Venice: skip its own system prompt so the model is not re-restricted; tools only when VENICE_TOOLS=1
-    // (not every Venice model supports function calling).
-    ...(route.provider === "venice" ? { venice_parameters: { include_venice_system_prompt: false } } : {}),
-    tools: tools && (route.provider !== "venice" || process.env.VENICE_TOOLS === "1") ? tools.map((t) => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.parameters } })) : undefined,
-    tool_choice: tools && (route.provider !== "venice" || process.env.VENICE_TOOLS === "1") ? "auto" : undefined,
-    stream: stream && !!onStream,
-    max_tokens: 4096,
-    reasoning_effort: reasoningEffortFor(route),
+  const wantStream = stream && !!onStream;
+
+  const buildBody = (opts: { cacheMarkers: boolean; streamUsage: boolean }) => {
+    let wire: any[] = [
+      { role: "system", content: systemPrompt },
+      ...placeDynamicContext(messages.filter((m) => m.role !== "system"), dynamicContext).map((m) => adaptToolCallsForProvider(m, route.provider)),
+    ];
+    if (opts.cacheMarkers) wire = applyQwenCacheMarkers(wire);
+    return {
+      model: target.model,
+      messages: wire,
+      // Venice: skip its own system prompt so the model is not re-restricted; tools only when VENICE_TOOLS=1
+      // (not every Venice model supports function calling).
+      ...(route.provider === "venice" ? { venice_parameters: { include_venice_system_prompt: false } } : {}),
+      tools: tools && (route.provider !== "venice" || process.env.VENICE_TOOLS === "1") ? tools.map((t) => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.parameters } })) : undefined,
+      tool_choice: tools && (route.provider !== "venice" || process.env.VENICE_TOOLS === "1") ? "auto" : undefined,
+      stream: wantStream,
+      // Ask for a final usage chunk on streams so streamed answers are metered (they were logged as 0 tokens before).
+      ...(wantStream && opts.streamUsage ? { stream_options: { include_usage: true } } : {}),
+      max_tokens: 4096,
+      reasoning_effort: reasoningEffortFor(route),
+    };
   };
 
-  const res = await fetch(`${target.baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${target.auth}` },
-    body: JSON.stringify(body),
-  });
+  const send = (opts: { cacheMarkers: boolean; streamUsage: boolean }) =>
+    fetchWithRetry(`${target.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${target.auth}` },
+      body: JSON.stringify(buildBody(opts)),
+    });
+
+  let cacheMarkers = !!cachePrefix && usesExplicitCacheMarkers(route.provider);
+  let streamUsage = wantStream && supportsStreamUsageOption(route.provider) && !streamOptionsRejected.has(route.provider);
+
+  // Transient failures (429, 5xx, network) are retried inside fetchWithRetry on the same model before
+  // the caller falls through to the next model. A 400 on a request that carried optional fields we
+  // added (cache markers, stream_options) is retried once without them; if that succeeds the field is
+  // switched off for this process, so one unsupported option can never cost a model fallback.
+  let res = await send({ cacheMarkers, streamUsage });
+  if (!res.ok && res.status === 400 && (cacheMarkers || streamUsage)) {
+    const firstError = await res.text();
+    const retry = await send({ cacheMarkers: false, streamUsage: false });
+    if (retry.ok) {
+      const blamesCache = isCacheMarkerRejection(400, firstError);
+      const blamesStream = isStreamOptionsRejection(400, firstError);
+      if (cacheMarkers && (blamesCache || !blamesStream)) disableQwenExplicitCache(`${route.label} rejected a request with cache markers`);
+      if (streamUsage && (blamesStream || !blamesCache)) streamOptionsRejected.add(route.provider);
+      res = retry;
+    } else {
+      // The stripped request failed too, so the options were not the cause: report the real error.
+      throw new Error(`API error ${retry.status}: ${await retry.text()}`);
+    }
+  }
 
   if (!res.ok) {
     const err = await res.text();
@@ -788,6 +846,7 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
 
   if (stream && onStream) {
     let fullContent = "";
+    let streamedUsage: TokenUsage | undefined;
     const reader = res.body?.getReader();
     const decoder = new TextDecoder();
     let sseBuffer = "";
@@ -806,7 +865,12 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
         for (const line of lines) {
           const data = line.replace("data: ", "").trim();
           if (data === "[DONE]") break;
-          try { const parsed = JSON.parse(data); const delta = parsed.choices?.[0]?.delta?.content; if (delta) { fullContent += delta; onStream(delta); } } catch { /* skip */ }
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) { fullContent += delta; onStream(delta); }
+            if (parsed.usage) streamedUsage = parseUsage(parsed.usage);
+          } catch { /* skip */ }
         }
       }
     }
@@ -819,7 +883,7 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<{ content: string
         return parsed;
       } catch { /* not a JSON completion either; keep the streamed result */ }
     }
-    return { content: fullContent, toolCalls: undefined };
+    return { content: fullContent, toolCalls: undefined, usage: streamedUsage };
   }
 
   return parseCompletionJson(await res.json());

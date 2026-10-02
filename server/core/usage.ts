@@ -21,6 +21,8 @@ export interface UsageRecord {
   model: string;
   inputTokens: number;
   outputTokens: number;
+  /** Prompt tokens served from the provider's cache; billed at a discount. A subset of inputTokens. */
+  cachedInputTokens?: number;
   purpose?: string;
 }
 
@@ -29,7 +31,8 @@ export async function logUsage(record: UsageRecord): Promise<void> {
   if (!db) return;
 
   const total = record.inputTokens + record.outputTokens;
-  const estimatedCost = estimateCostUsd(record.model, record.inputTokens, record.outputTokens);
+  const cached = Math.min(Math.max(record.cachedInputTokens ?? 0, 0), record.inputTokens);
+  const estimatedCost = estimateCostUsd(record.model, record.inputTokens, record.outputTokens, cached);
 
   const values: InsertUsageLog = {
     userId: record.userId,
@@ -40,6 +43,7 @@ export async function logUsage(record: UsageRecord): Promise<void> {
     inputTokens: record.inputTokens,
     outputTokens: record.outputTokens,
     totalTokens: total,
+    cachedInputTokens: cached,
     estimatedCostUsd: String(estimatedCost),
     purpose: record.purpose ?? null,
   };
