@@ -24,16 +24,26 @@ const lib = vi.hoisted(() => {
       this.name = "ImageTimeoutError";
     }
   }
+  class ImageReferenceError extends Error {
+    constructor(public readonly label: string) {
+      super(`${label} on the GPU cannot use reference photos yet.`);
+      this.name = "ImageReferenceError";
+    }
+  }
   return {
-    ENGINE_IDS: ["gemini", "qwen", "openai"] as const,
+    ENGINE_IDS: ["gemini", "qwen", "openai", "forge"] as const,
     QUALITIES: ["standard", "high"] as const,
     ASPECT_RATIOS: ["1:1", "16:9", "9:16", "4:3", "3:4"] as const,
-    ENGINE_LABELS: { gemini: "Gemini", qwen: "Qwen", openai: "OpenAI" } as Record<string, string>,
+    ENGINE_LABELS: { gemini: "Gemini", qwen: "Qwen", openai: "OpenAI", forge: "Stable Diffusion" } as Record<string, string>,
     ImageNotConfiguredError,
     ImageUpstreamError,
     ImageTimeoutError,
+    ImageReferenceError,
     defaultEngine: vi.fn(() => "gemini"),
     engineAvailable: vi.fn(() => true),
+    // The real module answers false for forge only; the fake follows the same rule.
+    supportsReference: vi.fn((engine: string) => engine !== "forge"),
+    referenceRejection: vi.fn((engine: string) => new ImageReferenceError(engine === "forge" ? "Stable Diffusion" : engine).message),
     listEngines: vi.fn(),
     generateImage: vi.fn(),
     storeImage: vi.fn(),
@@ -41,7 +51,22 @@ const lib = vi.hoisted(() => {
   };
 });
 
+// The attachment module is exercised by its own suite: here the contract of the
+// function is what matters, so parsing and reading are stand-ins.
+const attachments = vi.hoisted(() => ({
+  parseReferenceImages: vi.fn((value: unknown) => (Array.isArray(value) ? value : [])),
+  resolveAttachment: vi.fn(async (_userId: number, att: any) => ({
+    filename: att.filename ?? "photo.png",
+    mediaType: att.mediaType ?? "image/png",
+    bytes: Buffer.from("reference bytes"),
+  })),
+  referenceLimits: vi.fn(() => ({ maxCount: 2, maxBytes: 8 * 1024 * 1024, imagesOnly: true })),
+  hasDriveAttachment: vi.fn((atts: any[]) => atts.some((a) => a?.source === "drive")),
+  requireDriveConnection: vi.fn(async () => {}),
+}));
+
 vi.mock("../../lib/fnImage", () => lib);
+vi.mock("../../lib/attachments", () => attachments);
 
 import { rateLimitConfig } from "../../config/rate-limits";
 import { FnError } from "../../lib/fnErrors";
@@ -116,7 +141,17 @@ beforeEach(() => {
   lib.generateImage.mockResolvedValue(generated());
   lib.storeImage.mockResolvedValue({ key: "users/7/images/image-abcd1234.png", url: "/files/users/7/images/image-abcd1234.png", sizeBytes: 10 });
   lib.logImageUsage.mockResolvedValue(undefined);
-  lib.listEngines.mockReturnValue([{ id: "gemini", label: "Gemini", model: "gemini-3.1-flash-image", qualityModel: "gemini-3-pro-image", available: true, defaultEngine: true }]);
+  lib.listEngines.mockReturnValue([
+    {
+      id: "gemini",
+      label: "Gemini",
+      model: "gemini-3.1-flash-image",
+      qualityModel: "gemini-3-pro-image",
+      available: true,
+      defaultEngine: true,
+      supportsReference: true,
+    },
+  ]);
   errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -136,9 +171,32 @@ describe("action engines", () => {
 
     expect(status).toBe(200);
     expect(body).toEqual({
-      engines: [{ id: "gemini", label: "Gemini", model: "gemini-3.1-flash-image", qualityModel: "gemini-3-pro-image", available: true, defaultEngine: true }],
+      engines: [
+        {
+          id: "gemini",
+          label: "Gemini",
+          model: "gemini-3.1-flash-image",
+          qualityModel: "gemini-3-pro-image",
+          available: true,
+          defaultEngine: true,
+          supportsReference: true,
+        },
+      ],
     });
     expect(lib.generateImage).not.toHaveBeenCalled();
+  });
+
+  it("tells the picker which engines can take a reference photo", async () => {
+    lib.listEngines.mockReturnValue([
+      { id: "gemini", label: "Gemini", model: "m", qualityModel: "M", available: true, defaultEngine: true, supportsReference: true },
+      { id: "forge", label: "Stable Diffusion", model: "v6", qualityModel: "flux", available: true, defaultEngine: false, supportsReference: false },
+    ]);
+    const { body } = await attempt({ action: "engines" }, nextUserId());
+    const engines = (body as { engines: { id: string; supportsReference: boolean }[] }).engines;
+    expect(engines.map((entry) => [entry.id, entry.supportsReference])).toEqual([
+      ["gemini", true],
+      ["forge", false],
+    ]);
   });
 
   it("is not rate limited, so a picker can be opened often", async () => {
@@ -363,7 +421,91 @@ describe("a successful generation", () => {
       engine: "openai",
       quality: "high",
       aspectRatio: "3:4",
+      references: [],
     });
+  });
+
+  it("reads the reference photos and hands them to the engine with the job", async () => {
+    const id = nextUserId();
+    const sources = [
+      { source: "device", filename: "a.png", mediaType: "image/png", dataUrl: "data:image/png;base64,QQ==" },
+      { source: "drive", fileId: "drive-photo", filename: "b.jpg", mediaType: "image/jpeg" },
+    ];
+    attachments.parseReferenceImages.mockReturnValueOnce(sources);
+
+    await attempt({ action: "generate", prompt: "same lighthouse at night", engine: "gemini", referenceImages: sources }, id);
+
+    expect(attachments.resolveAttachment).toHaveBeenCalledTimes(2);
+    const job = lib.generateImage.mock.calls[0][0];
+    expect(job.engine).toBe("gemini");
+    expect(job.references).toEqual([
+      { filename: "a.png", mimeType: "image/png", bytes: Buffer.from("reference bytes") },
+      { filename: "b.jpg", mimeType: "image/jpeg", bytes: Buffer.from("reference bytes") },
+    ]);
+  });
+
+  it("asks for the Drive connection when a reference comes from Drive", async () => {
+    const id = nextUserId();
+    attachments.parseReferenceImages.mockReturnValueOnce([{ source: "drive", fileId: "drive-photo" }]);
+    await attempt({ action: "generate", prompt: "a lighthouse", engine: "gemini", referenceImages: [{ fileId: "drive-photo" }] }, id);
+    expect(attachments.requireDriveConnection).toHaveBeenCalledWith(id);
+  });
+});
+
+describe("reference photos", () => {
+  const device = { source: "device", filename: "a.png", mediaType: "image/png", dataUrl: "data:image/png;base64,QQ==" };
+
+  it("answers the agreed 400 for Stable Diffusion and pays for nothing", async () => {
+    const id = nextUserId();
+    attachments.parseReferenceImages.mockReturnValueOnce([device]);
+    const hourly = rateLimitConfig.imageGenerateHourly.requests;
+
+    const { status, body } = await attempt({ action: "generate", prompt: "a lighthouse", engine: "forge", referenceImages: [device] }, id);
+
+    expect(status).toBe(400);
+    expect(body).toEqual({ error: "Stable Diffusion on the GPU cannot use reference photos yet." });
+    expect(lib.generateImage).not.toHaveBeenCalled();
+    expect(attachments.resolveAttachment).not.toHaveBeenCalled();
+    // The refused attempt did not spend the hourly budget.
+    for (let i = 0; i < hourly; i++) {
+      expect((await attempt({ action: "generate", prompt: "a lighthouse" }, id)).status).toBe(200);
+    }
+  });
+
+  it("keeps the engine's own refusal a 400 when the list arrives anyway", async () => {
+    const id = nextUserId();
+    lib.supportsReference.mockReturnValueOnce(false);
+    const { status, body } = await attempt({ action: "generate", prompt: "a lighthouse", engine: "forge", referenceImages: [device] }, id);
+    expect(status).toBe(400);
+    expect(body).toEqual({ error: "Stable Diffusion on the GPU cannot use reference photos yet." });
+  });
+
+  it("turns a reference that cannot be read into a 400 before the engine runs", async () => {
+    const id = nextUserId();
+    attachments.parseReferenceImages.mockReturnValueOnce([device]);
+    attachments.resolveAttachment.mockRejectedValueOnce(new FnError(413, "a.png is over the 8 MB limit."));
+
+    const { status, body } = await attempt({ action: "generate", prompt: "a lighthouse", referenceImages: [device] }, id);
+    expect(status).toBe(413);
+    expect(body).toEqual({ error: "a.png is over the 8 MB limit." });
+    expect(lib.generateImage).not.toHaveBeenCalled();
+  });
+
+  it("reads the photos only after the rate limit has agreed", async () => {
+    const id = nextUserId();
+    const hourly = rateLimitConfig.imageGenerateHourly.requests;
+    for (let i = 0; i < hourly; i++) await attempt({ action: "generate", prompt: "a lighthouse" }, id);
+
+    const { status } = await attempt({ action: "generate", prompt: "a lighthouse", referenceImages: [device] }, id);
+    expect(status).toBe(429);
+    expect(attachments.resolveAttachment).not.toHaveBeenCalled();
+  });
+
+  it("is not asked for at all when the body carries none", async () => {
+    const id = nextUserId();
+    await attempt({ action: "generate", prompt: "a lighthouse" }, id);
+    expect(attachments.parseReferenceImages).toHaveBeenCalledWith(undefined);
+    expect(attachments.resolveAttachment).not.toHaveBeenCalled();
   });
 });
 

@@ -1,13 +1,15 @@
 /**
  * image function (POST /api/fn/image).
  *
- *   { action: "engines" }  -> { engines: [{ id, label, model, qualityModel, available, defaultEngine }] }
- *   { action: "generate", prompt, engine?, quality?, aspectRatio? }
+ *   { action: "engines" }  -> { engines: [{ id, label, model, qualityModel, available, defaultEngine, supportsReference }] }
+ *   { action: "generate", prompt, engine?, quality?, aspectRatio?, referenceImages? }
  *                          -> { engine, model, mimeType, width?, height?, imageUrl }
  *
- * Text to image only, one image per request, on the engine the caller picked.
- * An engine that is not configured is a 503, never a quiet switch to another
- * one: the user chose, and each engine costs money.
+ * One image per request, on the engine the caller picked. An engine that is not
+ * configured is a 503, never a quiet switch to another one: the user chose, and
+ * each engine costs money. `referenceImages` (the shared attachment shape, at
+ * most two pictures) is offered by the engines that can draw from a photo;
+ * Stable Diffusion on the GPU answers 400 for it.
  */
 
 import type { NextFunction, Request, Response } from "express";
@@ -15,6 +17,14 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import type { User } from "../../../drizzle/schema";
 import { rateLimitConfig } from "../../config/rate-limits";
+import {
+  hasDriveAttachment,
+  parseReferenceImages,
+  referenceLimits,
+  requireDriveConnection,
+  resolveAttachment,
+  type Attachment,
+} from "../../lib/attachments";
 import { FnError } from "../../lib/fnErrors";
 import {
   ASPECT_RATIOS,
@@ -22,6 +32,7 @@ import {
   ENGINE_LABELS,
   QUALITIES,
   ImageNotConfiguredError,
+  ImageReferenceError,
   ImageTimeoutError,
   ImageUpstreamError,
   defaultEngine,
@@ -29,9 +40,12 @@ import {
   generateImage,
   listEngines,
   logImageUsage,
+  referenceRejection,
   storeImage,
+  supportsReference,
   type GeneratedImage,
   type ImageJob,
+  type ImageReference,
 } from "../../lib/fnImage";
 import { actionOf, asRecord, unknownAction } from "./shared";
 
@@ -78,6 +92,11 @@ export async function handleImage(userId: number, req: Request, res: Response): 
 
 async function generate(userId: number, body: Record<string, unknown>, req: Request, res: Response): Promise<Record<string, unknown>> {
   const job = readJob(body);
+  const sources = readReferenceSources(body);
+  if (sources.length && !supportsReference(job.engine)) {
+    throw new FnError(400, referenceRejection(job.engine));
+  }
+  if (sources.length && hasDriveAttachment(sources)) await requireDriveConnection(userId);
 
   if (!engineAvailable(job.engine)) {
     throw new FnError(503, `${ENGINE_LABELS[job.engine]} is not available right now.`);
@@ -85,8 +104,12 @@ async function generate(userId: number, body: Record<string, unknown>, req: Requ
 
   await enforceImageLimit(req, res);
 
+  // The photos are read after the limit check: a blocked caller should not make
+  // the server download from Google first.
+  const references = await readReferences(userId, sources);
+
   try {
-    const image = await generateImage(job);
+    const image = await generateImage({ ...job, references });
     const stored = await storeImage(userId, job.prompt, image);
     void logImageUsage(userId, image);
     return responseBody(image, stored.url);
@@ -108,6 +131,30 @@ export function readJob(body: Record<string, unknown>): ImageJob {
     quality: parsed.data.quality,
     aspectRatio: parsed.data.aspectRatio,
   };
+}
+
+/**
+ * The reference photos of a generate body: at most two, images only, each at
+ * most 8 MB. Validated here, read later, so a bad list is a 400 before anything
+ * else happens.
+ */
+export function readReferenceSources(body: Record<string, unknown>): Attachment[] {
+  return parseReferenceImages(body.referenceImages);
+}
+
+/** Downloads or decodes each reference. One that cannot be read is a 400. */
+async function readReferences(userId: number, sources: Attachment[]): Promise<ImageReference[]> {
+  const references: ImageReference[] = [];
+  for (const source of sources) {
+    try {
+      const file = await resolveAttachment(userId, source, referenceLimits());
+      references.push({ filename: file.filename, mimeType: file.mediaType, bytes: file.bytes });
+    } catch (err) {
+      if (err instanceof FnError) throw err;
+      throw new FnError(400, "That reference photo could not be read.");
+    }
+  }
+  return references;
 }
 
 /** Field names as a 400 message shows them; nothing the caller sent is echoed back. */
@@ -138,6 +185,7 @@ function responseBody(image: GeneratedImage, imageUrl: string): Record<string, u
 function toFnError(err: unknown): unknown {
   if (err instanceof FnError) return err;
   if (err instanceof ImageNotConfiguredError) return new FnError(503, err.message);
+  if (err instanceof ImageReferenceError) return new FnError(400, err.message);
   if (err instanceof ImageTimeoutError) return new FnError(504, err.message);
   if (err instanceof ImageUpstreamError) {
     console.error(`[fn:image] generation failed upstream${err.providerStatus ? ` (status ${err.providerStatus})` : ""}`);

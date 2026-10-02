@@ -67,6 +67,7 @@ import {
   QUALITIES,
   QWEN_SIZES,
   ImageNotConfiguredError,
+  ImageReferenceError,
   ImageTimeoutError,
   ImageUpstreamError,
   aiStudioImageEndpoint,
@@ -79,13 +80,19 @@ import {
   imageModel,
   listEngines,
   logImageUsage,
+  openaiImageEditEndpoint,
+  openaiImageEditForm,
   openaiImageEndpoint,
+  qwenImageBody,
   qwenImageEndpoint,
+  referenceRejection,
   roughImageCostUsd,
   storeImage,
+  supportsReference,
   vertexImageEndpoint,
   type GeneratedImage,
   type ImageJob,
+  type ImageReference,
 } from "./fnImage";
 
 const ENV_NAMES = [
@@ -374,7 +381,10 @@ describe("availability and the engines list", () => {
       qualityModel: "gemini-3-pro-image",
       available: true,
       defaultEngine: false,
+      supportsReference: true,
     });
+    // Only the GPU engine cannot work from a photo.
+    expect(engines.map((entry) => entry.supportsReference)).toEqual([true, true, true, false]);
     expect(engines.filter((entry) => entry.defaultEngine).map((entry) => entry.id)).toEqual(["qwen"]);
     expect(engines[2]).toMatchObject({ id: "openai", available: false, model: "gpt-image-2", qualityModel: "gpt-image-2" });
   });
@@ -427,6 +437,125 @@ describe("endpoints and bodies", () => {
     expect(openaiImageEndpoint()).toBe("https://api.koboillm.com/v1/images/generations");
     process.env.LITELLM_BASE_URL = "https://gateway.example.com/v1/";
     expect(openaiImageEndpoint()).toBe("https://gateway.example.com/v1/images/generations");
+  });
+
+  it("puts the edit route next to the generation route", () => {
+    expect(openaiImageEditEndpoint()).toBe("https://api.koboillm.com/v1/images/edits");
+    process.env.LITELLM_BASE_URL = "https://gateway.example.com/v1/";
+    expect(openaiImageEditEndpoint()).toBe("https://gateway.example.com/v1/images/edits");
+  });
+});
+
+describe("reference photos in the request bodies", () => {
+  /** Not a real PNG: only the bytes a reference carries. */
+  const reference = (bytes = "reference-bytes", mimeType = "image/png", filename = "photo.png"): ImageReference => ({
+    filename,
+    mimeType,
+    bytes: Buffer.from(bytes),
+  });
+
+  it("offers references on every engine but the GPU one", () => {
+    expect(supportsReference("gemini")).toBe(true);
+    expect(supportsReference("qwen")).toBe(true);
+    expect(supportsReference("openai")).toBe(true);
+    expect(supportsReference("forge")).toBe(false);
+    expect(referenceRejection("forge")).toBe("Stable Diffusion on the GPU cannot use reference photos yet.");
+  });
+
+  it("gemini carries each photo as an inlineData part before the text part", () => {
+    const body = geminiImageBody("same lighthouse at night", "1:1", [reference("first"), reference("second", "image/jpeg", "b.jpg")]);
+    const parts = (body.contents as any[])[0].parts;
+    expect(parts).toHaveLength(3);
+    expect(parts[0]).toEqual({ inlineData: { mimeType: "image/png", data: Buffer.from("first").toString("base64") } });
+    expect(parts[1]).toEqual({ inlineData: { mimeType: "image/jpeg", data: Buffer.from("second").toString("base64") } });
+    expect(parts[2]).toEqual({ text: "same lighthouse at night" });
+  });
+
+  it("gemini without references is exactly the text-only body as before", () => {
+    expect(geminiImageBody("a lighthouse", "1:1")).toEqual(geminiImageBody("a lighthouse", "1:1", []));
+    expect((geminiImageBody("a lighthouse", "1:1") as any).contents[0].parts).toEqual([{ text: "a lighthouse" }]);
+  });
+
+  it("qwen carries each photo as a data URL image item before the text item", () => {
+    const body = qwenImageBody("same lighthouse at night", "wan2.7-image", "16:9", [reference("first"), reference("b", "image/webp", "b.webp")]);
+    const content = (body.input as any).messages[0].content;
+    expect(content).toHaveLength(3);
+    expect(content[0]).toEqual({ image: `data:image/png;base64,${Buffer.from("first").toString("base64")}` });
+    expect(content[1]).toEqual({ image: `data:image/webp;base64,${Buffer.from("b").toString("base64")}` });
+    expect(content[2]).toEqual({ text: "same lighthouse at night" });
+    expect((body.parameters as any).size).toBe("1280*720");
+  });
+
+  it("openai builds a multipart edit form with image[] parts and the three fields", () => {
+    const form = openaiImageEditForm("same lighthouse at night", "gpt-image-2", "9:16", [reference("first"), reference("b", "image/jpeg", "b.jpg")]);
+    expect(form).toBeInstanceOf(FormData);
+    expect(form.get("prompt")).toBe("same lighthouse at night");
+    expect(form.get("model")).toBe("gpt-image-2");
+    expect(form.get("size")).toBe("1024x1536");
+    const files = form.getAll("image[]");
+    expect(files).toHaveLength(2);
+    expect((files[0] as File).name).toBe("photo.png");
+    expect((files[0] as File).type).toBe("image/png");
+    expect((files[1] as File).name).toBe("b.jpg");
+  });
+
+  it("sends the gemini references over the wire in the order built", async () => {
+    process.env.GEMINI_API_KEY = FAKE_GOOGLE_KEY;
+    fetchMock.mockResolvedValue(jsonResponse(geminiAnswer()));
+
+    await generateImage(job({ references: [reference("one"), reference("two")] }));
+
+    const body = sentBody();
+    expect(body.contents[0].parts).toHaveLength(3);
+    expect(body.contents[0].parts[2]).toEqual({ text: "a lighthouse at dawn" });
+    expect(JSON.stringify(body)).toContain(Buffer.from("one").toString("base64"));
+  });
+
+  it("sends the qwen references over the wire before the text", async () => {
+    process.env.QWEN_API_KEY = FAKE_QWEN_KEY;
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(wanAnswer()))
+      .mockResolvedValueOnce(binaryResponse(pngBytes()) as unknown as Response);
+
+    await generateImage(job({ engine: "qwen", references: [reference("one")] }));
+
+    const content = sentBody().input.messages[0].content;
+    expect(content[0].image).toContain("data:image/png;base64,");
+    expect(content[1]).toEqual({ text: "a lighthouse at dawn" });
+  });
+
+  it("posts openai references to the edit route as a form, not as JSON", async () => {
+    process.env.LITELLM_API_KEY = FAKE_LITELLM_KEY;
+    fetchMock.mockResolvedValue(jsonResponse({ data: [{ b64_json: pngBytes().toString("base64") }] }));
+
+    const image = await generateImage(job({ engine: "openai", references: [reference("one")] }));
+
+    expect(callUrl()).toBe("https://api.koboillm.com/v1/images/edits");
+    const init = callInit();
+    const form = init.body as FormData;
+    expect(form).toBeInstanceOf(FormData);
+    expect(init.headers["Content-Type"]).toBeUndefined();
+    expect(init.headers.Authorization).toBe(`Bearer ${FAKE_LITELLM_KEY}`);
+    expect(form.get("model")).toBe("gpt-image-2");
+    expect(image.model).toBe("gpt-image-2");
+  });
+
+  it("keeps openai on the generation route when no photo came", async () => {
+    process.env.LITELLM_API_KEY = FAKE_LITELLM_KEY;
+    fetchMock.mockResolvedValue(jsonResponse({ data: [{ b64_json: pngBytes().toString("base64") }] }));
+
+    await generateImage(job({ engine: "openai" }));
+
+    expect(callUrl()).toBe("https://api.koboillm.com/v1/images/generations");
+    expect(sentBody().prompt).toBe("a lighthouse at dawn");
+  });
+
+  it("refuses the GPU engine before a request is made", async () => {
+    process.env.FORGE_MANAGER_URL = FORGE_URL;
+    process.env.FORGE_MANAGER_TOKEN = FAKE_FORGE_TOKEN;
+
+    await expect(generateImage(job({ engine: "forge", references: [reference()] }))).rejects.toBeInstanceOf(ImageReferenceError);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 

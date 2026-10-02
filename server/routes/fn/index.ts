@@ -13,6 +13,7 @@ import type { NextFunction, Request, Response } from "express";
 import { FnError, GENERIC_FAILURE, requireUserId, sendError } from "./shared";
 import { handleChatInsights } from "./chatInsights";
 import { handleDocumentBrief } from "./documentBrief";
+import { handleDrive } from "./drive";
 import { handleImage } from "./image";
 import { handleMemories } from "./memories";
 import { handleMonitors } from "./monitors";
@@ -29,6 +30,7 @@ const functions: Record<string, FnHandler> = {
   research: handleResearch,
   voice: handleVoice,
   image: handleImage,
+  drive: handleDrive,
 };
 
 /** The function names the client calls; anything else is a 404. */
