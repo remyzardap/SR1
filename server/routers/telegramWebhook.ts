@@ -9,6 +9,7 @@ import {
   type ChatImageSuccess,
 } from "../lib/chatImage";
 import { s1Blend, buildS1SystemPrompt, resolveBearer } from "./s1Router";
+import { runTelegramChat, startNewTelegramThread } from "../lib/telegramChat";
 
 /** Telegram chat actions expire after 5 s, so a long job refreshes the one it set. */
 const CHAT_ACTION_MS = 4_000;
@@ -88,6 +89,24 @@ export function registerTelegramWebhookRoute(app: Express) {
 
       console.log(`[Telegram] Message from ${username} (${telegramUserId}): ${messageText.substring(0, 50)}`);
 
+      // /new starts a fresh conversation. /blend <question> keeps the older multi-model blend (no history).
+      if (/^\/(new|reset)(@[A-Za-z0-9_]+)?$/i.test(messageText.trim())) {
+        const ok = await startNewTelegramThread();
+        await sendTelegramMessage(chatId, ok ? "Fresh start." : "There is no owner account on this server.", TELEGRAM_TOKEN);
+        return res.json({ ok: true });
+      }
+      const blendMatch = /^\/blend(@[A-Za-z0-9_]+)?\s+([\s\S]+)$/i.exec(messageText.trim());
+
+      // Everything else goes to the main chat engine, after answering the webhook: a slow answer must not
+      // make Telegram redeliver the update and answer twice.
+      if (!OPENCLAW_WEBHOOK && !blendMatch) {
+        res.json({ ok: true });
+        if (isRedeliveredImageUpdate(update.update_id)) return;
+        void answerWithChatEngine(chatId, messageText, TELEGRAM_TOKEN).catch((error) => console.error("[Telegram] Chat error:", error));
+        return;
+      }
+      const promptText = blendMatch ? blendMatch[2] : messageText;
+
       // Send typing indicator
       await sendTelegramAction(chatId, "typing", TELEGRAM_TOKEN);
 
@@ -122,10 +141,10 @@ export function registerTelegramWebhookRoute(app: Express) {
         const systemPrompt = buildS1SystemPrompt({ agent: "s1", label: "Kemma", reason: "chat", emoji: "🧠", color: "#E8442A" });
 
         const { config: agentConfig, messages: fullMessages } = await s1Blend(
-          messageText,
+          promptText,
           [
             { role: "system", content: systemPrompt },
-            { role: "user", content: messageText },
+            { role: "user", content: promptText },
           ],
           { draftMaxTokens: 500 },
         );
@@ -228,6 +247,17 @@ function isRedeliveredImageUpdate(updateId: unknown): boolean {
     if (oldest !== undefined) seenImageUpdates.delete(oldest);
   }
   return false;
+}
+
+/** One chat reply from the main engine, with the typing indicator kept alive while it works. */
+async function answerWithChatEngine(chatId: number, text: string, token: string) {
+  void sendTelegramAction(chatId, "typing", token);
+  const keepAlive = setInterval(() => void sendTelegramAction(chatId, "typing", token), CHAT_ACTION_MS);
+  try {
+    await sendTelegramMessage(chatId, await runTelegramChat(text), token);
+  } finally {
+    clearInterval(keepAlive);
+  }
 }
 
 /** The whole drawing job, running after the webhook has already answered. */

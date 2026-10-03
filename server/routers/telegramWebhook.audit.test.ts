@@ -25,6 +25,10 @@ vi.mock("../lib/chatImage", async (importOriginal) => {
   return { ...actual, runChatImage: chat.runChatImage };
 });
 
+// Plain text goes to the main chat engine; its own behavior is covered in lib/telegramChat.test.ts.
+const tg = vi.hoisted(() => ({ runTelegramChat: vi.fn(async () => "chat answer"), startNewTelegramThread: vi.fn(async () => true) }));
+vi.mock("../lib/telegramChat", () => ({ runTelegramChat: tg.runTelegramChat, startNewTelegramThread: tg.startNewTelegramThread }));
+
 import { registerTelegramWebhookRoute } from "./telegramWebhook";
 
 const SECRET = "hook-secret-123";
@@ -121,6 +125,8 @@ const saved = new Map<string, string | undefined>();
 beforeEach(() => {
   vi.resetModules();
   s1.blend.mockClear();
+  tg.runTelegramChat.mockClear();
+  tg.startNewTelegramThread.mockClear();
   chat.runChatImage.mockReset();
   for (const name of ENV_NAMES) {
     saved.set(name, process.env[name]);
@@ -283,49 +289,68 @@ describe("telegram webhook message flow (audit)", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("answers a text message via S1 and posts it back to the same chat", async () => {
+  it("answers a text message on the main chat engine and posts it back to the same chat", async () => {
+    const calls = stubFetch(() => okJson({ ok: true }));
+    const routes = await register();
+    const { res, out } = fakeRes();
+    await routes[0].handler(fakeReq(update("hello", 9001), hookHeaders), res);
+    expect(out.json).toEqual({ ok: true });
+    await vi.waitFor(() => expect(calls.some((c) => c.url.includes(`bot${TOKEN}/sendMessage`))).toBe(true));
+    expect(tg.runTelegramChat).toHaveBeenCalledWith("hello");
+    const urls = calls.map((c) => c.url);
+    expect(urls.some((u) => u.includes(`bot${TOKEN}/sendChatAction`))).toBe(true);
+    const sent = calls.find((c) => c.url.includes(`bot${TOKEN}/sendMessage`));
+    expect(sent?.body.chat_id).toBe(777);
+    expect(sent?.body.text).toBe("chat answer");
+    expect(s1.blend).not.toHaveBeenCalled();
+  });
+
+  it("leaves a plain text message off the S1 blend and never draws", async () => {
+    stubFetch(() => okJson({ ok: true }));
+    const routes = await register();
+    const { res } = fakeRes();
+    await routes[0].handler(fakeReq(update("hello", 9002), hookHeaders), res);
+    await vi.waitFor(() => expect(tg.runTelegramChat).toHaveBeenCalledTimes(1));
+    expect(s1.blend).not.toHaveBeenCalled();
+    expect(chat.runChatImage).not.toHaveBeenCalled();
+  });
+
+  it("keeps the S1 blend behind /blend, with only the question as the prompt", async () => {
     const calls = stubFetch((url) => {
       if (url.includes("/chat/completions")) return okJson({ choices: [{ message: { content: "S1 answer" } }] });
       return okJson({ ok: true });
     });
     const routes = await register();
     const { res, out } = fakeRes();
-    await routes[0].handler(fakeReq(update("hello"), hookHeaders), res);
+    await routes[0].handler(fakeReq(update("/blend what is two plus two", 9003), hookHeaders), res);
     expect(out.json).toEqual({ ok: true });
-    const urls = calls.map((c) => c.url);
-    expect(urls.some((u) => u.includes(`bot${TOKEN}/sendChatAction`))).toBe(true);
-    expect(urls.some((u) => u.includes("llm.test"))).toBe(true);
+    expect(s1.blend).toHaveBeenCalledTimes(1);
+    expect(s1.blend.mock.calls[0][0]).toBe("what is two plus two");
+    expect(tg.runTelegramChat).not.toHaveBeenCalled();
     const sent = calls.find((c) => c.url.includes(`bot${TOKEN}/sendMessage`));
-    expect(sent?.body.chat_id).toBe(777);
     expect(sent?.body.text).toBe("S1 answer");
   });
 
-  it("leaves a plain text message on the S1 path and never draws", async () => {
-    stubFetch((url) => {
-      if (url.includes("/chat/completions")) return okJson({ choices: [{ message: { content: "S1 answer" } }] });
-      return okJson({ ok: true });
-    });
+  it("starts a fresh conversation on /new", async () => {
+    const calls = stubFetch(() => okJson({ ok: true }));
     const routes = await register();
     const { res } = fakeRes();
-    await routes[0].handler(fakeReq(update("hello"), hookHeaders), res);
-    expect(s1.blend).toHaveBeenCalledTimes(1);
-    expect(chat.runChatImage).not.toHaveBeenCalled();
+    await routes[0].handler(fakeReq(update("/new", 9004), hookHeaders), res);
+    expect(tg.startNewTelegramThread).toHaveBeenCalledTimes(1);
+    expect(tg.runTelegramChat).not.toHaveBeenCalled();
+    expect(calls.find((c) => c.url.includes("sendMessage"))?.body.text).toBe("Fresh start.");
   });
 
-  it("processes the SAME update_id twice: there is no duplicate-update dedup for text", async () => {
-    const calls = stubFetch((url) => {
-      if (url.includes("/chat/completions")) return okJson({ choices: [{ message: { content: "answer" } }] });
-      return okJson({ ok: true });
-    });
+  it("answers a redelivered text update only once", async () => {
+    stubFetch(() => okJson({ ok: true }));
     const routes = await register();
     for (let i = 0; i < 2; i++) {
       const { res } = fakeRes();
-      await routes[0].handler(fakeReq(update("hello", 42), hookHeaders), res);
+      await routes[0].handler(fakeReq(update("hello", 4242), hookHeaders), res);
     }
-    // Telegram retries deliveries at-least-once; both passes call the LLM.
-    expect(s1.blend).toHaveBeenCalledTimes(2);
-    const sends = calls.filter((c) => c.url.includes("sendMessage"));
-    expect(sends).toHaveLength(2);
+    await vi.waitFor(() => expect(tg.runTelegramChat).toHaveBeenCalledTimes(1));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(tg.runTelegramChat).toHaveBeenCalledTimes(1);
   });
 
   it("answers any allowlisted telegram chat with NO Sutaeru user linkage or quota check", async () => {
@@ -368,7 +393,7 @@ describe("telegram webhook message flow (audit)", () => {
     });
     const routes = await register();
     const { res } = fakeRes();
-    await routes[0].handler(fakeReq(update("hi"), hookHeaders), res);
+    await routes[0].handler(fakeReq(update("/blend hi"), hookHeaders), res);
     const sent = calls.find((c) => c.url.includes("sendMessage"));
     expect(sent?.body.text).toHaveLength(4096);
   });
@@ -387,7 +412,7 @@ describe("telegram webhook message flow (audit)", () => {
     });
     const routes = await register();
     const { res, out } = fakeRes();
-    await routes[0].handler(fakeReq(update("hi"), hookHeaders), res);
+    await routes[0].handler(fakeReq(update("/blend hi"), hookHeaders), res);
     expect(out.json).toEqual({ ok: true });
     const sends = calls.filter((c) => c.url.includes("sendMessage"));
     expect(sends.length).toBeGreaterThanOrEqual(2);
@@ -401,7 +426,7 @@ describe("telegram webhook message flow (audit)", () => {
     stubFetch(() => okJson({ ok: true }));
     const routes = await register();
     const { res, out } = fakeRes();
-    await routes[0].handler(fakeReq(update("hi"), hookHeaders), res);
+    await routes[0].handler(fakeReq(update("/blend hi"), hookHeaders), res);
     expect(out.json).toEqual({ ok: false });
   });
 });
