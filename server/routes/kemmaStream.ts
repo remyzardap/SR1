@@ -120,6 +120,7 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
       isVoice,
       sessionId,
       modelOverride: resolved.model === "auto" ? undefined : resolved.model,
+      sensitiveRouting: resolved.sensitiveRouting,
       allowedTools: resolved.allowedTools,
       onStream: (chunk) => {
         assistantContent += chunk;

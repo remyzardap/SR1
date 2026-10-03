@@ -39,6 +39,8 @@ const lib = vi.hoisted(() => {
     ImageUpstreamError,
     ImageTimeoutError,
     ImageReferenceError,
+    ImageBlockedError: class ImageBlockedError extends Error {},
+    resolveImageEngine: vi.fn(async (o: { engine: string }) => ({ blocked: false, engine: o.engine, routed: false })),
     defaultEngine: vi.fn(() => "gemini"),
     engineAvailable: vi.fn(() => true),
     // The real module answers false for forge only; the fake follows the same rule.
@@ -66,6 +68,7 @@ const attachments = vi.hoisted(() => ({
 }));
 
 vi.mock("../../lib/fnImage", () => lib);
+vi.mock("../../kemma/executors/vpsFiles", () => ({ isAdminUser: vi.fn(async () => false) }));
 vi.mock("../../lib/attachments", () => attachments);
 
 import { rateLimitConfig } from "../../config/rate-limits";

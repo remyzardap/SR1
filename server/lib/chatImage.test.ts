@@ -43,6 +43,9 @@ vi.mock("../db", () => ({
   createFile: vi.fn(async () => {}),
 }));
 
+const adminState = vi.hoisted(() => ({ admin: false }));
+vi.mock("../kemma/executors/vpsFiles", () => ({ isAdminUser: vi.fn(async () => adminState.admin) }));
+
 import { ImageUpstreamError, type GeneratedImage } from "./fnImage";
 import {
   CHAT_IMAGE_USAGE,
@@ -475,5 +478,38 @@ describe("naturalImagePrompt (plain sentences)", () => {
   it("keeps the slash command working as before", () => {
     expect(ask("/img wide high a lighthouse at dawn")).toMatchObject({ kind: "image", aspectRatio: "16:9", quality: "high" });
     expect(ask("/image")).toEqual({ kind: "help" });
+  });
+});
+
+describe("sensitive and blocked image prompts", () => {
+  const SENSITIVE = "an explicit nude art photo of a woman";
+  const venusePic = () => generated({ engine: "venice", model: "lustify-v8" });
+  afterEach(() => { delete process.env.VENICE_API_KEY; delete process.env.VENICE_SENSITIVE_ROUTING; adminState.admin = false; });
+
+  it("routes a sensitive prompt to the venice engine for the owner and keeps the caption plain", async () => {
+    process.env.VENICE_API_KEY = "k";
+    adminState.admin = true;
+    engine.generateImage.mockResolvedValue(venusePic());
+    const out = await draw(freshChat(), command({ prompt: SENSITIVE, engine: "forge" }));
+    expect(engine.generateImage.mock.calls[0][0]).toMatchObject({ engine: "venice", prompt: SENSITIVE });
+    expect(out).toMatchObject({ ok: true, caption: "Here you go." });
+  });
+
+  it("keeps the asked engine when the owner is not an admin, there is no key, or the kill switch is set", async () => {
+    process.env.VENICE_API_KEY = "k";
+    await draw(freshChat(), command({ prompt: SENSITIVE }));
+    adminState.admin = true;
+    process.env.VENICE_SENSITIVE_ROUTING = "0";
+    await draw(freshChat(), command({ prompt: SENSITIVE }));
+    delete process.env.VENICE_SENSITIVE_ROUTING;
+    delete process.env.VENICE_API_KEY;
+    await draw(freshChat(), command({ prompt: SENSITIVE }));
+    expect(engine.generateImage.mock.calls.map((c) => c[0].engine)).toEqual(["forge", "forge", "forge"]);
+  });
+
+  it("refuses a blocked prompt with a short plain line before any engine call or limit slot", async () => {
+    const out = await draw(freshChat(), command({ prompt: "nude picture of a teen girl" }));
+    expect(out).toEqual({ ok: false, message: "I can't help with that." });
+    expect(engine.generateImage).not.toHaveBeenCalled();
   });
 });

@@ -281,13 +281,13 @@ describe("models, qualities and ratios", () => {
   });
 
   it("offers exactly the engines and options the function accepts", () => {
-    expect(ENGINE_IDS).toEqual(["gemini", "qwen", "openai", "forge"]);
+    expect(ENGINE_IDS).toEqual(["gemini", "qwen", "openai", "forge", "venice"]);
     expect(QUALITIES).toEqual(["standard", "high"]);
     expect(ASPECT_RATIOS).toEqual(["1:1", "16:9", "9:16", "4:3", "3:4"]);
   });
 
   it("gives Gemini the longer deadline the pro model needs and 60 s to the others", () => {
-    expect(PROVIDER_TIMEOUTS_MS).toEqual({ gemini: 90000, qwen: 60000, openai: 60000, forge: 300000 });
+    expect(PROVIDER_TIMEOUTS_MS).toEqual({ gemini: 90000, qwen: 60000, openai: 60000, forge: 300000, venice: 90000 });
   });
 
   it("passes that deadline to the provider call", async () => {

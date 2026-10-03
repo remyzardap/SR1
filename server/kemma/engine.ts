@@ -68,6 +68,8 @@ export interface EngineInput {
   allowedTools?: string[];
   isSubAgent?: boolean;
   modelOverride?: string;
+  /** Per-thread switch for routing sensitive messages to Venice. Default "auto". */
+  sensitiveRouting?: "auto" | "off";
   skills?: Array<{ id: number; name: string; description?: string | null; content?: unknown }>;
   onStream?: (chunk: string) => void;
   onToolStart?: (tool: string, input: unknown) => void;
@@ -101,6 +103,7 @@ import { MAX_TOOL_CALLS } from "./kemmaMax";
 import { buildSkillIndex, type FileSkill } from "./fileSkills";
 import { getEnabledSkills } from "./skillReviews";
 import { getMcpRegistry } from "./mcp/client";
+import { BLOCKED_MESSAGE, decideChatRouting, isBlockedPrompt } from "../lib/sensitive";
 
 function selectRoute(input: EngineInput, currentMessages: KemmaMessage[], step: number, maxSteps: number): RouteConfig {
   const { isThinking, modelOverride } = input;
@@ -235,6 +238,20 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   // Admin-only models are re-checked against the DB here, whatever the caller passed.
   if (input.modelOverride && isAdminOnlyModel(input.modelOverride) && !(await isAdminUser(input.userId))) {
     input = { ...input, modelOverride: undefined };
+  }
+  // Blocked content (minors in a sexual context, anything illegal to produce) is refused before any model call.
+  const latestUser = [...input.messages].reverse().find((m) => m.role === "user");
+  const latestText = typeof latestUser?.content === "string" ? latestUser.content : "";
+  if (isBlockedPrompt(latestText)) return makeErrorResponse(BLOCKED_MESSAGE, startTime);
+  // A sensitive message from an admin account is answered by Venice. An explicit model choice is left alone.
+  if (!input.modelOverride && !input.isSubAgent && latestText) {
+    const decision = await decideChatRouting({
+      text: latestText,
+      setting: input.sensitiveRouting,
+      isAdmin: () => isAdminUser(input.userId),
+    });
+    if (decision.blocked) return makeErrorResponse(BLOCKED_MESSAGE, startTime);
+    if (decision.venice && decision.model) input = { ...input, modelOverride: decision.model };
   }
   const { userId, userName, messages, tier, isThinking, isVoice = false, sessionId, reportId, polish, onStream, onToolStart, onToolEnd, onStepStart, onStepEnd, onQuotaWarn, onNotice, onSkillUsed } = input;
 
