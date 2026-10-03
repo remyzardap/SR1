@@ -478,12 +478,11 @@ export default function Chat() {
             } else if (event === "agent") {
                setCurrentStep("Working on your request…");
             } else if (event === "model") {
+              // The model id stays in the data (finalModel is persisted with the
+              // message) but is never shown: which model answered is not a label.
               const parsed = JSON.parse(data) as { step?: number; label?: string };
               finalModel = parsed.label ?? finalModel;
-              const label = parsed.label ?? "Kemma";
-              assistantSteps.push({ id: crypto.randomUUID(), label });
-              setAgentSteps([...assistantSteps]);
-              setCurrentStep(label);
+              setCurrentStep("Working on your request…");
             } else if (event === "tool_start") {
               const parsed = JSON.parse(data) as { tool?: string };
               const label = parsed.tool ?? "tool";

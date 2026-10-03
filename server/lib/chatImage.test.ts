@@ -249,7 +249,7 @@ describe("chatImageDefaultEngine and the acknowledgement", () => {
 });
 
 describe("runChatImage", () => {
-  it("draws on the engine it was given and captions it with the model that ran", async () => {
+  it("draws on the engine it was given and captions the picture without naming it", async () => {
     engine.generateImage.mockResolvedValueOnce(generated({ model: "flux1-dev-bnb-nf4-v2.safetensors" }));
 
     const out = await draw(freshChat(), command({ quality: "high" }));
@@ -264,7 +264,7 @@ describe("runChatImage", () => {
       ok: true,
       buffer: Buffer.from("fake image bytes"),
       mimeType: "image/png",
-      caption: "Stable Diffusion · flux1-dev-bnb-nf4-v2.safetensors",
+      caption: "Kemma",
     });
   });
 
@@ -421,7 +421,7 @@ describe("runChatImage", () => {
 
     const out = await draw();
 
-    expect(out).toMatchObject({ ok: true, caption: "Stable Diffusion · realisticVision_v60B1.safetensors" });
+    expect(out).toMatchObject({ ok: true, caption: "Kemma" });
     expect(engine.storeImage).not.toHaveBeenCalled();
     expect(ownerWarning()).toHaveLength(1);
   });

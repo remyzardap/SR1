@@ -682,7 +682,8 @@ async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
     const tryRoute = routesToTry[i];
 
     if (i > 0) {
-      onNotice?.(`Primary model unavailable; trying ${tryRoute.label}...`);
+      // Which model answers is not shown to users: the notice stays generic.
+      onNotice?.("Primary model unavailable; trying a backup...");
     }
 
     try {
@@ -701,13 +702,16 @@ async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
       });
 
       if (i > 0) {
-        onNotice?.(`Answer produced by fallback model ${tryRoute.label}.`);
+        onNotice?.("Answer produced by a backup model.");
       }
 
       return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      errors.push(`${tryRoute.label}: ${message}`);
+      // The per-route detail (with model labels) goes to the server log only;
+      // the user sees the upstream reasons, which say what to do about it.
+      console.error(`[kemma] ${tryRoute.label} attempt failed: ${message}`);
+      errors.push(message);
       if (i === routesToTry.length - 1) {
         throw new Error(`All models failed. ${errors.join("; ")}`);
       }

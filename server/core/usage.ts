@@ -76,7 +76,7 @@ export async function checkSpendCap(provider: ModelProvider): Promise<{ allowed:
     if (spent >= cap) {
       return {
         allowed: false,
-        reason: `Monthly spend cap for ${provider} reached ($${spent.toFixed(2)} / $${cap}). Set KEMMA_CAP_${provider.toUpperCase()} to raise it.`,
+        reason: `Monthly spend cap reached ($${spent.toFixed(2)} / $${cap}). Set the KEMMA_CAP_* limits to raise it.`,
       };
     }
   } catch (err) {

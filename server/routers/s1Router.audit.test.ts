@@ -383,6 +383,16 @@ describe("persona and prompt builders", () => {
     expect(prompt).toContain(new Date().toDateString());
   });
 
+  it("the default persona is the shared Kemma character from server/kemma/personality.ts", async () => {
+    const { buildS1SystemPrompt, S1_BLEND_INFO } = await load();
+    const { KEMMA_PERSONA } = await import("../kemma/personality");
+    const prompt = buildS1SystemPrompt(S1_BLEND_INFO, "USER CONTEXT TEXT");
+    expect(prompt).toContain("You are Kemma");
+    expect(prompt).toContain(KEMMA_PERSONA);
+    expect(prompt).toContain("Never reference, hint at, or acknowledge any underlying model");
+    expect(prompt).toContain("USER CONTEXT TEXT");
+  });
+
   it("detectGoogleIntent classifies gmail, calendar, drive and nothing else", async () => {
     const { detectGoogleIntent } = await load();
     expect(detectGoogleIntent("read my inbox")).toBe("gmail");

@@ -81,6 +81,21 @@ Prefix rule: a model id that starts with `litellm/` (case-insensitive) routes to
 | `ELEVEN_LABS_AGENT_ID` | Conversational AI Agent |
 | `ELEVEN_LABS_VOICE_ID` | Voice preset |
 
+Voice colour knobs for Kemma's spoken persona (all optional; unset or unparsable
+values use the defaults below, which are tuned for a warm, close speaking tone).
+`server/lib/fnVoice.ts` reads them and shares them between text-to-speech and the
+conversational-agent session:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ELEVEN_LABS_TTS_MODEL_ID` | `eleven_multilingual_v2` | Model id for the `/api/fn/voice` speak direction |
+| `ELEVEN_LABS_AGENT_TTS_MODEL_ID` | `eleven_turbo_v2_5` | Model id for the Conversational AI agent (`ELEVEN_LABS_AGENT_ID`) sessions |
+| `ELEVEN_LABS_VOICE_STABILITY` | `0.35` | 0-1; lower is more expressive. The warm persona uses a lower default than ElevenLabs' mid point |
+| `ELEVEN_LABS_VOICE_SIMILARITY_BOOST` | `0.75` | 0-1; how strongly the output holds to the cloned voice |
+| `ELEVEN_LABS_VOICE_STYLE` | `0.4` | 0-1; extra style-exaggeration. Higher costs more credits and can distort |
+| `ELEVEN_LABS_VOICE_SPEAKER_BOOST` | on | Set `0`/`false`/`off`/`no` to turn off speaker enhancement |
+| `ELEVEN_LABS_VOICE_SPEED` | `0.95` | 0.5-2 speaking rate for agent calls; slightly under 1 reads as calm |
+
 ---
 
 ## Vertex AI backend (Gemini)

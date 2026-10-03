@@ -276,7 +276,6 @@ export default function Images() {
                             {meta.tags.map((t) => <span key={t} className="sk-engine-tag">{t}</span>)}
                           </span>
                         )}
-                        <span className="sk-engine-model">{quality === "high" ? e.qualityModel : e.model}</span>
                       </span>
                     </button>
                   );
@@ -308,7 +307,7 @@ export default function Images() {
             <div className="sk-card" role="status" aria-live="polite">
               <span className="sk-label">Generating</span>
               <p className="mt-2 text-[15px] leading-6" style={{ color: "var(--art-ink)" }}>
-                {current?.label} is drawing your image.
+                Drawing your image.
               </p>
               <p className="sk-empty-text sk-num mt-1">{elapsed}s elapsed. This usually takes 10 to 70 seconds.</p>
             </div>
@@ -339,7 +338,7 @@ export default function Images() {
                 >
                   <img src={r.blobUrl} alt="" width={r.width} height={r.height} />
                   <span className="sk-thumb-bar">
-                    {r.engine} · {r.width && r.height ? `${r.width} x ${r.height}` : r.model}
+                    {r.width && r.height ? `${r.width} x ${r.height}` : "Image"}
                   </span>
                 </button>
               ))}
@@ -359,7 +358,7 @@ export default function Images() {
               <div className="min-w-0">
                 <p className="sk-tile-title line-clamp-2">{selected.prompt}</p>
                 <p className="sk-meta sk-num mt-1">
-                  {selected.engine} ({selected.model}){selected.width && selected.height ? ` · ${selected.width} x ${selected.height}` : ""}
+                  {selected.width && selected.height ? `${selected.width} x ${selected.height}` : "Image"}
                 </p>
               </div>
               <a href={selected.blobUrl} download={selected.filename} className="sk-btn sk-btn-ghost sk-btn-sm shrink-0">

@@ -335,7 +335,7 @@ describe("same-model retry before fallback", () => {
     const out = await run({ onNotice });
     expect(out.response).toBe("from gemini");
     expect(net.calls.map((c) => c.body.model)).toEqual(["qwen3.8-max", "qwen3.8-max", "gemini-3.8-flash"]);
-    expect(onNotice).toHaveBeenCalledWith("Primary model unavailable; trying gemini-3.8-flash (gemini)...");
+    expect(onNotice).toHaveBeenCalledWith("Primary model unavailable; trying a backup...");
   });
 
   it("does not retry a 401 on the same model", async () => {
