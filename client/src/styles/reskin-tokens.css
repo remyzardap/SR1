@@ -1,0 +1,296 @@
+/*
+ * Reskin token layer (wave 1): the single source of truth for the new visual system.
+ * Light values are final; dark values are proposals from the design spec.
+ *
+ * How it works:
+ * - --r-* tokens carry the palette and type/space scale. They are defined once for
+ *   light and re-defined for dark.
+ * - Theme selection: an explicit `data-mode`/`data-theme` attribute or a `light`/`dark`
+ *   class on any ancestor (html for the app; demo cards may scope it locally) wins.
+ *   Without an explicit choice, the OS prefers-color-scheme decides.
+ * - At the bottom, every OLD variable name the app already uses (--art-*, --sk-*,
+ *   --font-*, --neon-*, shadcn --*, --os-*) is aliased onto the --r-* tokens, so
+ *   existing pages pick up the new palette without edits.
+ * Import this file AFTER the legacy stylesheets (see main.tsx) so the aliases win.
+ */
+
+/* ── Light (final) ─────────────────────────────────────────────────────────── */
+:root {
+  --r-paper: #F7F6F2;
+  --r-panel: #EFEDE7;
+  --r-card: #FFFFFF;
+  --r-stroke: #E3E1DB;
+  --r-ink: #242320;
+  --r-quiet: #66645F;
+  --r-rule: #B6BBC3;
+  --r-accent: #F4511E;
+  --r-accent-ink: #242320; /* text/icons sitting on accent fill */
+  --r-alert: #B3402A;
+  --r-alert-tint: rgba(179, 64, 42, 0.10);
+  --r-accent-tint: #FCE9DE;
+  --r-shadow: rgba(36, 35, 32, 0.12);
+  --r-wash: rgba(255, 255, 255, 0.30); /* body::before light wash */
+  --r-noise-opacity: 0.035;
+
+  /* Type: Inter Tight titles, Inter body, JetBrains Mono labels (loaded in client/index.html) */
+  --r-font-title: "Inter Tight", "Inter", system-ui, sans-serif;
+  --r-font-body: "Inter", system-ui, sans-serif;
+  --r-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r-track-title-lg: -2px;   /* at 42px */
+  --r-track-title-md: -1.2px; /* at 30px */
+  --r-track-mono: 1.54px;     /* mono labels, never below 11px */
+  --r-size-mono: 11px;
+
+  /* Radii and spacing */
+  --r-radius-card: 24px;
+  --r-radius-card-lg: 28px;
+  --r-radius-panel: 28px;
+  --r-radius-thumb: 18px;
+  --r-radius-pill: 999px;
+  --r-gutter: 20px;
+  --r-gap-card: 12px;
+  --r-pad-card: 24px;
+
+  /* Motion: 300-500ms ease-out for progress; [data-reduce-motion] and the OS
+     prefers-reduced-motion setting snap instead (see the override below). */
+  --r-motion: 380ms;
+  --r-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Dark (proposal, per spec) ─────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-mode]):not([data-theme]):not(.light):not(.dark) {
+    --r-paper: #1C1B19;
+    --r-panel: #2A2926;
+    --r-card: #2A2926;
+    --r-stroke: #3A3935;
+    --r-ink: #F7F6F2;
+    --r-quiet: #B6BBC3;
+    --r-rule: #66645F;
+    --r-accent: #F4511E;
+    --r-accent-ink: #1C1B19;
+    --r-alert: #B3402A;
+    --r-alert-tint: rgba(179, 64, 42, 0.22);
+    --r-accent-tint: rgba(244, 81, 30, 0.16);
+    --r-shadow: rgba(0, 0, 0, 0.5);
+    --r-wash: rgba(255, 255, 255, 0.03);
+    --r-noise-opacity: 0.02;
+  }
+}
+
+/* Explicit dark: attribute/class on <html> forces it (also works on scoped demo cards). */
+[data-mode="dark"],
+[data-theme="dark"],
+.dark {
+  --r-paper: #1C1B19;
+  --r-panel: #2A2926;
+  --r-card: #2A2926;
+  --r-stroke: #3A3935;
+  --r-ink: #F7F6F2;
+  --r-quiet: #B6BBC3;
+  --r-rule: #66645F;
+  --r-accent: #F4511E;
+  --r-accent-ink: #1C1B19;
+  --r-alert: #B3402A;
+  --r-alert-tint: rgba(179, 64, 42, 0.22);
+  --r-accent-tint: rgba(244, 81, 30, 0.16);
+  --r-shadow: rgba(0, 0, 0, 0.5);
+  --r-wash: rgba(255, 255, 255, 0.03);
+  --r-noise-opacity: 0.02;
+}
+
+/* Explicit light forces the light values back inside a dark-forced ancestor. */
+[data-mode="light"],
+[data-theme="light"],
+.light {
+  --r-paper: #F7F6F2;
+  --r-panel: #EFEDE7;
+  --r-card: #FFFFFF;
+  --r-stroke: #E3E1DB;
+  --r-ink: #242320;
+  --r-quiet: #66645F;
+  --r-rule: #B6BBC3;
+  --r-accent: #F4511E;
+  --r-accent-ink: #242320;
+  --r-alert: #B3402A;
+  --r-alert-tint: rgba(179, 64, 42, 0.10);
+  --r-accent-tint: #FCE9DE;
+  --r-shadow: rgba(36, 35, 32, 0.12);
+  --r-wash: rgba(255, 255, 255, 0.30);
+  --r-noise-opacity: 0.035;
+}
+
+/* Reduce motion: snap progress bars instead of animating. Driven by the OS setting
+   and by data-reduce-motion="true" on <html> (the app's Reduce motion setting hook). */
+[data-reduce-motion="true"] {
+  --r-motion: 0ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --r-motion: 0ms;
+  }
+}
+
+/* ── Legacy names → new tokens ────────────────────────────────────────────────
+   These aliases follow the active theme automatically because they only
+   reference --r-* values, which are re-declared per theme. */
+:root {
+  /* art tokens (styles/preview.css) */
+  --art-paper: var(--r-paper);
+  --art-ink: var(--r-ink);
+  --art-quiet: var(--r-quiet);
+  --art-panel: var(--r-panel);
+  --art-rule: var(--r-rule);
+  --art-alert: var(--r-alert);
+  --art-inverse: var(--r-paper);
+  --art-grey: var(--r-rule);
+
+  /* shell tokens (styles/shell-reskin.css) */
+  --sk-card: var(--r-card);
+  --sk-soft: var(--r-panel);
+  --sk-track: var(--r-stroke);
+  --sk-orange-tint: var(--r-accent-tint);
+  --sk-mono: var(--r-font-mono);
+
+  /* index.css system tokens */
+  --font-d: var(--r-font-title);
+  --font-b: var(--r-font-body);
+  --font-m: var(--r-font-mono);
+  --bg: var(--r-paper);
+  --bg-raise: var(--r-card);
+  --bg-raise2: var(--r-panel);
+  --t1: var(--r-ink);
+  --t2: color-mix(in srgb, var(--r-ink) 62%, transparent);
+  --t3: color-mix(in srgb, var(--r-ink) 38%, transparent);
+  --line-1: color-mix(in srgb, var(--r-ink) 8%, transparent);
+  --line-2: color-mix(in srgb, var(--r-ink) 14%, transparent);
+  --line-3: color-mix(in srgb, var(--r-ink) 22%, transparent);
+  --btn-fill: var(--r-accent);
+  --btn-ink: var(--r-paper);
+  --glow: var(--r-accent-tint);
+  --mocha: var(--r-ink);
+  --mocha-dark: color-mix(in srgb, var(--r-ink) 80%, var(--r-paper));
+  --amber: var(--r-rule);
+  --neon-orange: var(--r-accent);
+  --neon-orange-ink: var(--r-accent-ink);
+  --chat-composer-ink: var(--r-ink);
+
+  /* elevation */
+  --elev-0-bg: var(--r-paper);
+  --elev-0-border: var(--r-stroke);
+  --elev-1-bg: var(--r-card);
+  --elev-1-border: var(--r-stroke);
+  --elev-2-bg: var(--r-card);
+  --elev-2-border: var(--r-stroke);
+  --elev-3-bg: var(--r-card);
+  --elev-3-border: var(--r-stroke);
+  --elev-4-bg: var(--r-card);
+  --elev-4-border: var(--r-stroke);
+
+  /* state colors */
+  --state-success: var(--r-ink);
+  --state-warning: var(--r-quiet);
+  --state-error: var(--r-alert);
+  --state-info: var(--r-quiet);
+
+  /* shadcn/ui semantic colors (tailwind theme maps onto these) */
+  --background: var(--r-paper);
+  --foreground: var(--r-ink);
+  --card: var(--r-card);
+  --card-foreground: var(--r-ink);
+  --popover: var(--r-card);
+  --popover-foreground: var(--r-ink);
+  --primary: var(--r-ink);
+  --primary-foreground: var(--r-paper);
+  --secondary: var(--r-panel);
+  --secondary-foreground: var(--r-ink);
+  --muted: var(--r-panel);
+  --muted-foreground: var(--r-quiet);
+  --accent: var(--r-panel);
+  --accent-foreground: var(--r-ink);
+  --destructive: var(--r-alert);
+  --destructive-foreground: var(--r-paper);
+  --border: var(--r-stroke);
+  --input: var(--r-stroke);
+  --ring: color-mix(in srgb, var(--r-ink) 30%, transparent);
+  --chart-1: var(--r-ink);
+  --chart-2: var(--r-quiet);
+  --chart-3: var(--r-alert);
+  --chart-4: color-mix(in srgb, var(--r-ink) 45%, transparent);
+  --chart-5: color-mix(in srgb, var(--r-ink) 22%, transparent);
+  --sidebar: var(--r-paper);
+  --sidebar-foreground: var(--r-ink);
+  --sidebar-primary: var(--r-ink);
+  --sidebar-primary-foreground: var(--r-paper);
+  --sidebar-accent: var(--r-panel);
+  --sidebar-accent-foreground: var(--r-ink);
+  --sidebar-border: var(--r-stroke);
+  --sidebar-ring: color-mix(in srgb, var(--r-ink) 25%, transparent);
+
+  /* glass surfaces become solid token surfaces in the new system */
+  --glass-bg: var(--r-card);
+  --glass-bg-hover: var(--r-card);
+  --glass-border: var(--r-stroke);
+  --glass-border-hover: var(--r-rule);
+  --glass-shadow: 0 1px 0 var(--r-shadow);
+  --glass-shadow-hover: 0 2px 8px var(--r-shadow);
+
+  /* accent/secondary generic pairs used by index.css components */
+  --bg-base: var(--r-paper);
+  --accent-color: var(--r-ink);
+  --accent-light: var(--r-quiet);
+  --accent-dim: color-mix(in srgb, var(--r-ink) 6%, transparent);
+  --accent-glow: color-mix(in srgb, var(--r-ink) 10%, transparent);
+  --accent-border: color-mix(in srgb, var(--r-ink) 14%, transparent);
+  --secondary-color: var(--r-quiet);
+  --secondary-light: var(--r-quiet);
+  --secondary-dim: color-mix(in srgb, var(--r-ink) 5%, transparent);
+  --secondary-glow: color-mix(in srgb, var(--r-ink) 8%, transparent);
+  --secondary-border: color-mix(in srgb, var(--r-ink) 10%, transparent);
+
+  /* sutaeru-os surfaces (styles/sutaeru-os.css) */
+  --os-bg: var(--r-paper);
+  --os-bg-raised: var(--r-card);
+  --os-bg-card: var(--r-card);
+  --os-bg-card-alt: var(--r-panel);
+  --os-bg-input: var(--r-card);
+  --os-border: var(--r-stroke);
+  --os-border-subtle: var(--r-stroke);
+  --os-border-hover: var(--r-rule);
+  --os-border-focus: var(--r-quiet);
+  --os-text: var(--r-ink);
+  --os-text-sub: var(--r-quiet);
+  --os-text-muted: var(--r-quiet);
+  --os-text-inverse: var(--r-paper);
+  --os-amber: var(--r-ink);
+  --os-blue: var(--r-ink);
+  --os-blue-solid: var(--r-ink);
+  --os-teal: var(--r-quiet);
+  --os-orange: var(--r-accent);
+  --os-orange-dim: var(--r-accent-tint);
+  --os-green: var(--r-ink);
+  --os-radius-lg: var(--r-radius-card);
+  --os-radius-xl: var(--r-radius-card-lg);
+  --os-radius-2xl: var(--r-radius-card-lg);
+  --os-font-display: var(--r-font-title);
+  --os-font-body: var(--r-font-body);
+  --os-font-mono: var(--r-font-mono);
+  --os-font-ui: var(--r-font-body);
+}
+
+/* Body surfaces go through tokens so auto-dark follows the OS without a JS choice. */
+html,
+body {
+  background-color: var(--r-paper) !important;
+  color: var(--r-ink) !important;
+}
+
+body::before {
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 10%, var(--r-wash) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 40% at 85% 85%, var(--r-wash) 0%, transparent 65%);
+}
+
+body::after {
+  opacity: var(--r-noise-opacity);
+}

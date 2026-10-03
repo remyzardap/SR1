@@ -15,7 +15,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -36,10 +35,11 @@ import { FloatingVideoPlayer } from './FloatingVideoPlayer';
 
 import { Button } from "./ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { LandingMark } from "@/components/LandingMark";
 import { SutaeruGlyph } from "@/components/SutaeruGlyph";
 import { trpc } from "@/lib/trpc";
 import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
+import { AppHeader } from "@/components/chrome/AppHeader";
+import { TabBar } from "@/components/chrome/TabBar";
 
 const menuItems: Array<{ icon: SutaeruIconName; label: string; path: string; group: string }> = [
   { icon: "ask", label: "Chat", path: "/chat", group: "workspace" },
@@ -58,6 +58,18 @@ const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 264;
 const MIN_WIDTH = 220;
 const MAX_WIDTH = 480;
+
+/** Mono word shown in the mobile AppHeader for the current route. */
+function mobileHeaderLabel(location: string): string {
+  if (location === "/chat" || location.startsWith("/sessions")) return "WORKSPACE";
+  if (location === "/generate" || (location.startsWith("/atelier") && location.includes("mode=describe"))) return "GENERATE";
+  if (location.startsWith("/atelier") || location.startsWith("/documents")) return "DOCUMENTS";
+  if (location.startsWith("/files")) return "FILES";
+  const item = menuItems.find((i) => location === i.path || location.startsWith(`${i.path}/`));
+  if (item) return item.label.toUpperCase();
+  if (location.startsWith("/admin")) return "ADMIN";
+  return "MENU";
+}
 
 // ─── Shared UI primitives (used by KemmaCalls, AgentHub, etc.) ─────────────
 const glassColors = {
@@ -272,7 +284,6 @@ function DashboardLayoutContent({
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
   const quota = trpc.kemma.quota.useQuery(undefined, { retry: false, staleTime: 5 * 60_000 });
   const planLabel = `${quota.data?.tier ?? "free"} plan`;
@@ -441,22 +452,9 @@ function DashboardLayoutContent({
 
       <SidebarInset>
         <div ref={contentRef} className="flex flex-col flex-1 min-h-0">
-          {isMobile && (
-            <div className="sutaeru-mobile-topbar flex border-b h-16 items-center justify-between px-4 sticky top-0 z-40">
-              <div className="flex items-center gap-2">
-                <SidebarTrigger className="h-11 w-11" aria-label="Open navigation" />
-                <div className="flex items-center gap-3">
-                  <LandingMark className="sutaeru-nav-mark" />
-                  <div className="flex flex-col gap-1">
-                    <span className="tracking-tight text-foreground">
-                      {activeMenuItem?.label ?? "Menu"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-           <main className={noPadding ? "flex-1 min-w-0 flex flex-col overflow-hidden bg-sutaeru" : "flex-1 min-w-0 p-3 sm:p-6 overflow-y-auto bg-sutaeru"}>{children}</main>
+          {isMobile && <AppHeader label={mobileHeaderLabel(location)} userInitial={user?.name || user?.email || "?"} />}
+          <main className={noPadding ? "flex-1 min-w-0 flex flex-col overflow-hidden bg-sutaeru" : `flex-1 min-w-0 p-3 sm:p-6 overflow-y-auto bg-sutaeru${isMobile ? " skx-main-tabspace" : ""}`}>{children}</main>
+          {isMobile && <TabBar />}
         </div>
       </SidebarInset>
     </>
