@@ -1,5 +1,7 @@
 import { kemmaExecute, type KemmaMessage } from "../kemma/engine";
-import { addChatMessage, createChatSession, getChatSessionMessages, getUserById, listChatSessions } from "../db";
+import { addChatMessage, createChatSession, getChatSessionMessages, getChatSessionSettings, getUserById, listChatSessions } from "../db";
+import { isAdminUser } from "../kemma/executors/vpsFiles";
+import { BLOCKED_MESSAGE, decideChatRouting } from "./sensitive";
 import { getQuotaSummary } from "../core/quotaCheck";
 import { resolveSettings } from "../kemma/settings";
 import { chatImageOwnerUserId } from "./chatImage";
@@ -71,7 +73,16 @@ export async function runTelegramChat(text: string, style: "blend" | "solo" = "b
   try {
     const who = await owner();
     if (!who) return "There is no owner account on this server to answer as.";
+    // Blocked content is refused before anything is saved or sent to a model; a sensitive message goes to Venice alone.
     const sessionId = await activeThread(who.id);
+    const threadSettings = await getChatSessionSettings(sessionId, who.id).catch(() => ({} as Record<string, unknown>));
+    const routing = await decideChatRouting({
+      text,
+      setting: threadSettings.sensitiveRouting as string | undefined,
+      isAdmin: () => isAdminUser(who.id),
+    });
+    if (routing.blocked) return BLOCKED_MESSAGE;
+    if (routing.venice) style = "solo";
     const saved = await getChatSessionMessages(sessionId);
     const history: KemmaMessage[] = saved
       .filter((m) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim())
@@ -90,6 +101,8 @@ export async function runTelegramChat(text: string, style: "blend" | "solo" = "b
       isThinking: false,
       sessionId,
       allowedTools: settings.allowedTools,
+      modelOverride: routing.venice ? routing.model : undefined,
+      sensitiveRouting: "off", // already decided above; do not classify twice
     });
 
     let answer = "";

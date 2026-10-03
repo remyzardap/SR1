@@ -19,18 +19,22 @@ import { getDb } from "../db";
 import {
   ENGINE_IDS,
   ENGINE_LABELS,
+  ImageBlockedError,
   ImageNotConfiguredError,
   ImageTimeoutError,
   ImageUpstreamError,
   engineAvailable,
   generateImage,
   logImageUsage,
+  resolveImageEngine,
   storeImage,
   type AspectRatio,
   type EngineId,
   type GeneratedImage,
   type ImageQuality,
 } from "./fnImage";
+import { BLOCKED_MESSAGE } from "./sensitive";
+import { isAdminUser } from "../kemma/executors/vpsFiles";
 
 export const MAX_CHAT_PROMPT_CHARS = 1000;
 export const DEFAULT_CHAT_IMAGE_PER_HOUR = 6;
@@ -193,7 +197,19 @@ const inFlight = new Set<string>();
  * counted per.
  */
 export async function runChatImage(opts: { chatKey: string; parsed: ChatImageCommand }): Promise<ChatImageResult> {
-  const { chatKey, parsed } = opts;
+  const { chatKey } = opts;
+
+  // Blocked prompts are refused before anything else; a sensitive one moves to Venice (the chat owner is an admin).
+  const resolved = await resolveImageEngine({
+    prompt: opts.parsed.prompt,
+    engine: opts.parsed.engine,
+    isAdmin: async () => {
+      const owner = await chatImageOwnerUserId();
+      return owner ? isAdminUser(owner) : false;
+    },
+  });
+  if (resolved.blocked) return { ok: false, message: BLOCKED_MESSAGE };
+  const parsed: ChatImageCommand = { ...opts.parsed, engine: resolved.engine };
 
   if (!engineAvailable(parsed.engine)) {
     return { ok: false, message: `${ENGINE_LABELS[parsed.engine]} is not available right now.` };
@@ -261,7 +277,7 @@ function envLimit(name: string, fallback: number): number {
 
 /** The engine faults already carry a user-safe line; anything else gets the general one. */
 function userSafeMessage(err: unknown): string {
-  if (err instanceof ImageNotConfiguredError || err instanceof ImageTimeoutError) return err.message;
+  if (err instanceof ImageNotConfiguredError || err instanceof ImageTimeoutError || err instanceof ImageBlockedError) return err.message;
   if (err instanceof ImageUpstreamError) {
     console.error(`[chatImage] generation failed upstream${err.providerStatus ? ` (status ${err.providerStatus})` : ""}`);
     return "The image engine failed. Please try again.";

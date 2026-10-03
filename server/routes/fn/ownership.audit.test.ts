@@ -48,6 +48,8 @@ const imageLib = vi.hoisted(() => ({
   ImageNotConfiguredError: class ImageNotConfiguredError extends Error {},
   ImageTimeoutError: class ImageTimeoutError extends Error {},
   ImageUpstreamError: class ImageUpstreamError extends Error {},
+  ImageBlockedError: class ImageBlockedError extends Error {},
+  resolveImageEngine: vi.fn(async (o: { engine: string }) => ({ blocked: false, engine: o.engine, routed: false })),
   ENGINE_IDS: ["gemini", "qwen", "openai"],
   ENGINE_LABELS: { gemini: "Gemini", qwen: "Qwen", openai: "OpenAI" },
   QUALITIES: ["standard", "high"],
@@ -56,6 +58,7 @@ const imageLib = vi.hoisted(() => ({
 const jobs = vi.hoisted(() => ({ enqueueJob: vi.fn(), registerJob: vi.fn() }));
 
 vi.mock("../../db", () => db);
+vi.mock("../../kemma/executors/vpsFiles", () => ({ isAdminUser: vi.fn(async () => false) }));
 vi.mock("../../lib/fnStore", () => store);
 vi.mock("../../lib/fnLlm", () => ({ complete: llm.complete, stream: llm.stream, LlmUnavailableError: llm.LlmUnavailableError }));
 vi.mock("../../lib/fnDocument", () => doc);

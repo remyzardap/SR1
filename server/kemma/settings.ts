@@ -4,6 +4,7 @@
  */
 
 import { routeFor, stripProviderPrefix, isAdminOnlyModel, ROUGH_PRICES_USD_PER_1M } from "../core/kemmaRouter";
+import { readSensitiveRoutingSetting, type SensitiveRoutingSetting } from "../lib/sensitive";
 
 export type ChatMode = "fast" | "deep" | "document" | "image";
 
@@ -12,6 +13,8 @@ export interface ThreadSettings {
   mode?: ChatMode;
   allowedTools?: string[];
   pinnedSkills?: number[];
+  /** "auto" (default) lets Venice answer sensitive messages for admin accounts; "off" keeps every message on the main models. */
+  sensitiveRouting?: SensitiveRoutingSetting;
 }
 
 export interface MessageSettings {
@@ -35,7 +38,7 @@ export function resolveSettings(
   message: MessageSettings = {},
   defaults: { model: string; mode: ChatMode; allowedTools: string[] } = { model: "auto", mode: "fast", allowedTools: defaultToolSet("fast") },
   opts: { isAdmin?: boolean } = {}
-): { model: string; allowedTools: string[]; skills: number[] } {
+): { model: string; allowedTools: string[]; skills: number[]; sensitiveRouting: SensitiveRoutingSetting } {
   // The model is chosen by us, never by the customer: ignore any client-supplied model.
   // The one exception is an admin picking an admin-only (Venice) model.
   const requested = message.model ?? thread.model;
@@ -44,7 +47,7 @@ export function resolveSettings(
   const threadTools = thread.allowedTools ?? defaultToolSet(mode);
   const allowedTools = thread.allowedTools ?? threadTools;
   const skills = [...new Set([...(thread.pinnedSkills ?? []), ...(message.taggedSkills ?? [])])];
-  return { model, allowedTools, skills };
+  return { model, allowedTools, skills, sensitiveRouting: readSensitiveRoutingSetting(thread.sensitiveRouting) };
 }
 
 export interface AvailableModel {

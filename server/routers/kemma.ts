@@ -28,6 +28,7 @@ const threadSettingsSchema = z.object({
   mode: z.enum(["fast", "deep", "document", "image"]).optional(),
   allowedTools: z.array(z.string()).optional(),
   pinnedSkills: z.array(z.number()).optional(),
+  sensitiveRouting: z.enum(["auto", "off"]).optional(),
 }).passthrough();
 
 const messageSettingsSchema = z.object({
@@ -78,6 +79,7 @@ export const kemmaRouter = router({
           isVoice: input.isVoice,
           sessionId: input.sessionId,
           modelOverride: resolved.model === "auto" ? undefined : resolved.model,
+          sensitiveRouting: resolved.sensitiveRouting,
           allowedTools: resolved.allowedTools,
           skills: skillRecords,
         });

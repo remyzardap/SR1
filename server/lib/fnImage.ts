@@ -12,6 +12,8 @@
  *   forge   Stable Diffusion Forge on a Jarvislabs GPU (Realistic Vision for
  *           standard, Flux for high), reached through the gpu-manager service,
  *           which wakes the paused GPU for the request and pauses it when idle
+ *   venice  Venice image API (uncensored models). Admin accounts only and never offered in the picker: a
+ *           sensitive prompt is routed to it by resolveImageEngine()
  *
  * Reference photos go to the first three: an image part before the text part
  * for Gemini, image content items before the text item for Wan, and the
@@ -28,12 +30,20 @@ import { randomUUID } from "crypto";
 import { usageLogs } from "../../drizzle/schema";
 import { ENV } from "../_core/env";
 import { createFile, getDb } from "../db";
-import { apiKeyFor, litellmBaseUrl } from "../core/kemmaRouter";
+import { apiKeyFor, litellmBaseUrl, veniceBaseUrl } from "../core/kemmaRouter";
 import { getVertexProject, getVertexToken, stripGooglePrefix, vertexEnabled } from "../core/vertexAuth";
 import { getStorageAdapter } from "../storageAdapter";
 import { fetchCapped } from "./fnFetch";
+import {
+  DEFAULT_SENSITIVE_IMAGE_MODEL,
+  DEFAULT_SENSITIVE_IMAGE_MODEL_PRO,
+  classifyPrompt,
+  isBlockedPrompt,
+  sensitiveRoutingAvailable,
+  type PromptClassification,
+} from "./sensitive";
 
-export const ENGINE_IDS = ["gemini", "qwen", "openai", "forge"] as const;
+export const ENGINE_IDS = ["gemini", "qwen", "openai", "forge", "venice"] as const;
 export type EngineId = (typeof ENGINE_IDS)[number];
 
 export const QUALITIES = ["standard", "high"] as const;
@@ -47,6 +57,7 @@ export const ENGINE_LABELS: Record<EngineId, string> = {
   qwen: "Qwen",
   openai: "OpenAI",
   forge: "Stable Diffusion",
+  venice: "Venice",
 };
 
 /**
@@ -59,6 +70,7 @@ export const PROVIDER_TIMEOUTS_MS: Record<EngineId, number> = {
   openai: 60_000,
   // A cold GPU wakes in about 30 to 60 s before the image itself starts.
   forge: 300_000,
+  venice: 90_000,
 };
 /** Reading back a provider-hosted image has its own shorter deadline. */
 export const DOWNLOAD_TIMEOUT_MS = 30_000;
@@ -92,6 +104,10 @@ const MODEL_SLOTS: Record<EngineId, { standard: ModelSlot; high: ModelSlot }> = 
   forge: {
     standard: { env: "FORGE_MODEL", fallback: "realisticVision_v60B1.safetensors" },
     high: { env: "FORGE_MODEL_PRO", fallback: "flux1-dev-bnb-nf4-v2.safetensors" },
+  },
+  venice: {
+    standard: { env: "VENICE_IMAGE_MODEL", fallback: DEFAULT_SENSITIVE_IMAGE_MODEL },
+    high: { env: "VENICE_IMAGE_MODEL_PRO", fallback: DEFAULT_SENSITIVE_IMAGE_MODEL_PRO },
   },
 };
 
@@ -149,6 +165,8 @@ export const ROUGH_IMAGE_COST_USD_PER_IMAGE: Record<string, number> = {
   // GPU time at $0.44/hr: a few tenths of a cent per image.
   "realisticVision": 0.001,
   "flux1-dev": 0.004,
+  "lustify-v8": 0.01,
+  "seedream-v5-pro": 0.06,
 };
 
 export class ImageNotConfiguredError extends Error {
@@ -251,6 +269,8 @@ export function engineAvailable(engine: EngineId): boolean {
       return !!apiKeyFor("litellm");
     case "forge":
       return !!forgeManager();
+    case "venice":
+      return !!apiKeyFor("venice");
   }
 }
 
@@ -263,7 +283,8 @@ export function defaultEngine(): EngineId {
 /** What the picker shows. Carries no key, no URL and no path. */
 export function listEngines(): EngineInfo[] {
   const fallback = defaultEngine();
-  return ENGINE_IDS.map((id) => ({
+  // Venice is reached only through resolveImageEngine(), never picked by hand.
+  return ENGINE_IDS.filter((id) => id !== "venice").map((id) => ({
     id,
     label: ENGINE_LABELS[id],
     model: imageModel(id, "standard"),
@@ -283,6 +304,8 @@ export function roughImageCostUsd(model: string): number {
 
 /** Runs exactly the engine in the job. Never another one. */
 export async function generateImage(job: ImageJob): Promise<GeneratedImage> {
+  // Last line of defence on every engine: the callers refuse earlier, this one cannot be skipped.
+  if (isBlockedPrompt(job.prompt)) throw new ImageBlockedError();
   if (job.references?.length && !supportsReference(job.engine)) throw new ImageReferenceError(ENGINE_LABELS[job.engine]);
   switch (job.engine) {
     case "gemini":
@@ -293,7 +316,86 @@ export async function generateImage(job: ImageJob): Promise<GeneratedImage> {
       return openaiImage(job);
     case "forge":
       return forgeImage(job);
+    case "venice":
+      return veniceImage(job);
   }
+}
+
+// ─── Sensitive prompts: Venice ───────────────────────────────────────────────
+
+export class ImageBlockedError extends Error {
+  constructor() {
+    super("I can't help with that.");
+    this.name = "ImageBlockedError";
+  }
+}
+
+export interface ResolvedImageEngine {
+  /** Refuse before any model call. */
+  blocked: boolean;
+  engine: EngineId;
+  /** True when the prompt was moved to Venice. */
+  routed: boolean;
+}
+
+/**
+ * The engine an image prompt really runs on. Blocked prompts (minors in a sexual context, content illegal to
+ * produce) are refused whatever the settings say. A sensitive prompt from an admin account goes to Venice when
+ * routing is on and no reference photos are attached (Venice is text to image here). Everything else keeps the
+ * requested engine. Never throws; a classifier fault means the requested engine.
+ */
+export async function resolveImageEngine(opts: {
+  prompt: string;
+  engine: EngineId;
+  isAdmin: () => Promise<boolean> | boolean;
+  hasReferences?: boolean;
+  classify?: (text: string) => Promise<PromptClassification>;
+}): Promise<ResolvedImageEngine> {
+  if (isBlockedPrompt(opts.prompt)) return { blocked: true, engine: opts.engine, routed: false };
+  const keep: ResolvedImageEngine = { blocked: false, engine: opts.engine, routed: false };
+  if (opts.engine === "venice") return keep;
+  if (!sensitiveRoutingAvailable() || opts.hasReferences || !engineAvailable("venice")) return keep;
+  let admin = false;
+  try { admin = await opts.isAdmin(); } catch { admin = false; }
+  if (!admin) return keep;
+  const verdict = await (opts.classify ?? ((t) => classifyPrompt(t)))(opts.prompt).catch((): PromptClassification => ({ sensitive: false }));
+  if (verdict.blocked) return { blocked: true, engine: opts.engine, routed: false };
+  return verdict.sensitive ? { blocked: false, engine: "venice", routed: true } : keep;
+}
+
+/** Venice sizes: multiples of 8, about a megapixel. */
+export const VENICE_SIZES: Record<AspectRatio, [number, number]> = {
+  "1:1": [1024, 1024],
+  "16:9": [1280, 720],
+  "9:16": [720, 1280],
+  "4:3": [1152, 864],
+  "3:4": [864, 1152],
+};
+
+export function veniceImageEndpoint(): string {
+  return `${veniceBaseUrl()}/image/generate`;
+}
+
+/** POST /image/generate body. safe_mode off: the point of this engine is that it does not blur lawful adult images. */
+export function veniceImageBody(prompt: string, model: string, aspectRatio: AspectRatio): Record<string, unknown> {
+  const [width, height] = VENICE_SIZES[aspectRatio];
+  return { model, prompt, width, height, format: "png", safe_mode: false, hide_watermark: true, variants: 1 };
+}
+
+async function veniceImage(job: ImageJob): Promise<GeneratedImage> {
+  const key = apiKeyFor("venice");
+  if (!key) throw new ImageNotConfiguredError(ENGINE_LABELS.venice);
+
+  const model = imageModel("venice", job.quality);
+  const data = await postJson(
+    veniceImageEndpoint(),
+    { Authorization: `Bearer ${key}`, "User-Agent": "sutaeru/1.0" },
+    veniceImageBody(job.prompt, model, job.aspectRatio),
+    PROVIDER_TIMEOUTS_MS.venice
+  );
+  const b64 = Array.isArray(data?.images) ? data.images[0] : undefined;
+  if (typeof b64 !== "string" || !b64) throw new ImageUpstreamError();
+  return finished("venice", model, { buffer: Buffer.from(b64, "base64"), mimeType: "image/png" });
 }
 
 // ─── Gemini: Vertex AI global, or AI Studio ──────────────────────────────────

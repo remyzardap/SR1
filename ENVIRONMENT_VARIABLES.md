@@ -234,6 +234,13 @@ rules: 3.x requires `VERTEX_LOCATION=global`. There is no `gemini-3.8-pro` on Ve
 | `VENICE_BASE_URL` | `https://api.venice.ai/api/v1` | Venice API base URL |
 | `VENICE_MODELS` | `venice/venice-uncensored` | Comma-separated `venice/<id>` models offered to admins |
 | `VENICE_TOOLS` | unset | Set to `1` to let Venice models call tools; otherwise they get no tools |
+| `VENICE_SENSITIVE_ROUTING` | on when `VENICE_API_KEY` is set | Set to `0` to turn off routing of sensitive chats and images to Venice (kill switch). Per-thread setting `sensitiveRouting` is `auto` (default) or `off`. Admin accounts only. Blocked content (minors in a sexual context, content illegal to produce) is refused on every path regardless of this switch |
+| `VENICE_SENSITIVE_MODEL` | `venice/venice-uncensored-1-2` | Venice chat model that answers sensitive messages (`venice/` prefix optional) |
+| `VENICE_IMAGE_MODEL` | `lustify-v8` | Venice image model for sensitive image prompts, standard quality |
+| `VENICE_IMAGE_MODEL_PRO` | `seedream-v5-pro` | Venice image model for sensitive image prompts, high quality |
+| `SENSITIVE_CLASSIFIER` | on | Set to `0` to skip the small model pass for borderline text (borderline then counts as not sensitive) |
+| `SENSITIVE_CLASSIFIER_MODEL` | the `KEMMA_MODEL_CHAT` model | Model id for the borderline-text classifier |
+| `SENSITIVE_CLASSIFIER_TIMEOUT_MS` | `4000` | Deadline of the classifier call; on timeout or error the answer is "not sensitive" |
 | `VPS_FILES_ROOTS` | `/vps` | Comma-separated container paths the admin-only `vps_files` tool may read (read-only; secret paths are blocked in code) |
 | `WHATSAPP_BAILEYS` | unset | Set to `1` to start the WhatsApp bridge (links a spare number as a device) |
 | `WHATSAPP_PAIR_NUMBER` | empty | Number (digits with country code) to link once; the pairing code appears on the admin pairing page |

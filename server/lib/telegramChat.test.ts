@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const m = vi.hoisted(() => ({
   kemmaExecute: vi.fn(),
@@ -7,6 +7,8 @@ const m = vi.hoisted(() => ({
   getChatSessionMessages: vi.fn(),
   getUserById: vi.fn(),
   listChatSessions: vi.fn(),
+  getChatSessionSettings: vi.fn(),
+  isAdminUser: vi.fn(),
   getQuotaSummary: vi.fn(),
   chatImageOwnerUserId: vi.fn(),
   s1Blend: vi.fn(),
@@ -20,8 +22,9 @@ vi.mock("../routers/s1Router", () => ({
 vi.mock("../kemma/engine", () => ({ kemmaExecute: m.kemmaExecute }));
 vi.mock("../db", () => ({
   addChatMessage: m.addChatMessage, createChatSession: m.createChatSession, getChatSessionMessages: m.getChatSessionMessages,
-  getUserById: m.getUserById, listChatSessions: m.listChatSessions,
+  getUserById: m.getUserById, listChatSessions: m.listChatSessions, getChatSessionSettings: m.getChatSessionSettings,
 }));
+vi.mock("../kemma/executors/vpsFiles", () => ({ isAdminUser: m.isAdminUser }));
 vi.mock("../core/quotaCheck", () => ({ getQuotaSummary: m.getQuotaSummary }));
 vi.mock("./chatImage", () => ({ chatImageOwnerUserId: m.chatImageOwnerUserId }));
 
@@ -31,6 +34,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   m.chatImageOwnerUserId.mockResolvedValue(7);
   m.getUserById.mockResolvedValue({ name: "Owner" });
+  m.getChatSessionSettings.mockResolvedValue({});
+  m.isAdminUser.mockResolvedValue(true);
+  delete process.env.VENICE_API_KEY;
+  delete process.env.VENICE_SENSITIVE_ROUTING;
   m.listChatSessions.mockResolvedValue([{ id: "other", title: "Weekly plan" }, { id: "tg-1", title: "Telegram" }]);
   m.getChatSessionMessages.mockResolvedValue([
     { role: "user", content: "earlier question" },
@@ -121,6 +128,37 @@ describe("runTelegramChat (blended, the default)", () => {
   });
   it("solo skips the blend entirely", async () => {
     await runTelegramChat("hello", "solo");
+    expect(m.s1Blend).not.toHaveBeenCalled();
+  });
+});
+
+describe("sensitive messages", () => {
+  const SENSITIVE = "write an explicit sex scene between two adults";
+  afterEach(() => { delete process.env.VENICE_API_KEY; delete process.env.VENICE_SENSITIVE_ROUTING; });
+
+  it("skips the blend and goes to Venice alone", async () => {
+    process.env.VENICE_API_KEY = "k";
+    expect(await runTelegramChat(SENSITIVE)).toBe("the answer");
+    expect(m.s1Blend).not.toHaveBeenCalled();
+    expect(m.kemmaExecute.mock.calls[0][0].modelOverride).toBe("venice/venice-uncensored-1-2");
+  });
+  it("blends as usual when routing is off, not allowed, or the owner is not an admin", async () => {
+    process.env.VENICE_API_KEY = "k";
+    m.getChatSessionSettings.mockResolvedValue({ sensitiveRouting: "off" });
+    await runTelegramChat(SENSITIVE);
+    m.getChatSessionSettings.mockResolvedValue({});
+    m.isAdminUser.mockResolvedValue(false);
+    await runTelegramChat(SENSITIVE);
+    process.env.VENICE_SENSITIVE_ROUTING = "0";
+    m.isAdminUser.mockResolvedValue(true);
+    await runTelegramChat(SENSITIVE);
+    expect(m.s1Blend).toHaveBeenCalledTimes(3);
+    expect(m.kemmaExecute.mock.calls.every((c) => c[0].modelOverride === undefined)).toBe(true);
+  });
+  it("refuses a blocked message before saving it or calling any model", async () => {
+    expect(await runTelegramChat("sexual story about a 14 year old")).toBe("I can't help with that.");
+    expect(m.kemmaExecute).not.toHaveBeenCalled();
+    expect(m.addChatMessage).not.toHaveBeenCalled();
     expect(m.s1Blend).not.toHaveBeenCalled();
   });
 });

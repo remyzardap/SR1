@@ -31,6 +31,7 @@ import {
   ENGINE_IDS,
   ENGINE_LABELS,
   QUALITIES,
+  ImageBlockedError,
   ImageNotConfiguredError,
   ImageReferenceError,
   ImageTimeoutError,
@@ -41,12 +42,15 @@ import {
   listEngines,
   logImageUsage,
   referenceRejection,
+  resolveImageEngine,
   storeImage,
   supportsReference,
   type GeneratedImage,
   type ImageJob,
   type ImageReference,
 } from "../../lib/fnImage";
+import { isAdminUser } from "../../kemma/executors/vpsFiles";
+import { BLOCKED_MESSAGE } from "../../lib/sensitive";
 import { actionOf, asRecord, unknownAction } from "./shared";
 
 export const MAX_PROMPT_CHARS = 2000;
@@ -91,8 +95,20 @@ export async function handleImage(userId: number, req: Request, res: Response): 
 }
 
 async function generate(userId: number, body: Record<string, unknown>, req: Request, res: Response): Promise<Record<string, unknown>> {
-  const job = readJob(body);
+  const requested = readJob(body);
   const sources = readReferenceSources(body);
+  // Blocked prompts are refused first, then a sensitive one from an admin account moves to Venice.
+  const resolved = await resolveImageEngine({
+    prompt: requested.prompt,
+    engine: requested.engine,
+    isAdmin: () => isAdminUser(userId),
+    hasReferences: sources.length > 0,
+  });
+  if (resolved.blocked) throw new FnError(400, BLOCKED_MESSAGE);
+  if (requested.engine === "venice" && !(await isAdminUser(userId))) {
+    throw new FnError(403, "This engine is not available for your account.");
+  }
+  const job = { ...requested, engine: resolved.engine };
   if (sources.length && !supportsReference(job.engine)) {
     throw new FnError(400, referenceRejection(job.engine));
   }
@@ -184,6 +200,7 @@ function responseBody(image: GeneratedImage, imageUrl: string): Record<string, u
  */
 function toFnError(err: unknown): unknown {
   if (err instanceof FnError) return err;
+  if (err instanceof ImageBlockedError) return new FnError(400, err.message);
   if (err instanceof ImageNotConfiguredError) return new FnError(503, err.message);
   if (err instanceof ImageReferenceError) return new FnError(400, err.message);
   if (err instanceof ImageTimeoutError) return new FnError(504, err.message);
