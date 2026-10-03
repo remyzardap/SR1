@@ -9,6 +9,13 @@ const m = vi.hoisted(() => ({
   listChatSessions: vi.fn(),
   getQuotaSummary: vi.fn(),
   chatImageOwnerUserId: vi.fn(),
+  s1Blend: vi.fn(),
+  fetch: vi.fn(),
+}));
+vi.mock("../routers/s1Router", () => ({
+  s1Blend: m.s1Blend,
+  buildS1SystemPrompt: () => "system prompt",
+  resolveBearer: async () => "bearer",
 }));
 vi.mock("../kemma/engine", () => ({ kemmaExecute: m.kemmaExecute }));
 vi.mock("../db", () => ({
@@ -32,11 +39,15 @@ beforeEach(() => {
   m.getQuotaSummary.mockResolvedValue({ tier: "max" });
   m.kemmaExecute.mockResolvedValue({ response: "  the answer  ", isError: false });
   m.createChatSession.mockResolvedValue("tg-new");
+  // The blend: two drafts counted, final answer written by a plain completion.
+  m.s1Blend.mockResolvedValue({ config: { baseUrl: "https://llm.test/v1", model: "m", apiKey: "k" }, messages: [{ role: "user", content: "blend prompt" }], contributors: ["gemini", "qwen"] });
+  m.fetch.mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: " blended answer " } }] }), { status: 200 }));
+  vi.stubGlobal("fetch", m.fetch);
 });
 
 describe("runTelegramChat", () => {
   it("answers on the main engine as the owner, with the saved thread as history", async () => {
-    expect(await runTelegramChat("and now?")).toBe("the answer");
+    expect(await runTelegramChat("and now?", "solo")).toBe("the answer");
     const call = m.kemmaExecute.mock.calls[0][0];
     expect(call.userId).toBe(7);
     expect(call.sessionId).toBe("tg-1");
@@ -48,29 +59,69 @@ describe("runTelegramChat", () => {
     expect(call.allowedTools.length).toBeGreaterThan(0);
   });
   it("saves both sides of the exchange in the thread", async () => {
-    await runTelegramChat("hello");
+    await runTelegramChat("hello", "solo");
     expect(m.addChatMessage).toHaveBeenCalledWith("tg-1", 7, "hello", "user");
     expect(m.addChatMessage).toHaveBeenCalledWith("tg-1", 7, "the answer", "assistant");
   });
   it("starts a Telegram thread when there is none", async () => {
     m.listChatSessions.mockResolvedValue([{ id: "other", title: "Weekly plan" }]);
-    await runTelegramChat("hello");
+    await runTelegramChat("hello", "solo");
     expect(m.createChatSession).toHaveBeenCalledWith(7, TELEGRAM_THREAD_TITLE);
     expect(m.kemmaExecute.mock.calls[0][0].sessionId).toBe("tg-new");
   });
   it("does not save an engine error as an answer", async () => {
     m.kemmaExecute.mockResolvedValue({ response: "Daily message limit reached", isError: true });
-    expect(await runTelegramChat("hello")).toBe("Daily message limit reached");
+    expect(await runTelegramChat("hello", "solo")).toBe("Daily message limit reached");
     expect(m.addChatMessage).not.toHaveBeenCalledWith("tg-1", 7, expect.anything(), "assistant");
   });
   it("turns a crash into a plain line instead of throwing", async () => {
-    m.kemmaExecute.mockRejectedValue(new Error("boom"));
-    expect(await runTelegramChat("hello")).toMatch(/went wrong/i);
+    m.chatImageOwnerUserId.mockRejectedValue(new Error("boom"));
+    expect(await runTelegramChat("hello", "solo")).toMatch(/went wrong/i);
   });
   it("says so when there is no owner account", async () => {
     m.chatImageOwnerUserId.mockResolvedValue(null);
     expect(await runTelegramChat("hello")).toMatch(/no owner account/i);
     expect(m.kemmaExecute).not.toHaveBeenCalled();
+  });
+});
+
+describe("runTelegramChat (blended, the default)", () => {
+  it("passes the engine answer in as a draft and writes one final answer from the blend", async () => {
+    expect(await runTelegramChat("and now?")).toBe("blended answer");
+    const opts = m.s1Blend.mock.calls[0][2];
+    expect(opts.skipDraft).toEqual(["gemini"]);
+    expect(await opts.extraDrafts).toEqual([{ id: "gemini", label: "Kemma", text: "the answer" }]);
+    expect(m.addChatMessage).toHaveBeenCalledWith("tg-1", 7, "blended answer", "assistant");
+    expect(m.addChatMessage).toHaveBeenCalledTimes(2);
+  });
+  it("falls back to the engine answer when the blend call fails", async () => {
+    m.fetch.mockResolvedValue(new Response("nope", { status: 500 }));
+    expect(await runTelegramChat("hello")).toBe("the answer");
+  });
+  it("falls back to the engine answer when the blend cannot be built", async () => {
+    m.s1Blend.mockRejectedValue(new Error("no providers"));
+    expect(await runTelegramChat("hello")).toBe("the answer");
+  });
+  it("keeps the engine answer when fewer than two drafts exist, without a second call", async () => {
+    m.s1Blend.mockResolvedValue({ config: { baseUrl: "https://llm.test/v1", model: "m", apiKey: "k" }, messages: [], contributors: ["gemini"] });
+    expect(await runTelegramChat("hello")).toBe("the answer");
+    expect(m.fetch).not.toHaveBeenCalled();
+  });
+  it("still answers from the other models when the engine itself fails", async () => {
+    m.kemmaExecute.mockResolvedValue({ response: "Daily message limit reached", isError: true });
+    m.s1Blend.mockResolvedValue({ config: { baseUrl: "https://llm.test/v1", model: "m", apiKey: "k" }, messages: [], contributors: ["qwen"] });
+    expect(await runTelegramChat("hello")).toBe("blended answer");
+    expect((await m.s1Blend.mock.calls[0][2].extraDrafts)).toEqual([]);
+  });
+  it("says what went wrong when every model fails", async () => {
+    m.kemmaExecute.mockResolvedValue({ response: "Daily message limit reached", isError: true });
+    m.s1Blend.mockResolvedValue({ config: { baseUrl: "https://llm.test/v1", model: "m", apiKey: "k" }, messages: [], contributors: [] });
+    m.fetch.mockResolvedValue(new Response("nope", { status: 500 }));
+    expect(await runTelegramChat("hello")).toBe("Daily message limit reached");
+  });
+  it("solo skips the blend entirely", async () => {
+    await runTelegramChat("hello", "solo");
+    expect(m.s1Blend).not.toHaveBeenCalled();
   });
 });
 

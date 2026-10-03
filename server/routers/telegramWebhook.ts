@@ -8,7 +8,6 @@ import {
   type ChatImageCommand,
   type ChatImageSuccess,
 } from "../lib/chatImage";
-import { s1Blend, buildS1SystemPrompt, resolveBearer } from "./s1Router";
 import { runTelegramChat, startNewTelegramThread } from "../lib/telegramChat";
 
 /** Telegram chat actions expire after 5 s, so a long job refreshes the one it set. */
@@ -89,31 +88,30 @@ export function registerTelegramWebhookRoute(app: Express) {
 
       console.log(`[Telegram] Message from ${username} (${telegramUserId}): ${messageText.substring(0, 50)}`);
 
-      // /new starts a fresh conversation. /blend <question> keeps the older multi-model blend (no history).
+      // /new starts a fresh conversation. /solo <question> answers with the chat engine alone (faster, cheaper).
+      // Everything else is a blended answer. /blend <question> is accepted too and means the same.
       if (/^\/(new|reset)(@[A-Za-z0-9_]+)?$/i.test(messageText.trim())) {
         const ok = await startNewTelegramThread();
         await sendTelegramMessage(chatId, ok ? "Fresh start." : "There is no owner account on this server.", TELEGRAM_TOKEN);
         return res.json({ ok: true });
       }
-      const blendMatch = /^\/blend(@[A-Za-z0-9_]+)?\s+([\s\S]+)$/i.exec(messageText.trim());
+      const styled = /^\/(blend|solo)(@[A-Za-z0-9_]+)?\s+([\s\S]+)$/i.exec(messageText.trim());
+      const style: "blend" | "solo" = styled?.[1].toLowerCase() === "solo" ? "solo" : "blend";
+      const chatText = styled ? styled[3] : messageText;
 
       // Everything else goes to the main chat engine, after answering the webhook: a slow answer must not
       // make Telegram redeliver the update and answer twice.
-      if (!OPENCLAW_WEBHOOK && !blendMatch) {
+      if (!OPENCLAW_WEBHOOK) {
         res.json({ ok: true });
         if (isRedeliveredImageUpdate(update.update_id)) return;
-        void answerWithChatEngine(chatId, messageText, TELEGRAM_TOKEN).catch((error) => console.error("[Telegram] Chat error:", error));
+        void answerWithChatEngine(chatId, chatText, style, TELEGRAM_TOKEN).catch((error) => console.error("[Telegram] Chat error:", error));
         return;
       }
-      const promptText = blendMatch ? blendMatch[2] : messageText;
-
       // Send typing indicator
       await sendTelegramAction(chatId, "typing", TELEGRAM_TOKEN);
 
-      let s1Response: string;
-
-      if (OPENCLAW_WEBHOOK) {
-        // Route through OpenClaw on VPS
+      // OPENCLAW_WEBHOOK_URL is set: hand the message to OpenClaw on the VPS instead of the chat engine.
+      {
         console.log(`[Telegram] Forwarding to OpenClaw: ${OPENCLAW_WEBHOOK}`);
         const openclawResponse = await globalThis.fetch(OPENCLAW_WEBHOOK, {
           method: "POST",
@@ -134,47 +132,8 @@ export function registerTelegramWebhookRoute(app: Express) {
         }
 
         const openclawData = await openclawResponse.json();
-        s1Response = openclawData.response || openclawData.message || "No response from OpenClaw.";
-      } else {
-        // Direct S1 routing (fallback)
-        console.log("[Telegram] No OpenClaw configured. Using direct S1 routing.");
-        const systemPrompt = buildS1SystemPrompt({ agent: "s1", label: "Kemma", reason: "chat", emoji: "🧠", color: "#E8442A" });
-
-        const { config: agentConfig, messages: fullMessages } = await s1Blend(
-          promptText,
-          [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: promptText },
-          ],
-          { draftMaxTokens: 500 },
-        );
-
-        const llmResponse = await globalThis.fetch(`${agentConfig.baseUrl}/chat/completions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${await resolveBearer(agentConfig)}`,
-          },
-          body: JSON.stringify({
-            model: agentConfig.model,
-            messages: fullMessages,
-            max_tokens: 500,
-          }),
-        });
-
-        if (!llmResponse.ok) {
-          const errText = await llmResponse.text();
-          console.error(`[Telegram] LLM error: ${llmResponse.status} ${errText}`);
-          await sendTelegramMessage(chatId, "S1 is thinking. Try again.", TELEGRAM_TOKEN);
-          return res.json({ ok: true });
-        }
-
-        const llmData = await llmResponse.json();
-        s1Response = llmData.choices?.[0]?.message?.content || "No response.";
+        await sendTelegramMessage(chatId, openclawData.response || openclawData.message || "No response from OpenClaw.", TELEGRAM_TOKEN);
       }
-
-      // Send response back to Telegram
-      await sendTelegramMessage(chatId, s1Response, TELEGRAM_TOKEN);
 
       res.json({ ok: true });
     } catch (error) {
@@ -250,11 +209,11 @@ function isRedeliveredImageUpdate(updateId: unknown): boolean {
 }
 
 /** One chat reply from the main engine, with the typing indicator kept alive while it works. */
-async function answerWithChatEngine(chatId: number, text: string, token: string) {
+async function answerWithChatEngine(chatId: number, text: string, style: "blend" | "solo", token: string) {
   void sendTelegramAction(chatId, "typing", token);
   const keepAlive = setInterval(() => void sendTelegramAction(chatId, "typing", token), CHAT_ACTION_MS);
   try {
-    await sendTelegramMessage(chatId, await runTelegramChat(text), token);
+    await sendTelegramMessage(chatId, await runTelegramChat(text, style), token);
   } finally {
     clearInterval(keepAlive);
   }

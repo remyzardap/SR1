@@ -252,7 +252,14 @@ async function fetchDraft(
 export async function s1Blend(
   text: string,
   messages: ChatMessage[],
-  opts: { max?: boolean; draftMaxTokens?: number } = {},
+  opts: {
+    max?: boolean;
+    draftMaxTokens?: number;
+    /** Members that may write the final answer but do not draft here (their answer arrives as an extra draft). */
+    skipDraft?: string[];
+    /** Drafts produced elsewhere, e.g. the full chat engine with tools and memory. May still be running. */
+    extraDrafts?: Promise<Array<{ id: string; label: string; text: string }>> | Array<{ id: string; label: string; text: string }>;
+  } = {},
 ): Promise<BlendPlan> {
   const max = opts.max ?? false;
   const memberIds = ["gemini", "qwen", ...(WEB_PATTERN.test(text.toLowerCase()) ? ["sonar"] : [])];
@@ -269,13 +276,16 @@ export async function s1Blend(
   // Answers with Gemini when available (S1's default voice), else Qwen, else whatever is left.
   const synth = members.find((m) => m.id === "gemini") ?? members.find((m) => m.id === "qwen") ?? members[0];
 
-  if (members.length === 1) {
+  if (members.length === 1 && !opts.extraDrafts) {
     return { info: S1_BLEND_INFO, config: synth.config, messages, contributors: [synth.id] };
   }
 
-  const drafts = (
-    await Promise.all(members.map((m) => fetchDraft(m.id, m.config, messages, opts.draftMaxTokens ?? 1500)))
-  ).filter((d): d is { id: string; label: string; text: string } => d !== null);
+  const skip = new Set(opts.skipDraft ?? []);
+  const [fetched, extra] = await Promise.all([
+    Promise.all(members.filter((m) => !skip.has(m.id)).map((m) => fetchDraft(m.id, m.config, messages, opts.draftMaxTokens ?? 1500))),
+    Promise.resolve(opts.extraDrafts ?? []).catch(() => []),
+  ]);
+  const drafts = [...extra, ...fetched].filter((d): d is { id: string; label: string; text: string } => d !== null);
 
   if (drafts.length < 2) {
     // Nothing to blend — answer with the best backend that worked (or the default).

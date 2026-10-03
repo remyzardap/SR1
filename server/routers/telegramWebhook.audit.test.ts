@@ -296,16 +296,15 @@ describe("telegram webhook message flow (audit)", () => {
     await routes[0].handler(fakeReq(update("hello", 9001), hookHeaders), res);
     expect(out.json).toEqual({ ok: true });
     await vi.waitFor(() => expect(calls.some((c) => c.url.includes(`bot${TOKEN}/sendMessage`))).toBe(true));
-    expect(tg.runTelegramChat).toHaveBeenCalledWith("hello");
+    expect(tg.runTelegramChat).toHaveBeenCalledWith("hello", "blend");
     const urls = calls.map((c) => c.url);
     expect(urls.some((u) => u.includes(`bot${TOKEN}/sendChatAction`))).toBe(true);
     const sent = calls.find((c) => c.url.includes(`bot${TOKEN}/sendMessage`));
     expect(sent?.body.chat_id).toBe(777);
     expect(sent?.body.text).toBe("chat answer");
-    expect(s1.blend).not.toHaveBeenCalled();
   });
 
-  it("leaves a plain text message off the S1 blend and never draws", async () => {
+  it("leaves a plain text message off the old S1 path and never draws", async () => {
     stubFetch(() => okJson({ ok: true }));
     const routes = await register();
     const { res } = fakeRes();
@@ -315,20 +314,20 @@ describe("telegram webhook message flow (audit)", () => {
     expect(chat.runChatImage).not.toHaveBeenCalled();
   });
 
-  it("keeps the S1 blend behind /blend, with only the question as the prompt", async () => {
-    const calls = stubFetch((url) => {
-      if (url.includes("/chat/completions")) return okJson({ choices: [{ message: { content: "S1 answer" } }] });
-      return okJson({ ok: true });
-    });
+  it("treats /blend <question> as the same blended chat, with only the question as the text", async () => {
+    stubFetch(() => okJson({ ok: true }));
     const routes = await register();
-    const { res, out } = fakeRes();
+    const { res } = fakeRes();
     await routes[0].handler(fakeReq(update("/blend what is two plus two", 9003), hookHeaders), res);
-    expect(out.json).toEqual({ ok: true });
-    expect(s1.blend).toHaveBeenCalledTimes(1);
-    expect(s1.blend.mock.calls[0][0]).toBe("what is two plus two");
-    expect(tg.runTelegramChat).not.toHaveBeenCalled();
-    const sent = calls.find((c) => c.url.includes(`bot${TOKEN}/sendMessage`));
-    expect(sent?.body.text).toBe("S1 answer");
+    await vi.waitFor(() => expect(tg.runTelegramChat).toHaveBeenCalledWith("what is two plus two", "blend"));
+  });
+
+  it("answers /solo <question> with the chat engine alone", async () => {
+    stubFetch(() => okJson({ ok: true }));
+    const routes = await register();
+    const { res } = fakeRes();
+    await routes[0].handler(fakeReq(update("/solo what is two plus two", 9005), hookHeaders), res);
+    await vi.waitFor(() => expect(tg.runTelegramChat).toHaveBeenCalledWith("what is two plus two", "solo"));
   });
 
   it("starts a fresh conversation on /new", async () => {
@@ -383,27 +382,21 @@ describe("telegram webhook message flow (audit)", () => {
   });
 
   it("truncates the reply at Telegram's 4096-char limit", async () => {
-    s1.blend.mockResolvedValueOnce({
-      config: { baseUrl: "https://llm.test/v1", model: "m", apiKey: "k" },
-      messages: [],
-    } as any);
-    const calls = stubFetch((url) => {
-      if (url.includes("/chat/completions")) return okJson({ choices: [{ message: { content: "x".repeat(6000) } }] });
-      return okJson({ ok: true });
-    });
+    tg.runTelegramChat.mockResolvedValueOnce("x".repeat(6000));
+    const calls = stubFetch(() => okJson({ ok: true }));
     const routes = await register();
     const { res } = fakeRes();
-    await routes[0].handler(fakeReq(update("/blend hi"), hookHeaders), res);
-    const sent = calls.find((c) => c.url.includes("sendMessage"));
-    expect(sent?.body.text).toHaveLength(4096);
+    await routes[0].handler(fakeReq(update("hi", 9101), hookHeaders), res);
+    await vi.waitFor(() => expect(calls.some((c) => c.url.includes("sendMessage"))).toBe(true));
+    expect(calls.find((c) => c.url.includes("sendMessage"))?.body.text).toHaveLength(4096);
   });
 
   it("retries an unparseable Markdown reply as plain text so it still arrives", async () => {
     // Telegram returns 400 "can't parse entities" for unbalanced Markdown;
     // without a plain-text retry the user silently receives nothing.
+    tg.runTelegramChat.mockResolvedValueOnce("2 * 3 * 4 = 24");
     let sendAttempts = 0;
     const calls = stubFetch((url) => {
-      if (url.includes("/chat/completions")) return okJson({ choices: [{ message: { content: "2 * 3 * 4 = 24" } }] });
       if (url.includes("sendMessage")) {
         sendAttempts++;
         return sendAttempts === 1 ? new Response("bad Markdown entity offset", { status: 400 }) : okJson({ ok: true });
@@ -412,22 +405,25 @@ describe("telegram webhook message flow (audit)", () => {
     });
     const routes = await register();
     const { res, out } = fakeRes();
-    await routes[0].handler(fakeReq(update("/blend hi"), hookHeaders), res);
+    await routes[0].handler(fakeReq(update("hi", 9102), hookHeaders), res);
     expect(out.json).toEqual({ ok: true });
+    await vi.waitFor(() => expect(calls.filter((c) => c.url.includes("sendMessage")).length).toBeGreaterThanOrEqual(2));
     const sends = calls.filter((c) => c.url.includes("sendMessage"));
-    expect(sends.length).toBeGreaterThanOrEqual(2);
     expect(sends[0].body.parse_mode).toBe("Markdown");
     expect(sends[sends.length - 1].body.parse_mode).toBeUndefined();
     expect(sends[sends.length - 1].body.text).toBe("2 * 3 * 4 = 24");
   });
 
-  it("acknowledges ok:false when internal handling throws (no crash, but signals retry)", async () => {
-    s1.blend.mockRejectedValueOnce(new Error("no provider configured"));
+  it("answers the webhook first, so a crashing chat engine is logged and never makes Telegram redeliver", async () => {
+    tg.runTelegramChat.mockRejectedValueOnce(new Error("engine down"));
     stubFetch(() => okJson({ ok: true }));
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
     const routes = await register();
     const { res, out } = fakeRes();
-    await routes[0].handler(fakeReq(update("/blend hi"), hookHeaders), res);
-    expect(out.json).toEqual({ ok: false });
+    await routes[0].handler(fakeReq(update("hi", 9103), hookHeaders), res);
+    expect(out.json).toEqual({ ok: true });
+    await vi.waitFor(() => expect(err).toHaveBeenCalled());
+    err.mockRestore();
   });
 });
 
