@@ -217,7 +217,8 @@ export const appRouter = router({
         }
         if (user.totpEnabled) {
           // Password-only sessions must not bypass an enabled second factor;
-          // the 2FA-capable client path is auth.login2fa.
+          // the 2FA-capable client path is auth.login2fa. This message is the signal the
+          // login screen matches on (TRPCError carries no custom data in tRPC 11.11).
           throw new TRPCError({ code: "FORBIDDEN", message: "2FA is enabled on this account. Sign in with your authenticator code." });
         }
         const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name || "", expiresInMs: ONE_YEAR_MS });
@@ -311,13 +312,16 @@ export const appRouter = router({
       }),
 
     login2fa: publicProcedure
-      .input(z.object({ email: z.string().email(), password: z.string().min(1), token: z.string().length(6) }))
+      // Same identity rules as auth.login: the email field also accepts an @handle.
+      .input(z.object({ email: z.string().min(1), password: z.string().min(1), token: z.string().length(6) }))
       .mutation(async ({ input, ctx }) => {
         rateLimitAuth(getClientIp(ctx.req));
         if (!isAllowedLogin(input.email)) {
           throw new TRPCError({ code: "FORBIDDEN", message: "This account is not on the allowed-login list." });
         }
-        const user = await getUserByEmail(input.email);
+        const isEmail = input.email.includes("@") && input.email.includes(".");
+        const handle = input.email.startsWith("@") ? input.email.slice(1) : input.email;
+        const user = isEmail ? await getUserByEmail(input.email) : await getUserByHandle(handle);
         if (!user || !user.passwordHash) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password." });
         }
@@ -335,7 +339,9 @@ export const appRouter = router({
         const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name || "", expiresInMs: ONE_YEAR_MS });
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-        return { success: true };
+        // The token is returned as well as set on the cookie, so the client can store it
+        // exactly like the password path does (auth.login) instead of going cookie-only.
+        return { success: true, token: sessionToken } as const;
       }),
 
     check2faRequired: publicProcedure

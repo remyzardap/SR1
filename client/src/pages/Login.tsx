@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,28 +22,64 @@ const registerSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 type RegisterForm = z.infer<typeof registerSchema>;
 
+// auth.login refuses a password-only session once two-factor is on, and that refusal is
+// what moves the user to the code step instead of a dead-end error. TRPCError has no room
+// for a machine readable reason here, so the server message is the contract: keep the two
+// texts in sync (server/auth.audit.test.ts pins the server side of it).
+function isTwoFactorRequiredError(e: unknown): boolean {
+  const err = e as { message?: string; code?: string };
+  return err?.code === "FORBIDDEN" && /2FA is enabled|two-factor/i.test(err?.message ?? "");
+}
+
 export default function Login() {
   const [, navigate] = useLocation();
   const [tab, setTab] = useState<'in' | 'up'>(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('mode') === 'signup' ? 'up' : 'in'));
   const [loginError, setLoginError] = useState('');
   const [registerError, setRegisterError] = useState('');
   const [registerSuccess, setRegisterSuccess] = useState(false);
+  // Sign-in has two steps for accounts with two-factor on: credentials, then the code.
+  const [step, setStep] = useState<'credentials' | 'code'>('credentials');
+  const [code, setCode] = useState('');
+  const [codeError, setCodeError] = useState('');
+  // The code step posts the password again with the code, so keep the credentials.
+  const [pendingCreds, setPendingCreds] = useState<{ email: string; password: string } | null>(null);
+  const sentCode = useRef('');
   const utils = trpc.useUtils();
 
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
   const registerForm = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) });
 
+  const finishSignIn = async (data: unknown, showError: (msg: string) => void) => {
+    const result = data as { token?: unknown } | null;
+    if (!setAuthToken(result?.token)) {
+      showError('Sign-in succeeded, but no session was returned. Please try again.');
+      return;
+    }
+    await utils.auth.me.invalidate();
+    navigate('/chat');
+  };
+
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: async (data: unknown) => {
-      const result = data as { token?: unknown } | null;
-      if (!setAuthToken(result?.token)) {
-        setLoginError('Sign-in succeeded, but no session was returned. Please try again.');
+    onSuccess: (data: unknown) => void finishSignIn(data, setLoginError),
+    onError: (e) => {
+      if (isTwoFactorRequiredError(e)) {
+        setLoginError('');
+        setCodeError('');
+        sentCode.current = '';
+        setStep('code');
         return;
       }
-      await utils.auth.me.invalidate();
-      navigate('/chat');
+      setLoginError(e.message || 'Invalid credentials');
     },
-    onError: (e) => setLoginError(e.message || 'Invalid credentials'),
+  });
+  const login2faMutation = trpc.auth.login2fa.useMutation({
+    onSuccess: (data: unknown) => void finishSignIn(data, setCodeError),
+    // On a bad code only the message changes: the field keeps its digits and the
+    // password stays in the form, so the user can correct one digit and retry.
+    onError: (e) => {
+      sentCode.current = '';
+      setCodeError(e.message || 'That code did not work. Please try again.');
+    },
   });
   const registerMutation = trpc.auth.register.useMutation({
     onSuccess: async () => { await utils.auth.me.invalidate(); setRegisterSuccess(true); setTab('in'); },
@@ -52,7 +88,28 @@ export default function Login() {
 
   const onLogin = (d: LoginForm) => {
     setLoginError('');
-    loginMutation.mutate({ email: d.email, password: d.password });
+    setPendingCreds({ email: d.email, password: d.password });
+    loginMutation.mutate(d);
+  };
+  const submitCode = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length !== 6 || !pendingCreds || sentCode.current === digits || login2faMutation.isPending) return;
+    sentCode.current = digits;
+    setCodeError('');
+    login2faMutation.mutate({ email: pendingCreds.email, password: pendingCreds.password, token: digits });
+  };
+  const onCodeChange = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 6);
+    setCode(digits);
+    setCodeError('');
+    if (digits.length === 6) submitCode(digits);
+  };
+  const backToCredentials = () => {
+    setStep('credentials');
+    setCode('');
+    setCodeError('');
+    setLoginError('');
+    sentCode.current = '';
   };
   const onRegister = (d: RegisterForm) => {
     setRegisterError('');
@@ -60,7 +117,9 @@ export default function Login() {
   };
 
   const isIn = tab === 'in';
+  const showCode = isIn && step === 'code';
   const pending = isIn ? loginMutation.isPending : registerMutation.isPending;
+  const codePending = login2faMutation.isPending;
 
   return (
     <div className="sk-auth">
@@ -71,12 +130,33 @@ export default function Login() {
 
       <div className="sk-auth-card">
         <LandingMark className="sk-auth-mark" />
-        <h1 className="sk-auth-title">{isIn ? 'Welcome back' : 'Create your account'}</h1>
-        <p className="sk-auth-sub">{isIn ? 'Sign in to pick up where Sutaeru left off.' : 'Start with a private workspace that remembers how you work.'}</p>
+        <h1 className="sk-auth-title">{showCode ? 'Second step' : isIn ? 'Welcome back' : 'Create your account'}</h1>
+        <p className="sk-auth-sub">{showCode ? 'Enter the 6 digit code from your authenticator app.' : isIn ? 'Sign in to pick up where Sutaeru left off.' : 'Start with a private workspace that remembers how you work.'}</p>
 
         {registerSuccess && <div className="sk-auth-note" role="status">Account created. Sign in below.</div>}
 
-        {isIn ? (
+        {showCode ? (
+          <form className="sk-auth-form" onSubmit={(e) => { e.preventDefault(); submitCode(code); }}>
+            <label className="sk-field">
+              <span className="sk-label">Authentication code</span>
+              <input
+                data-testid="input-2fa-code"
+                autoFocus
+                value={code}
+                onChange={(e) => onCodeChange(e.target.value)}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                placeholder="000000"
+              />
+            </label>
+            {codeError && <p className="sk-field-error sk-auth-error" role="alert">{codeError}</p>}
+            <button data-testid="button-verify-2fa" type="submit" disabled={codePending || code.length !== 6} className="sk-auth-submit">
+              {codePending ? <span className="sk-spinner" /> : 'Verify'}
+            </button>
+            <button type="button" className="sk-auth-link sk-auth-switch" onClick={backToCredentials}>Back</button>
+          </form>
+        ) : isIn ? (
           <form className="sk-auth-form" onSubmit={loginForm.handleSubmit(onLogin)}>
             <label className="sk-field">
               <span className="sk-label">Email or @handle</span>
@@ -123,9 +203,11 @@ export default function Login() {
           </form>
         )}
 
-        <button type="button" className="sk-auth-link sk-auth-switch" onClick={() => { setLoginError(''); setRegisterError(''); setTab(isIn ? 'up' : 'in'); }}>
-          {isIn ? 'New to Sutaeru? Create an account' : 'Already have an account? Sign in'}
-        </button>
+        {!showCode && (
+          <button type="button" className="sk-auth-link sk-auth-switch" onClick={() => { setLoginError(''); setRegisterError(''); setTab(isIn ? 'up' : 'in'); }}>
+            {isIn ? 'New to Sutaeru? Create an account' : 'Already have an account? Sign in'}
+          </button>
+        )}
       </div>
 
       <p className="sk-auth-foot">Search <i>&middot;</i> Research <i>&middot;</i> Do</p>

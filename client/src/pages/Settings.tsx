@@ -41,6 +41,151 @@ function Status({ q, children }: { q: any; children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * Two-factor sign-in. The setup key is held in component state only: it is shown on
+ * screen, copied on request, and dropped as soon as setup is confirmed or cancelled.
+ */
+function TwoFactor() {
+  const status = t.auth.get2faStatus.useQuery(undefined, { retry: false });
+  const utils = trpc.useUtils();
+  const [setup, setSetup] = useState<{ qrDataUrl: string; secret: string } | null>(null);
+  const [token, setToken] = useState("");
+  const [error, setError] = useState("");
+  const [turningOff, setTurningOff] = useState(false);
+
+  const clear = () => {
+    setSetup(null);
+    setToken("");
+    setError("");
+    setTurningOff(false);
+  };
+
+  const start = t.auth.setup2fa.useMutation({
+    onSuccess: (data: { qrDataUrl: string; secret: string }) => {
+      setSetup(data);
+      setToken("");
+      setError("");
+    },
+    onError: (e: Error) => toast.error(e.message || "Could not start setup."),
+  });
+  const confirm = t.auth.verify2fa.useMutation({
+    onSuccess: () => {
+      clear();
+      toast.success("Two-factor is on");
+      // Write the new state straight into the query so the card flips to the on
+      // state at once instead of showing "Turn on" until the refetch lands.
+      utils.auth.get2faStatus.setData(undefined, (prev: any) => ({ ...prev, enabled: true }));
+      void status.refetch();
+    },
+    onError: (e: Error) => setError(e.message || "That code did not work. Please try again."),
+  });
+  const off = t.auth.disable2fa.useMutation({
+    onSuccess: () => {
+      clear();
+      toast.success("Two-factor is off");
+      utils.auth.get2faStatus.setData(undefined, (prev: any) => ({ ...prev, enabled: false }));
+      void status.refetch();
+    },
+    onError: (e: Error) => setError(e.message || "That code did not work. Please try again."),
+  });
+
+  const on = !!status.data?.enabled;
+  const busy = start.isPending || confirm.isPending || off.isPending;
+
+  const submitToken = () => {
+    if (token.length !== 6 || busy) return;
+    setError("");
+    if (turningOff) off.mutate({ token });
+    else confirm.mutate({ token });
+  };
+
+  const copyKey = async () => {
+    const key = setup?.secret;
+    if (!key) return;
+    try {
+      await navigator.clipboard.writeText(key);
+      toast.success("Key copied");
+    } catch {
+      toast.error("Could not copy. Select the key and copy it by hand.");
+    }
+  };
+
+  return (
+    <Section title="Two-factor sign-in">
+      <Status q={status}>
+        <div className="flex flex-col gap-5">
+          {!setup && (
+            <p className="sk-muted m-0 text-sm">
+              {on
+                ? "Two-factor is on. Sign in needs your password and a 6 digit code from your authenticator app."
+                : "Adds a 6 digit code from your authenticator app on top of your password."}
+            </p>
+          )}
+
+          {error && <p className="sk-error-text m-0" role="alert">{error}</p>}
+
+          {setup && (
+            <div className="flex flex-col items-center gap-5">
+              <p className="sk-muted m-0 text-sm">Open your authenticator app, add Sutaeru, and scan this code.</p>
+              <img
+                src={setup.qrDataUrl}
+                alt="Scan this code with your authenticator app"
+                width={176}
+                height={176}
+                className="h-44 w-44 rounded-2xl bg-white shadow-[0_0_0_1px_#EFEEE8]"
+              />
+              <div className="flex w-full flex-col gap-2">
+                <span className="sk-label">Can't scan? Enter this key</span>
+                <div className="sk-between gap-3 rounded-2xl bg-[var(--sk-soft)] px-4 py-3">
+                  <code className="min-w-0 break-all text-sm" style={{ font: "600 14px/1.6 var(--sk-mono)", userSelect: "all" }}>{setup.secret}</code>
+                  <button type="button" className="sk-btn sk-btn-ghost shrink-0" onClick={() => void copyKey()}>Copy</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(setup || turningOff) && (
+            <form className="flex flex-wrap items-center gap-3" onSubmit={(e) => { e.preventDefault(); submitToken(); }}>
+              <label className="sk-field min-w-0 flex-1">
+                <span className="sk-label">{turningOff ? "Code to confirm" : "Authentication code"}</span>
+                <input
+                  data-testid={turningOff ? "input-2fa-disable-code" : "input-2fa-confirm-code"}
+                  className="sk-input"
+                  autoFocus
+                  value={token}
+                  onChange={(e) => { setToken(e.target.value.replace(/\D/g, "").slice(0, 6)); setError(""); }}
+                  inputMode="numeric"
+                  autoComplete={setup ? "one-time-code" : "off"}
+                  maxLength={6}
+                  placeholder="000000"
+                />
+              </label>
+              <button type="submit" className="sk-btn shrink-0" disabled={busy || token.length !== 6}>
+                {busy ? "Working…" : turningOff ? "Turn off" : "Confirm"}
+              </button>
+              <button type="button" className="sk-btn sk-btn-ghost shrink-0" disabled={busy} onClick={clear}>
+                Cancel
+              </button>
+            </form>
+          )}
+
+          {!setup && !turningOff && (
+            on ? (
+              <button type="button" className="sk-btn sk-btn-ghost self-start" onClick={() => { setError(""); setTurningOff(true); }}>
+                Turn off
+              </button>
+            ) : (
+              <button type="button" className="sk-btn self-start" disabled={busy} onClick={() => start.mutate()}>
+                {busy ? "Working…" : "Turn on"}
+              </button>
+            )
+          )}
+        </div>
+      </Status>
+    </Section>
+  );
+}
+
 function Meter({ label, used, limit }: { label: string; used: number; limit: number }) {
   const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
   return (
@@ -117,6 +262,8 @@ export default function Settings() {
                 </Status>
               </Section>
             )}
+
+            {tab === "account" && <TwoFactor />}
 
             {tab === "plan" && (
               <Section title="Plan and usage">

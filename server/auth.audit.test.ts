@@ -358,6 +358,50 @@ describe("auth.login2fa (speakeasy flow)", () => {
     expect(cookies[0].options).toMatchObject({ httpOnly: true, sameSite: "lax" });
   });
 
+  it("returns the session token in the body, same shape as auth.login", async () => {
+    const totpSecret = secret();
+    await makeUser("pw-for-2fa-1", { totpEnabled: true, totpSecret });
+    const { ctx, cookies } = makeCtx({ xff: freshIp() });
+    const caller = await buildCaller(ctx);
+    const token = speakeasy.totp({ secret: totpSecret, encoding: "base32" });
+    const result = await caller.auth.login2fa({
+      email: "alice@example.com",
+      password: "pw-for-2fa-1",
+      token,
+    });
+    // The client calls setAuthToken(result.token); a missing or non-string token
+    // would leave a 2FA account cookie-only while every other page expects the bearer.
+    expect(typeof result.token).toBe("string");
+    expect(result.token).toBe(cookies[0].value);
+    const { sdk } = await import("./_core/sdk");
+    expect((await sdk.verifySession(result.token))?.openId).toBe("open-alice");
+  });
+
+  it("accepts an @handle and strips the @ before lookup", async () => {
+    const totpSecret = secret();
+    await makeUser("pw-for-2fa-1", { totpEnabled: true, totpSecret });
+    const { ctx, cookies } = makeCtx({ xff: freshIp() });
+    const caller = await buildCaller(ctx);
+    const token = speakeasy.totp({ secret: totpSecret, encoding: "base32" });
+    const result = await caller.auth.login2fa({ email: "@alice", password: "pw-for-2fa-1", token });
+    expect(result.success).toBe(true);
+    expect(typeof result.token).toBe("string");
+    expect(cookies).toHaveLength(1);
+  });
+
+  it("rejects an @handle that is not on ALLOWED_LOGIN before any lookup", async () => {
+    const totpSecret = secret();
+    await makeUser("pw-for-2fa-1", { totpEnabled: true, totpSecret });
+    process.env.ALLOWED_LOGIN = "bob@example.com";
+    const { ctx, cookies } = makeCtx({ xff: freshIp() });
+    const caller = await buildCaller(ctx);
+    const token = speakeasy.totp({ secret: totpSecret, encoding: "base32" });
+    await expect(
+      caller.auth.login2fa({ email: "@alice", password: "pw-for-2fa-1", token })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(cookies).toHaveLength(0);
+  });
+
   it("rejects an invalid TOTP code without setting the cookie", async () => {
     const totpSecret = secret();
     await makeUser("pw-for-2fa-1", { totpEnabled: true, totpSecret });
@@ -393,6 +437,32 @@ describe("auth.login2fa (speakeasy flow)", () => {
     await expect(
       caller.auth.login2fa({ email: "alice@example.com", password: "bad password", token })
     ).rejects.toMatchObject({ code: "UNAUTHORIZED", message: "Invalid email or password." });
+  });
+
+  it("walks the sign-in sequence the login screen follows: login refuses, login2fa finishes", async () => {
+    // client/src/pages/Login.tsx shows its code step on the auth.login rejection, then
+    // submits email + password + code here. Both halves must keep their shape.
+    const totpSecret = secret();
+    await makeUser("sequence-pw-1", { totpEnabled: true, totpSecret });
+    const { ctx, cookies } = makeCtx({ xff: freshIp() });
+    const caller = await buildCaller(ctx);
+
+    const rejection = await caller.auth
+      .login({ email: "@alice", password: "sequence-pw-1" })
+      .then(() => null)
+      .catch((e: any) => e);
+    // client/src/pages/Login.tsx matches FORBIDDEN + /2FA is enabled|two-factor/ to show
+    // its code step, so the code and the wording of this message are part of the contract.
+    expect(rejection).toMatchObject({ code: "FORBIDDEN", message: /2FA is enabled/i });
+    expect(cookies).toHaveLength(0);
+
+    const token = speakeasy.totp({ secret: totpSecret, encoding: "base32" });
+    const result = await caller.auth.login2fa({ email: "@alice", password: "sequence-pw-1", token });
+    expect(result).toMatchObject({ success: true });
+    expect(cookies).toHaveLength(1);
+    expect(result.token).toBe(cookies[0].value);
+    ctx.user = store.users[0];
+    expect(await caller.auth.me()).toMatchObject({ openId: "open-alice" });
   });
 
   it("reports 2FA not configured when the user has no secret", async () => {
