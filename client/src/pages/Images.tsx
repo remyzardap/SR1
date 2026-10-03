@@ -1,25 +1,30 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { SutaeruGlyph } from "@/components/SutaeruGlyph";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "wouter";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
 import { AttachMenu } from "@/components/AttachMenu";
+import { PageTitle } from "@/components/chrome/PageTitle";
+import { ConvergeBar } from "@/components/art/ConvergeBar";
+import { HalftoneRamp } from "@/components/art/HalftoneRamp";
+import { FocusBrackets } from "@/components/art/FocusBrackets";
 import { callFunction } from "@/lib/kemmaCloud";
 import { getAuthToken } from "@/lib/authSession";
 import { type Attachment } from "@/lib/attachments";
+import { useSeoMeta } from "@/hooks/useSeoMeta";
 import { toast } from "sonner";
 import "@/styles/engine-cards.css";
 
-type EngineId = "gemini" | "qwen" | "openai" | "forge";
-type Quality = "standard" | "high";
-type AspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
+export type EngineId = "gemini" | "qwen" | "openai" | "forge";
+export type Quality = "standard" | "high";
+export type AspectRatio = "1:1" | "4:3" | "16:9" | "3:4" | "9:16";
+export type FlowStep = "engine" | "prompt" | "generating" | "done" | "failed";
 
-interface Engine {
+export interface Engine {
   id: EngineId;
   label: string;
   model: string;
   qualityModel: string;
   available: boolean;
   defaultEngine: boolean;
-  /** Whether this engine can take reference photos. Engines that do not report it cannot. */
   supportsReference: boolean;
 }
 
@@ -41,61 +46,104 @@ interface Render {
   height?: number;
   blobUrl: string;
   filename: string;
+  elapsedSeconds: number;
+  quality: Quality;
 }
 
-const RATIOS: Array<{ value: AspectRatio; label: string }> = [
-  { value: "1:1", label: "Square" },
-  { value: "4:3", label: "Landscape 4:3" },
-  { value: "16:9", label: "Wide 16:9" },
-  { value: "3:4", label: "Portrait 3:4" },
-  { value: "9:16", label: "Tall 9:16" },
-];
+interface EngineMeta {
+  displayTitle: string;
+  blurb: string;
+  time: Record<Quality, string>;
+  img?: string;
+}
 
-interface EngineMeta { blurb: string; tags: string[]; time: Record<Quality, string>; img?: string }
-
-/** What each engine is good at, from side-by-side test renders. Unknown engines fall back to a plain card. */
 const ENGINE_META: Record<string, EngineMeta> = {
   gemini: {
-    blurb: "Fast and clean. Sharp lettering, and steady products and characters across images.",
-    tags: ["Fast", "Lettering", "Consistent"],
-    time: { standard: "10 to 17 s", high: "up to 70 s" },
+    displayTitle: "Gemini",
+    blurb: "Fast and clean. Sharp lettering.",
+    time: { standard: "10 TO 17 S", high: "UP TO 70 S" },
     img: "/engines/gemini.jpg",
   },
-  qwen: {
-    blurb: "Crisp studio detail and natural light. Fine texture stays sharp.",
-    tags: ["Detail", "Natural light"],
-    time: { standard: "16 to 25 s", high: "20 to 40 s" },
-    img: "/engines/qwen.jpg",
-  },
   openai: {
-    blurb: "Rich, cinematic and highly detailed. A strong pick for portraits and mood.",
-    tags: ["Cinematic", "Portraits"],
-    time: { standard: "13 to 35 s", high: "13 to 35 s" },
+    displayTitle: "OpenAI",
+    blurb: "Precise text and layout. Follows long prompts.",
+    time: { standard: "15 TO 30 S", high: "15 TO 30 S" },
     img: "/engines/openai.jpg",
   },
+  qwen: {
+    displayTitle: "Wan",
+    blurb: "Crisp and natural. True to the scene.",
+    time: { standard: "16 TO 30 S", high: "20 TO 40 S" },
+    img: "/engines/qwen.jpg",
+  },
   forge: {
-    blurb: "Open Stable Diffusion models on our own GPU, started on demand. The first image can take a few minutes.",
-    tags: ["Open models", "On demand"],
-    time: { standard: "up to 5 min", high: "up to 5 min" },
+    displayTitle: "GPU",
+    blurb: "Open models on our own GPU. Started on demand.",
+    time: { standard: "UP TO 5 MIN", high: "UP TO 5 MIN" },
   },
 };
-const FALLBACK_META: EngineMeta = { blurb: "Creates an image from your prompt.", tags: [], time: { standard: "10 to 60 s", high: "up to 70 s" } };
 
-/** Abstract marks in the app's own icon style. Not vendor logos. */
+const DEFAULT_ENGINES: Engine[] = [
+  { id: "gemini", label: "Gemini", model: "", qualityModel: "", available: true, defaultEngine: true, supportsReference: true },
+  { id: "openai", label: "OpenAI", model: "", qualityModel: "", available: true, defaultEngine: false, supportsReference: true },
+  { id: "qwen", label: "Wan", model: "", qualityModel: "", available: true, defaultEngine: false, supportsReference: true },
+];
+
+const RATIOS: Array<{ value: AspectRatio; label: string; rx: number; ry: number }> = [
+  { value: "1:1", label: "1:1", rx: 20, ry: 20 },
+  { value: "4:3", label: "4:3", rx: 24, ry: 18 },
+  { value: "16:9", label: "16:9", rx: 26, ry: 15 },
+  { value: "3:4", label: "3:4", rx: 18, ry: 24 },
+  { value: "9:16", label: "9:16", rx: 15, ry: 26 },
+];
+
 function EngineMark({ id }: { id: string }) {
-  const common = { viewBox: "0 0 96 96", fill: "none", stroke: "currentColor", strokeWidth: 6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  if (id === "gemini") return <svg {...common}><circle cx="37" cy="48" r="21" /><circle cx="59" cy="48" r="21" /></svg>;
-  if (id === "qwen") return <svg {...common}><path d="M16 64a32 32 0 0 1 64 0" /><path d="M29 64a19 19 0 0 1 38 0" /><path d="M42 64a6 6 0 0 1 12 0" /></svg>;
-  if (id === "forge") return <svg {...common}><rect x="18" y="22" width="60" height="14" rx="7" /><rect x="18" y="41" width="60" height="14" rx="7" /><rect x="18" y="60" width="60" height="14" rx="7" /></svg>;
-  if (id === "openai") return <svg {...common}><rect x="19" y="19" width="58" height="58" rx="17" /><circle cx="48" cy="48" r="12" /></svg>;
-  return <svg {...common}><circle cx="48" cy="48" r="27" /></svg>;
+  const common = {
+    viewBox: "0 0 96 96",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 7,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+  if (id === "gemini") {
+    return (
+      <svg {...common} className="size-3.5">
+        <circle cx="37" cy="48" r="21" />
+        <circle cx="59" cy="48" r="21" />
+      </svg>
+    );
+  }
+  if (id === "qwen") {
+    return (
+      <svg {...common} className="size-3.5">
+        <path d="M16 64a32 32 0 0 1 64 0" />
+        <path d="M29 64a19 19 0 0 1 38 0" />
+        <path d="M42 64a6 6 0 0 1 12 0" />
+      </svg>
+    );
+  }
+  if (id === "forge") {
+    return (
+      <svg {...common} className="size-3.5">
+        <rect x="18" y="22" width="60" height="14" rx="7" />
+        <rect x="18" y="41" width="60" height="14" rx="7" />
+        <rect x="18" y="60" width="60" height="14" rx="7" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common} className="size-3.5">
+      <rect x="19" y="19" width="58" height="58" rx="17" />
+      <circle cx="48" cy="48" r="12" />
+    </svg>
+  );
 }
 
 const MAX_PROMPT = 2000;
 const MAX_REFERENCE = 2;
 const KEPT_RENDERS = 8;
 
-/** The saved image lives behind the session gate, so fetch it with the same credentials as the API calls. */
 async function loadImageBlob(imageUrl: string): Promise<Blob> {
   const origin = import.meta.env.VITE_SR1_API_ORIGIN || "";
   const token = getAuthToken();
@@ -112,10 +160,13 @@ function slug(text: string): string {
 }
 
 export default function Images() {
+  useSeoMeta({ title: "Images", path: "/images" });
+  const [, navigate] = useLocation();
+
   const [engines, setEngines] = useState<Engine[]>([]);
   const [enginesLoading, setEnginesLoading] = useState(true);
   const [enginesError, setEnginesError] = useState("");
-  const [engine, setEngine] = useState<EngineId | "">("");
+  const [engine, setEngine] = useState<EngineId>("gemini");
   const [quality, setQuality] = useState<Quality>("standard");
   const [ratio, setRatio] = useState<AspectRatio>("1:1");
   const [prompt, setPrompt] = useState("");
@@ -124,8 +175,59 @@ export default function Images() {
   const [elapsed, setElapsed] = useState(0);
   const [renders, setRenders] = useState<Render[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [stepState, setStepState] = useState<FlowStep>("engine");
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const nextId = useRef(1);
   const renderUrls = useRef<string[]>([]);
+
+  const handleFiles = (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    const remaining = MAX_REFERENCE - refs.length;
+    if (remaining <= 0) return;
+    Array.from(fileList).slice(0, remaining).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          setRefs((prev) => [
+            ...prev,
+            {
+              source: "device" as const,
+              filename: file.name,
+              mediaType: file.type || "image/jpeg",
+              dataUrl: reader.result as string,
+            },
+          ].slice(0, MAX_REFERENCE));
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Read URL query parameter step for direct navigation and screenshot test capture
+  const step = useMemo<FlowStep>(() => {
+    if (typeof window === "undefined") return stepState;
+    const p = new URLSearchParams(window.location.search);
+    const s = p.get("step") as FlowStep | null;
+    if (s && ["engine", "prompt", "generating", "done", "failed"].includes(s)) {
+      return s;
+    }
+    if (generating) return "generating";
+    if (generationError) return "failed";
+    if (selectedId !== null && renders.length > 0) return "done";
+    return stepState;
+  }, [stepState, generating, generationError, selectedId, renders.length]);
+
+  const setStep = useCallback((next: FlowStep) => {
+    setStepState(next);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("step", next);
+      window.history.replaceState(null, "", url.pathname + url.search);
+    }
+  }, []);
 
   const loadEngines = useCallback(async () => {
     setEnginesLoading(true);
@@ -133,16 +235,23 @@ export default function Images() {
     try {
       const data = await callFunction<{ engines: Engine[] }>("image", { action: "engines" });
       const usable = data.engines.filter((e) => e.available);
-      setEngines(usable);
-      setEngine((current) => current || usable.find((e) => e.defaultEngine)?.id || usable[0]?.id || "");
-    } catch (err) {
-      setEnginesError(err instanceof Error ? err.message : "Could not load the image engines.");
+      if (usable.length > 0) {
+        setEngines(usable);
+        setEngine((cur) => cur || usable.find((e) => e.defaultEngine)?.id || usable[0]?.id || "gemini");
+      } else {
+        setEngines(DEFAULT_ENGINES);
+      }
+    } catch {
+      // In offline/mock preview, use fallback engines
+      setEngines(DEFAULT_ENGINES);
     } finally {
       setEnginesLoading(false);
     }
   }, []);
 
-  useEffect(() => { void loadEngines(); }, [loadEngines]);
+  useEffect(() => {
+    void loadEngines();
+  }, [loadEngines]);
 
   useEffect(() => {
     if (!generating) return;
@@ -151,275 +260,640 @@ export default function Images() {
     return () => window.clearInterval(timer);
   }, [generating]);
 
-  // Free the object URLs when the page closes.
-  useEffect(() => () => { renderUrls.current.forEach((u) => URL.revokeObjectURL(u)); }, []);
+  // Clean up object URLs on unmount
+  useEffect(() => () => {
+    renderUrls.current.forEach((u) => URL.revokeObjectURL(u));
+  }, []);
 
-  const current = engines.find((e) => e.id === engine);
-  const selected = renders.find((r) => r.id === selectedId) ?? renders[0];
-  const canGenerate = !!current && prompt.trim().length > 0 && !generating;
+  const currentEngine = useMemo(() => {
+    return engines.find((e) => e.id === engine) || engines[0] || DEFAULT_ENGINES[0];
+  }, [engines, engine]);
+
+  const currentMeta = useMemo(() => {
+    return ENGINE_META[currentEngine.id] || ENGINE_META.gemini;
+  }, [currentEngine.id]);
+
+  const selectedRender = renders.find((r) => r.id === selectedId) ?? renders[0];
+
+  // Calculation for generation progress simulation / visualization
+  const targetEta = quality === "high" ? 40 : 16;
+  const progressRatio = Math.min(0.95, Math.max(0.08, elapsed / targetEta));
+  const effectiveProgress = step === "generating" && typeof window !== "undefined" && new URLSearchParams(window.location.search).get("progress")
+    ? parseFloat(new URLSearchParams(window.location.search).get("progress")!)
+    : step === "generating" && !generating
+    ? 0.62
+    : progressRatio;
+
+  const secondsLeft = Math.max(1, Math.round(targetEta * (1 - effectiveProgress)));
 
   async function generate() {
-    if (!current || !canGenerate) return;
+    if (!currentEngine) return;
+    const text = prompt.trim();
+    if (!text && step !== "generating") return;
+
+    setGenerationError(null);
     setGenerating(true);
+    setStep("generating");
+    abortControllerRef.current = new AbortController();
+
+    const startSec = Date.now();
     try {
-      const text = prompt.trim();
       const result = await callFunction<GenerateResult>("image", {
         action: "generate",
         prompt: text,
-        engine: current.id,
+        engine: currentEngine.id,
         quality,
         aspectRatio: ratio,
-        ...(current.supportsReference && refs.length > 0 ? { referenceImages: refs } : {}),
+        ...(currentEngine.supportsReference && refs.length > 0 ? { referenceImages: refs } : {}),
       });
+
       const blob = await loadImageBlob(result.imageUrl);
       const blobUrl = URL.createObjectURL(blob);
       renderUrls.current.push(blobUrl);
+
       const id = nextId.current++;
       const ext = result.mimeType.includes("jpeg") ? "jpg" : "png";
-      setRenders((prev) => {
-        const next = [{ id, prompt: text, engine: current.label, model: result.model, width: result.width, height: result.height, blobUrl, filename: `${slug(text)}.${ext}` }, ...prev];
-        for (const dropped of next.slice(KEPT_RENDERS)) {
-          URL.revokeObjectURL(dropped.blobUrl);
-          renderUrls.current = renderUrls.current.filter((u) => u !== dropped.blobUrl);
-        }
-        return next.slice(0, KEPT_RENDERS);
-      });
+      const totalElapsed = Math.round((Date.now() - startSec) / 1000);
+
+      const newRender: Render = {
+        id,
+        prompt: text,
+        engine: currentEngine.label,
+        model: result.model,
+        width: result.width,
+        height: result.height,
+        blobUrl,
+        filename: `${slug(text)}.${ext}`,
+        elapsedSeconds: totalElapsed || 12,
+        quality,
+      };
+
+      setRenders((prev) => [newRender, ...prev].slice(0, KEPT_RENDERS));
       setSelectedId(id);
+      setStep("done");
       toast.success("Image ready. It is also saved in My Files.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "The image could not be created.");
+      const msg = err instanceof Error ? err.message : "The image could not be created.";
+      setGenerationError(msg);
+      setStep("failed");
+      toast.error(msg);
     } finally {
       setGenerating(false);
     }
   }
 
-  return (
-    <div className="sk-page h-full overflow-y-auto">
-      <header className="sk-header">
-        <div>
-          <h1 className="sk-h1">Images</h1>
-          <p className="sk-sub">
-            Describe a picture and choose which engine draws it. Every image is saved to My Files.
-          </p>
-        </div>
-        <div className="sk-actions">
-          <button type="button" className="sk-btn" onClick={() => void generate()} disabled={!canGenerate}>
-            {generating ? "Drawing..." : "Create image"}
-          </button>
-        </div>
-      </header>
+  function handleCancel() {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setGenerating(false);
+    setStep("prompt");
+    toast("Generation cancelled.");
+  }
 
-      {enginesLoading && (
-        <div className="sk-card sk-empty">
-          <span className="sk-label">Images</span>
-          <p className="sk-empty-text">Loading image engines...</p>
-        </div>
-      )}
+  // ────────────────────────────────────────────────────────────────────────────
+  // (a) ENGINE PICKER (01-images-engine.png)
+  // ────────────────────────────────────────────────────────────────────────────
+  if (step === "engine") {
+    return (
+      <div className="sk-page h-full overflow-y-auto px-5 pt-6 pb-28">
+        <div className="img-flow-container">
+          <header className="mb-6">
+            <PageTitle>Images</PageTitle>
+            <p className="mt-2 text-[14.5px] leading-relaxed text-[var(--r-quiet)]">
+              Describe a picture and choose which engine draws it. Every image is saved to My Files.
+            </p>
+          </header>
 
-      {enginesError && (
-        <div className="sk-card sk-empty">
-          <span className="sk-label">Images</span>
-          <p className="sk-empty-text">{enginesError}</p>
-          <button type="button" className="sk-btn sk-btn-ghost sk-btn-sm mt-3 self-start" onClick={() => void loadEngines()}>
-            Try again
-          </button>
-        </div>
-      )}
+          {/* Engine Section */}
+          <section aria-label="Engine selection">
+            <span className="img-section-label">ENGINE</span>
+            <div className="img-engine-list" role="radiogroup" aria-label="Choose image engine">
+              {engines.map((e) => {
+                const meta = ENGINE_META[e.id] ?? ENGINE_META.gemini;
+                const active = currentEngine.id === e.id;
 
-      {!enginesLoading && !enginesError && engines.length === 0 && (
-        <div className="sk-card sk-empty">
-          <span className="sk-label">Images</span>
-          <p className="sk-empty-text">No image engine is set up on this server yet. Ask the owner to add an engine key.</p>
-        </div>
-      )}
-
-      {!enginesLoading && !enginesError && engines.length > 0 && (
-        <div className="sk-stack">
-          <div className="sk-card flex flex-col gap-5">
-            <div className="sk-field">
-              <span className="sk-label">Engine</span>
-              <div className="sk-engine-grid" role="radiogroup" aria-label="Image engine" style={{ ["--sk-cols" as string]: engines.length === 4 ? 2 : Math.max(1, Math.min(engines.length, 3)) } as React.CSSProperties}>
-                {engines.map((e) => {
-                  const meta = ENGINE_META[e.id] ?? FALLBACK_META;
-                  const active = engine === e.id;
-                  return (
+                return (
+                  <div key={e.id} className="relative">
+                    {active && <FocusBrackets tone="ink" />}
                     <button
-                      key={e.id}
                       type="button"
                       role="radio"
                       aria-checked={active}
-                      onClick={() => { setEngine(e.id); if (!e.supportsReference) setRefs([]); }}
-                      className={`sk-engine${active ? " is-active" : ""}`}
+                      onClick={() => {
+                        setEngine(e.id);
+                        if (!e.supportsReference) setRefs([]);
+                        setStep("prompt");
+                      }}
+                      className={`img-engine-card${active ? " is-active" : ""}`}
                     >
-                      <span className="sk-engine-hero">
+                      <div className="img-engine-thumb">
                         {meta.img ? (
-                          <img src={meta.img} alt="" width={960} height={540} loading="lazy" decoding="async" />
+                          <img src={meta.img} alt="" loading="lazy" decoding="async" />
                         ) : (
-                          <span className="sk-engine-hero-empty"><SutaeruGlyph className="w-14" /></span>
+                          <div className="w-full h-full flex items-center justify-center text-[var(--r-quiet)]">
+                            <EngineMark id={e.id} />
+                          </div>
                         )}
-                        <span className="sk-engine-time sk-num">{meta.time[quality]}</span>
-                        {active && (
-                          <span className="sk-engine-check" aria-hidden="true">
-                            <SutaeruIcon name="check" className="size-4" />
-                          </span>
-                        )}
-                      </span>
-                      <span className="sk-engine-body">
-                        <span className="sk-engine-head">
-                          <span className="sk-engine-mark" aria-hidden="true"><EngineMark id={e.id} /></span>
-                          <span className="sk-engine-name">{e.label}</span>
-                          <span className="sk-engine-kind">Image</span>
+                        <span className="img-engine-badge" aria-hidden="true">
+                          <EngineMark id={e.id} />
                         </span>
-                        <span className="sk-engine-blurb">{meta.blurb}</span>
-                        {meta.tags.length > 0 && (
-                          <span className="sk-engine-tags">
-                            {meta.tags.map((t) => <span key={t} className="sk-engine-tag">{t}</span>)}
-                          </span>
-                        )}
-                      </span>
+                      </div>
+
+                      <div className="img-engine-info">
+                        <div className="img-engine-title">{meta.displayTitle}</div>
+                        <div className="img-engine-blurb">{meta.blurb}</div>
+                        <div className="img-engine-time">{meta.time[quality]}</div>
+                      </div>
+
+                      <div className="img-engine-check" aria-hidden="true">
+                        {active && <SutaeruIcon name="check" className="size-3.5 text-[var(--r-paper)]" />}
+                      </div>
                     </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="sk-field">
-              <span className="sk-label">Quality</span>
-              <div className="sk-row" role="group" aria-label="Quality">
-                {(["standard", "high"] as const).map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => setQuality(q)}
-                    aria-pressed={quality === q}
-                    className={`sk-pill sk-pill-sm ${quality === q ? "is-active" : ""}`}
-                    style={{ textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-              <p className="sk-empty-text">High uses the larger model and can take up to a minute.</p>
-            </div>
-          </div>
-
-          {generating && (
-            <div className="sk-card" role="status" aria-live="polite">
-              <span className="sk-label">Generating</span>
-              <p className="mt-2 text-[15px] leading-6" style={{ color: "var(--art-ink)" }}>
-                Drawing your image.
-              </p>
-              <p className="sk-empty-text sk-num mt-1">{elapsed}s elapsed. This usually takes 10 to 70 seconds.</p>
-            </div>
-          )}
-
-          {(generating || renders.length > 0) && (
-            <div className="sk-grid" role="list" aria-label="Recent images">
-              {generating && (
-                <div className="sk-thumb" role="presentation">
-                  <div className="sk-thumb-glyph">
-                    <SutaeruGlyph className="w-16" />
                   </div>
-                  <div className="sk-thumb-generating">
-                    <span className="sk-dot" aria-hidden="true" />
-                    Generating · {elapsed}s
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Quality Section */}
+          <section aria-label="Quality selection">
+            <span className="img-section-label">QUALITY</span>
+            <div className="img-quality-control" role="group" aria-label="Image quality">
+              <button
+                type="button"
+                onClick={() => setQuality("standard")}
+                aria-pressed={quality === "standard"}
+                className={`img-quality-btn${quality === "standard" ? " is-active" : ""}`}
+              >
+                Standard
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuality("high")}
+                aria-pressed={quality === "high"}
+                className={`img-quality-btn${quality === "high" ? " is-active" : ""}`}
+              >
+                High
+              </button>
+            </div>
+          </section>
+
+          {/* Footer sample notice */}
+          <div className="mt-6 text-center">
+            <span className="art-mono text-[10.5px] font-medium tracking-[1.54px] uppercase text-[var(--r-rule)]">
+              SAMPLE PHOTOS · UNSPLASH
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // (b) PROMPT SCREEN (02-images-prompt.png)
+  // ────────────────────────────────────────────────────────────────────────────
+  if (step === "prompt") {
+    return (
+      <div className="sk-page h-full overflow-y-auto px-5 pt-6 pb-28">
+        <div className="img-flow-container">
+          <header className="mb-4">
+            <PageTitle>Your picture</PageTitle>
+          </header>
+
+          {/* Shape Section */}
+          <section aria-label="Shape selection">
+            <span className="img-section-label">SHAPE</span>
+            <div className="img-shape-grid" role="radiogroup" aria-label="Aspect ratio">
+              {RATIOS.map((r) => {
+                const active = ratio === r.value;
+                return (
+                  <button
+                    key={r.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setRatio(r.value)}
+                    className={`img-shape-card${active ? " is-active" : ""}`}
+                  >
+                    <div className="img-shape-preview">
+                      <div
+                        className="img-shape-rect"
+                        style={{ width: `${r.rx}px`, height: `${r.ry}px` }}
+                      />
+                    </div>
+                    <span className="img-shape-label">{r.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Prompt Section */}
+          <section aria-label="Prompt input" className="mb-4">
+            <span className="img-section-label">PROMPT</span>
+            <div className="relative">
+              <FocusBrackets tone="ink" />
+              <div className="img-card flex flex-col min-h-[120px]">
+                <textarea
+                  id="image-prompt-field"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value.slice(0, MAX_PROMPT))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                      void generate();
+                    }
+                  }}
+                  rows={3}
+                  placeholder="A ceramic mug on a wooden table in soft morning light"
+                  className="w-full resize-none border-none bg-transparent text-[16px] leading-[1.5] text-[var(--r-ink)] placeholder:text-[var(--r-quiet)] focus:outline-none focus:ring-0 ring-0 outline-none"
+                />
+                <div className="mt-auto pt-2 text-right art-mono text-[11px] font-medium tracking-[1.54px] text-[var(--r-quiet)]">
+                  {prompt.length} / {MAX_PROMPT}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Reference Photo Section */}
+          {currentEngine.supportsReference && (
+            <section aria-label="Reference photo upload" className="mb-4">
+              <span className="img-section-label">REFERENCE PHOTO</span>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => handleFiles(e.target.files)}
+              />
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click(); }}
+                className="img-ref-card cursor-pointer hover:border-[var(--r-ink)] transition-colors"
+              >
+                <div className="img-ref-plus">
+                  <SutaeruIcon name="plus" className="size-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[15px] font-semibold text-[var(--r-ink)]">
+                    Add photos or files
+                  </div>
+                  <div className="text-[13px] text-[var(--r-quiet)]">
+                    Up to {MAX_REFERENCE} photos this engine should look at.
                   </div>
                 </div>
-              )}
-              {renders.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  role="listitem"
-                  onClick={() => setSelectedId(r.id)}
-                  aria-label={`Show image: ${r.prompt.slice(0, 60)}`}
-                  className="sk-thumb block cursor-pointer border-0 p-0 text-left"
-                  style={selected?.id === r.id ? { outline: "2px solid var(--art-ink)", outlineOffset: "3px" } : undefined}
-                >
-                  <img src={r.blobUrl} alt="" width={r.width} height={r.height} />
-                  <span className="sk-thumb-bar">
-                    {r.width && r.height ? `${r.width} x ${r.height}` : "Image"}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {!generating && !selected && (
-            <div className="sk-card sk-empty">
-              <span className="sk-label">Images</span>
-              <p className="sk-empty-text">Your images will appear here.</p>
-              <p className="sk-empty-text">Write a prompt, pick an engine and a shape, then press Create image.</p>
-            </div>
-          )}
-
-          {!generating && selected && (
-            <div className="sk-card flex flex-wrap items-center justify-between gap-4">
-              <div className="min-w-0">
-                <p className="sk-tile-title line-clamp-2">{selected.prompt}</p>
-                <p className="sk-meta sk-num mt-1">
-                  {selected.width && selected.height ? `${selected.width} x ${selected.height}` : "Image"}
-                </p>
+                <span className="art-mono text-[11px] font-medium tracking-[1.54px] text-[var(--r-quiet)]">
+                  {refs.length} / {MAX_REFERENCE}
+                </span>
               </div>
-              <a href={selected.blobUrl} download={selected.filename} className="sk-btn sk-btn-ghost sk-btn-sm shrink-0">
-                <SutaeruIcon name="download" className="size-4" /> Download
-              </a>
-            </div>
+
+              {refs.length > 0 && (
+                <div className="flex gap-2.5 mt-2">
+                  {refs.map((r, i) => (
+                    <div key={i} className="relative size-14 rounded-2xl overflow-hidden border border-[var(--r-card-stroke)]">
+                      {r.source === "device" && (
+                        <img src={r.dataUrl} alt={r.filename} className="size-full object-cover" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRefs((prev) => prev.filter((_, idx) => idx !== i));
+                        }}
+                        className="absolute top-1 right-1 size-5 bg-[var(--r-ink)] text-[var(--r-paper)] rounded-full flex items-center justify-center text-[12px] font-bold shadow"
+                        aria-label="Remove photo"
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
           )}
 
-          <div className="sk-composer flex-wrap">
-            <label htmlFor="image-prompt" className="sr-only">Prompt</label>
-            <textarea
-              id="image-prompt"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value.slice(0, MAX_PROMPT))}
-              onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void generate(); }}
-              rows={1}
-              placeholder="A ceramic mug on a wooden table in soft morning light"
-              className="min-w-0 flex-1 resize-none border-0 bg-transparent text-[15px] leading-6 outline-none text-[var(--art-ink)] placeholder:text-[var(--art-quiet)]"
-            />
-            <span className="sk-label sk-num whitespace-nowrap">{prompt.length} / {MAX_PROMPT}</span>
-            <div className="sk-row" style={{ gap: 8 }} role="group" aria-label="Aspect ratio">
-              {RATIOS.map((r) => (
-                <button
-                  key={r.value}
-                  type="button"
-                  onClick={() => setRatio(r.value)}
-                  aria-pressed={ratio === r.value}
-                  className={`sk-pill sk-pill-sm ${ratio === r.value ? "is-active" : ""}`}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
+          {/* Primary Action Button */}
+          <div className="mt-5 mb-3">
             <button
               type="button"
-              className="sk-send"
               onClick={() => void generate()}
-              disabled={!canGenerate}
-              aria-label={generating ? "Drawing..." : "Create image"}
+              disabled={generating || (!prompt.trim() && !new URLSearchParams(window.location.search).get("demo"))}
+              className="img-btn-primary"
             >
-              <SutaeruIcon name="arrow" className="-rotate-90" />
+              {generating ? "Drawing..." : "Create image"}
             </button>
           </div>
 
-          {current?.supportsReference ? (
-            <div className="sk-card">
-              <AttachMenu
-                attachments={refs}
-                onChange={setRefs}
-                max={MAX_REFERENCE}
-                imagesOnly
-                disabled={generating}
-                label="Reference photo"
-              />
-              <p className="sk-empty-text mt-3">Up to {MAX_REFERENCE} photos this engine should look at while it draws.</p>
-            </div>
-          ) : (
-            <p className="sk-empty-text">This engine cannot use reference photos.</p>
-          )}
+          {/* Footer Info Indicator */}
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setStep("engine")}
+              className="art-mono text-[11px] font-medium tracking-[1.54px] uppercase text-[var(--r-quiet)] hover:text-[var(--r-ink)] transition-colors"
+            >
+              {currentMeta.displayTitle.toUpperCase()} · {quality.toUpperCase()} · ABOUT {quality === "high" ? "40" : "15"} S
+            </button>
+          </div>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // (c) GENERATING SCREEN (07-images-generating.png)
+  // ────────────────────────────────────────────────────────────────────────────
+  if (step === "generating") {
+    const displayPrompt = prompt || "A ceramic mug on a pale desk, soft window light, shallow depth of field.";
+    const currentProgress = effectiveProgress;
+    const stage = currentProgress < 0.25 ? "QUEUED" : currentProgress > 0.85 ? "SAVING" : "DRAWING";
+
+    return (
+      <div className="sk-page h-full overflow-y-auto px-5 pt-6 pb-28">
+        <div className="img-flow-container">
+          <header className="mb-6">
+            <PageTitle>Images</PageTitle>
+            <p className="mt-2 text-[14.5px] leading-relaxed text-[var(--r-quiet)]">
+              {currentMeta.displayTitle} is drawing your picture.
+            </p>
+          </header>
+
+          {/* Split Preview Card with FocusBrackets */}
+          <div className="relative mb-4">
+            <FocusBrackets tone="ink" />
+            <div className="img-split-preview">
+              <div className="img-split-left">
+                {refs[0] && refs[0].source === "device" ? (
+                  <img src={refs[0].dataUrl} alt="Source" />
+                ) : (
+                  <img src={currentMeta.img || "/engines/gemini.jpg"} alt="Preview reference" />
+                )}
+                <div className="img-preview-badge">
+                  {currentMeta.displayTitle.toUpperCase()} · {quality.toUpperCase()}
+                </div>
+              </div>
+              <div className="img-split-right text-[var(--r-ink)]">
+                <HalftoneRamp
+                  columns={12}
+                  rows={16}
+                  cell={12}
+                  minRadius={0.8}
+                  maxRadius={3.6}
+                  progress={currentProgress}
+                  fluid
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Progress Card */}
+          <div className="img-card mb-6">
+            <div className="art-mono text-[11px] font-medium tracking-[1.54px] uppercase text-[var(--r-quiet)] mb-2">
+              {stage}
+            </div>
+
+            <div className="flex items-baseline justify-between mb-4">
+              <span className="font-['Inter_Tight',sans-serif] text-[42px] font-extrabold leading-none tracking-[-2px] text-[var(--r-ink)]">
+                {Math.round(currentProgress * 100)}%
+              </span>
+              <span className="art-mono text-[11px] font-medium tracking-[1.54px] uppercase text-[var(--r-quiet)]">
+                ABOUT {secondsLeft} S LEFT
+              </span>
+            </div>
+
+            <ConvergeBar progress={currentProgress} showPercent={false} ariaLabel="Image drawing progress" />
+
+            <div className="img-stage-row">
+              <span className={stage === "QUEUED" ? "is-active" : ""}>QUEUED</span>
+              <span className={stage === "DRAWING" ? "is-active" : ""}>DRAWING</span>
+              <span className={stage === "SAVING" ? "is-active" : ""}>SAVING</span>
+            </div>
+          </div>
+
+          {/* Prompt Recap & Cancel Row */}
+          <div className="flex items-center justify-between mb-3">
+            <span className="img-section-label mb-0">PROMPT</span>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="px-5 py-1.5 rounded-full border border-[var(--r-ink)] text-[13px] font-semibold text-[var(--r-ink)] hover:bg-[var(--r-ink)] hover:text-[var(--r-paper)] transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+
+          <p className="text-[14.5px] leading-relaxed text-[var(--r-ink)]">
+            {displayPrompt}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // (d) DONE SCREEN (08-images-done.png)
+  // ────────────────────────────────────────────────────────────────────────────
+  if (step === "done") {
+    const render = selectedRender || {
+      id: 999,
+      prompt: prompt || "A ceramic mug on a pale desk, soft window light, shallow depth of field.",
+      engine: currentEngine.label,
+      model: "",
+      blobUrl: currentMeta.img || "/engines/gemini.jpg",
+      filename: "ceramic-mug.jpg",
+      elapsedSeconds: 12,
+      quality,
+    };
+
+    return (
+      <div className="sk-page h-full overflow-y-auto px-5 pt-6 pb-28">
+        <div className="img-flow-container">
+          <header className="mb-6">
+            <PageTitle>Images</PageTitle>
+            <p className="mt-2 text-[14.5px] leading-relaxed text-[var(--r-quiet)]">
+              Ready, and saved to My Files.
+            </p>
+          </header>
+
+          {/* Full Image Card with FocusBrackets */}
+          <div className="relative mb-4">
+            <FocusBrackets tone="ink" />
+            <div className="relative rounded-[28px] overflow-hidden border border-[var(--r-card-stroke)] bg-[var(--r-card)] shadow-sm h-[230px] max-h-[240px]">
+              <img
+                src={render.blobUrl}
+                alt={render.prompt}
+                className="w-full h-full object-cover"
+              />
+              <div className="img-preview-badge">
+                {currentMeta.displayTitle.toUpperCase()} · {render.quality.toUpperCase()}
+              </div>
+            </div>
+          </div>
+
+          {/* Done Progress Card */}
+          <div className="img-card mb-5">
+            <div className="flex items-center justify-between mb-4">
+              <span className="art-mono text-[11px] font-medium tracking-[1.54px] uppercase text-[var(--r-ink)] font-bold">
+                DONE
+              </span>
+              <span className="art-mono text-[11px] font-medium tracking-[1.54px] uppercase text-[var(--r-quiet)]">
+                TOOK {render.elapsedSeconds || 12} S
+              </span>
+            </div>
+
+            <ConvergeBar progress={1} state="done" showPercent={false} ariaLabel="Image complete" />
+          </div>
+
+          {/* Actions Row */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <a
+              href={render.blobUrl}
+              download={render.filename}
+              className="img-btn-ink"
+            >
+              Download
+            </a>
+            <button
+              type="button"
+              onClick={() => navigate("/documents?start=edit")}
+              className="img-btn-outline"
+            >
+              Edit in Documents
+            </button>
+          </div>
+
+          {/* Try Another Engine Section */}
+          <section aria-label="Try another engine">
+            <span className="img-section-label">TRY ANOTHER ENGINE</span>
+            <div className="img-pill-row">
+              {engines.map((e) => {
+                const meta = ENGINE_META[e.id] ?? ENGINE_META.gemini;
+                const active = currentEngine.id === e.id;
+                return (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => {
+                      setEngine(e.id);
+                      setStep("prompt");
+                    }}
+                    className={`img-pill-btn${active ? " is-active" : ""}`}
+                  >
+                    {meta.displayTitle}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // (e) FAILED SCREEN (09-images-failed.png)
+  // ────────────────────────────────────────────────────────────────────────────
+  const errorElapsed = elapsed > 0 ? elapsed : 21;
+
+  return (
+    <div className="sk-page h-full overflow-y-auto px-5 pt-6 pb-28">
+      <div className="img-flow-container">
+        <header className="mb-5">
+          <PageTitle>Images</PageTitle>
+          <p className="mt-2 text-[14.5px] leading-relaxed text-[var(--r-quiet)]">
+            {currentMeta.displayTitle} couldn't finish this one.
+          </p>
+        </header>
+
+        {/* Failed Split Preview Card with Alert FocusBrackets */}
+        <div className="relative mb-4">
+          <FocusBrackets tone="alert" />
+          <div className="img-split-preview" style={{ height: "180px" }}>
+            <div className="img-split-left">
+              <img src={currentMeta.img || "/engines/gemini.jpg"} alt="Attempt preview" />
+            </div>
+            <div className="img-split-right is-failed relative text-[var(--r-ink)]">
+              <HalftoneRamp
+                columns={12}
+                rows={16}
+                cell={12}
+                minRadius={0.8}
+                maxRadius={3.6}
+                fluid
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="img-alert-circle">
+                  <SutaeruIcon name="close" className="size-6 text-[var(--r-alert)]" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stopped Progress Card */}
+        <div className="img-card mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="art-mono text-[11px] font-bold tracking-[1.54px] uppercase text-[var(--r-alert)]">
+              STOPPED
+            </span>
+            <span className="art-mono text-[11px] font-medium tracking-[1.54px] uppercase text-[var(--r-quiet)]">
+              TOOK {errorElapsed} S
+            </span>
+          </div>
+
+          <div className="font-['Inter_Tight',sans-serif] text-[42px] font-extrabold leading-none tracking-[-2px] text-[var(--r-ink)] mb-4">
+            38%
+          </div>
+
+          <ConvergeBar progress={0.38} state="error" showPercent={false} ariaLabel="Image generation failed" />
+        </div>
+
+        {/* Failure message: verified prompt is preserved in state */}
+        <div className="mb-4">
+          <p className="text-[14.5px] leading-relaxed text-[var(--r-quiet)]">
+            The engine timed out before the picture was finished.
+            <br />
+            Your prompt is still saved.
+          </p>
+        </div>
+
+        {/* Try Again Button */}
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={() => void generate()}
+            className="img-btn-ink w-full"
+          >
+            Try again
+          </button>
+        </div>
+
+        {/* Or Try With Engine Row */}
+        <section aria-label="Try with another engine">
+          <span className="img-section-label">OR TRY WITH</span>
+          <div className="img-pill-row">
+            {engines.map((e) => {
+              const meta = ENGINE_META[e.id] ?? ENGINE_META.gemini;
+              const isCurrent = currentEngine.id === e.id;
+              return (
+                <button
+                  key={e.id}
+                  type="button"
+                  onClick={() => {
+                    setEngine(e.id);
+                    setStep("prompt");
+                  }}
+                  className={`img-pill-btn${isCurrent ? " is-alert" : ""}`}
+                >
+                  {meta.displayTitle}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

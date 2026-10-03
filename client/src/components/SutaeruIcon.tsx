@@ -33,6 +33,7 @@ export type SutaeruIconName =
   | "voice"
   | "bookmark"
   | "image"
+  | "video"
   | "code"
   | "review"
   | "admin"
@@ -74,6 +75,7 @@ const paths: Record<SutaeruIconName, React.ReactNode> = {
   voice: <><rect x="36" y="17" width="24" height="42" rx="12" /><path d="M26 47a22 22 0 0 0 44 0M48 69v12M36 81h24" /></>,
   bookmark: <><path d="M27 17h42v64L48 67 27 81V17Z" /></>,
   image: <><rect x="17" y="21" width="62" height="54" rx="7" /><circle cx="36" cy="39" r="7" /><path d="m20 68 18-17 12 11 10-9 16 15" /></>,
+  video: <><rect x="18" y="24" width="44" height="48" rx="8" /><path d="m62 38 16-10v40l-16-10" /></>,
   code: <><path d="m36 27-20 21 20 21M60 27l20 21-20 21M55 18 41 78" /></>,
   review: <><path d="M26 20h44v59H26V20ZM37 36l5 5 9-10M37 56l5 5 9-10M57 38h6M57 58h6" /></>,
   admin: <><path d="M48 14 76 25v20c0 18-11 29-28 37-17-8-28-19-28-37V25l28-11Z" /><path d="m34 48 9 9 19-20" /></>,
@@ -88,7 +90,7 @@ const signals: Partial<Record<SutaeruIconName, [number, number]>> = {
   close: [69, 27], check: [75, 28], plus: [48, 48], arrow: [74, 48], more: [72, 48],
   delete: [65, 30], edit: [68, 24], copy: [67, 34], download: [48, 59], share: [75, 21],
   pin: [65, 44], lock: [48, 58], play: [48, 48], voice: [48, 34], bookmark: [48, 67],
-  image: [66, 68], code: [48, 48], review: [42, 41], admin: [48, 48], plan: [68, 60],
+  image: [66, 68], video: [40, 48], code: [48, 48], review: [42, 41], admin: [48, 48], plan: [68, 60],
 };
 
 /** Sutaeru's heavy rounded icon family with one orange signal per symbol. */

@@ -8,6 +8,7 @@ import { VideoPlayerProvider } from "./contexts/VideoPlayerContext";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Documents from "./pages/Documents";
+import Generate from "./pages/Generate";
 import Files from "./pages/Files";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
@@ -67,7 +68,13 @@ function AppRoutes() {
         <Redirect to="/documents" />
       </Route>
       <Route path="/generate">
-        <Redirect to="/documents?start=new&mode=describe" />
+        {isAuthenticated ? (
+          <DashboardLayout>
+            <Generate />
+          </DashboardLayout>
+        ) : (
+          <ProtectedRoute component={Generate} />
+        )}
       </Route>
       <Route path="/files">
         {isAuthenticated ? (

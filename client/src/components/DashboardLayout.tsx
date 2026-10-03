@@ -62,6 +62,7 @@ const MAX_WIDTH = 480;
 /** Mono word shown in the mobile AppHeader for the current route. */
 function mobileHeaderLabel(location: string): string {
   if (location === "/chat" || location.startsWith("/sessions")) return "WORKSPACE";
+  if (location.startsWith("/images")) return "STUDIO";
   if (location === "/generate" || (location.startsWith("/atelier") && location.includes("mode=describe"))) return "GENERATE";
   if (location.startsWith("/atelier") || location.startsWith("/documents")) return "DOCUMENTS";
   if (location.startsWith("/files")) return "FILES";

@@ -164,8 +164,20 @@ export default function Chat() {
   const showAgentPanel = agentPanelOpen && chatWidth !== "full";
 
   // Thread-level settings
-  const [mode, setMode] = useState<string>("fast");
-  const [allowedTools, setAllowedTools] = useState<string[]>(MODE_DEFAULTS.fast);
+  const [mode, setMode] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const q = new URLSearchParams(window.location.search).get("mode");
+      if (q && (q === "fast" || q === "deep" || q === "code")) return q;
+    }
+    return "fast";
+  });
+  const [allowedTools, setAllowedTools] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      const q = new URLSearchParams(window.location.search).get("mode");
+      if (q && q in MODE_DEFAULTS) return MODE_DEFAULTS[q];
+    }
+    return MODE_DEFAULTS.fast;
+  });
 
   // Message-level settings
   const [messageModel, setMessageModel] = useState<string>("auto");

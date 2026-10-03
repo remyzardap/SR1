@@ -123,7 +123,7 @@
 .art-junction::before { bottom: calc(100% + 3px); }
 .art-junction::after { top: calc(100% + 3px); }
 .art-junction.is-error::before,
-.art-junction::after { background: var(--r-alert); }
+.art-junction.is-error::after { background: var(--r-alert); }
 .art-converge.is-error .art-pill { background: var(--r-alert); }
 .art-converge.is-error .art-junction { background: var(--r-paper); }
 

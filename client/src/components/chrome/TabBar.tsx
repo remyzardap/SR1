@@ -39,7 +39,7 @@ export function getTabItems(): TabBarItem[] {
       label: "Generate",
       path: "/generate",
       icon: tabIcon("make"),
-      match: (l) => l === "/generate",
+      match: (l) => l === "/generate" || l.startsWith("/generate"),
     },
     { label: "Files", path: "/files", icon: tabIcon("files"), match: (l) => l === "/files" },
     // TODO(wave 2): point to "/more" once the grouped page exists.

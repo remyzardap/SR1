@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import "./art.css";
 
 export interface FocusBracketsProps {
   /** Corner stroke colour: ink for selected, alert for failed. */
@@ -16,7 +17,7 @@ export function FocusBrackets({ tone = "ink", className }: FocusBracketsProps) {
       {(["tl", "tr", "br", "bl"] as const).map((pos) => (
         <span key={pos} className={`art-bracket art-bracket-${pos}`}>
           <svg viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d={CORNER_PATH} stroke="currentColor" strokeWidth="2" strokeLinecap="square" />
+            <path d={CORNER_PATH} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" />
           </svg>
         </span>
       ))}
