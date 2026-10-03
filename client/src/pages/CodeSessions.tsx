@@ -3,6 +3,8 @@ import { useLocation, useRoute } from "wouter";
 import { Loader2 } from "lucide-react";
 import { Streamdown } from "streamdown";
 import { toast } from "sonner";
+import { AttachMenu } from "@/components/AttachMenu";
+import type { Attachment } from "@/lib/attachments";
 import { getAuthToken } from "@/lib/authSession";
 import "@/styles/code-sessions.css";
 
@@ -12,7 +14,7 @@ interface Session {
   id: string;
   title: string;
   status: Status;
-  mode: "read" | "edit";
+  mode: "read" | "edit" | "full";
   provider?: string;
   spent_usd: number;
   budget_usd: number;
@@ -56,6 +58,12 @@ const STATUS_LABEL: Record<Status, string> = {
   stopped: "Stopped", capped: "Spend cap hit", interrupted: "Interrupted",
 };
 
+function modeLabel(mode: "read" | "edit" | "full"): string {
+  if (mode === "full") return "Full access";
+  if (mode === "edit") return "Can edit";
+  return "Read only";
+}
+
 function ago(ts: number): string {
   const s = Math.max(0, Date.now() / 1000 - ts);
   if (s < 60) return "just now";
@@ -87,12 +95,20 @@ function SessionList() {
   const [sessions, setSessions] = useState<Session[] | null>(null);
   const [gate, setGate] = useState<GateError | null>(null);
   const [prompt, setPrompt] = useState("");
-  const [mode, setMode] = useState<"read" | "edit">("read");
+  const [mode, setMode] = useState<"read" | "edit" | "full">("read");
+  const [totp, setTotp] = useState("");
+  const [fullAvailable, setFullAvailable] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      setSessions((await call<{ sessions: Session[] }>("/")).sessions);
+      const [sRes, statusRes] = await Promise.all([
+        call<{ sessions: Session[] }>("/"),
+        call<{ ok: boolean; fullAvailable?: boolean }>("/status").catch(() => ({ ok: false, fullAvailable: false })),
+      ]);
+      setSessions(sRes.sessions);
+      setFullAvailable(Boolean(statusRes.fullAvailable));
       setGate(null);
     } catch (e) {
       if (e instanceof GateError) setGate(e);
@@ -107,10 +123,22 @@ function SessionList() {
   }, [load]);
 
   async function start() {
-    if (!prompt.trim() || busy) return;
+    const trimmed = prompt.trim();
+    if ((!trimmed && attachments.length === 0) || busy) return;
+    if (mode === "full" && totp.length !== 6) {
+      toast.error("Enter a 6-digit authenticator code for full access.");
+      return;
+    }
     setBusy(true);
     try {
-      const s = await call<Session>("/", { prompt, mode });
+      const s = await call<Session>("/", {
+        prompt: trimmed || "Inspect the attached files.",
+        mode,
+        ...(mode === "full" ? { totp } : {}),
+        ...(attachments.length > 0 ? { attachments } : {}),
+      });
+      setAttachments([]);
+      setTotp("");
       go(`/sessions/${s.id}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not start the session.");
@@ -120,19 +148,57 @@ function SessionList() {
   }
 
   if (gate) return <Gate error={gate} />;
+  const canStart = (prompt.trim().length > 0 || attachments.length > 0) && !busy && (mode !== "full" || totp.length === 6);
   return (
     <>
       <div className="cs-card">
         <label className="cs-label" htmlFor="cs-task">New session</label>
         <textarea id="cs-task" className="cs-input" rows={3} value={prompt} placeholder="What should Claude Code do on the server?" onChange={(e) => setPrompt(e.target.value)} />
-        <div className="cs-row">
-          <div className="cs-seg" role="radiogroup" aria-label="Access">
-            <button role="radio" aria-checked={mode === "read"} className={mode === "read" ? "on" : ""} onClick={() => setMode("read")}>Read only</button>
-            <button role="radio" aria-checked={mode === "edit"} className={mode === "edit" ? "on" : ""} onClick={() => setMode("edit")}>Can edit</button>
-          </div>
-          <button className="sk-btn" disabled={!prompt.trim() || busy} onClick={start}>{busy ? <Loader2 size={16} className="animate-spin" /> : "Start"}</button>
+        <div className="cs-attach-slot">
+          <AttachMenu attachments={attachments} onChange={setAttachments} disabled={busy} />
         </div>
-        <p className="cs-muted cs-small">{mode === "read" ? "It can look at files and search, nothing else." : "It can edit files and run safe checks. Anything riskier asks you first."}</p>
+        <div className="cs-row">
+          <div className="cs-mode-row">
+            <div className="cs-seg" role="radiogroup" aria-label="Access">
+              <button role="radio" aria-checked={mode === "read"} className={mode === "read" ? "on" : ""} onClick={() => setMode("read")}>Read only</button>
+              <button role="radio" aria-checked={mode === "edit"} className={mode === "edit" ? "on" : ""} onClick={() => setMode("edit")}>Can edit</button>
+            </div>
+            {fullAvailable && (
+              <button
+                type="button"
+                className={`cs-full-btn ${mode === "full" ? "on" : ""}`}
+                onClick={() => setMode(mode === "full" ? "read" : "full")}
+              >
+                Full access
+              </button>
+            )}
+          </div>
+          <button className="sk-btn" disabled={!canStart} onClick={start}>{busy ? <Loader2 size={16} className="animate-spin" /> : "Start"}</button>
+        </div>
+        {mode === "full" ? (
+          <>
+            <p className="cs-warn-line">
+              Full access lets Claude run any command on the server as root without asking. Known secret files are blocked and the spend cap and 30 minute limit still apply, but a command can get around the file rules. Use it only for tasks you trust.
+            </p>
+            <div className="cs-totp-group">
+              <label htmlFor="cs-totp" className="cs-label">Authenticator code</label>
+              <input
+                id="cs-totp"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]*"
+                maxLength={6}
+                className="cs-input cs-totp-input"
+                placeholder="6-digit 2FA code"
+                value={totp}
+                onChange={(e) => setTotp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              />
+            </div>
+          </>
+        ) : (
+          <p className="cs-muted cs-small">{mode === "read" ? "It can look at files and search, nothing else." : "It can edit files and run safe checks. Anything riskier asks you first."}</p>
+        )}
       </div>
 
       <h2 className="cs-section">Sessions</h2>
@@ -188,6 +254,7 @@ function SessionView({ id }: { id: string }) {
   const [events, setEvents] = useState<Ev[]>([]);
   const [gate, setGate] = useState<GateError | null>(null);
   const [text, setText] = useState("");
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [busy, setBusy] = useState(false);
   const after = useRef(0);
   const bottom = useRef<HTMLDivElement>(null);
@@ -242,7 +309,7 @@ function SessionView({ id }: { id: string }) {
         <span className={`cs-pill cs-${session.status}`}>{STATUS_LABEL[session.status] ?? session.status}</span>
       </div>
       <p className="cs-muted cs-small">
-        {session.mode === "read" ? "Read only" : "Can edit"} · {session.provider ?? "starting"} · ${session.spent_usd.toFixed(2)} of ${session.budget_usd.toFixed(2)}
+        {modeLabel(session.mode)} · {session.provider ?? "starting"} · ${session.spent_usd.toFixed(2)} of ${session.budget_usd.toFixed(2)}
       </p>
 
       <Timeline events={events} />
@@ -267,8 +334,30 @@ function SessionView({ id }: { id: string }) {
           <button className="sk-btn sk-btn-ghost cs-wide" disabled={busy} onClick={() => act("/stop", {})}>Stop</button>
         ) : (
           <>
-            <textarea className="cs-input" rows={2} value={text} placeholder="Reply to Claude…" onChange={(e) => setText(e.target.value)} disabled={session.status === "needs_approval"} />
-            <button className="sk-btn" disabled={!text.trim() || busy || session.status === "needs_approval"} onClick={async () => { const t = text; setText(""); await act("/message", { text: t }); }}>Send</button>
+            <div className="cs-attach-slot cs-wide">
+              <AttachMenu attachments={attachments} onChange={setAttachments} disabled={busy || session.status === "needs_approval"} />
+            </div>
+            <textarea
+              className="cs-input"
+              rows={2}
+              value={text}
+              placeholder="Reply to Claude…"
+              onChange={(e) => setText(e.target.value)}
+              disabled={session.status === "needs_approval"}
+            />
+            <button
+              className="sk-btn"
+              disabled={(!text.trim() && attachments.length === 0) || busy || session.status === "needs_approval"}
+              onClick={async () => {
+                const t = text.trim() || "Inspect the attached files.";
+                const atts = attachments;
+                setText("");
+                setAttachments([]);
+                await act("/message", { text: t, ...(atts.length > 0 ? { attachments: atts } : {}) });
+              }}
+            >
+              Send
+            </button>
           </>
         )}
       </div>

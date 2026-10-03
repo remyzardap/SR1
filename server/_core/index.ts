@@ -83,7 +83,9 @@ app.use(cookieParser());
 const attachmentBody = express.json({ limit: '32mb', verify: (req, _res, buf) => { (req as any).rawBody = buf; } });
 app.use('/api/fn', requireSession, attachmentBody);
 app.use('/api/kemma/stream', requireSession, attachmentBody);
-app.use(['/api/fn', '/api/kemma/stream'], (err: any, _req: any, res: any, next: any) => {
+app.post('/api/admin/code-sessions', requireSession, attachmentBody);
+app.post('/api/admin/code-sessions/:id/message', requireSession, attachmentBody);
+app.use(['/api/fn', '/api/kemma/stream', '/api/admin/code-sessions'], (err: any, _req: any, res: any, next: any) => {
   if (err?.type === 'entity.too.large') return res.status(413).json({ error: 'That upload is too large. Keep attachments under 20 MB in total.' });
   next(err);
 });
