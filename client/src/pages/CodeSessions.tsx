@@ -83,7 +83,7 @@ function Gate({ error }: { error: GateError }) {
   const [, go] = useLocation();
   return (
     <div className="cs-card">
-      <h2 className="cs-card-title">Code sessions are locked</h2>
+      <h2 className="cs-card-title">Code mode is locked</h2>
       <p className="cs-muted">{error.message}</p>
       {error.reason === "2fa" && <button className="sk-btn" onClick={() => go("/settings")}>Open Settings</button>}
     </div>
@@ -309,7 +309,7 @@ function SessionView({ id }: { id: string }) {
         <span className={`cs-pill cs-${session.status}`}>{STATUS_LABEL[session.status] ?? session.status}</span>
       </div>
       <p className="cs-muted cs-small">
-        {modeLabel(session.mode)} · {session.provider ?? "starting"} · ${session.spent_usd.toFixed(2)} of ${session.budget_usd.toFixed(2)}
+        {modeLabel(session.mode)} · {session.provider ?? "starting"} · ${session.spent_usd.toFixed(2)} so far
       </p>
 
       <Timeline events={events} />
@@ -371,7 +371,7 @@ export default function CodeSessions() {
     <div className="sk-page cs-page">
       <div className="sk-header">
         <div>
-          <h1 className="sk-h1">Code sessions</h1>
+          <h1 className="sk-h1">Code mode</h1>
           <p className="sk-sub">Claude Code on your server, from your phone.</p>
         </div>
       </div>

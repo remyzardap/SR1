@@ -47,7 +47,7 @@ class TestFullMode(unittest.TestCase):
         self.assertIn("Bash(rm -rf /*)", disallowed_str)
 
     @patch("session_manager.start_turn")
-    def test_create_full_mode_defaults_budget_to_three_dollars(self, mock_start_turn):
+    def test_create_full_mode_has_no_default_spend_cap(self, mock_start_turn):
         body = {
             "prompt": "Full mode task",
             "mode": "full",
@@ -55,7 +55,7 @@ class TestFullMode(unittest.TestCase):
         }
         meta = sm.create(body)
         self.assertEqual(meta["mode"], "full")
-        self.assertEqual(meta["budget_usd"], 3.0)
+        self.assertEqual(meta["budget_usd"], 0.0)
 
     def test_full_mode_timeout_after_30_minutes(self):
         meta = {

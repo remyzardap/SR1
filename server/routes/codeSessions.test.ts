@@ -199,7 +199,7 @@ describe("codeSessions HTTP routes", () => {
       expect(data.error).toMatch(/Invalid two-factor code/);
     });
 
-    it("accepts mode=full with valid totp code, defaults budget to $3, and passes mode to daemon", async () => {
+    it("accepts mode=full with valid totp code, sets no spend cap by default, and passes mode to daemon", async () => {
       vi.stubEnv("CODE_SESSIONS_FULL", "1");
       const code = speakeasy.totp({ secret: totpSecret, encoding: "base32" });
       const res = await fetch(`${base}/`, {
@@ -214,7 +214,7 @@ describe("codeSessions HTTP routes", () => {
       expect(daemonCall).toBeDefined();
       const daemonBody = JSON.parse(daemonCall[1].body);
       expect(daemonBody.mode).toBe("full");
-      expect(daemonBody.budget_usd).toBe(3);
+      expect(daemonBody.budget_usd).toBeUndefined();
     });
   });
 

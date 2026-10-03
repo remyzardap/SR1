@@ -6,7 +6,7 @@ import { parseAttachments, resolveAttachment } from "../lib/attachments";
 import { logAuditEvent } from "../middleware/audit-logging";
 
 /**
- * Code sessions: headless Claude Code on the VPS, driven from the phone.
+ * Code mode: headless Claude Code on the VPS, driven from the phone.
  * The session daemon (/root/session-manager, systemd unit session-manager) does the work; this router only
  * checks who is asking and relays. Owner-only, needs two-factor on the account, and has a kill switch.
  * Mounted at /api/admin/code-sessions behind the session gate.
@@ -33,8 +33,8 @@ export function codeProjects(env: NodeJS.ProcessEnv = process.env): Record<strin
 
 export function codeSessionsGate(user: any, env: NodeJS.ProcessEnv = process.env): { ok: true } | { ok: false; reason: string; message: string } {
   if (user?.role !== "admin") return { ok: false, reason: "admin", message: "Admin only." };
-  if (env.CODE_SESSIONS_ENABLED !== "1") return { ok: false, reason: "disabled", message: "Code sessions are switched off." };
-  if (!env.CODE_SESSIONS_URL || !env.CODE_SESSIONS_TOKEN) return { ok: false, reason: "unconfigured", message: "Code sessions are not configured on this server." };
+  if (env.CODE_SESSIONS_ENABLED !== "1") return { ok: false, reason: "disabled", message: "Code mode is switched off." };
+  if (!env.CODE_SESSIONS_URL || !env.CODE_SESSIONS_TOKEN) return { ok: false, reason: "unconfigured", message: "Code mode is not configured on this server." };
   if (!user.totpEnabled) return { ok: false, reason: "2fa", message: "Turn on two-factor sign-in before using code sessions." };
   return { ok: true };
 }
@@ -176,7 +176,7 @@ codeSessionsRouter.post("/", attachmentBody, handleAttachment413, async (req: Re
   }
 
   const budget = Number(req.body?.budgetUsd);
-  const effectiveBudget = Number.isFinite(budget) && budget > 0 ? Math.min(budget, 25) : mode === "full" ? 3 : undefined;
+  const effectiveBudget = Number.isFinite(budget) && budget > 0 ? Math.min(budget, 25) : undefined; // no default spend cap
 
   const r = await daemon("/sessions", {
     method: "POST",

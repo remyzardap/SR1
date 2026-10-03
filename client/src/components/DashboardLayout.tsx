@@ -395,11 +395,11 @@ function DashboardLayoutContent({
                   <SidebarMenuButton
                     isActive={location.startsWith("/sessions")}
                     onClick={() => setLocation("/sessions")}
-                    tooltip="Code sessions"
+                    tooltip="Code mode"
                     className="sutaeru-nav-item sk-shell-item"
                   >
                     <SutaeruIcon name="make" className="sk-shell-icon" />
-                    <span>Code</span>
+                    <span>Code mode</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}

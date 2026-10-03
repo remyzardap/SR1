@@ -19,7 +19,7 @@ DATA = os.environ.get("SESSION_DATA", "/root/session-data")
 TOKEN = os.environ.get("SESSION_TOKEN") or (open("/root/.session_manager_token").read().strip() if os.path.exists("/root/.session_manager_token") else "")
 PROVIDERS_FILE = "/root/.session_providers.json"
 DEFAULT_CWD = "/root/sr1"
-DEFAULT_BUDGET = float(os.environ.get("SESSION_BUDGET_USD", "5"))
+DEFAULT_BUDGET = float(os.environ.get("SESSION_BUDGET_USD", "0"))  # 0 = no spend cap
 FULL_SESSION_TIMEOUT = int(os.environ.get("SESSION_FULL_TIMEOUT", "1800"))
 MAX_ATTACH_FILE_BYTES = 10 * 1024 * 1024
 MAX_ATTACH_TOTAL_BYTES = 20 * 1024 * 1024
@@ -233,8 +233,9 @@ def provider_env(p, full=False):
 
 
 def build_cmd(meta, prompt, p, resume_id):
-    cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose",
-           "--max-budget-usd", str(meta["budget_usd"])]
+    cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose"]
+    if meta.get("budget_usd", 0) > 0:
+        cmd += ["--max-budget-usd", str(meta["budget_usd"])]
     mode_args = list(MODES[meta["mode"]])
     if "--allowedTools" in mode_args:
         i = mode_args.index("--allowedTools")
@@ -279,7 +280,7 @@ def run_turn(sid, prompt):
     order = providers[start:] + providers[:start]
     spent = meta.get("spent_usd", 0.0)
     for attempt, p in enumerate(order):
-        if spent >= meta["budget_usd"]:
+        if meta.get("budget_usd", 0) > 0 and spent >= meta["budget_usd"]:
             emit(sid, {"type": "sutaeru", "kind": "budget", "text": "Session spend cap reached."})
             finish(sid, "capped")
             return
@@ -471,10 +472,10 @@ def create(body):
         add_dirs.append(uploads_dir)
         note = f"Files the owner attached are in {uploads_dir}: {', '.join(saved_files)}."
         turn_prompt = f"{prompt}\n\n{note}"
-    default_budget = 3.0 if mode == "full" else DEFAULT_BUDGET
+    default_budget = DEFAULT_BUDGET
     meta = {"id": sid, "title": prompt[:60], "cwd": cwd, "mode": mode, "status": "running",
             "created": time.time(), "updated": time.time(), "spent_usd": 0.0,
-            "budget_usd": min(float(body.get("budget_usd", default_budget)), 25.0),
+            "budget_usd": max(0.0, min(float(body.get("budget_usd") or default_budget), 25.0)),
             "approved_tools": [], "pending_approvals": [], "add_dirs": add_dirs,
             "last_nudged_status": None}
     write_meta(sid, meta)
