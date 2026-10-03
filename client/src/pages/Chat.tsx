@@ -305,15 +305,16 @@ export default function Chat() {
       .then((data: Array<{ role: string; content: string; createdAt: string; model?: string }>) => {
         if (cancelled) return;
         if (Array.isArray(data) && data.length > 0) {
-          setMessages(
-            data.map((m) => ({
-              id: crypto.randomUUID(),
-              role: m.role as "user" | "assistant",
-              content: m.content,
-              model: m.model,
-              createdAt: new Date(m.createdAt),
-            }))
-          );
+          const saved = data.map((m) => ({
+            id: crypto.randomUUID(),
+            role: m.role as "user" | "assistant",
+            content: m.content,
+            model: m.model,
+            createdAt: new Date(m.createdAt),
+          }));
+          // Saved history only fills an empty thread. A fetch that lands after the person has sent
+          // a message must not replace the live conversation with the older saved copy.
+          setMessages((prev) => (prev.length > 0 ? prev : saved));
         }
         setHistoryState("ready");
       })

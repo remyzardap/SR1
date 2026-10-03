@@ -54,3 +54,14 @@
 /* Center the transcript column inside the chat area */
 .sutaeru-chat .sutaeru-chat-transcript .sutaeru-chat-content { margin-inline: auto !important; }
 .sutaeru-chat .sutaeru-chat-transcript > div { margin-inline: auto; width: 100%; }
+
+/* Roomier composer: the box was too tight to type in, especially on phones. */
+.sutaeru-chat .sutaeru-input-box { min-height: 80px; padding: 10px 12px 10px 22px; }
+.sutaeru-chat .sutaeru-composer-textarea { min-height: 60px; max-height: 220px; padding: 18px 0 14px; line-height: 1.5; }
+.sutaeru-chat .sutaeru-composer-send { width: 52px; height: 52px; }
+@media (max-width: 767px) {
+  .sutaeru-chat .sutaeru-input-box { min-height: 72px; padding: 8px 10px 8px 18px; }
+  .sutaeru-chat .sutaeru-composer-textarea { min-height: 56px; padding: 16px 0 12px; }
+  .sutaeru-chat .sutaeru-composer-send { width: 48px; height: 48px; }
+  .sutaeru-chat .sutaeru-run-controls { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+}
