@@ -71,6 +71,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Inside a padded .sk-page the title should not add its own gutters or top gap. */
+.skx-page-title.skx-title-flush { margin: 0 0 8px; white-space: normal; }
 
 /* ── TabBar: floating ink pill ─────────────────────────────────────────────── */
 .skx-tabbar {

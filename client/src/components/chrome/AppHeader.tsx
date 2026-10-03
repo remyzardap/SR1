@@ -18,9 +18,9 @@ function Crosshair({ className }: { className?: string }) {
 }
 
 /** Logo mark: two outlined rings with one orange dot inside the right ring. */
-function LogoMark() {
+export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg className="skx-logo" width="32" height="22" viewBox="0 0 32 22" fill="none" aria-hidden="true">
+    <svg className={cn("skx-logo", className)} width="32" height="22" viewBox="0 0 32 22" fill="none" aria-hidden="true">
       <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2.6" />
       <circle cx="26" cy="11" r="8" stroke="currentColor" strokeWidth="2.6" />
       <circle cx="26" cy="11" r="3.3" className="skx-logo-dot" />

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
+import { ConvergeBar, FocusBrackets } from "@/components/art";
+import { useTimedProgress } from "@/hooks/useTimedProgress";
 import "@/styles/atelier-reskin.css";
 
 type Format = "pdf" | "docx" | "xlsx" | "pptx" | "md";
@@ -70,6 +72,9 @@ export default function QuickCreate({ embedded = false }: { embedded?: boolean }
   const [styleCards, setStyleCards] = useState<StyleCard[]>([]);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [generatedFile, setGeneratedFile] = useState<{ name: string; url: string } | null>(null);
+
+  // The generate call reports no percentage; the bar runs on a time estimate.
+  const run = useTimedProgress(step === "generating", 20);
 
   const getStylesMutation = trpc.files.getStyleOptions.useMutation({
     onSuccess: (data) => {
@@ -213,6 +218,7 @@ export default function QuickCreate({ embedded = false }: { embedded?: boolean }
                       onClick={() => setSelectedStyle(card.id)}
                       className={`sk-tile sk-at-tile${isSelected ? " is-active" : ""}`}
                     >
+                      {isSelected && <FocusBrackets />}
                       {isSelected && (
                         <span className="sk-at-tile-check" aria-hidden="true">
                           <SutaeruIcon name="check" />
@@ -267,7 +273,7 @@ export default function QuickCreate({ embedded = false }: { embedded?: boolean }
           <section className="sk-card flex flex-col gap-5" role="status" aria-live="polite">
             <div className="sk-at-run-top">
               <span className="sk-at-status">
-                <span className="sk-dot" aria-hidden="true" /> Generating
+                <span className="sk-dot sk-dot-ink" aria-hidden="true" /> Generating
               </span>
               <span className="sk-meta sk-num">STEP {STEPS.indexOf(step) + 1} OF {STEPS.length}</span>
             </div>
@@ -279,7 +285,7 @@ export default function QuickCreate({ embedded = false }: { embedded?: boolean }
                 The AI is writing and formatting your document. This usually takes 10-30 seconds.
               </p>
             </div>
-            <div className="sk-at-progress-live" aria-hidden="true"><span /></div>
+            <ConvergeBar progress={run.progress} etaSeconds={run.etaSeconds} dots={7} label="DRAFTING THE PAGE" ariaLabel={`Generating your ${format.toUpperCase()}`} />
             <div className="sk-at-now">
               <span className="sk-at-now-label">Now</span>
               <div className="sk-at-now-row">
@@ -295,7 +301,8 @@ export default function QuickCreate({ embedded = false }: { embedded?: boolean }
 
         {/* Step 4: Done */}
         {step === "done" && generatedFile && (
-          <section className="sk-card flex flex-col gap-6">
+          <section className="sk-card flex flex-col gap-6 sk-at-result" role="status" aria-live="polite">
+            <FocusBrackets />
             <div className="sk-between">
               <span className="sk-icon-tile">
                 <SutaeruIcon name="check" />
@@ -304,6 +311,7 @@ export default function QuickCreate({ embedded = false }: { embedded?: boolean }
                 <span className="sk-dot sk-dot-ink" aria-hidden="true" /> Done
               </span>
             </div>
+            <ConvergeBar progress={1} state="done" etaOverride={`TOOK ${Math.max(1, run.elapsedSeconds)} S`} showPercent={false} ariaLabel="Document finished" />
             <div>
               <h2 className="sk-at-run-title" style={{ marginTop: 0 }}>
                 Your file is ready!

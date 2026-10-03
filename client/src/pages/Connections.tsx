@@ -3,10 +3,12 @@ import { trpc } from "@/lib/trpc";
 import { useSearch } from "wouter";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-import { SiGoogle } from "react-icons/si";
 import { format } from "date-fns";
 import SutaeruIcon from "@/components/SutaeruIcon";
+import { HalftoneRamp } from "@/components/art";
+import { PageTitle } from "@/components/chrome/PageTitle";
 import MessagingCard from "@/components/MessagingLink";
+import "@/styles/connections.css";
 
 const connectionTypeLabels = {
   llm_api_key: "LLM API Key",
@@ -14,13 +16,18 @@ const connectionTypeLabels = {
   generic_api_key: "API Key",
 };
 
-// active renders as the plain connected indicator (orange dot, no chip);
-// revoked and expired keep a neutral chip so they read as inactive.
+// Status pills follow the canvas: active = ink, the rest read as inactive.
 const statusConfig = {
-  active: { label: "Active", cls: "sk-connected", dot: "sk-dot" },
-  revoked: { label: "Revoked", cls: "sk-chip sk-chip-idle", dot: "sk-dot" },
-  expired: { label: "Expired", cls: "sk-chip sk-chip-paused", dot: "sk-dot" },
+  active: { label: "Active", cls: "sk-connected" },
+  revoked: { label: "Revoked", cls: "sk-chip sk-chip-idle" },
+  expired: { label: "Expired", cls: "sk-chip sk-chip-paused" },
 };
+
+const CONNECTION_TYPES: Array<{ value: "llm_api_key" | "oauth2" | "generic_api_key"; label: string }> = [
+  { value: "generic_api_key", label: "API Key" },
+  { value: "oauth2", label: "OAuth 2.0" },
+  { value: "llm_api_key", label: "LLM API Key" },
+];
 
 function GoogleWorkspaceCard() {
   const utils = trpc.useUtils();
@@ -43,16 +50,14 @@ function GoogleWorkspaceCard() {
   if (!configured?.configured) {
     return (
       <section className="sk-card sk-row" style={{ marginBottom: 28 }} data-testid="card-google-not-configured">
-        <span className="sk-icon-tile">
-          <SiGoogle />
-        </span>
+        <span className="skx-letter-tile" aria-hidden="true">G</span>
         <div className="sk-col" style={{ flex: "1 1 260px", gap: 2 }}>
           <h2 className="sk-tile-title">Google Workspace</h2>
           <p className="sk-muted" style={{ margin: 0 }}>
             Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable Gmail, Calendar & Drive
           </p>
         </div>
-        <span className="sk-label">Not Configured</span>
+        <span className="skx-outline-pill">Not Configured</span>
       </section>
     );
   }
@@ -61,9 +66,7 @@ function GoogleWorkspaceCard() {
     <section className="sk-card sk-col" style={{ marginBottom: 28, gap: 18 }} data-testid="card-google-workspace">
       <div className="sk-between">
         <div className="sk-row" style={{ gap: 14 }}>
-          <span className="sk-icon-tile">
-            <SiGoogle />
-          </span>
+          <span className="skx-letter-tile" aria-hidden="true">G</span>
           <div className="sk-col" style={{ gap: 2 }}>
             <h2 className="sk-tile-title">Google Workspace</h2>
             <p className="sk-muted" style={{ margin: 0 }}>
@@ -75,11 +78,10 @@ function GoogleWorkspaceCard() {
         </div>
         {status?.connected ? (
           <span className="sk-connected">
-            <span className="sk-dot" />
             Connected
           </span>
         ) : (
-          <span className="sk-label">Disconnected</span>
+          <span className="skx-outline-pill">Disconnected</span>
         )}
       </div>
 
@@ -209,12 +211,12 @@ export default function Connections() {
   }
 
   return (
-    <div className="sk-page">
+    <div className="sk-page sk-connections">
       <div className="mx-auto w-full max-w-[1200px]">
         {/* Page header */}
         <header className="sk-header">
           <div>
-            <h1 className="sk-h1">Connections</h1>
+            <PageTitle className="skx-title-flush">Connections</PageTitle>
             <p className="sk-sub">Manage external service connections for your agent</p>
           </div>
           <div className="sk-actions">
@@ -253,17 +255,21 @@ export default function Connections() {
               </div>
 
               <div className="sk-field">
-                <label className="sk-label" htmlFor="connType">Type *</label>
-                <select
-                  id="connType"
-                  className="sk-select"
-                  value={type}
-                  onChange={(e) => setType(e.target.value as "llm_api_key" | "oauth2" | "generic_api_key")}
-                >
-                  <option value="llm_api_key">LLM API Key</option>
-                  <option value="oauth2">OAuth 2.0</option>
-                  <option value="generic_api_key">Generic API Key</option>
-                </select>
+                <span className="sk-label" id="conn-type-label">Type *</span>
+                <div className="sk-row" role="radiogroup" aria-labelledby="conn-type-label">
+                  {CONNECTION_TYPES.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={type === opt.value}
+                      onClick={() => setType(opt.value)}
+                      className={`sk-pill sk-pill-sm${type === opt.value ? " is-active" : ""}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -324,58 +330,32 @@ export default function Connections() {
           </section>
         )}
 
-        {/* Connections Grid */}
+        {/* Connections list */}
         {connections && connections.length > 0 ? (
-          <div className="sk-grid">
+          <div className="skx-conn-list">
             {connections.map((connection) => {
               const status = statusConfig[connection.status];
               const isActive = connection.status === "active";
               const name = connection.displayName || connection.provider;
 
               return (
-                <article key={connection.id} className="sk-tile" style={{ opacity: isActive ? 1 : 0.75 }}>
-                  <span
-                    className="sk-avatar"
-                    style={{ width: 56, height: 56, borderRadius: 20, fontSize: 22 }}
-                  >
-                    {name.charAt(0).toUpperCase()}
-                  </span>
+                <article key={connection.id} className="sk-card skx-conn-row" style={{ opacity: isActive ? 1 : 0.75 }}>
+                  <span className="skx-letter-tile" aria-hidden="true">{name.charAt(0).toUpperCase()}</span>
 
-                  <div className="sk-col" style={{ gap: 2 }}>
+                  <div className="sk-col skx-conn-copy">
                     <h3 className="sk-tile-title">{name}</h3>
                     <p className="sk-muted" style={{ margin: 0, fontSize: 13 }}>
                       {connectionTypeLabels[connection.type]}
                     </p>
+                    <p className="skx-conn-meta">
+                      Provider {connection.provider}
+                      {connection.lastUsedAt ? ` · Last used ${format(new Date(connection.lastUsedAt), "MMM d, yyyy")}` : ""}
+                      {` · Added ${format(new Date(connection.createdAt), "MMM d, yyyy")}`}
+                    </p>
                   </div>
 
-                  <hr className="sk-hairline" />
-
-                  <div className="sk-col" style={{ gap: 6 }}>
-                    <div className="sk-between">
-                      <span className="sk-meta">Provider</span>
-                      <span className="sk-num" style={{ fontSize: 13 }}>{connection.provider}</span>
-                    </div>
-
-                    {connection.lastUsedAt && (
-                      <div className="sk-between">
-                        <span className="sk-meta">Last Used</span>
-                        <span className="sk-num" style={{ fontSize: 13 }}>
-                          {format(new Date(connection.lastUsedAt), "MMM d, yyyy")}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="sk-between">
-                      <span className="sk-meta">Added</span>
-                      <span className="sk-num" style={{ fontSize: 13 }}>
-                        {format(new Date(connection.createdAt), "MMM d, yyyy")}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="sk-between" style={{ marginTop: "auto", gap: 8 }}>
+                  <div className="skx-conn-side">
                     <span className={status.cls}>
-                      <span className={status.dot} />
                       {status.label}
                     </span>
                     {isActive && (
@@ -409,11 +389,14 @@ export default function Connections() {
         )}
 
         {/* Privacy note */}
-        <section className="sk-card-dark sk-row" style={{ marginTop: 28, gap: 18 }}>
-          <SutaeruIcon name="admin" width={30} height={30} style={{ color: "var(--art-paper)", flex: "none" }} />
-          <div className="sk-col">
-            <p className="sk-dark-title">Your credentials are encrypted before storage</p>
+        <section className="sk-card-dark skx-conn-privacy" style={{ marginTop: 28 }}>
+          <div className="sk-row" style={{ gap: 18, minWidth: 0 }}>
+            <SutaeruIcon name="admin" width={30} height={30} style={{ color: "var(--art-paper)", flex: "none" }} />
+            <div className="sk-col">
+              <p className="sk-dark-title">Your credentials are encrypted before storage</p>
+            </div>
           </div>
+          <HalftoneRamp columns={8} rows={6} className="skx-conn-ramp" />
         </section>
       </div>
     </div>

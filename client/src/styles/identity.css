@@ -1,0 +1,77 @@
+/*
+ * Identity page (reskin wave 2): dark hero card with the logo mark and a
+ * halftone corner accent, and the FocusBrackets-marked profile card. Shared
+ * surfaces come from pages-reskin.css; everything here is scoped under
+ * .sk-identity.
+ */
+.sk-identity .skx-id-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.sk-identity .skx-id-hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.sk-identity .skx-id-logo {
+  width: 46px;
+  height: 32px;
+  color: var(--r-paper);
+  flex: none;
+}
+.sk-identity .skx-id-ramp {
+  color: var(--r-paper);
+  opacity: 0.85;
+  flex: none;
+}
+.sk-identity .skx-id-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--r-paper) 8%, transparent);
+  color: var(--r-paper);
+}
+.sk-identity .skx-id-initials {
+  font: 600 26px var(--r-font-title);
+}
+.sk-identity .skx-id-glyph {
+  width: 36px;
+  height: 36px;
+}
+.sk-identity .skx-id-name {
+  margin: 0;
+  font: 800 30px/1.15 var(--r-font-title);
+  letter-spacing: var(--r-track-title-md);
+  color: var(--r-paper);
+  overflow-wrap: anywhere;
+}
+.sk-identity .skx-id-placeholder {
+  font-style: normal;
+  font-weight: 400;
+  color: color-mix(in srgb, var(--r-paper) 50%, transparent);
+}
+.sk-identity .skx-id-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.sk-identity .skx-id-stats .sk-dot { background: var(--r-paper); }
+.sk-identity .skx-id-traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* The profile card holds the bio, the agent's standing instructions; the
+   brackets mark it as the primary card, per the canvas. */
+.sk-identity .skx-id-profile { position: relative; }

@@ -14,7 +14,10 @@ import {
 import { toast } from "sonner";
 import { Loader2, Upload } from "lucide-react";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
-import { SutaeruGlyph } from "@/components/SutaeruGlyph";
+import { FocusBrackets, HalftoneRamp } from "@/components/art";
+import { PageTitle } from "@/components/chrome/PageTitle";
+import { LogoMark } from "@/components/chrome/AppHeader";
+import "@/styles/identity.css";
 
 const LANGUAGES = [
   { value: "en", label: "English" },
@@ -198,13 +201,13 @@ export default function Identity() {
   }
 
   return (
-    <div className="sk-page">
+    <div className="sk-page sk-identity">
       {/* ── Page header ───────────────────────────────────────────────────── */}
       <div className="sk-header">
         <div>
-          <h1 className="sk-h1">
+          <PageTitle className="skx-title-flush">
             {isNewIdentity ? "Create Your Identity" : "Identity Profile"}
-          </h1>
+          </PageTitle>
           <p className="sk-sub">
             {isNewIdentity
               ? "Set up your Sutaeru agent identity to personalise your AI experience."
@@ -227,66 +230,64 @@ export default function Identity() {
       </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
-        {/* ── Assistant preview (dark feature card) ───────────────────────── */}
-        <aside className="sk-card-dark self-start">
-          <p className="sk-label">Preview</p>
+        {/* ── Assistant preview (dark hero card) ──────────────────────────── */}
+        <aside className="sk-card-dark skx-id-hero self-start">
+          <div className="skx-id-hero-top">
+            <LogoMark className="skx-id-logo" />
+            <HalftoneRamp columns={9} rows={7} className="skx-id-ramp" />
+          </div>
 
           {/* Glyph / avatar block */}
-          <div className="mt-4 flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[20px] bg-white/[0.06]">
+          <div className="skx-id-avatar">
             {avatarUrl ? (
               <img src={avatarUrl} alt="avatar" className="h-full w-full object-cover" />
             ) : displayName || handle ? (
-              <span className="text-3xl font-semibold text-[var(--art-paper)]">
-                {getInitials()}
-              </span>
+              <span className="skx-id-initials">{getInitials()}</span>
             ) : (
-              <SutaeruGlyph className="w-40 text-[var(--art-paper)]" />
+              <SutaeruIcon name="agent" className="skx-id-glyph" signal={false} />
             )}
           </div>
 
-          <div className="mt-6">
-            {/* one-off size: the reference renders the assistant name larger than .sk-dark-title */}
-            <h2 className="sk-dark-title" style={{ fontSize: "30px" }}>
+          <div>
+            <h2 className="skx-id-name">
               {displayName || (
-                <span className="font-normal italic text-[rgba(247,246,242,0.5)]">
-                  Your Display Name
-                </span>
+                <span className="skx-id-placeholder">Your Display Name</span>
               )}
             </h2>
             <p className="sk-dark-sub">
               @
               {handle || (
-                <span className="italic text-[rgba(247,246,242,0.5)]">username</span>
+                <span className="skx-id-placeholder">username</span>
               )}
             </p>
           </div>
 
           {/* Status line */}
-          <div className="sk-row mt-5">
-            <span className="sk-dot sk-dot-orange" />
+          <div className="skx-id-stats">
+            <span className="sk-dot" aria-hidden="true" />
             <span className="sk-label">
               {statItems.map((s) => `${s.value} ${s.label}`).join(" · ")}
             </span>
           </div>
 
-          <div className="mt-4">
-            <p className="sk-dark-sub line-clamp-3">
+          <div>
+            <p className="sk-dark-sub">
               {bio || (
-                <span className="italic text-[rgba(247,246,242,0.5)]">
+                <span className="skx-id-placeholder">
                   No bio yet. Add one below to tell others about your agent.
                 </span>
               )}
             </p>
           </div>
 
-          <div className="my-6">
+          <div>
             <hr className="sk-divider-dark" />
           </div>
 
           {personalityTraits.length > 0 && (
-            <div className="mb-6">
+            <div>
               <p className="sk-label">Personality</p>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="skx-id-traits">
                 {personalityTraits.map((trait) => (
                   <span key={trait} className="sk-chip">
                     {trait}
@@ -299,7 +300,7 @@ export default function Identity() {
           {languageLabel && (
             <div>
               <p className="sk-label">Languages</p>
-              <div className="mt-2">
+              <div>
                 <p className="sk-dark-sub">{languageLabel}</p>
               </div>
             </div>
@@ -309,7 +310,8 @@ export default function Identity() {
         {/* ── Editor sections ─────────────────────────────────────────────── */}
         <div className="sk-stack">
           {/* Profile */}
-          <section className="sk-card">
+          <section className="sk-card skx-id-profile">
+            <FocusBrackets />
             <p className="sk-label">Profile</p>
             <h2 className="mt-3 text-[22px] font-semibold tracking-tight">
               {isNewIdentity ? "Create Profile" : "Edit Profile"}
@@ -325,7 +327,7 @@ export default function Identity() {
               <Label className="sk-label">Avatar</Label>
               <div className="sk-row">
                 {/* Preview */}
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[20px] bg-[#F1EFEA] text-[var(--art-ink)]">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[20px] bg-[var(--r-panel)] text-[var(--art-ink)]">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="avatar preview" className="h-full w-full object-cover" />
                   ) : (
@@ -437,7 +439,7 @@ export default function Identity() {
                 >
                   <SelectValue placeholder="Select a language..." />
                 </SelectTrigger>
-                <SelectContent className="rounded-[20px] border-0 bg-white shadow-lg">
+                <SelectContent className="rounded-[20px] border-0 bg-[var(--r-card)] shadow-lg">
                   {LANGUAGES.map((lang) => (
                     <SelectItem key={lang.value} value={lang.value}>
                       {lang.label}
@@ -466,7 +468,7 @@ export default function Identity() {
                     <button
                       type="button"
                       onClick={() => removeTrait(trait)}
-                      className="-my-2 -mr-1.5 flex min-h-11 min-w-11 items-center justify-center rounded-full transition-colors hover:bg-white/15"
+                      className="-my-2 -mr-1.5 flex min-h-11 min-w-11 items-center justify-center rounded-full transition-colors hover:bg-[color-mix(in_srgb,var(--r-paper)_15%,transparent)]"
                       aria-label={`Remove ${trait}`}
                     >
                       <SutaeruIcon name="close" signal={false} className="h-3 w-3" />

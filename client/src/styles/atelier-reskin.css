@@ -65,14 +65,14 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font: 500 11px/1.4 var(--sk-mono);
-  letter-spacing: 0.14em;
+  font: 500 var(--r-size-mono)/1.4 var(--r-font-mono);
+  letter-spacing: var(--r-track-mono);
   text-transform: uppercase;
-  color: var(--neon-orange);
+  color: var(--r-quiet);
   min-width: 0;
 }
 .sk-at-status .sk-dot {
-  background: var(--neon-orange);
+  background: var(--r-ink);
 }
 .sk-at-run-title {
   margin: 14px 0 22px;
@@ -113,7 +113,7 @@
   bottom: -6px;
   width: 2px;
   border-radius: 999px;
-  background: #E2DFD7;
+  background: var(--r-stroke);
 }
 .sk-at-step-dot {
   position: relative;
@@ -140,11 +140,11 @@
 .sk-at-step.is-done .sk-at-step-dot { background: var(--art-ink); }
 .sk-at-step.is-done .sk-at-step-label { color: var(--art-ink); }
 .sk-at-step.is-active .sk-at-step-dot {
-  background: var(--neon-orange);
-  box-shadow: 0 0 0 4px var(--sk-orange-tint);
+  background: var(--r-ink);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--r-ink) 12%, transparent);
 }
-.sk-at-step.is-active .sk-at-step-label { color: var(--art-ink); }
-.sk-at-step.is-active .sk-at-step-state { color: var(--neon-orange); }
+.sk-at-step.is-active .sk-at-step-label { color: var(--r-ink); }
+.sk-at-step.is-active .sk-at-step-state { color: var(--r-quiet); }
 
 /* ── Pale "now" box ────────────────────────────────────────────────────────── */
 .sk-at-now {
@@ -175,28 +175,8 @@
   min-width: 0;
 }
 
-/* ── Live progress bar (unknown duration) ──────────────────────────────────── */
-.sk-at-progress-live {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--sk-track);
-  overflow: hidden;
-}
-.sk-at-progress-live > span {
-  display: block;
-  height: 100%;
-  width: 40%;
-  border-radius: 999px;
-  background: var(--neon-orange);
-  animation: sk-at-slide 1.5s ease-in-out infinite;
-}
-@keyframes sk-at-slide {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(280%); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .sk-at-progress-live > span { animation: none; width: 70%; }
-}
+/* ── Result card: the finished document, marked with FocusBrackets ────────── */
+.sk-at-result { position: relative; }
 
 /* ── Tiles with a selected state (styles, report types) ────────────────────── */
 .sk-at-tiles {
@@ -212,7 +192,7 @@
 }
 .sk-at-tile:hover { transform: translateY(-1px); }
 .sk-at-tile.is-active {
-  box-shadow: 0 0 0 2px var(--art-ink), 0 1px 0 rgba(36, 35, 32, 0.04);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--r-ink) 4%, transparent);
 }
 .sk-at-tile.is-active:hover { transform: none; }
 .sk-at-tile-check {
@@ -292,8 +272,8 @@
   height: 14px;
   flex: none;
   border-radius: 50%;
-  border: 2px solid var(--sk-track);
-  border-top-color: var(--neon-orange);
+  border: 2px solid var(--r-stroke);
+  border-top-color: var(--r-ink);
   animation: sk-at-turn 0.9s linear infinite;
 }
 @keyframes sk-at-turn { to { transform: rotate(360deg); } }
@@ -373,12 +353,31 @@
 }
 
 /* ── Report preview frame (the document keeps its own theme) ──────────────── */
+.sk-at-frame-wrap { position: relative; min-width: 0; }
 .sk-at-report-frame {
   padding: 20px;
   overflow-x: auto;
 }
 .sk-at-report-frame > * {
   min-width: 0;
+}
+
+/* ── Draft card: the streaming text while the report is written ───────────── */
+.sk-at-draft {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.sk-at-draft-text {
+  margin: 0;
+  font: 400 14px/1.6 var(--r-font-body);
+  color: var(--r-ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 260px;
+  overflow-y: auto;
 }
 @media (min-width: 768px) {
   .sk-at-report-frame { padding: 28px; }
@@ -393,17 +392,6 @@
   gap: 16px;
   min-width: 0;
 }
-.sk-at-select {
-  min-height: 44px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--sk-soft);
-  color: var(--art-ink);
-  font: 500 13px var(--font-b);
-  cursor: pointer;
-}
-.sk-at-select:focus { outline: 2px solid var(--neon-orange); outline-offset: 0; }
 
 /* ── Narrow screens: nothing overflows at 375px ───────────────────────────── */
 @media (max-width: 767px) {

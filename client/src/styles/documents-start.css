@@ -1,28 +1,37 @@
 /* Documents start screen: illustrated option cards, same family as the image engine cards. */
-.sk-doc-grid { display: grid; gap: 16px; grid-template-columns: 1fr; margin-bottom: 24px; }
-@media (min-width: 720px) { .sk-doc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.sk-doc-card {
-  display: flex; flex-direction: column; min-width: 0; padding: 0; border: 0; border-radius: 28px; overflow: hidden;
-  background: var(--art-paper); color: var(--art-ink); text-align: left; font: inherit; cursor: pointer;
-  box-shadow: 0 0 0 1px rgba(36, 35, 32, 0.07); transition: transform 0.22s ease, box-shadow 0.22s ease;
+/* The route renders in the noPadding shell, so on phones the page needs clearance
+   above the floating tab bar (the body scrolls the content). */
+@media (max-width: 1023px) {
+  .sk-page.sk-documents { padding-bottom: calc(68px + 18px + env(safe-area-inset-bottom, 0px) + 20px); }
 }
-.sk-doc-card:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px rgba(36, 35, 32, 0.14), 0 18px 36px -22px rgba(36, 35, 32, 0.4); }
-.sk-doc-card.is-active { box-shadow: 0 0 0 2px var(--art-ink); }
-.sk-doc-card:focus-visible { outline: 2px solid var(--neon-orange); outline-offset: 3px; }
-.sk-doc-art { display: block; background: var(--art-panel); padding: 18px 18px 6px; }
+.sk-doc-grid { display: grid; gap: 12px; grid-template-columns: 1fr; margin-bottom: 24px; }
+@media (min-width: 720px) { .sk-doc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; } }
+.sk-doc-card {
+  display: flex; flex-direction: column; min-width: 0; padding: 0; border: 1px solid transparent; border-radius: var(--r-radius-card-lg); overflow: hidden;
+  background: var(--r-card); color: var(--r-ink); text-align: left; font: inherit; cursor: pointer;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--r-ink) 4%, transparent); transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.sk-doc-card:hover { transform: translateY(-2px); box-shadow: 0 18px 36px -22px color-mix(in srgb, var(--r-ink) 40%, transparent); }
+/* The selected card is marked with FocusBrackets (rendered by the component), not a ring. */
+.sk-doc-card:focus-visible { outline: 2px solid var(--r-accent); outline-offset: 3px; }
+.sk-doc-art { display: block; background: var(--r-panel); padding: 18px 18px 6px; }
 .sk-doc-art svg { display: block; width: 100%; height: auto; max-height: 190px; }
 .sk-doc-card.is-compact .sk-doc-art svg { max-height: 120px; }
 .sk-doc-body { display: flex; flex-direction: column; gap: 6px; padding: 20px 24px 24px; }
-.sk-doc-label { font: 500 11px var(--sk-mono, ui-monospace, monospace); letter-spacing: 1.54px; text-transform: uppercase; color: var(--art-quiet); }
-.sk-doc-title { font: 800 26px/1.1 var(--font-d); letter-spacing: -0.8px; }
+.sk-doc-label { font: 500 var(--r-size-mono)/1.5 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: var(--r-quiet); }
+.sk-doc-title { font: 800 26px/1.1 var(--r-font-title); letter-spacing: -0.8px; }
 .sk-doc-card.is-compact .sk-doc-title { font-size: 20px; }
-.sk-doc-text { font: 400 15px/1.45 var(--font-b); color: var(--art-quiet); }
-.sk-doc-back { border: 0; background: transparent; padding: 0; margin: 0 0 10px; font: 600 14px var(--font-d); color: var(--art-quiet); cursor: pointer; }
-.sk-doc-art .a-paper { fill: var(--art-paper); stroke: var(--art-ink); stroke-width: 2; }
-.sk-doc-art .a-line { fill: none; stroke: var(--art-ink); stroke-width: 3; stroke-linecap: round; opacity: .75; }
-.sk-doc-art .a-line-light { stroke: var(--art-paper); opacity: 1; }
-.sk-doc-art .a-spot { fill: var(--art-ink); }
-.sk-doc-art .a-plus { fill: none; stroke: var(--art-paper); stroke-width: 3.4; stroke-linecap: round; }
-.sk-doc-art .a-mark { fill: var(--art-ink); opacity: .14; }
-.sk-doc-art .a-pen { fill: var(--art-ink); stroke: var(--art-paper); stroke-width: 2; stroke-linejoin: round; }
+.sk-doc-text { font: 400 15px/1.45 var(--r-font-body); color: var(--r-quiet); }
+.sk-doc-back { border: 0; background: transparent; padding: 0; margin: 0 0 10px; font: 600 14px var(--r-font-title); color: var(--r-quiet); cursor: pointer; }
+.sk-doc-art .a-paper { fill: var(--r-card); stroke: var(--r-ink); stroke-width: 2; }
+.sk-doc-art .a-line { fill: none; stroke: var(--r-ink); stroke-width: 3; stroke-linecap: round; opacity: .75; }
+.sk-doc-art .a-line-light { stroke: var(--r-paper); opacity: 1; }
+.sk-doc-art .a-spot { fill: var(--r-ink); }
+.sk-doc-art .a-plus { fill: none; stroke: var(--r-paper); stroke-width: 3.4; stroke-linecap: round; }
+.sk-doc-art .a-mark { fill: var(--r-ink); opacity: .14; }
+.sk-doc-art .a-pen { fill: var(--r-ink); stroke: var(--r-paper); stroke-width: 2; stroke-linejoin: round; }
 .sk-grid-1 { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+
+/* The option card wrapper is the positioning parent for the FocusBrackets on the active card. */
+.sk-doc-cell { position: relative; display: flex; min-width: 0; }
+.sk-doc-cell > .sk-doc-card { flex: 1; }
