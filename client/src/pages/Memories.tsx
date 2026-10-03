@@ -4,6 +4,10 @@ import { trpc } from "@/lib/trpc";
 import { callFunction } from "@/lib/kemmaCloud";
 import { motion, AnimatePresence } from "framer-motion";
 import SutaeruIcon from "@/components/SutaeruIcon";
+import { Chip, HalftoneRamp, Toggle } from "@/components/art";
+import { PageTitle } from "@/components/chrome/PageTitle";
+import { relativeTime } from "@/lib/relativeTime";
+import "@/styles/list-pages.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type MemoryType = "preference" | "fact" | "project" | "document" | "interaction";
@@ -24,19 +28,9 @@ const TYPE_LABELS: Record<string, string> = {
   interaction: "Interaction",
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function formatDate(dateStr: string | Date) {
-  const d = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
-  return d.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
-function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`sk-skeleton ${className}`} />;
+function Skeleton({ w, h = 14 }: { w: string; h?: number }) {
+  return <span className="lp-skeleton" style={{ width: w, height: h }} />;
 }
 
 // ─── Add Memory Modal ─────────────────────────────────────────────────────────
@@ -84,7 +78,7 @@ function AddMemoryModal({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style={{ background: "rgba(36, 35, 32, 0.48)" }}
+        style={{ background: "color-mix(in srgb, var(--r-ink) 48%, transparent)" }}
         onClick={(e) => e.target === e.currentTarget && onClose()}
       >
         <motion.div
@@ -92,72 +86,70 @@ function AddMemoryModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 10 }}
           transition={{ duration: 0.2 }}
-          className="sk-dialog w-full max-w-lg max-h-[90dvh] overflow-y-auto"
+          className="sk-dialog lp-dialog w-full max-w-lg max-h-[90dvh] overflow-y-auto"
         >
           {/* Modal header */}
           <div className="mb-5 flex items-start justify-between gap-3">
             <h2>Add Memory</h2>
             <button
               onClick={onClose}
-              className="sk-icon-btn"
+              className="lp-icon-btn"
               aria-label="Close add memory"
             >
               <SutaeruIcon name="close" width={18} height={18} />
             </button>
           </div>
 
-          {/* Type selector */}
-          <div className="sk-field mb-4">
-            <span className="sk-label">Type</span>
-            <div className="sk-filters">
+          {/* Type selector: one card per memory type */}
+          <div className="lp-field-group mb-4">
+            <span className="lp-mono">Type</span>
+            <div className="lp-chips lp-chips-scroll" role="radiogroup" aria-label="Memory type">
               {MEMORY_TYPES.map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setType(t)}
-                  className={`sk-pill ${type === t ? "is-active" : ""}`}
-                >
+                <Chip key={t} active={type === t} onClick={() => setType(t)}>
                   {TYPE_LABELS[t]}
-                </button>
+                </Chip>
               ))}
             </div>
           </div>
 
           {/* Content textarea */}
-          <div className="sk-field mb-4">
-            <span className="sk-label">Content (required)</span>
+          <div className="lp-field-group mb-4">
+            <label className="lp-mono" htmlFor="memory-content">Content (required)</label>
             <textarea
+              id="memory-content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={4}
-              placeholder="Enter memory content…"
-              className="sk-textarea"
+              placeholder="Enter memory content..."
+              className="lp-field lp-area"
             />
           </div>
 
           {/* Source input */}
-          <div className="sk-field mb-5">
-            <span className="sk-label">Source (optional)</span>
+          <div className="lp-field-group mb-5">
+            <label className="lp-mono" htmlFor="memory-source">Source (optional)</label>
             <input
+              id="memory-source"
               type="text"
               value={source}
               onChange={(e) => setSource(e.target.value)}
-              placeholder="e.g. conversation, document title…"
-              className="sk-input"
+              placeholder="e.g. conversation, document title..."
+              className="lp-field"
             />
           </div>
 
-          {error && <p className="mb-3 text-xs text-destructive">{error}</p>}
+          {error && <p className="mb-3 text-sm" style={{ color: "var(--r-alert)" }}>{error}</p>}
 
           <div className="flex justify-end gap-2">
-            <button onClick={onClose} className="sk-btn sk-btn-ghost">
+            <button onClick={onClose} className="lp-btn lp-btn-quiet">
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               disabled={createMutation.isPending}
-              className="sk-btn"
+              className="lp-btn"
             >
-              {createMutation.isPending ? "Saving…" : "Save Memory"}
+              {createMutation.isPending ? "Saving..." : "Save Memory"}
             </button>
           </div>
         </motion.div>
@@ -169,10 +161,8 @@ function AddMemoryModal({
 // ─── Memory Card ──────────────────────────────────────────────────────────────
 function MemoryCard({
   memory,
-  onDelete,
 }: {
   memory: any;
-  onDelete: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const utils = trpc.useUtils();
@@ -193,73 +183,50 @@ function MemoryCard({
   }
 
   return (
-    <motion.div
+    <motion.li
       layout
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -4, scale: 0.98 }}
       transition={{ duration: 0.2 }}
-      className="sk-tile group"
+      className="lp-row"
     >
-      <div className="flex items-start justify-between gap-3">
-        <span
-          className="sk-label"
-          style={{ display: "flex", alignItems: "center", gap: 8 }}
-        >
-          <span className="sk-dot sk-dot-ink" />
-          {TYPE_LABELS[memory.type] ?? memory.type}
+      <div className="lp-row-main">
+        <span className="lp-mono">{TYPE_LABELS[memory.type] ?? memory.type}</span>
+        <p className="lp-row-title line-clamp-3" style={{ fontWeight: 600 }}>
+          {memory.content}
+        </p>
+        <span className="lp-body">
+          Added {memory.createdAt ? relativeTime(memory.createdAt) : "recently"}
+          {memory.sourceApp ?? memory.source ? ` · from ${memory.sourceApp ?? memory.source}` : ""}
         </span>
-
-        {/* Delete button */}
-        <button
-          onClick={handleDelete}
-          disabled={deleteMutation.isPending}
-          className={`sk-icon-btn -mt-1 -mr-1 shrink-0 transition-all ${
-            confirming
-              ? "opacity-100"
-              : "lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"
-          } disabled:opacity-30`}
-          style={
-            confirming
-              ? { background: "#FCE9DE", color: "var(--neon-orange)" }
-              : undefined
-          }
-          title={confirming ? "Click again to confirm" : "Delete memory"}
-          aria-label={confirming ? "Confirm delete memory" : "Delete memory"}
-        >
-          <SutaeruIcon name="delete" width={16} height={16} />
-        </button>
       </div>
 
-      <p className="m-0 text-[15px] leading-relaxed line-clamp-3">
-        {memory.content}
-      </p>
-
-      <span className="sk-meta">
-        ADDED {memory.createdAt ? formatDate(memory.createdAt) : "-"}
-        {memory.sourceApp ?? memory.source ? ` · FROM ${memory.sourceApp ?? memory.source}` : ""}
-      </span>
-    </motion.div>
+      {/* Delete button */}
+      <button
+        onClick={handleDelete}
+        disabled={deleteMutation.isPending}
+        className="lp-icon-btn"
+        style={confirming ? { background: "var(--r-accent-tint)", color: "var(--r-accent)" } : undefined}
+        title={confirming ? "Click again to confirm" : "Delete memory"}
+        aria-label={confirming ? "Confirm delete memory" : "Delete memory"}
+      >
+        <SutaeruIcon name="delete" width={16} height={16} />
+      </button>
+    </motion.li>
   );
 }
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="sk-card sk-empty"
-    >
-      <span className="sk-label">No memories yet</span>
-      <p className="sk-empty-text">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="lp-empty">
+      <HalftoneRamp columns={7} rows={9} className="lp-empty-mark" />
+      <h2 className="lp-empty-title">Nothing remembered yet.</h2>
+      <p className="lp-empty-text">
         Store facts, preferences, and context your agent should remember.
       </p>
-      <button
-        onClick={onAdd}
-        className="sk-btn self-start"
-        style={{ marginTop: 8 }}
-      >
+      <button onClick={onAdd} className="lp-btn">
         Add first memory
       </button>
     </motion.div>
@@ -269,11 +236,10 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 // ─── No Results State ─────────────────────────────────────────────────────────
 function NoResults({ query }: { query: string }) {
   return (
-    <div className="sk-card sk-empty">
-      <span className="sk-label">No results</span>
-      <p className="sk-empty-text">
-        No memories matching{" "}
-        <span className="sk-num">&quot;{query}&quot;</span>
+    <div className="lp-empty">
+      <span className="lp-mono">No results</span>
+      <p className="lp-empty-text">
+        No memories matching &quot;{query}&quot;
       </p>
     </div>
   );
@@ -307,33 +273,31 @@ function MemorySwitch() {
   }
 
   return (
-    <div className="sk-card-dark h-full">
-      <div className="flex items-start gap-4 min-w-0">
-        <SutaeruIcon
-          name="lock"
-          width={26}
-          height={26}
-          style={{ flex: "none", color: "var(--art-paper)", marginTop: 2 }}
-        />
-        <div className="min-w-0 flex-1">
-          <span className="sk-label">Living memory</span>
-          <p className="sk-dark-sub">
-            {enabled === false
-              ? "Off — Kemma stops noting new things from your chats. Existing memories stay."
-              : "On — after each chat, Kemma quietly notes anything worth remembering here."}
-          </p>
-        </div>
-        <button
-          role="switch"
-          aria-checked={enabled !== false}
-          aria-label="Toggle living memory"
-          onClick={() => void toggle()}
-          disabled={enabled === null || saving}
-          className={`sk-toggle ${enabled !== false ? "is-on" : ""}`}
-          style={{ marginTop: 4 }}
-        />
+    <section className="lp-dark">
+      <HalftoneRamp columns={8} rows={10} className="lp-dark-ramp" />
+      <SutaeruIcon
+        name="admin"
+        width={30}
+        height={30}
+        className="lp-dark-icon"
+        aria-hidden="true"
+      />
+      <div className="lp-dark-body">
+        <span className="lp-mono">Living memory</span>
+        <p className="lp-dark-text">
+          {enabled === false
+            ? "Off — Kemma stops noting new things from your chats. Existing memories stay."
+            : "On — after each chat, Kemma quietly notes anything worth remembering here."}
+        </p>
       </div>
-    </div>
+      <Toggle
+        checked={enabled !== false}
+        onCheckedChange={() => void toggle()}
+        disabled={enabled === null || saving}
+        label="Living memory"
+        className="lp-dark-toggle"
+      />
+    </section>
   );
 }
 
@@ -365,7 +329,6 @@ export default function Memories() {
   const tabs = ["all", ...MEMORY_TYPES] as const;
 
   const total = (memories as any[]).length;
-  const shownPct = total > 0 ? Math.round((filtered.length / total) * 100) : 0;
 
   return (
     <>
@@ -373,40 +336,40 @@ export default function Memories() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="sk-page w-full min-w-0"
+        className="lp-page w-full min-w-0"
       >
         {/* ── Header ── */}
-        <div className="sk-header">
-          <div>
-            <h1 className="sk-h1">Memories</h1>
-            <p className="sk-sub">
+        <header className="lp-head">
+          <div className="lp-head-main">
+            <PageTitle className="lp-title">Memories</PageTitle>
+            <p className="lp-lede">
               What Sutaeru knows about you. Private, editable, yours.
             </p>
           </div>
-          <div className="sk-actions">
+          <div className="lp-actions">
             <button
               onClick={() => setShowModal(true)}
-              className="sk-btn"
+              className="lp-btn lp-btn-quiet lp-btn-sm"
             >
-              Add Memory
+              <SutaeruIcon name="plus" /> Add Memory
             </button>
           </div>
-        </div>
+        </header>
 
         {/* ── Search + filters ── */}
-        <div className="sk-toolbar">
-          <div className="sk-search">
+        <div className="lp-section" style={{ marginTop: 0 }}>
+          <div className="lp-search">
             <SutaeruIcon name="search" width={16} height={16} />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search memories…"
+              placeholder="Search memories..."
             />
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="sk-icon-btn"
+                className="lp-icon-btn"
                 style={{ width: 32, height: 32 }}
                 aria-label="Clear search"
               >
@@ -414,82 +377,58 @@ export default function Memories() {
               </button>
             )}
           </div>
-          <div className="sk-filters">
+          <div className="lp-chips-row">
+            <div className="lp-chips lp-chips-scroll" role="group" aria-label="Memory type filter">
             {tabs.map((tab) => {
-              const count =
-                tab === "all"
-                  ? total
-                  : (memories as any[]).filter((m: any) => m.type === tab).length;
               const isActive = activeTab === tab;
-
               return (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`sk-pill ${isActive ? "is-active" : ""}`}
-                >
+                <Chip key={tab} active={isActive} onClick={() => setActiveTab(tab)}>
                   {tab === "all" ? "All" : TYPE_LABELS[tab]}
-                  <span
-                    className="sk-num"
-                    style={{ fontSize: 12, opacity: isActive ? 0.7 : 0.55 }}
-                  >
-                    {count}
-                  </span>
-                </button>
+                </Chip>
               );
             })}
+            </div>
+            {!isLoading && (
+              <span className="lp-mono lp-chips-count lp-num">
+                {filtered.length} / {total}
+              </span>
+            )}
           </div>
         </div>
 
         {/* ── Content ── */}
         {isLoading ? (
-          <div className="sk-grid-3">
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="sk-card">
-                <div className="sk-col">
-                  <Skeleton className="h-3 w-24" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-4/5" />
-                  <Skeleton className="h-3 w-32" />
+          <ul className="lp-rows" aria-label="Loading memories">
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="lp-row">
+                <div className="lp-row-main">
+                  <Skeleton w="22%" h={11} />
+                  <Skeleton w="86%" h={20} />
+                  <Skeleton w="34%" h={14} />
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         ) : total === 0 ? (
           <EmptyState onAdd={() => setShowModal(true)} />
         ) : filtered.length === 0 ? (
           <NoResults query={search || activeTab} />
         ) : (
-          <motion.div layout className="sk-grid-3">
+          <motion.ul layout className="lp-rows">
             <AnimatePresence mode="popLayout">
               {filtered.map((memory: any) => (
                 <MemoryCard
                   key={memory.id}
                   memory={memory}
-                  onDelete={() => {}}
                 />
               ))}
             </AnimatePresence>
-          </motion.div>
+          </motion.ul>
         )}
 
-        {/* ── Privacy + usage ── */}
-        <div className="sk-grid-3" style={{ marginTop: 28 }}>
-          <div className="md:col-span-2">
-            <MemorySwitch />
-          </div>
-          {!isLoading && (
-            <div className="sk-card sk-stat">
-              <span className="sk-label">Memories</span>
-              <div className="sk-stat-num">{total}</div>
-              <div className="sk-progress" style={{ marginTop: 14 }}>
-                <span
-                  className="sk-progress-fill"
-                  style={{ width: `${shownPct}%` }}
-                />
-              </div>
-            </div>
-          )}
+        {/* ── Privacy ── */}
+        <div className="lp-section">
+          <MemorySwitch />
         </div>
       </motion.div>
 
