@@ -492,7 +492,7 @@ describe("sensitive and blocked image prompts", () => {
     engine.generateImage.mockResolvedValue(venusePic());
     const out = await draw(freshChat(), command({ prompt: SENSITIVE, engine: "forge" }));
     expect(engine.generateImage.mock.calls[0][0]).toMatchObject({ engine: "venice", prompt: SENSITIVE });
-    expect(out).toMatchObject({ ok: true, caption: "Here you go." });
+    expect(out).toMatchObject({ ok: true, caption: "Kemma" });
   });
 
   it("keeps the asked engine when the owner is not an admin, there is no key, or the kill switch is set", async () => {
