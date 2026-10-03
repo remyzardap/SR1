@@ -33,10 +33,13 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
   min-height: 44px;
-  padding: 0 18px 0 12px;
+  padding: 0;
   border: 1px solid var(--sk-track);
-  border-radius: 999px;
+  border-radius: 50%;
   background: transparent;
   color: var(--art-ink);
   font: 600 13px var(--font-b);
@@ -312,3 +315,6 @@
   .sk-attach-foot .sk-btn { width: 100%; justify-content: center; }
   .sk-attach-list { max-height: 40dvh; }
 }
+
+/* The plus already says "add photos or files"; the words stay for screen readers only. */
+.sk-attach-button > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

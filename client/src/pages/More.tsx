@@ -15,7 +15,9 @@ interface MoreItem {
 }
 
 const WORKSPACE: MoreItem[] = [
+  { label: "Generate", href: "/generate", icon: "make", meta: "Image, video" },
   { label: "Images", href: "/images", icon: "image", meta: "Generate" },
+  { label: "Video", href: "/video", icon: "video", meta: "Generate" },
   { label: "Memories", href: "/memories", icon: "memory", meta: "Recall" },
   { label: "Skills", href: "/skills", icon: "make", meta: "Routines" },
   { label: "Monitors", href: "/monitors", icon: "schedule", meta: "Scheduled" },

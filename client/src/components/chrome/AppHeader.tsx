@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { SutaeruGlyph } from "@/components/SutaeruGlyph";
 
 export interface AppHeaderProps {
   /** Mono word at x76 (WORKSPACE, MORE, OFFLINE...). */
@@ -17,15 +18,9 @@ function Crosshair({ className }: { className?: string }) {
   );
 }
 
-/** Logo mark: two outlined rings with one orange dot inside the right ring. */
+/** The real Sutaeru symbol: twin lenses, the torii gate and the rising sun. */
 export function LogoMark({ className }: { className?: string }) {
-  return (
-    <svg className={cn("skx-logo", className)} width="32" height="22" viewBox="0 0 32 22" fill="none" aria-hidden="true">
-      <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2.6" />
-      <circle cx="26" cy="11" r="8" stroke="currentColor" strokeWidth="2.6" />
-      <circle cx="26" cy="11" r="3.3" className="skx-logo-dot" />
-    </svg>
-  );
+  return <SutaeruGlyph className={cn("skx-logo", className)} />;
 }
 
 /**

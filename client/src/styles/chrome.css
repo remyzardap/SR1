@@ -36,6 +36,9 @@
 }
 .skx-logo {
   flex: none;
+  width: 56px;
+  height: 30px;
+  overflow: visible;
   color: var(--r-ink);
 }
 .skx-logo-dot {
@@ -116,14 +119,14 @@
   justify-content: center;
   gap: 3px;
   width: 100%;
-  max-width: 68px;
+  max-width: 92px;
   min-height: 56px;
   border-radius: 22px;
   color: var(--r-paper);
   transition: background var(--r-motion) var(--r-ease-out), color var(--r-motion) var(--r-ease-out);
 }
 .skx-tab-label {
-  font: 600 10.5px/1 var(--r-font-body);
+  font: 600 12px/1 var(--r-font-body);
   color: var(--r-rule);
   transition: color var(--r-motion) var(--r-ease-out);
 }
@@ -152,4 +155,23 @@
   .sutaeru-chat .sutaeru-run-controls {
     margin-bottom: calc(68px + 18px + env(safe-area-inset-bottom, 0px) + 8px);
   }
+}
+
+/* Collapsible bar: a small handle above it, and one pill when it is tucked away. */
+.skx-tabhandle {
+  position: absolute; left: 50%; top: -22px; transform: translateX(-50%);
+  width: 56px; height: 26px; display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 14px 14px 0 0; background: var(--r-ink); color: var(--r-paper); cursor: pointer; padding: 0;
+}
+.skx-tabhandle::after { content: ""; position: absolute; inset: -9px -6px 0; }
+.skx-tabpeek {
+  position: fixed; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 45;
+  height: 48px; min-width: 76px; padding: 0 14px; gap: 6px; display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: var(--r-radius-pill); background: var(--r-ink); color: var(--r-paper); cursor: pointer;
+  box-shadow: 0 10px 24px -12px rgb(0 0 0 / .5);
+}
+.skx-tabpeek .skx-tab-icon { width: 24px; height: 24px; }
+html[data-tabbar="collapsed"] .skx-main-tabspace { padding-bottom: calc(48px + 18px + env(safe-area-inset-bottom, 0px) + 20px); }
+@media (max-width: 1023px) {
+  html[data-tabbar="collapsed"] .sutaeru-chat .sutaeru-run-controls { margin-bottom: calc(48px + 18px + env(safe-area-inset-bottom, 0px) + 8px); }
 }
