@@ -65,3 +65,16 @@
   .sutaeru-chat .sutaeru-composer-send { width: 48px; height: 48px; }
   .sutaeru-chat .sutaeru-run-controls { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
 }
+
+/* Phones: the run buttons and "Add photos or files" share one row, so the message box gets the room. */
+@media (max-width: 767px) {
+  .sutaeru-chat .sutaeru-run-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .sutaeru-chat .sutaeru-run-composer,
+  .sutaeru-chat .sutaeru-run-composer > div,
+  .sutaeru-chat .sutaeru-composer-row,
+  .sutaeru-chat .sutaeru-composer-row > div { display: contents; }
+  .sutaeru-chat .sutaeru-run-actions { order: 1; margin: 0; flex: 0 1 auto; }
+  .sutaeru-chat .sk-attach-slot { order: 2; padding: 0; flex: 1 1 auto; min-width: 0; }
+  .sutaeru-chat .sutaeru-mobile-details { order: 0; flex: 1 0 100%; }
+  .sutaeru-chat .sutaeru-chat-input { order: 3; flex: 1 0 100%; }
+}
