@@ -196,11 +196,11 @@ body {
   transition: background 0.4s ease;
 }
 
-/* Dark mode override */
+/* Dark mode override (surfaces come from the reskin token layer; see styles/reskin-tokens.css) */
 [data-mode="dark"] body,
 [data-mode="dark"] html {
-  background: #242320 !important;
-  color: #F7F6F2 !important;
+  background: var(--r-paper) !important;
+  color: var(--r-ink) !important;
 }
 
 body::before {
