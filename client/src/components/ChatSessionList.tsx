@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 import { codeCall, storedCodeSession, type CodeSession } from "@/components/CodeThread";
 import { trpc } from "@/lib/trpc";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { NEON, NEON_FD, NEON_FM } from "@/lib/design";
 import { LandingMark } from "@/components/LandingMark";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
 
@@ -68,14 +66,14 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ background: "transparent", position: "relative" }}>
+    <div className="sutaeru-history flex flex-col h-full" style={{ position: "relative" }}>
       <div className="sutaeru-history-mark"><LandingMark className="sutaeru-nav-mark" /><span>SUTAERU</span>{onClose && <Button variant="ghost" size="icon" className="sutaeru-history-close" onClick={onClose} aria-label="Close history" title="Close history"><SutaeruIcon name="close" className="h-5 w-5" /></Button>}</div>
 
       {/* Header */}
-      <div className="p-3 pb-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.10)" }}>
+      <div className="sutaeru-history-head">
         <Button
           onClick={onNewSession}
-          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-sm text-sm font-semibold"
+          className="sutaeru-history-new"
         >
           <SutaeruIcon name="plus" className="h-4 w-4" />
           New chat
@@ -86,17 +84,17 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
       <div className="flex-1 overflow-y-auto py-2 px-2">
         {showCode && codeSessions.length > 0 && (
           <div className="mb-3">
-            <p style={{ fontFamily: NEON_FM, fontSize: 10, letterSpacing: ".16em", textTransform: "uppercase", color: "rgba(255,255,255,0.55)", padding: "4px 8px" }}>Code mode</p>
+            <p className="sutaeru-history-kicker">Code mode</p>
             {codeSessions.map((c) => (
               <button
                 key={c.id}
                 type="button"
                 onClick={() => onSelectCodeSession?.(c.id)}
-                className="w-full text-left rounded-sm px-3 py-2 text-sm"
-                style={{ background: activeCodeId === c.id ? "rgba(255,255,255,0.12)" : "transparent", color: "rgba(255,255,255,0.9)", fontFamily: NEON_FD, minHeight: 44 }}
+                className="sutaeru-history-row"
+                data-active={activeCodeId === c.id ? "true" : "false"}
               >
                 <span className="block truncate">{c.title}</span>
-                <span style={{ fontFamily: NEON_FM, fontSize: 10, color: "rgba(255,255,255,0.5)" }}>
+                <span className="sutaeru-history-time">
                   {formatDate(c.updated * 1000)}{c.status === "running" ? " · working" : c.status === "needs_approval" ? " · needs you" : ""}
                 </span>
               </button>
@@ -105,12 +103,12 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
         )}
         {isLoading ? (
           <div className="flex justify-center py-10">
-            <Loader2 className="h-4 w-4 animate-spin" style={{ color: "rgba(255,255,255,0.55)" }} />
+            <Loader2 className="h-4 w-4 animate-spin sutaeru-history-muted" />
           </div>
         ) : sessions.length === 0 ? (
           <div className="px-3 py-10 text-center">
-            <SutaeruIcon name="ask" className="h-7 w-7 mx-auto mb-3 text-background/40" />
-            <p className="text-xs" style={{ color: "rgba(255,255,255,0.55)", fontFamily: NEON_FD }}>
+            <SutaeruIcon name="ask" className="h-7 w-7 mx-auto mb-3 sutaeru-history-muted" />
+            <p className="sutaeru-history-empty">
               No chat history yet
             </p>
           </div>
@@ -122,16 +120,11 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
                 initial={{ opacity: 0, x: -6 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.03 }}
-                className="group flex items-start gap-2 px-2.5 py-2.5 mb-0.5 rounded-xl cursor-pointer transition-all duration-150"
-                style={{
-                  background: activeSessionId === session.id ? "rgba(255,255,255,0.14)" : "transparent",
-                  border: activeSessionId === session.id ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
-                }}
+                className="sutaeru-history-session"
+                data-active={activeSessionId === session.id ? "true" : "false"}
                 onClick={() => onSelectSession(session.id)}
-                onMouseEnter={(e) => { if (activeSessionId !== session.id) e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
-                onMouseLeave={(e) => { if (activeSessionId !== session.id) e.currentTarget.style.background = "transparent"; }}
               >
-                <SutaeruIcon name="ask" className="h-4 w-4 mt-0.5 shrink-0 text-background/55" />
+                <SutaeruIcon name="ask" className="h-4 w-4 mt-0.5 shrink-0 sutaeru-history-muted" />
 
                 {editingId === session.id ? (
                   <div className="flex-1 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
@@ -139,32 +132,30 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") confirmEdit(session.id); if (e.key === "Escape") cancelEdit(); }}
-                      className="flex-1 min-w-0 bg-transparent text-xs outline-none border-b text-background border-background/30"
+                      className="sutaeru-history-edit"
                       autoFocus
                     />
-                    <Button variant="ghost" size="icon" onClick={() => confirmEdit(session.id)} className="h-6 w-6 text-background"><SutaeruIcon name="check" className="h-3 w-3" /></Button>
-                    <Button variant="ghost" size="icon" onClick={cancelEdit} className="h-6 w-6 text-background/50"><SutaeruIcon name="close" className="h-3 w-3" /></Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => confirmEdit(session.id)} aria-label="Save title"><SutaeruIcon name="check" className="h-3 w-3" /></Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={cancelEdit} aria-label="Cancel"><SutaeruIcon name="close" className="h-3 w-3" /></Button>
                   </div>
                 ) : (
                   <div className="flex-1 min-w-0">
-                    <p className={cn("text-[13px] truncate leading-snug text-background/85", activeSessionId === session.id && "text-background font-bold")} style={{ fontFamily: NEON_FD }}>
+                    <p className="sutaeru-history-title">
                       {session.title || "Untitled"}
                     </p>
-                    <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.45)", fontFamily: NEON_FM }}>
-                      {formatDate(session.lastMessageAt)}
-                    </p>
+                    <p className="sutaeru-history-time">{formatDate(session.lastMessageAt)}</p>
                   </div>
                 )}
 
                 {editingId !== session.id && (
                   <div className="flex items-center gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-background/45 hover:text-background"
-                      onClick={(e) => { e.stopPropagation(); startEdit(session.id, session.title || ""); }}
+                    <Button variant="ghost" size="icon" className="h-6 w-6"
+                      onClick={(e) => { e.stopPropagation(); startEdit(session.id, session.title || ""); }} aria-label="Rename chat"
                     >
                       <SutaeruIcon name="edit" className="h-3 w-3" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-background/45 hover:text-[var(--neon-orange)]"
-                      onClick={(e) => { e.stopPropagation(); if (confirm("Delete this chat session?")) deleteSession.mutate({ sessionId: session.id }); }}
+                    <Button variant="ghost" size="icon" className="h-6 w-6"
+                      onClick={(e) => { e.stopPropagation(); if (confirm("Delete this chat session?")) deleteSession.mutate({ sessionId: session.id }); }} aria-label="Delete chat"
                     >
                       <SutaeruIcon name="delete" className="h-3 w-3" />
                     </Button>

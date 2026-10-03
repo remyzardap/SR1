@@ -20,6 +20,7 @@ import Memories from "./pages/Memories";
 import Monitors from "./pages/Monitors";
 import Images from "./pages/Images";
 import Connections from "./pages/Connections";
+import More from "./pages/More";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
 import DashboardLayout from "./components/DashboardLayout";
@@ -177,6 +178,15 @@ function AppRoutes() {
           </DashboardLayout>
         ) : (
           <ProtectedRoute component={Onboarding} />
+        )}
+      </Route>
+      <Route path="/more">
+        {isAuthenticated ? (
+          <DashboardLayout>
+            <More />
+          </DashboardLayout>
+        ) : (
+          <ProtectedRoute component={More} />
         )}
       </Route>
       <Route path="/404" component={NotFound} />

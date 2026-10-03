@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/authSession";
 import { callFunction } from "@/lib/kemmaCloud";
 import { AttachMenu } from "@/components/AttachMenu";
+import { FocusBrackets } from "@/components/art";
+import { useOnline } from "@/hooks/useAppearance";
 import { CodeAccessBar, CodeThreadView, rememberCodeSession, storedCodeSession, useCodeThread, type CodeAccess } from "@/components/CodeThread";
 import { MAX_FILES, attachmentName, type Attachment } from "@/lib/attachments";
 import { NEON_PAGE_BG, NOISE_OVERLAY, NEON, NEON_FD, NEON_FM } from "@/lib/design";
@@ -178,6 +180,23 @@ export default function Chat() {
   const [usedSkills, setUsedSkills] = useState<Array<{ id: number; name: string }>>([]);
   const [usage, setUsage] = useState<{ inputTokens: number; outputTokens: number; totalTokens: number } | null>(null);
   const [sources, setSources] = useState<Source[]>([]);
+
+  // ─── Connection ─────────────────────────────────────────────────────────────
+  // Offline is a visual state only: nothing is queued in the backend, the composer
+  // locks and the message that did not reach the server stays on screen as waiting.
+  const online = useOnline();
+  const onlineRef = useRef(online);
+  onlineRef.current = online;
+  // Coming back: a waiting question goes back into the composer instead of being
+  // sent on its own. Nothing is queued while the device is offline.
+  useEffect(() => {
+    if (!online) return;
+    const waiting = messagesRef.current.filter((message) => message.queued);
+    if (waiting.length === 0) return;
+    const text = waiting.map((message) => message.content).join("\n\n");
+    setMessages((prev) => prev.filter((message) => !message.queued));
+    setInput((current) => (current.trim() ? `${current.trim()}\n\n${text}` : text));
+  }, [online]);
 
   // ─── Code mode (admin only): Claude Code on the server, inside this thread ─
   const me = trpc.auth.me.useQuery(undefined, { retry: false });
@@ -367,6 +386,22 @@ export default function Chat() {
         }));
       const attached = typeof submission === "object" && submission.attachments ? submission.attachments : attachments;
       const sent: Attachment[] = [...attached, ...dropped].slice(0, MAX_FILES);
+
+      // Offline: the question stays on screen as waiting and nothing is sent.
+      if (!onlineRef.current) {
+        setMessages((prev) => [...prev, {
+          id: crypto.randomUUID(),
+          role: "user",
+          content: messageText,
+          createdAt: new Date(),
+          references: sent.map(attachmentName),
+          queued: true,
+        }]);
+        setInput("");
+        setAttachments([]);
+        setError(null);
+        return;
+      }
 
       if (isCode) {
         if (code.running || code.busy) return;
@@ -579,6 +614,14 @@ export default function Chat() {
       } catch (err) {
         if ((err as Error).name === "AbortError") return;
         const raw = (err as Error).message ?? "";
+        // The connection dropped mid-run: the question stays on screen as waiting
+        // and the offline banner explains it, so no second error message.
+        if (err instanceof TypeError && !onlineRef.current) {
+          setMessages((prev) => prev
+            .filter((message) => message.id !== assistantId)
+            .map((message) => (message.id === userMsg.id ? { ...message, queued: true } : message)));
+          return;
+        }
         const errMsg = err instanceof TypeError ? "Couldn't reach Sutaeru. Check your connection and retry." : raw || "Something went wrong. Please retry.";
         setError(errMsg);
         setMessages((prev) => prev.filter((m) => m.id !== assistantId && m.id !== userMsg.id));
@@ -676,10 +719,7 @@ export default function Chat() {
           "flex-none transition-all duration-200 overflow-hidden flex flex-col",
           sidebarOpen ? "sutaeru-history-open" : "sutaeru-history-closed"
         )}
-        style={{
-          background: NEON.black,
-          zIndex: 10,
-        }}
+        style={{ zIndex: 10 }}
       >
         {sidebarOpen && (
           <div style={{ position: "relative", height: "100%" }}>
@@ -729,10 +769,11 @@ export default function Chat() {
               messages={messages}
               isStreaming={isStreaming}
               messagesEndRef={messagesEndRef as RefObject<HTMLDivElement>}
-              onSuggestion={(s) => void handleSend(s)}
               sources={sources}
               steps={agentSteps}
               activity={activity}
+              runLabel={currentStep}
+              offline={!online}
               onSelectPlan={handleSelectPlan}
             />}
 
@@ -853,11 +894,12 @@ export default function Chat() {
             {isCode && (
               <CodeAccessBar access={codeAccess} onAccess={setCodeAccess} totp={codeTotp} onTotp={setCodeTotp} fullAvailable={code.fullAvailable} locked={!!code.session} />
             )}
-            <div className="sutaeru-run-controls">
+            <div className="sutaeru-run-controls" data-offline={online ? undefined : "true"}>
               {modeSheetOpen && (
                 <div className="sk-mode-sheet" role="radiogroup" aria-label="Chat mode">
                   {CHAT_MODE_CARDS.filter((m) => m.key !== "code" || isAdmin).map((m) => (
                     <button key={m.key} type="button" role="radio" aria-checked={mode === m.key} className={`sk-mode-card${mode === m.key ? " is-active" : ""}`} onClick={() => { handleSetMode(m.key); setModeSheetOpen(false); }}>
+                      {mode === m.key && <FocusBrackets />}
                       <SutaeruIcon name={m.icon} signal className="sk-mode-card-icon" />
                       <span className="sk-mode-card-title">{m.label}</span>
                       <span className="sk-mode-card-text">{m.text}</span>
@@ -889,6 +931,7 @@ export default function Chat() {
                      onSend={(message) => handleSend(message)}
                     onStop={isCode ? () => void code.stop() : stopRun}
                      allowAttachments={false}
+                    offline={!online}
                   />
                 </div>
               </div>
@@ -902,7 +945,7 @@ export default function Chat() {
               "hidden xl:flex flex-col transition-all duration-200 overflow-hidden",
               showAgentPanel ? "w-72" : "w-0"
             )}
-            style={{ borderLeft: showAgentPanel ? "1px solid rgba(10,10,10,0.06)" : "none", background: "rgba(255,255,255,0.35)" }}
+            style={{ borderLeft: showAgentPanel ? "1px solid var(--r-stroke)" : "none", background: "var(--r-panel)" }}
           >
             {showAgentPanel && (
               <div className="flex flex-col h-full p-4 gap-4">
@@ -919,12 +962,12 @@ export default function Chat() {
                 {/* Current mode card */}
                 <div className="neon-panel p-4 relative">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: NEON.orange }}>
-                       <ModeIcon className="h-5 w-5" style={{ color: "var(--neon-orange-ink)" }} />
+                    <div className="sk-mode-tile">
+                       <ModeIcon className="h-5 w-5" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold" style={{ fontFamily: NEON_FD }}>{meta.label}</p>
-                      <p className="text-[10px]" style={{ color: "rgba(245,240,232,0.55)", fontFamily: NEON_FM }}>{meta.desc}</p>
+                      <p className="sk-mode-tile-desc">{meta.desc}</p>
                     </div>
                   </div>
                 </div>

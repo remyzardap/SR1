@@ -1,0 +1,167 @@
+/*
+ * Settings and More (reskin wave 2, K1). Scoped under .sr-settings / .sr-more so it
+ * cannot leak into other pages, and it never edits pages-reskin.css: the shared sk-*
+ * primitives are re-pointed onto the token layer inside these two pages only, so both
+ * work in light and dark.
+ */
+
+/* ── Token surfaces inside the two pages ─────────────────────────────────── */
+.sr-settings .sk-card,
+.sr-more .sk-card,
+.sr-settings .sk-tile,
+.sr-more .sk-tile {
+  background: var(--r-card);
+  border: 1px solid var(--r-stroke);
+  border-radius: var(--r-radius-card-lg);
+  box-shadow: none;
+}
+.sr-settings .sk-hairline,
+.sr-more .sk-hairline { background: var(--r-stroke); }
+.sr-settings .sk-skeleton,
+.sr-more .sk-skeleton { background: var(--r-panel); }
+.sr-settings .sk-btn-ghost,
+.sr-more .sk-btn-ghost { background: var(--r-card); border-color: var(--r-stroke); color: var(--r-ink); }
+.sr-settings .sk-btn-ghost:hover,
+.sr-more .sk-btn-ghost:hover { background: var(--r-panel); border-color: var(--r-panel); }
+.sr-settings .sk-tab.is-active,
+.sr-settings .sk-tab[aria-pressed="true"],
+.sr-more .sk-tab.is-active,
+.sr-more .sk-tab[aria-pressed="true"] { background: var(--r-card); box-shadow: none; }
+.sr-settings .sk-input,
+.sr-more .sk-input { background: var(--r-card); border-color: var(--r-stroke); color: var(--r-ink); }
+.sr-settings .sk-error-text { color: var(--r-alert); }
+.sr-settings img[alt^="Scan this code"] { box-shadow: 0 0 0 1px var(--r-stroke); }
+
+/* ── Page title: the canvas uses the 42/800 page title on both pages ─────── */
+.sr-settings .sk-h1,
+.sr-more .sk-h1 {
+  font: 800 42px/1 var(--r-font-title);
+  letter-spacing: var(--r-track-title-lg);
+  color: var(--r-ink);
+}
+.sr-settings .sk-sub,
+.sr-more .sk-sub { margin-top: 10px; font: 400 17px/1.4 var(--r-font-body); color: var(--r-quiet); }
+@media (max-width: 767px) {
+  .sr-settings .sk-h1,
+  .sr-more .sk-h1 { font-size: 38px; }
+}
+
+/* ── Appearance: theme tiles ─────────────────────────────────────────────── */
+.sr-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.sr-theme-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 108px;
+  padding: 14px 10px 12px;
+  border: 1px solid var(--r-stroke);
+  border-radius: 20px;
+  background: var(--r-panel);
+  color: var(--r-ink);
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--r-motion) var(--r-ease-out), border-color var(--r-motion) var(--r-ease-out);
+}
+.sr-theme-tile.is-selected { border-color: var(--r-ink); }
+.sr-theme-tile:focus-visible { outline: 2px solid var(--r-accent); outline-offset: 3px; }
+.sr-theme-art { display: flex; align-items: center; justify-content: center; flex: 1 1 auto; min-height: 44px; }
+.sr-theme-mark { display: block; }
+.sr-theme-dot { fill: var(--r-accent); }
+.sr-theme-label { font: 600 14px/1 var(--r-font-body); color: inherit; }
+/* Each tile depicts its own palette, whatever the app is showing: paper, ink, or the
+   OS ramp. The values come from the token layer via a scoped data-mode. */
+.sr-theme-tile.is-light { background: var(--r-card); color: var(--r-ink); border-color: var(--r-stroke); }
+.sr-theme-tile.is-dark { background: var(--r-card); color: var(--r-ink); border-color: var(--r-stroke); }
+.sr-theme-tile.is-system { background: var(--r-panel); color: var(--r-ink); border-color: var(--r-stroke); }
+.sr-theme-tile.is-system .art-halftone { color: var(--r-quiet); }
+
+/* ── Toggle rows ─────────────────────────────────────────────────────────── */
+.sr-rows { display: flex; flex-direction: column; }
+.sr-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+}
+.sr-row + .sr-row { border-top: 1px solid var(--r-stroke); }
+.sr-row:first-child { padding-top: 0; }
+.sr-row:last-child { padding-bottom: 0; }
+.sr-row-copy { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.sr-row-title { margin: 0; font: 600 17px/1.3 var(--r-font-title); letter-spacing: -0.2px; color: var(--r-ink); }
+.sr-row-text { margin: 0; font: 400 14px/1.45 var(--r-font-body); color: var(--r-quiet); }
+
+/* ── More: grouped page cards ────────────────────────────────────────────── */
+.sr-more-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.sr-more-group + .sr-more-group { margin-top: 26px; }
+.sr-more-group-label { margin: 0 0 10px 4px; }
+.sr-more-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 18px;
+  text-align: left;
+  text-decoration: none;
+  background: var(--r-card);
+  border: 1px solid var(--r-stroke);
+  border-radius: var(--r-radius-card);
+  color: var(--r-ink);
+  transition: border-color var(--r-motion) var(--r-ease-out), transform var(--r-motion) var(--r-ease-out);
+}
+.sr-more-card:hover { border-color: var(--r-rule); }
+.sr-more-card:focus-visible { outline: 2px solid var(--r-accent); outline-offset: 3px; }
+.sr-more-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  background: var(--r-panel);
+  color: var(--r-ink);
+}
+.sr-more-tile-icon { width: 26px; height: 26px; }
+.sr-more-name { font: 700 19px/1.15 var(--r-font-title); letter-spacing: -0.5px; color: var(--r-ink); }
+.sr-more-meta { font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: var(--r-quiet); }
+@media (max-width: 359px) {
+  .sr-more-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Account card: the dark panel with the ramp, same language as Connections. */
+.sr-more-account {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 26px;
+  padding: 20px;
+  border-radius: var(--r-radius-card-lg);
+  background: var(--r-ink);
+  color: var(--r-paper);
+}
+.sr-more-account-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--r-paper);
+  color: var(--r-ink);
+  font: 700 17px var(--r-font-title);
+}
+.sr-more-account-copy { display: flex; flex-direction: column; gap: 4px; min-width: 0; position: relative; z-index: 1; }
+.sr-more-account-name { font: 700 19px/1.2 var(--r-font-title); letter-spacing: -0.4px; color: var(--r-paper); }
+.sr-more-account-plan { font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: color-mix(in srgb, var(--r-paper) 62%, transparent); }
+.sr-more-account .art-halftone { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--r-paper); opacity: 0.35; }

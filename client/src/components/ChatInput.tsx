@@ -22,6 +22,8 @@ interface ChatInputProps {
   onSend: (message?: PromptInputMessage) => void | Promise<void>;
   onStop?: () => void;
   allowAttachments?: boolean;
+  /** No connection: the composer locks and says why. */
+  offline?: boolean;
 }
 
 function AttachmentList({ enabled }: { enabled: boolean }) {
@@ -49,7 +51,7 @@ function AttachButton({ enabled }: { enabled: boolean }) {
   return <PromptInputButton className="sutaeru-attach-button" onClick={attachments.openFileDialog} tooltip="Attach reference files" aria-label="Attach reference files"><Paperclip aria-hidden="true" /></PromptInputButton>;
 }
 
-export function ChatInput({ value, isStreaming, onChange, onKeyDown, onSend, onStop, allowAttachments = false }: ChatInputProps) {
+export function ChatInput({ value, isStreaming, onChange, onKeyDown, onSend, onStop, allowAttachments = false, offline = false }: ChatInputProps) {
   const handleSubmit = async (message: PromptInputMessage) => {
     if (isStreaming || (!message.text.trim() && message.files.length === 0)) return;
     await onSend(message);
@@ -59,6 +61,7 @@ export function ChatInput({ value, isStreaming, onChange, onKeyDown, onSend, onS
     <div className="sutaeru-chat-input w-full">
       <PromptInput
         className="sutaeru-input-box"
+        data-offline={offline ? "true" : undefined}
         accept="application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         multiple
         maxFiles={5}
@@ -71,19 +74,19 @@ export function ChatInput({ value, isStreaming, onChange, onKeyDown, onSend, onS
           value={value}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="Ask Kemma anything…"
+          placeholder={offline ? "Reconnect to send" : "Ask Kemma anything…"}
           aria-label="Message Kemma"
           className="sutaeru-composer-textarea"
         />
         <PromptInputFooter className="sutaeru-composer-footer justify-end">
           <AttachButton enabled={allowAttachments} />
-          <VoiceButton disabled={isStreaming} onTranscript={(text) => onChange(value ? `${value} ${text}` : text)} />
+          <VoiceButton disabled={isStreaming || offline} onTranscript={(text) => onChange(value ? `${value} ${text}` : text)} />
           <PromptInputSubmit
             status={isStreaming ? "streaming" : "ready"}
             onStop={onStop}
-            disabled={!isStreaming && !value.trim()}
+            disabled={(!isStreaming && !value.trim()) || offline}
             className="sutaeru-composer-send"
-            title={isStreaming ? "Stop generation" : "Send message"}
+            title={isStreaming ? "Stop generation" : offline ? "Waiting to send" : "Send message"}
           >{!isStreaming && <SutaeruIcon name="arrow" className="size-5 -rotate-90" />}</PromptInputSubmit>
         </PromptInputFooter>
       </PromptInput>

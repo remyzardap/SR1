@@ -10,7 +10,17 @@ import { SpeakButton } from "./SpeakButton";
 import { PlanOptionCards } from "./PlanOptionCards";
 import type { ChatMessageData, PlanDirection } from "@/types/chat";
 import { SutaeruIcon } from "./SutaeruIcon";
+import { FocusBrackets } from "@/components/art";
 import { ActivityFeed, type ActivityItem } from "./ActivityFeed";
+
+/** Host label for a source card, e.g. "irena.org". Empty when the url is not absolute. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
 
 interface MessageBubbleProps {
   message: ChatMessageData;
@@ -35,16 +45,28 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
 
   return (
     <Message from={message.role} className="sutaeru-editorial-message max-w-full">
-      <div className="sutaeru-message-label">
-        <strong>{isUser ? "You" : "Kemma"}</strong>
-        <span>{message.createdAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
-      </div>
+      {!message.queued && (
+        <div className="sutaeru-message-label">
+          <strong>{isUser ? "You" : "Kemma"}</strong>
+          <span>{message.createdAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
+        </div>
+      )}
       {!isUser && activity.length > 0 && <ActivityFeed items={activity} isRunning={isRunning} />}
-      <MessageContent className={isUser ? "sutaeru-user-content" : "sutaeru-assistant-content"}>
-        {message.streaming && !message.content ? <Shimmer>Thinking…</Shimmer> :
-          isUser ? <span className="whitespace-pre-wrap">{message.content}</span> :
-          <MessageResponse isAnimating={message.streaming}>{message.content}</MessageResponse>}
-      </MessageContent>
+      {message.queued ? (
+        <div className="sutaeru-queued-wrap">
+          <div className="sutaeru-queued-content">
+            <span className="whitespace-pre-wrap">{message.content}</span>
+          </div>
+          <span className="sutaeru-queued-line" aria-hidden="true" />
+          <span className="sutaeru-queued-label">Waiting to send</span>
+        </div>
+      ) : (
+        <MessageContent className={isUser ? "sutaeru-user-content" : "sutaeru-assistant-content"}>
+          {message.streaming && !message.content ? <Shimmer>Thinking…</Shimmer> :
+            isUser ? <span className="whitespace-pre-wrap">{message.content}</span> :
+            <MessageResponse isAnimating={message.streaming}>{message.content}</MessageResponse>}
+        </MessageContent>
+      )}
       {!isUser && message.planOptions?.length && onSelectPlan ? (
         <PlanOptionCards options={message.planOptions} selectedId={message.selectedOptionId} disabled={message.streaming} onSelect={onSelectPlan} />
       ) : null}
@@ -52,7 +74,20 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
       {!isUser && sources.length > 0 && (
         <section className="sutaeru-message-sources" aria-label="Sources for this answer">
           <strong>Sources / {sources.length}</strong>
-          <ol>{sources.map((source, index) => <li key={`${source.url}-${index}`}><a href={source.url} target="_blank" rel="noreferrer"><span>{String(index + 1).padStart(2, "0")}</span>{source.title}</a></li>)}</ol>
+          <ol>
+            {sources.map((source, index) => (
+              <li key={`${source.url}-${index}`}>
+                {index === 0 && <FocusBrackets />}
+                <a href={source.url} target="_blank" rel="noreferrer">
+                  <span className="sutaeru-cite-chip">{index + 1}</span>
+                  <span className="sutaeru-source-copy">
+                    <span className="sutaeru-source-host">{index + 1} · {hostOf(source.url)}</span>
+                    <span className="sutaeru-source-title">{source.title}</span>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ol>
         </section>
       )}
       {!isUser && activity.length === 0 && tools.length > 0 && (

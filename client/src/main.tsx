@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { getAuthToken } from "./lib/authSession";
+import { applyAppearance, onAppearanceChange, syncThemeColor } from "./lib/theme";
 import "@fontsource/urbanist/600.css";
 import "@fontsource/urbanist/700.css";
 import "@fontsource/urbanist/800.css";
@@ -79,6 +80,11 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
     });
   });
 }
+
+// The saved appearance is already on <html> from the inline script in index.html;
+// this keeps the attribute set current and follows the OS while System is chosen.
+applyAppearance();
+onAppearanceChange(syncThemeColor);
 
 createRoot(document.getElementById("root")!).render(
   <trpc.Provider client={trpcClient} queryClient={queryClient}>

@@ -26,4 +26,6 @@ export interface ChatMessageData {
   references?: string[];
   planOptions?: PlanDirection[];
   selectedOptionId?: string;
+  /** True for a message held on screen while the device is offline (never sent). */
+  queued?: boolean;
 }
