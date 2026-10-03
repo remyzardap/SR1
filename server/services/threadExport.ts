@@ -25,9 +25,8 @@ export function threadToStructuredContent(
     sections: messages.map((m) => {
       const who = m.role === "user" ? "You" : "Kemma";
       const when = new Date(m.createdAt).toISOString();
-      const modelSuffix = m.model ? ` · ${m.model}` : "";
       return {
-        heading: `${who} · ${when}${modelSuffix}`,
+        heading: `${who} · ${when}`,
         body: m.content,
       };
     }),

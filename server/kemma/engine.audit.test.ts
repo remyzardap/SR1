@@ -296,9 +296,9 @@ describe("fallback chain through callChainFor", () => {
     const output = await kemmaExecute(baseInput({ onStream, onNotice }));
     expect(net.calls.map((c) => c.body.model)).toEqual(["qwen3.8-max", "gemini-3.8-flash", "qwen-back"]);
     expect(onNotice.mock.calls.flat()).toEqual([
-      "Primary model unavailable; trying gemini-3.8-flash (gemini)...",
-      "Primary model unavailable; trying qwen-back (qwen)...",
-      "Answer produced by fallback model qwen-back (qwen).",
+      "Primary model unavailable; trying a backup...",
+      "Primary model unavailable; trying a backup...",
+      "Answer produced by a backup model.",
     ]);
     expect(output.response).toBe("Fallback answer.");
     expect(onStream).toHaveBeenCalledWith("Fallback answer.");
@@ -505,7 +505,7 @@ describe("thinking and voice flags", () => {
     const voiceNet = stubFetch(() => jsonRes(completion("Voice answer.")));
     await kemmaExecute(baseInput({ isVoice: true }));
     const voiceSys = voiceNet.calls[0].body.messages[0].content;
-    expect(voiceSys).toContain("## Voice mode");
+    expect(voiceSys).toContain("SPOKEN MODE");
 
     const plainNet = stubFetch(() => jsonRes(completion("Plain answer.")));
     await kemmaExecute(baseInput({ isVoice: false }));

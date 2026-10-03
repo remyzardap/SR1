@@ -372,7 +372,7 @@ describe("stream route: thinking and voice flags", () => {
     // Qwen requests carry the system prompt as a marked text-part array (prompt-cache markers), others as a string.
     const sys = net.calls[0].body.messages[0].content;
     const sysText = typeof sys === "string" ? sys : sys.map((p: { text?: string }) => p.text ?? "").join("");
-    expect(sysText).toContain("## Voice mode");
+    expect(sysText).toContain("SPOKEN MODE");
     expect(quota.checkQuota).toHaveBeenCalledWith(1, "think");
     expect(quota.incrementQuota).toHaveBeenCalledWith(1, "think");
   });

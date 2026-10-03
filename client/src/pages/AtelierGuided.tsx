@@ -527,7 +527,7 @@ export default function AtelierGuided({ embedded = false, entry }: { embedded?: 
         {!embedded && (
           <div>
             <h1 className="sk-h1">Documents</h1>
-            <p className="sk-sub">Professional report studio, powered by S1</p>
+            <p className="sk-sub">Professional report studio, powered by Kemma</p>
           </div>
         )}
 
@@ -653,7 +653,7 @@ export default function AtelierGuided({ embedded = false, entry }: { embedded?: 
             <span className="sk-at-status">
               <span className="sk-dot" aria-hidden="true" /> Documents · {reportType}
             </span>
-            <p className="sk-sub" style={{ margin: "6px 0 0" }}>S1 is gathering information</p>
+            <p className="sk-sub" style={{ margin: "6px 0 0" }}>Kemma is gathering information</p>
           </div>
           <div className="sk-row">
             {readyToGenerate && (
@@ -700,7 +700,7 @@ export default function AtelierGuided({ embedded = false, entry }: { embedded?: 
               value={input}
               onChange={(e) => { setInput(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`; }}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendMessage(); } }}
-              placeholder="Answer S1's question..."
+              placeholder="Answer Kemma's question..."
               rows={1}
               disabled={streaming}
             />
@@ -732,7 +732,7 @@ export default function AtelierGuided({ embedded = false, entry }: { embedded?: 
             <span className="sk-meta sk-num">STEP {approxStep + 1} OF {steps.length}</span>
           </div>
           <h2 className="sk-at-run-title">Building your {reportType}</h2>
-          <p className="sk-at-run-body">S1 is writing your report now...</p>
+          <p className="sk-at-run-body">Kemma is writing your report now...</p>
           <RunTimeline steps={steps} current={approxStep} />
           <div className="sk-at-now">
             <span className="sk-at-now-label">Now</span>

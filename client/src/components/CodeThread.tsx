@@ -6,7 +6,7 @@ import type { Attachment } from "@/lib/attachments";
 import { getAuthToken } from "@/lib/authSession";
 import "@/styles/code-sessions.css";
 
-/** Code mode: Claude Code running on the server, shown inside a normal chat thread. Admin only. */
+/** Code mode: the coding agent running on the server, shown inside a normal chat thread. Admin only. */
 
 export type CodeStatus = "running" | "done" | "needs_approval" | "error" | "stopped" | "capped" | "interrupted";
 export type CodeAccess = "read" | "edit" | "full";
@@ -28,7 +28,18 @@ interface Ev {
   kind?: string;
   text?: string;
   provider?: string;
+  next?: string;
   event?: { type?: string; message?: { content?: Array<Record<string, any>> } };
+}
+
+/**
+ * Notes and faults echoed by the session daemon can name the backend that ran
+ * ("Claude Code is not installed", provider labels in limit notes). Nothing on
+ * screen says which model answered, so those names are masked at render.
+ */
+const BACKEND_WORDS = /\b(?:claude(?:\s+code)?|anthropic|openai|gpt-[\w.+-]+|gemini|qwen|sonar|kimi|vertex(?:\s+ai)?|litellm|koboi\w*)\b/gi;
+function hideBackends(text: string): string {
+  return text.replace(BACKEND_WORDS, "the coding tool").replace(/\bthe coding tool(?:\s+the coding tool)+/gi, "the coding tool");
 }
 
 class GateError extends Error {
@@ -178,7 +189,7 @@ export function useCodeThread(chatSessionId: string, active: boolean): CodeThrea
   };
 }
 
-/** The conversation: your messages, Claude's replies, one pill per step, notes, and the approval card. */
+/** The conversation: your messages, Kemma's replies, one pill per step, notes, and the approval card. */
 export function CodeThreadView({ code }: { code: CodeThreadApi }) {
   const bottom = useRef<HTMLDivElement>(null);
   useEffect(() => { bottom.current?.scrollIntoView({ block: "end" }); }, [code.events.length, code.session?.status]);
@@ -204,16 +215,16 @@ export function CodeThreadView({ code }: { code: CodeThreadApi }) {
       )}
       {s && (
         <p className="cs-muted cs-small cs-meta">
-          {accessLabel(s.mode)} · {s.provider ?? "starting"} · ${s.spent_usd.toFixed(2)} so far
+          {accessLabel(s.mode)} · ${s.spent_usd.toFixed(2)} so far
         </p>
       )}
       <div className="cs-timeline">
         {code.events.map((e) => {
           if (e.type === "sutaeru") {
             if (e.kind === "user") return <div key={e.n} className="cs-me">{e.text}</div>;
-            if (e.kind === "provider_limit") return <div key={e.n} className="cs-note cs-warn">{e.text}</div>;
-            if (e.kind === "provider") return e.provider && e.provider !== "anthropic" ? <div key={e.n} className="cs-note">Running on {e.provider}</div> : null;
-            if (["error", "budget", "approved", "denied"].includes(e.kind || "")) return <div key={e.n} className={`cs-note ${e.kind === "error" ? "cs-warn" : ""}`}>{e.text}</div>;
+            if (e.kind === "provider_limit") return <div key={e.n} className="cs-note cs-warn">The code backend hit its limit{e.next ? ", trying another one" : ""}.</div>;
+            if (e.kind === "provider") return null; // which backend answers is not shown; the note stays in the data
+            if (["error", "budget", "approved", "denied"].includes(e.kind || "")) return <div key={e.n} className={`cs-note ${e.kind === "error" ? "cs-warn" : ""}`}>{hideBackends(e.text || "")}</div>;
             return null;
           }
           const ev = e.event;
@@ -232,7 +243,7 @@ export function CodeThreadView({ code }: { code: CodeThreadApi }) {
       {code.running && <div className="cs-working"><Loader2 size={14} className="animate-spin" /> Working…</div>}
       {code.needsApproval && s && (
         <div className="cs-approve" role="alert">
-          <strong>Claude wants to do this</strong>
+          <strong>Kemma wants to do this</strong>
           {s.pending_approvals.map((a) => (
             <pre key={a.id} className="cs-code">{a.tool}: {String(a.input?.command ?? a.input?.file_path ?? JSON.stringify(a.input)).slice(0, 400)}</pre>
           ))}
@@ -267,7 +278,7 @@ export function CodeAccessBar({
       {locked && <p className="cs-muted cs-small">Access is fixed for this session.</p>}
       {!locked && access === "full" && (
         <>
-          <p className="cs-warn-line">Full access lets Claude run any command on the server as root without asking. Known secret files are blocked and a 30 minute limit applies, but a command can get around the file rules. Use it only for tasks you trust.</p>
+          <p className="cs-warn-line">Full access lets Kemma run any command on the server as root without asking. Known secret files are blocked and a 30 minute limit applies, but a command can get around the file rules. Use it only for tasks you trust.</p>
           <input
             type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" maxLength={6}
             className="cs-input cs-totp-input" placeholder="6-digit 2FA code" aria-label="Authenticator code"

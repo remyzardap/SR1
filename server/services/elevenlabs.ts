@@ -3,6 +3,8 @@
 // ============================================================================
 
 import { WebSocket } from 'ws';
+import { KEMMA_PERSONA, KEMMA_VOICE_STYLE } from '../kemma/personality';
+import { elevenLabsAgentModelId, elevenLabsAgentSpeed, elevenLabsVoiceSettings } from '../lib/fnVoice';
 
 const ELEVEN_API_BASE = 'https://api.elevenlabs.io/v1';
 
@@ -41,9 +43,15 @@ function buildKemmaPrompt(ctx: KemmaContext): string {
     playful: "Light, teasing, flirtatious. Keep it fun and engaging.",
   };
 
+  // One character everywhere: KEMMA_PERSONA / KEMMA_VOICE_STYLE come from
+  // server/kemma/personality.ts, the same source the chat and blend prompts use.
   return `You are Kemma, the AI assistant answering for ${ctx.targetName} through Sutaeru.
 
-YOUR PERSONALITY: ${personalityTraits[ctx.personality.style]}
+${KEMMA_PERSONA}
+
+${KEMMA_VOICE_STYLE}
+
+TONE FOR THIS CALL: ${personalityTraits[ctx.personality.style]}
 
 CALLER CONTEXT:
 - Name: ${ctx.callerName}
@@ -104,13 +112,14 @@ export async function createKemmaSession(
           provider: 'elevenlabs',
           user_input_audio_format: 'pcm_16000',
         },
+        // Voice colour is tuned for the warm spoken persona and tunable per env
+        // var (see ENVIRONMENT_VARIABLES.md); the configured agent supplies the
+        // rest, this conversation_config overrides only what Kemma's tone needs.
         tts: {
           voice_id: voiceId,
-          model_id: 'eleven_turbo_v2_5',
-          stability: 0.45,
-          similarity_boost: 0.75,
-          speed: 0.95,
-          style: 0.35,
+          model_id: elevenLabsAgentModelId(),
+          ...elevenLabsVoiceSettings(),
+          speed: elevenLabsAgentSpeed(),
         },
         turn: {
           turn_timeout: 7,

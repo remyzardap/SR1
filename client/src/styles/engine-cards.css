@@ -116,14 +116,6 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.sk-engine-model {
-  margin-top: auto;
-  padding-top: 2px;
-  color: var(--art-quiet);
-  font: 500 10.5px/1.4 var(--font-m, 'JetBrains Mono'), monospace;
-  letter-spacing: 0.06em;
-  overflow-wrap: anywhere;
-}
 
 /* On a phone the cards sit in a swipeable row instead of a tall stack. */
 @media (max-width: 640px) {

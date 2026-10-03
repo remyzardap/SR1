@@ -51,11 +51,6 @@ const TYPE_COLOR: Record<BlockType, string> = {
   widget: "#0069ff", note: "#84cc16",
 };
 
-const AGENT_COLORS: Record<string, string> = {
-  claude: "#f97316", kimi: "#f59e0b", sonar: "#2dd4bf",
-  litellm: "#8b5cf6", s1: "#f2f2f2",
-};
-
 // ─── Content renderers ────────────────────────────────────────────────────────
 
 function ChatContent({ content }: { content: Record<string, unknown> }) {
@@ -231,7 +226,6 @@ export function Block({
 
   const Icon = TYPE_ICON[localBlock.type] ?? Sparkles;
   const typeColor = TYPE_COLOR[localBlock.type] ?? "#f2f2f2";
-  const agentColor = localBlock.agentId ? (AGENT_COLORS[localBlock.agentId] ?? "#f2f2f2") : typeColor;
 
   // Haptic-like feedback
   const handlePress = useCallback(() => {
@@ -378,12 +372,7 @@ export function Block({
                 {localBlock.title}
               </p>
             )}
-            {localBlock.agentId && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
-                style={{ background: `${agentColor}12`, border: `1px solid ${agentColor}22`, color: agentColor }}>
-                {localBlock.agentId}
-              </span>
-            )}
+            {/* No agent chip: which model or backend answered is never shown on screen. */}
             {localBlock.source !== "user" && !localBlock.agentId && (
               <span className="text-[10px] uppercase tracking-widest shrink-0" style={{ color: "rgba(242,242,242,0.25)" }}>
                 {localBlock.source}

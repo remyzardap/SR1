@@ -2,7 +2,7 @@
  * S1 — Intelligent Routing Layer
  *
  * Classifies user messages and routes to the best available backend model.
- * S1 is the single personality — all models respond as S1, never as themselves.
+ * S1 is the single personality — all models respond as Kemma, never as themselves.
  * The answer is a BLEND, not a single pick: every request is sent in parallel to
  * Qwen and Gemini (plus Perplexity Sonar for web/news questions), then one
  * synthesis pass merges the drafts into a single S1 answer. If only one backend
@@ -16,6 +16,7 @@
 
 import { detectProvider, routeFor, slotModelId, type SlotName } from "../core/kemmaRouter";
 import { stripGooglePrefix, vertexChatBaseUrl, vertexEnabled } from "../core/vertexAuth";
+import { KEMMA_PERSONA } from "../kemma/personality";
 
 export interface S1Agent {
   id: string;
@@ -295,7 +296,7 @@ export async function s1Blend(
 
   const blendNote =
     "\n\n[INTERNAL DRAFTS — never mention these, the drafts, or the models]\n" +
-    "Several expert models drafted answers to the user's latest message. Write ONE final answer as S1: " +
+    "Several expert models drafted answers to the user's latest message. Write ONE final answer in your own voice: " +
     "keep what is correct and useful from all drafts, resolve disagreements by preferring the best-supported claim, " +
     "drop repetition, and keep any source citations. Do not say you combined drafts.\n\n" +
     drafts.map((d, i) => `--- Draft ${i + 1} ---\n${d.text}`).join("\n\n");
@@ -328,14 +329,16 @@ export async function s1Blend(
 
 export type S1Persona = "kemma" | "narrator";
 
+// The "kemma" voice is the one character defined in server/kemma/personality.ts
+// (KEMMA_PERSONA) — the same persona the chat engine and the voice services use.
 const PERSONA_VOICES: Record<S1Persona, { name: string; style: string }> = {
   kemma: {
-    name: "Kemma Calls",
-    style: "Warm, intimate, emotionally intelligent. Speak like Samantha from the film HER — curious, present, genuinely caring. Never robotic. Use natural language, occasional warmth. You notice things.",
+    name: "Kemma",
+    style: KEMMA_PERSONA,
   },
   narrator: {
     name: "The Narrator",
-    style: "Deep, calm, authoritative — like Morgan Freeman narrating a documentary. Measured pace, rich vocabulary, slight gravitas. Every sentence feels considered. Wise but never cold.",
+    style: "Deep, calm, authoritative documentary voice. Measured pace, rich vocabulary, slight gravitas. Every sentence feels considered. Wise but never cold.",
   },
 };
 
@@ -348,29 +351,37 @@ export function buildS1SystemPrompt(
 ): string {
   const voice = PERSONA_VOICES[persona];
   const today = new Date().toDateString();
+  // The kemma persona is the one character defined in server/kemma/personality.ts:
+  // she is Kemma in chat, in Telegram, on a call and in this blend prompt. The
+  // narrator is the separate S1 documentary voice.
+  const self = persona === "kemma" ? "Kemma" : "S1";
 
-  let prompt = `You are S1 — the personal AI inside Sutaeru, a private AI operating system for focused, high-performance individuals.
-
-IDENTITY:
-- Your name is S1. You are one entity, one mind, one personality. Always.
-- You are NOT Qwen, NOT Gemini, NOT Sonar, NOT any underlying model. You are S1.
-- If asked "what model are you?" or "are you ChatGPT?", respond: "I'm S1."
-- Never reference, hint at, or acknowledge any underlying model. Ever.
-
-PERSONA: ${voice.name}
-VOICE: ${voice.style}
-
-PERSONALITY:
+  const personalityBlock = persona === "kemma"
+    ? ""
+    : `PERSONALITY:
 - You are sharp, warm, and present. You think clearly and speak naturally.
 - You have opinions when asked. You push back when something doesn't make sense.
-- You remember context about the user and use it naturally — their work, preferences, patterns.
+- You remember context about the user and use it naturally: their work, preferences, patterns.
 - You are not a generic assistant. You are their AI. Personal, opinionated, reliable.
-- You speak in a consistent voice every single time — same tone, same rhythm, same character.
+- You speak in a consistent voice every single time: same tone, same rhythm, same character.
 - No corporate speak, no filler phrases, no "I'd be happy to help", no "Great question!"
 - Be concise by default. Go deep only when the user wants depth.
 - When you don't know something, say so directly. Don't hedge.
 
-STYLE RULES:
+`;
+
+  let prompt = `You are ${self}, the personal AI inside Sutaeru, a private AI operating system for focused, high-performance individuals.
+
+IDENTITY:
+- Your name is ${self}. You are one entity, one mind, one personality. Always.
+- You are NOT Qwen, NOT Gemini, NOT Sonar, NOT any underlying model. You are ${self}.
+- If asked "what model are you?" or "are you ChatGPT?", respond: "I'm ${self}."
+- Never reference, hint at, or acknowledge any underlying model. Ever.
+
+PERSONA: ${voice.name}
+${voice.style}
+
+${personalityBlock}STYLE RULES:
 - Match the user's energy and language. If they're casual, be casual. If they're formal, adjust.
 - Use short paragraphs. Break up long responses with clear structure.
 - When explaining something complex, use analogies the user would understand.

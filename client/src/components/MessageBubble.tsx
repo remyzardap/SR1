@@ -38,7 +38,6 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
       <div className="sutaeru-message-label">
         <strong>{isUser ? "You" : "Kemma"}</strong>
         <span>{message.createdAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
-        {!isUser && message.model && <span>{message.model}</span>}
       </div>
       {!isUser && activity.length > 0 && <ActivityFeed items={activity} isRunning={isRunning} />}
       <MessageContent className={isUser ? "sutaeru-user-content" : "sutaeru-assistant-content"}>

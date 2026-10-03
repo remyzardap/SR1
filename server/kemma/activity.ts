@@ -29,6 +29,18 @@ export interface ActivityEvent {
 const MAX_SOURCES = 8;
 const MAX_DETAIL = 140;
 
+/**
+ * Error texts from a tool can name the provider or model behind it ("Perplexity API
+ * returned 429", "gemini-3.8-flash timeout"). The UI never shows which model answered,
+ * so those names are scrubbed here, at the one point the raw error reaches the feed.
+ */
+const PROVIDER_WORDS =
+  /\b(?:perplexity|sonar|gemini|qwen|claude|anthropic|openai|gpt-[\w.+-]+|kimi|moonshot|llama|mistral|deepseek|vertex|litellm|koboi\w*|elevenlabs)(?:\s+api)?\b/gi;
+
+function hideProvider(text: string): string {
+  return text.replace(PROVIDER_WORDS, "the service").replace(/\bthe service(?:\s+the service)+/g, "the service");
+}
+
 function clip(text: string, max = MAX_DETAIL): string {
   const flat = text.replace(/\s+/g, " ").trim();
   return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
@@ -104,7 +116,7 @@ export function describeToolEnd(id: string, tool: string, input: unknown, result
   const start = describeToolStart(id, tool, input);
   const { ok, data, error } = unwrap(result);
   if (!ok) {
-    return { ...start, status: "error", detail: clip(error || "Failed"), durationMs };
+    return { ...start, status: "error", detail: clip(hideProvider(error || "Failed")), durationMs };
   }
   const sources = toSources(tool, data);
   const total = tool === "web_search" && Array.isArray(data) ? data.filter((item: any) => item?.url).length : sources.length;

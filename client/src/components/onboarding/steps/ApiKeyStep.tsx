@@ -51,7 +51,7 @@ export function ApiKeyStep({ initialData, onNext, onBack, onSkip }: ApiKeyStepPr
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-foreground mb-2">Connect your AI</h2>
         <p className="text-muted-foreground">
-          Add your own API key to use your preferred AI model. Sutaeru already has Kimi built in — this is optional.
+          Add your own API key to use your preferred AI model. Sutaeru already has its own AI built in, so this is optional.
         </p>
       </div>
 

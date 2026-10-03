@@ -220,7 +220,8 @@ export async function runChatImage(opts: { chatKey: string; parsed: ChatImageCom
       ok: true,
       buffer: image.buffer,
       mimeType: image.mimeType,
-      caption: `${ENGINE_LABELS[image.engine]} · ${image.model}`,
+      // The caption never names the engine or model: the picture is simply Kemma's.
+      caption: "Kemma",
     };
   } catch (err) {
     return { ok: false, message: userSafeMessage(err) };
