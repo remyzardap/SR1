@@ -53,6 +53,9 @@ export interface VideoEngineInfo {
   supportsReference: boolean;
   minDurationSec: number;
   maxDurationSec: number;
+  aspectRatios?: VideoAspectRatio[];
+  estimateMinSeconds?: number;
+  estimateMaxSeconds?: number;
 }
 
 export interface PollVideoOptions {

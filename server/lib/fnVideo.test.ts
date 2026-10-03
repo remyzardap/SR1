@@ -398,3 +398,17 @@ describe("fnVideo mp4 sniffer", () => {
     expect(isMp4(Buffer.from("not an mp4"))).toBe(false);
   });
 });
+
+describe("fnVideo listVideoEngines card data", () => {
+  it("reports shapes, duration limits and a time estimate for every engine, with friendly labels", () => {
+    const engines = listVideoEngines();
+    expect(engines.map((e) => e.id).sort()).toEqual(["forge", "gemini", "openai", "qwen"]);
+    for (const e of engines) {
+      expect(e.aspectRatios).toEqual(["16:9", "9:16", "1:1"]);
+      expect(e.estimateMinSeconds).toBeGreaterThan(0);
+      expect(e.estimateMaxSeconds).toBeGreaterThanOrEqual(e.estimateMinSeconds);
+      expect(e.minDurationSec).toBeLessThanOrEqual(e.maxDurationSec);
+      expect(e.label).not.toMatch(/veo|wan|sora|-preview/i);
+    }
+  });
+});
