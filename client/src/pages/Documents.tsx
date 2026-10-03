@@ -2,6 +2,8 @@ import { useCallback, useState, type ReactNode } from "react";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
 import AtelierGuided from "./AtelierGuided";
 import QuickCreate from "./QuickCreate";
+import { PageTitle } from "@/components/chrome/PageTitle";
+import { FocusBrackets } from "@/components/art";
 import "@/styles/documents-start.css";
 
 type Start = "new" | "edit" | null;
@@ -57,14 +59,17 @@ const art: Record<string, ReactNode> = {
 
 function OptionCard({ id, title, text, label, active, onClick, compact }: { id: string; title: string; text: string; label: string; active?: boolean; onClick: () => void; compact?: boolean }) {
   return (
-    <button type="button" role="radio" aria-checked={!!active} className={`sk-doc-card${active ? " is-active" : ""}${compact ? " is-compact" : ""}`} onClick={onClick}>
-      <span className="sk-doc-art">{art[id]}</span>
-      <span className="sk-doc-body">
-        <span className="sk-doc-label">{label}</span>
-        <span className="sk-doc-title">{title}</span>
-        <span className="sk-doc-text">{text}</span>
-      </span>
-    </button>
+    <span className="sk-doc-cell">
+      <button type="button" role="radio" aria-checked={!!active} className={`sk-doc-card${compact ? " is-compact" : ""}`} onClick={onClick}>
+        <span className="sk-doc-art">{art[id]}</span>
+        <span className="sk-doc-body">
+          <span className="sk-doc-label">{label}</span>
+          <span className="sk-doc-title">{title}</span>
+          <span className="sk-doc-text">{text}</span>
+        </span>
+      </button>
+      {active ? <FocusBrackets /> : null}
+    </span>
   );
 }
 
@@ -95,7 +100,7 @@ export default function Documents() {
       <div className="sk-page sk-documents">
         <div className="sk-header">
           <div>
-            <h1 className="sk-h1">Documents</h1>
+            <PageTitle className="skx-title-flush">Documents</PageTitle>
             <p className="sk-sub">What do you want to do?</p>
           </div>
         </div>
@@ -112,7 +117,7 @@ export default function Documents() {
       <div className="sk-header">
         <div>
           <button type="button" className="sk-doc-back" onClick={() => setStart(null)}>← All documents</button>
-          <h1 className="sk-h1">{start === "new" ? "New document" : "Edit document"}</h1>
+          <PageTitle className="skx-title-flush">{start === "new" ? "New document" : "Edit document"}</PageTitle>
           <p className="sk-sub">{start === "new" ? "How do you want to start?" : "Upload the file you want to change."}</p>
         </div>
       </div>

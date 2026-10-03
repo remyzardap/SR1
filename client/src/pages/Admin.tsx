@@ -1,7 +1,28 @@
 import { Link } from "wouter";
-import { Loader2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { formatDate } from "@/lib/utils";
+import { SteppedMeter, StatusPill } from "@/components/art";
+import { PageTitle } from "@/components/chrome/PageTitle";
+import "@/styles/admin.css";
+
+/** Compact mono "last seen": 12 MIN, 2 H, YESTERDAY, then the date. */
+function lastSeenLabel(iso: string | Date): string {
+  const then = new Date(iso).getTime();
+  const mins = Math.max(0, Math.round((Date.now() - then) / 60_000));
+  if (mins < 1) return "NOW";
+  if (mins < 60) return `${mins} MIN`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} H`;
+  const days = Math.round(hours / 24);
+  if (days === 1) return "YESTERDAY";
+  if (days < 7) return `${days} D`;
+  return formatDate(iso).toUpperCase();
+}
+
+/** Someone who signed in in the last half hour reads as live. */
+function isLive(iso: string | Date): boolean {
+  return Date.now() - new Date(iso).getTime() < 30 * 60_000;
+}
 
 export default function Admin() {
   const { data: users, isLoading, error } = trpc.admin.userStats.useQuery();
@@ -9,7 +30,7 @@ export default function Admin() {
   const header = (
     <header className="sk-header">
       <div>
-        <h1 className="sk-h1">Admin</h1>
+        <PageTitle className="skx-title-flush">Admin</PageTitle>
         <p className="sk-sub">Workspace health, people and activity.</p>
       </div>
       <div className="sk-actions">
@@ -20,7 +41,7 @@ export default function Admin() {
 
   if (error) {
     return (
-      <div className="sk-page">
+      <div className="sk-page sk-admin">
         {header}
         <div className="sk-card sk-empty">
           <span className="sk-label">Access Denied</span>
@@ -30,75 +51,68 @@ export default function Admin() {
     );
   }
 
+  const list = users ?? [];
+  const total = list.length;
+  const admins = list.filter((u) => u.role === "admin").length;
+  const filesTotal = list.reduce((acc, u) => acc + (u.filesGenerated || 0), 0);
+  const onboarded = list.filter((u) => u.onboarded).length;
+  const withFiles = list.filter((u) => (u.filesGenerated || 0) > 0).length;
+  const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+  const activeToday = list.filter((u) => new Date(u.lastSignedIn).getTime() >= startOfDay.getTime()).length;
+  const share = (n: number) => (total > 0 ? n / total : 0);
+
+  const stats = [
+    { label: "Users", value: total, meter: share(onboarded), meterLabel: `${onboarded} of ${total} profiles set up` },
+    { label: "Files", value: filesTotal, meter: share(withFiles), meterLabel: `${withFiles} of ${total} people have files` },
+    { label: "Admins", value: admins, meter: share(admins), meterLabel: `${admins} of ${total} are admins` },
+    { label: "Active today", value: activeToday, meter: share(activeToday), meterLabel: `${activeToday} of ${total} signed in today` },
+  ];
+
   return (
-    <div className="sk-page">
+    <div className="sk-page sk-admin">
       {header}
 
       <div className="sk-stack">
         {/* Stats */}
-        <div className="sk-grid-3">
-          <div className="sk-card sk-stat">
-            <span className="sk-label">Total Users</span>
-            <p className="sk-stat-num">{users?.length ?? 0}</p>
-          </div>
-          <div className="sk-card sk-stat">
-            <span className="sk-label">Total Files</span>
-            <p className="sk-stat-num">{users?.reduce((acc, u) => acc + (u.filesGenerated || 0), 0) ?? 0}</p>
-          </div>
-          <div className="sk-card sk-stat">
-            <span className="sk-label">Admins</span>
-            <p className="sk-stat-num">{users?.filter(u => u.role === "admin").length ?? 0}</p>
-          </div>
+        <div className="skx-admin-stats">
+          {stats.map((s) => (
+            <div key={s.label} className="sk-card skx-admin-stat">
+              <span className="sk-label">{s.label}</span>
+              <p className="skx-admin-num">{s.value.toLocaleString()}</p>
+              <SteppedMeter value={s.meter} segments={10} ariaLabel={s.meterLabel} />
+            </div>
+          ))}
         </div>
 
-        {/* Users Table */}
+        {/* People */}
         <section>
-          <div className="sk-tablewrap">
+          <p className="skx-admin-people-label">People</p>
+          <div className="sk-card skx-admin-people">
             {isLoading ? (
-              <div className="sk-empty">
-                <span className="sk-label">All Users</span>
-                <div className="sk-row">
-                  <Loader2 className="h-4 w-4 animate-spin sk-muted" />
-                </div>
-              </div>
-            ) : !users || users.length === 0 ? (
-              <div className="sk-empty">
-                <span className="sk-label">All Users</span>
-                <p className="sk-empty-text">No users found</p>
-              </div>
+              <p className="sk-empty-text">Loading people...</p>
+            ) : total === 0 ? (
+              <p className="sk-empty-text">No users found</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="sk-table" style={{ minWidth: 640 }}>
-                  <thead>
-                    <tr>
-                      <th>People</th>
-                      <th>Role</th>
-                      <th style={{ textAlign: "right" }}>Files Generated</th>
-                      <th style={{ textAlign: "right" }}>Joined Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((user) => (
-                      <tr key={user.id}>
-                        <td data-label="Name">
-                          <div className="sk-row">
-                            <span className="sk-avatar">{(user.name || user.email || "").trim().charAt(0).toUpperCase() || "-"}</span>
-                            <div className="sk-col">
-                              <span className="sk-td-title">{user.name ?? "-"}</span>
-                              <span className="sk-muted break-all">{user.email ?? "-"}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td data-label="Role">
-                          <span className="sk-chip">{user.role === "admin" ? "Admin" : "User"}</span>
-                        </td>
-                        <td data-label="Files Generated" className="sk-td-mono text-right">{user.filesGenerated ?? 0}</td>
-                        <td data-label="Joined Date" className="sk-td-mono text-right">{formatDate(user.createdAt)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              list.map((user, i) => (
+                <div key={user.id} className={`skx-admin-person${i === 0 ? " is-first" : ""}`}>
+                  <span className="skx-admin-avatar" aria-hidden="true">
+                    {(user.name || user.email || "").trim().charAt(0).toUpperCase() || "-"}
+                  </span>
+                  <div className="skx-admin-person-main">
+                    <div className="skx-admin-person-top">
+                      <p className="skx-admin-person-name">{user.name ?? "-"}</p>
+                      <StatusPill status={isLive(user.lastSignedIn) ? "live" : "away"} />
+                    </div>
+                    <p className="skx-admin-person-meta">
+                      {user.role === "admin" ? "Admin" : "Member"}
+                      {` · ${user.filesGenerated ?? 0} files`}
+                      {` · Joined ${formatDate(user.createdAt).toUpperCase()}`}
+                      {` · Last seen ${lastSeenLabel(user.lastSignedIn)}`}
+                    </p>
+                    <p className="skx-admin-person-email">{user.email ?? "-"}</p>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </section>

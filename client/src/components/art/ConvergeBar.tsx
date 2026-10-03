@@ -15,6 +15,8 @@ export interface ConvergeBarProps {
   etaOverride?: string;
   /** Hides the big percent readout when false. */
   showPercent?: boolean;
+  /** Scattered dither dots per side (design default 5; the Documents bar uses 7 for a bolder trail). */
+  dots?: number;
   ariaLabel?: string;
   className?: string;
 }
@@ -27,6 +29,7 @@ export function ConvergeBar({
   label,
   etaOverride,
   showPercent = true,
+  dots = 5,
   ariaLabel,
   className,
 }: ConvergeBarProps) {
@@ -34,6 +37,8 @@ export function ConvergeBar({
   const pct = Math.round(p * 100);
   const style = { "--pw": `${p * 100}%` } as CSSProperties;
   const right = etaOverride ?? (state === "error" ? "STOPPED" : state === "done" ? null : etaLabel(etaSeconds));
+  const bold = dots >= 7;
+  const dotList = Array.from({ length: bold ? 7 : 5 });
 
   return (
     <div className={cn("art-converge", `is-${state}`, className)} style={style}>
@@ -51,11 +56,11 @@ export function ConvergeBar({
         <span className="art-pill art-pill-r" aria-hidden="true" />
         <span className="art-trail art-trail-l" aria-hidden="true" />
         <span className="art-trail art-trail-r" aria-hidden="true" />
-        <span className="art-dither art-dither-l" aria-hidden="true">
-          <b /><b /><b /><b /><b />
+        <span className={cn("art-dither art-dither-l", bold && "is-bold")} aria-hidden="true">
+          {dotList.map((_, i) => <b key={i} />)}
         </span>
-        <span className="art-dither art-dither-r" aria-hidden="true">
-          <b /><b /><b /><b /><b />
+        <span className={cn("art-dither art-dither-r", bold && "is-bold")} aria-hidden="true">
+          {dotList.map((_, i) => <b key={i} />)}
         </span>
         {state === "done" || state === "error" ? (
           <span className={cn("art-junction", state === "error" && "is-error")} aria-hidden="true" />

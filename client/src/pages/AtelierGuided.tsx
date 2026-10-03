@@ -4,6 +4,8 @@ import { Square } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
+import { ConvergeBar, FocusBrackets } from "@/components/art";
+import { useTimedProgress } from "@/hooks/useTimedProgress";
 import "@/styles/atelier-reskin.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -262,8 +264,7 @@ export default function AtelierGuided({ embedded = false, entry }: { embedded?: 
   const { data: identity } = trpc.identity.get.useQuery();
 
   // Phase management
-  const [phase, setPhase] = useState<Phase>("select");
-  const [reportType, setReportType] = useState<ReportType>("Business Report");
+  const [phase, setPhase] = useState<Phase>("select");  const [reportType, setReportType] = useState<ReportType>("Business Report");
   const [theme, setTheme] = useState<Theme>("corporate");
   const [uploadMode, setUploadMode] = useState<UploadMode>("rewrite");
 
@@ -285,6 +286,10 @@ export default function AtelierGuided({ embedded = false, entry }: { embedded?: 
   const [exportFormat, setExportFormat] = useState<"pdf" | "docx" | "xlsx" | "md">("pdf");
   const [exporting, setExporting] = useState(false);
   const [generatingText, setGeneratingText] = useState("");
+
+  // The generate stream reports no percentage; the running bar estimates from a
+  // typical build time so it can show an honest "ABOUT N S LEFT".
+  const run = useTimedProgress(phase === "generating", 60);
 
   // Auto-scroll
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, streaming]);
@@ -553,6 +558,7 @@ export default function AtelierGuided({ embedded = false, entry }: { embedded?: 
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFileUpload(f); }}
           >
+            {uploadedFile && <FocusBrackets />}
             <div className="sk-row">
               <span className="sk-icon-tile">
                 {uploadParsing
@@ -602,6 +608,7 @@ export default function AtelierGuided({ embedded = false, entry }: { embedded?: 
                 role="radio" aria-checked={reportType === type}
                 className={`sk-tile sk-at-tile${reportType === type ? " is-active" : ""}`}
               >
+                {reportType === type && <FocusBrackets />}
                 <span className="sk-icon-tile">
                   <SutaeruIcon name={icon} />
                 </span>
@@ -722,29 +729,46 @@ export default function AtelierGuided({ embedded = false, entry }: { embedded?: 
   if (phase === "generating") {
     const steps = ["Analysing context", "Structuring sections", "Writing content", "Adding data & charts", "Finalising layout"];
     const approxStep = Math.min(Math.floor(generatingText.length / 600), steps.length - 1);
+    // Blend the stream-derived step with the time estimate so the bar keeps moving.
+    const stepProgress = (approxStep + 0.5) / steps.length;
+    const progress = Math.min(0.95, Math.max(run.progress, stepProgress * 0.9));
     return (
       <div className={embedded ? "sk-at-one w-full" : "sk-page sk-at-one mx-auto"}>
-        <div className="sk-card" role="status" aria-live="polite">
+        <div className="sk-card flex flex-col gap-5" role="status" aria-live="polite">
           <div className="sk-at-run-top">
             <span className="sk-at-status">
-              <span className="sk-dot" aria-hidden="true" /> Documents · Running
+              <span className="sk-dot sk-dot-ink" aria-hidden="true" /> Documents · Running
             </span>
             <span className="sk-meta sk-num">STEP {approxStep + 1} OF {steps.length}</span>
           </div>
-          <h2 className="sk-at-run-title">Building your {reportType}</h2>
-          <p className="sk-at-run-body">Kemma is writing your report now...</p>
+          <h2 className="sk-at-run-title" style={{ margin: 0 }}>Building your {reportType}</h2>
+          <p className="sk-at-run-body" style={{ margin: 0 }}>Kemma is writing your report now...</p>
+          <ConvergeBar progress={progress} etaSeconds={run.etaSeconds} dots={7} label="DRAFTING THE PAGE" ariaLabel={`Building your ${reportType}`} />
           <RunTimeline steps={steps} current={approxStep} />
           <div className="sk-at-now">
             <span className="sk-at-now-label">Now</span>
             <p className="sk-at-now-text">{steps[approxStep]}</p>
           </div>
         </div>
+        {generatingText ? (
+          <div className="sk-card sk-at-draft">
+            <FocusBrackets />
+            <p className="sk-label">{reportType} · Draft</p>
+            <p className="sk-at-draft-text">{generatingText}</p>
+          </div>
+        ) : null}
       </div>
     );
   }
 
   // ─── Phase: Preview ─────────────────────────────────────────────────────────
   if (phase === "preview" && report) {
+    const EXPORT_FORMATS: Array<{ value: "pdf" | "docx" | "xlsx" | "md"; label: string }> = [
+      { value: "pdf", label: "PDF" },
+      { value: "docx", label: "Word" },
+      { value: "xlsx", label: "Excel" },
+      { value: "md", label: "Markdown" },
+    ];
     return (
       <div className={embedded ? "sk-at-one w-full" : "sk-page sk-at-one mx-auto"}>
         {/* Toolbar */}
@@ -769,14 +793,16 @@ export default function AtelierGuided({ embedded = false, entry }: { embedded?: 
               className="sk-btn sk-btn-ghost sk-btn-sm">
               New Report
             </button>
-            <select value={exportFormat} onChange={(e) => setExportFormat(e.target.value as typeof exportFormat)}
-              aria-label="Export format"
-              className="sk-at-select">
-              <option value="pdf">PDF</option>
-              <option value="docx">Word (DOCX)</option>
-              <option value="xlsx">Excel (XLSX)</option>
-              <option value="md">Markdown</option>
-            </select>
+          </div>
+          <div className="sk-row" role="radiogroup" aria-label="Export format">
+            {EXPORT_FORMATS.map((f) => (
+              <button key={f.value} type="button" onClick={() => setExportFormat(f.value)}
+                role="radio" aria-checked={exportFormat === f.value}
+                className={`sk-pill sk-pill-sm${exportFormat === f.value ? " is-active" : ""}`}
+              >
+                {f.label}
+              </button>
+            ))}
             <button type="button" disabled={exporting} className="sk-btn sk-btn-sm" onClick={exportReport}>
               <SutaeruIcon name="download" className="size-4" />
               {exporting ? "Exporting..." : "Export"}
@@ -785,8 +811,11 @@ export default function AtelierGuided({ embedded = false, entry }: { embedded?: 
         </div>
 
         {/* Report preview: the document keeps its own theme, the frame is the app's */}
-        <div className="sk-card sk-at-report-frame">
-          <ReportPreview report={report} />
+        <div className="sk-at-frame-wrap">
+          <FocusBrackets />
+          <div className="sk-card sk-at-report-frame">
+            <ReportPreview report={report} />
+          </div>
         </div>
       </div>
     );
