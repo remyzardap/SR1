@@ -4,7 +4,7 @@
  * BriefDialog.tsx sends either plain text (for .txt and .md) or a base64 data
  * URL plus its media type (for .pdf and .docx). PDFs go through the existing
  * vision slot in the Kemma engine; DOCX is unzipped with the same approach as
- * the Atelier parse endpoint. No new providers are involved.
+ * the Documents parse endpoint. No new providers are involved.
  */
 
 import { kemmaDocumentScan } from "../kemma/engine";

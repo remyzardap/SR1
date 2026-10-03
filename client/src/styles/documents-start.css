@@ -1,0 +1,28 @@
+/* Documents start screen: illustrated option cards, same family as the image engine cards. */
+.sk-doc-grid { display: grid; gap: 16px; grid-template-columns: 1fr; margin-bottom: 24px; }
+@media (min-width: 720px) { .sk-doc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.sk-doc-card {
+  display: flex; flex-direction: column; min-width: 0; padding: 0; border: 0; border-radius: 28px; overflow: hidden;
+  background: var(--art-paper); color: var(--art-ink); text-align: left; font: inherit; cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(36, 35, 32, 0.07); transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.sk-doc-card:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px rgba(36, 35, 32, 0.14), 0 18px 36px -22px rgba(36, 35, 32, 0.4); }
+.sk-doc-card.is-active { box-shadow: 0 0 0 2px var(--art-ink); }
+.sk-doc-card:focus-visible { outline: 2px solid var(--neon-orange); outline-offset: 3px; }
+.sk-doc-art { display: block; background: var(--art-panel); padding: 18px 18px 6px; }
+.sk-doc-art svg { display: block; width: 100%; height: auto; max-height: 190px; }
+.sk-doc-card.is-compact .sk-doc-art svg { max-height: 120px; }
+.sk-doc-body { display: flex; flex-direction: column; gap: 6px; padding: 20px 24px 24px; }
+.sk-doc-label { font: 500 11px var(--sk-mono, ui-monospace, monospace); letter-spacing: 1.54px; text-transform: uppercase; color: var(--art-quiet); }
+.sk-doc-title { font: 800 26px/1.1 var(--font-d); letter-spacing: -0.8px; }
+.sk-doc-card.is-compact .sk-doc-title { font-size: 20px; }
+.sk-doc-text { font: 400 15px/1.45 var(--font-b); color: var(--art-quiet); }
+.sk-doc-back { border: 0; background: transparent; padding: 0; margin: 0 0 10px; font: 600 14px var(--font-d); color: var(--art-quiet); cursor: pointer; }
+.sk-doc-art .a-paper { fill: var(--art-paper); stroke: var(--art-ink); stroke-width: 2; }
+.sk-doc-art .a-line { fill: none; stroke: var(--art-ink); stroke-width: 3; stroke-linecap: round; opacity: .75; }
+.sk-doc-art .a-line-light { stroke: var(--art-paper); opacity: 1; }
+.sk-doc-art .a-spot { fill: var(--art-ink); }
+.sk-doc-art .a-plus { fill: none; stroke: var(--art-paper); stroke-width: 3.4; stroke-linecap: round; }
+.sk-doc-art .a-mark { fill: var(--art-ink); opacity: .14; }
+.sk-doc-art .a-pen { fill: var(--art-ink); stroke: var(--art-paper); stroke-width: 2; stroke-linejoin: round; }
+.sk-grid-1 { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }

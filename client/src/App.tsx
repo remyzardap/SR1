@@ -7,7 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { VideoPlayerProvider } from "./contexts/VideoPlayerContext";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
-import Atelier from "./pages/Atelier";
+import Documents from "./pages/Documents";
 import Files from "./pages/Files";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
@@ -54,17 +54,20 @@ function AppRoutes() {
       <Route path="/login" component={Login} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/verify-email" component={VerifyEmail} />
-      <Route path="/atelier">
+      <Route path="/documents">
         {isAuthenticated ? (
           <DashboardLayout noPadding>
-            <Atelier />
+            <Documents />
           </DashboardLayout>
         ) : (
-          <ProtectedRoute component={Atelier} />
+          <ProtectedRoute component={Documents} />
         )}
       </Route>
+      <Route path="/atelier">
+        <Redirect to="/documents" />
+      </Route>
       <Route path="/generate">
-        <Redirect to="/atelier?mode=describe" />
+        <Redirect to="/documents?start=new&mode=describe" />
       </Route>
       <Route path="/files">
         {isAuthenticated ? (

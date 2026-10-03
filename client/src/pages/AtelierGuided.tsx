@@ -256,9 +256,9 @@ function RunTimeline({ steps, current }: { steps: string[]; current: number }) {
   );
 }
 
-// ─── Main Atelier page ────────────────────────────────────────────────────────
+// ─── Main Documents page ────────────────────────────────────────────────────────
 
-export default function AtelierGuided({ embedded = false }: { embedded?: boolean } = {}) {
+export default function AtelierGuided({ embedded = false, entry }: { embedded?: boolean; entry?: "new" | "edit" } = {}) {
   const { data: identity } = trpc.identity.get.useQuery();
 
   // Phase management
@@ -523,18 +523,18 @@ export default function AtelierGuided({ embedded = false }: { embedded?: boolean
   if (phase === "select") {
     return (
       <div className={embedded ? "sk-at-one w-full" : "sk-page sk-at-one mx-auto"}>
-        {/* Header (the Atelier wrapper page provides it when embedded) */}
+        {/* Header (the Documents page provides it when embedded) */}
         {!embedded && (
           <div>
-            <h1 className="sk-h1">Atelier</h1>
+            <h1 className="sk-h1">Documents</h1>
             <p className="sk-sub">Professional report studio, powered by S1</p>
           </div>
         )}
 
         {/* Two entry points */}
-        <div className="sk-grid-2">
-          {/* Chat intake */}
-          <div className="sk-card flex flex-col gap-3">
+        <div className={entry ? "sk-grid-1" : "sk-grid-2"}>
+          {/* Chat intake (new documents) */}
+          {entry !== "edit" && <div className="sk-card flex flex-col gap-3">
             <div className="sk-row">
               <span className="sk-icon-tile">
                 <SutaeruIcon name="ask" />
@@ -542,12 +542,12 @@ export default function AtelierGuided({ embedded = false }: { embedded?: boolean
               <h2 className="sk-tile-title">Chat with Kemma</h2>
             </div>
             <p className="sk-empty-text">
-              S1 interviews you with targeted questions to gather everything needed, then builds your report automatically.
+              Kemma interviews you with targeted questions to gather everything needed, then builds your report automatically.
             </p>
-          </div>
+          </div>}
 
-          {/* Upload */}
-          <div
+          {/* Upload (editing an existing file) */}
+          {entry !== "new" && <div
             className={`sk-card sk-at-tile flex flex-col gap-3${uploadedFile ? " is-active" : ""}`}
             onClick={() => fileInputRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
@@ -584,17 +584,17 @@ export default function AtelierGuided({ embedded = false }: { embedded?: boolean
               </>
             ) : (
               <p className="sk-empty-text">
-                PDF, DOCX, MD, TXT, CSV. Atelier extracts and rebuilds it.
+                PDF, DOCX, MD, TXT, CSV. Kemma reads it and rebuilds it.
               </p>
             )}
             <input ref={fileInputRef} type="file" className="hidden"
               accept=".pdf,.docx,.md,.txt,.csv,.xlsx"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); }} />
-          </div>
+          </div>}
         </div>
 
-        {/* Report type */}
-        <div>
+        {/* Report type (new documents) */}
+        {entry !== "edit" && <div>
           <span className="sk-label sk-section">Report Type</span>
           <div className="sk-at-tiles" role="radiogroup" aria-label="Report type">
             {REPORT_TYPES.map(({ type, icon, desc }) => (
@@ -612,7 +612,7 @@ export default function AtelierGuided({ embedded = false }: { embedded?: boolean
               </button>
             ))}
           </div>
-        </div>
+        </div>}
 
         {/* Theme */}
         <div>
@@ -633,9 +633,11 @@ export default function AtelierGuided({ embedded = false }: { embedded?: boolean
         </div>
 
         {/* CTA */}
-        <button type="button" onClick={startInterview} className="sk-btn w-full" style={{ minHeight: 56 }}>
+        <button type="button" onClick={startInterview} disabled={entry === "edit" && !uploadedFile} className="sk-btn w-full" style={{ minHeight: 56 }}>
           <SutaeruIcon name="make" className="size-4" />
-          {uploadedFile ? `Build ${reportType} from upload` : `Start ${reportType} with S1`}
+          {entry === "edit"
+            ? (uploadedFile ? (uploadMode === "rewrite" ? "Rewrite this document" : "Reformat this document") : "Upload a file to continue")
+            : uploadedFile ? `Build ${reportType} from upload` : `Start ${reportType}`}
         </button>
       </div>
     );
@@ -649,7 +651,7 @@ export default function AtelierGuided({ embedded = false }: { embedded?: boolean
         <div className="sk-card sk-at-tool">
           <div className="min-w-0">
             <span className="sk-at-status">
-              <span className="sk-dot" aria-hidden="true" /> Atelier · {reportType}
+              <span className="sk-dot" aria-hidden="true" /> Documents · {reportType}
             </span>
             <p className="sk-sub" style={{ margin: "6px 0 0" }}>S1 is gathering information</p>
           </div>
@@ -725,7 +727,7 @@ export default function AtelierGuided({ embedded = false }: { embedded?: boolean
         <div className="sk-card" role="status" aria-live="polite">
           <div className="sk-at-run-top">
             <span className="sk-at-status">
-              <span className="sk-dot" aria-hidden="true" /> Atelier · Running
+              <span className="sk-dot" aria-hidden="true" /> Documents · Running
             </span>
             <span className="sk-meta sk-num">STEP {approxStep + 1} OF {steps.length}</span>
           </div>
@@ -748,7 +750,7 @@ export default function AtelierGuided({ embedded = false }: { embedded?: boolean
         {/* Toolbar */}
         <div className="sk-card sk-at-tool">
           <div className="min-w-0">
-            <span className="sk-label">Atelier · {reportType}</span>
+            <span className="sk-label">Documents · {reportType}</span>
             <h2 className="sk-at-run-title" style={{ margin: "8px 0 0" }}>{report.title}</h2>
           </div>
           <div className="sk-row">

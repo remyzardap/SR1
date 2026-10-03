@@ -24,7 +24,7 @@ const PAGES = [
   { label: "Memories", path: "/memories", icon: Brain, category: "Pages" },
   { label: "Skills", path: "/skills", icon: Zap, category: "Pages" },
   { label: "Files", path: "/files", icon: FolderOpen, category: "Pages" },
-  { label: "Atelier", path: "/atelier", icon: Layers, category: "Pages" },
+  { label: "Documents", path: "/documents", icon: Layers, category: "Pages" },
   { label: "Connections", path: "/connections", icon: Plug, category: "Pages" },
 ];
 

@@ -1,5 +1,5 @@
 /**
- * Atelier export
+ * Documents export (formerly Atelier)
  *
  * Maps the report JSON that POST /api/atelier/generate emits onto the
  * StructuredContent shape server/fileGenerator.ts renders, so

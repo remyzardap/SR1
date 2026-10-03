@@ -43,7 +43,7 @@ import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
 
 const menuItems: Array<{ icon: SutaeruIconName; label: string; path: string; group: string }> = [
   { icon: "ask", label: "Chat", path: "/chat", group: "workspace" },
-  { icon: "make", label: "Atelier", path: "/atelier", group: "workspace" },
+  { icon: "make", label: "Documents", path: "/documents", group: "workspace" },
   { icon: "image", label: "Images", path: "/images", group: "workspace" },
   { icon: "files", label: "Files", path: "/files", group: "workspace" },
   { icon: "memory", label: "Memories", path: "/memories", group: "workspace" },
@@ -356,7 +356,7 @@ function DashboardLayoutContent({
             )}
             <SidebarMenu className="sk-shell-menu">
               {menuItems.filter((item) => item.group === "workspace").map((item) => {
-                const isActive = location === item.path || (item.path === "/atelier" && location === "/generate");
+                const isActive = location === item.path || (item.path === "/documents" && (location === "/generate" || location === "/atelier"));
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
