@@ -102,6 +102,35 @@ const OPTION_WORD_RE = new RegExp(
   "i"
 );
 
+const IMAGE_NOUN = "(?:image|images|picture|pictures|photo|photos|pic|pics|illustration|drawing|painting|artwork|wallpaper|portrait|render|logo)";
+const POLITE = "(?:(?:hey|hi|yo|ok|okay|please|pls|kindly)[,!]?\\s+)*(?:(?:can|could|would|will)\\s+you\\s+(?:please\\s+)?)?(?:(?:please|pls)\\s+)?";
+/** "draw / paint / sketch / illustrate (me) <something>": the verb alone is enough. */
+const DRAW_VERB_RE = new RegExp(`^${POLITE}(?:draw|paint|sketch|illustrate)\\s+(?:me\\s+|us\\s+)?(.+)$`, "is");
+/** "generate / create / make / render / design (me) a <image noun> of <something>": needs the picture word. */
+const MAKE_VERB_RE = new RegExp(
+  `^${POLITE}(?:generate|create|make|render|design|produce)\\s+(?:me\\s+|us\\s+)?(?:an?\\s+|some\\s+|the\\s+)?(?:\\w+\\s+){0,2}?${IMAGE_NOUN}\\s*(?:of|showing|with|about|:)?\\s*(.+)$`,
+  "is"
+);
+
+/**
+ * A plain sentence that clearly asks for a picture ("draw me a cat", "make a picture of a lighthouse").
+ * Deliberately narrow: it must start with the request, so a question about drawing, or a sentence that
+ * only mentions a picture, stays with the chat model. CHAT_IMAGE_NATURAL=0 turns it off.
+ */
+export function naturalImagePrompt(text: string): string | null {
+  if ((process.env.CHAT_IMAGE_NATURAL || "").trim() === "0") return null;
+  const message = (text || "").trim().replace(/\s+/g, " ");
+  if (!message || message.length > MAX_CHAT_PROMPT_CHARS + 60) return null;
+  const hit = DRAW_VERB_RE.exec(message) ?? MAKE_VERB_RE.exec(message);
+  if (!hit) return null;
+  const prompt = hit[1].trim().replace(/^[:,\-\s]+/, "").trim();
+  // Need a real subject: at least two words, so "draw it" or "make a picture" is not enough.
+  if (prompt.split(" ").length < 2 || prompt.length > MAX_CHAT_PROMPT_CHARS) return null;
+  // "draw a conclusion", "draw the line" and similar are not pictures.
+  if (/^(?:a\s+)?(?:conclusion|line|blank|attention|breath|inference|comparison|parallel|distinction)\b/i.test(prompt)) return null;
+  return prompt;
+}
+
 /**
  * Reads the image command out of a chat message. Option words may come in any
  * order in front of the prompt; from the first word that is not one, the rest of
@@ -110,7 +139,10 @@ const OPTION_WORD_RE = new RegExp(
 export function parseImageCommand(text: string): ParsedChatImage {
   const message = (text || "").trim();
   const head = COMMAND_RE.exec(message);
-  if (!head) return null;
+  if (!head) {
+    const prompt = naturalImagePrompt(message);
+    return prompt ? { kind: "image", prompt, engine: chatImageDefaultEngine(), quality: "standard", aspectRatio: "1:1" } : null;
+  }
 
   const body = message.slice(head[0].length).trim();
   if (!body) return { kind: "help" };

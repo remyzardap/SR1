@@ -278,6 +278,7 @@ WhatsApp number that is allowed, draw one picture and send it back as a photo
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `CHAT_IMAGE_ENGINE` | `forge` | Engine a chat command runs on when the message names none: `gemini`, `qwen`, `openai` or `forge` (`gpu` in the message). An unknown value falls back to `forge` |
+| `CHAT_IMAGE_NATURAL` | on | Plain sentences such as "draw me a cat" or "make a picture of a lighthouse" count as image requests in Telegram and WhatsApp. Set `0` to require the `/image` command |
 | `CHAT_IMAGE_PER_HOUR` | `6` | Images per chat in a rolling hour. Anything that is not a positive integer uses the default |
 | `CHAT_IMAGE_PER_DAY` | `30` | Images per chat in a rolling 24 hours. Attempts count, failures included. Both windows are in memory, so a server restart clears them |
 

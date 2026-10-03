@@ -446,3 +446,34 @@ describe("runChatImage", () => {
     expect(ownerWarning()).toHaveLength(1);
   });
 });
+
+describe("naturalImagePrompt (plain sentences)", () => {
+  const ask = (t: string) => parseImageCommand(t);
+  it("reads clear picture requests", () => {
+    expect(ask("draw me a cat in a spacesuit")).toMatchObject({ kind: "image", prompt: "a cat in a spacesuit" });
+    expect(ask("Draw a lighthouse at dawn")).toMatchObject({ kind: "image", prompt: "a lighthouse at dawn" });
+    expect(ask("can you draw a red fox in the snow?")).toMatchObject({ kind: "image", prompt: "a red fox in the snow?" });
+    expect(ask("please generate an image of a quiet street in Kyoto")).toMatchObject({ kind: "image", prompt: "a quiet street in Kyoto" });
+    expect(ask("make me a picture of a bowl of ramen")).toMatchObject({ kind: "image", prompt: "a bowl of ramen" });
+    expect(ask("create a photo of mountains at night")).toMatchObject({ kind: "image", prompt: "mountains at night" });
+    expect(ask("Generate a wallpaper: neon city rain")).toMatchObject({ kind: "image", prompt: "neon city rain" });
+  });
+  it("uses the default engine and shape", () => {
+    expect(ask("draw me a cat in a spacesuit")).toMatchObject({ engine: "forge", quality: "standard", aspectRatio: "1:1" });
+  });
+  it("leaves ordinary conversation with the chat model", () => {
+    for (const t of [
+      "how do I draw a cat?", "what is a good picture of success", "I like to draw", "draw it", "make a picture",
+      "can you draw?", "draw a conclusion from this report", "make a plan for my week", "create a list of tasks for today",
+      "generate a report about sales", "tell me about the image of the company", "hello", "",
+    ]) expect(ask(t)).toBeNull();
+  });
+  it("can be switched off", () => {
+    process.env.CHAT_IMAGE_NATURAL = "0";
+    try { expect(ask("draw me a cat in a spacesuit")).toBeNull(); } finally { delete process.env.CHAT_IMAGE_NATURAL; }
+  });
+  it("keeps the slash command working as before", () => {
+    expect(ask("/img wide high a lighthouse at dawn")).toMatchObject({ kind: "image", aspectRatio: "16:9", quality: "high" });
+    expect(ask("/image")).toEqual({ kind: "help" });
+  });
+});
