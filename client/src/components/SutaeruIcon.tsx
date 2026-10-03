@@ -36,7 +36,8 @@ export type SutaeruIconName =
   | "code"
   | "review"
   | "admin"
-  | "plan";
+  | "plan"
+  | "pause";
 
 type SutaeruIconProps = SVGProps<SVGSVGElement> & {
   name: SutaeruIconName;
@@ -78,6 +79,7 @@ const paths: Record<SutaeruIconName, React.ReactNode> = {
   review: <><path d="M26 20h44v59H26V20ZM37 36l5 5 9-10M37 56l5 5 9-10M57 38h6M57 58h6" /></>,
   admin: <><path d="M48 14 76 25v20c0 18-11 29-28 37-17-8-28-19-28-37V25l28-11Z" /><path d="m34 48 9 9 19-20" /></>,
   plan: <><path d="M18 24h60v48H18V24Z" /><path d="M18 40h60M39 40v32M28 32h2M36 32h2M56 52h12M56 61h8" /></>,
+  pause: <><rect x="32" y="26" width="14" height="44" rx="7" /><rect x="50" y="26" width="14" height="44" rx="7" /></>,
 };
 
 const signals: Partial<Record<SutaeruIconName, [number, number]>> = {

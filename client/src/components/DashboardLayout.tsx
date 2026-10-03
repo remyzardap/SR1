@@ -59,12 +59,20 @@ const DEFAULT_WIDTH = 264;
 const MIN_WIDTH = 220;
 const MAX_WIDTH = 480;
 
+/**
+ * Routes that live under the More tab: the mobile header shows the word MORE there,
+ * per the canvas. Other pages keep their own label until their wave-2 pass lands.
+ */
+const MORE_LABELLED = ["/memories", "/skills", "/monitors"];
+
 /** Mono word shown in the mobile AppHeader for the current route. */
 function mobileHeaderLabel(location: string): string {
   if (location === "/chat" || location.startsWith("/sessions")) return "WORKSPACE";
   if (location === "/generate" || (location.startsWith("/atelier") && location.includes("mode=describe"))) return "GENERATE";
   if (location.startsWith("/atelier") || location.startsWith("/documents")) return "DOCUMENTS";
-  if (location.startsWith("/files")) return "FILES";
+  // Files sits in the workspace row of the tab bar, like Chat.
+  if (location.startsWith("/files")) return "WORKSPACE";
+  if (MORE_LABELLED.some((p) => location === p || location.startsWith(`${p}/`))) return "MORE";
   const item = menuItems.find((i) => location === i.path || location.startsWith(`${i.path}/`));
   if (item) return item.label.toUpperCase();
   if (location.startsWith("/admin")) return "ADMIN";

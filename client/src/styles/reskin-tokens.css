@@ -32,6 +32,12 @@
   --r-wash: rgba(255, 255, 255, 0.30); /* body::before light wash */
   --r-noise-opacity: 0.035;
 
+  /* Accent surfaces that stay dark in both themes (Identity hero, the Memories and
+     Connections privacy cards). --r-ink/--r-paper swap between themes, so a card that
+     is meant to read as a dark block needs its own pair. */
+  --r-hero: #242320;
+  --r-hero-ink: #F7F6F2;
+
   /* Type: Inter Tight titles, Inter body, JetBrains Mono labels (loaded in client/index.html) */
   --r-font-title: "Inter Tight", "Inter", system-ui, sans-serif;
   --r-font-body: "Inter", system-ui, sans-serif;
@@ -75,6 +81,8 @@
     --r-shadow: rgba(0, 0, 0, 0.5);
     --r-wash: rgba(255, 255, 255, 0.03);
     --r-noise-opacity: 0.02;
+    --r-hero: #131211;
+    --r-hero-ink: #F7F6F2;
   }
 }
 
@@ -97,6 +105,8 @@
   --r-shadow: rgba(0, 0, 0, 0.5);
   --r-wash: rgba(255, 255, 255, 0.03);
   --r-noise-opacity: 0.02;
+  --r-hero: #131211;
+  --r-hero-ink: #F7F6F2;
 }
 
 /* Explicit light forces the light values back inside a dark-forced ancestor. */
@@ -118,6 +128,8 @@
   --r-shadow: rgba(36, 35, 32, 0.12);
   --r-wash: rgba(255, 255, 255, 0.30);
   --r-noise-opacity: 0.035;
+  --r-hero: #242320;
+  --r-hero-ink: #F7F6F2;
 }
 
 /* Reduce motion: snap progress bars instead of animating. Driven by the OS setting
