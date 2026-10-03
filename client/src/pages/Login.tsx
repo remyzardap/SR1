@@ -27,8 +27,10 @@ type RegisterForm = z.infer<typeof registerSchema>;
 // for a machine readable reason here, so the server message is the contract: keep the two
 // texts in sync (server/auth.audit.test.ts pins the server side of it).
 function isTwoFactorRequiredError(e: unknown): boolean {
-  const err = e as { message?: string; code?: string };
-  return err?.code === "FORBIDDEN" && /2FA is enabled|two-factor/i.test(err?.message ?? "");
+  // The tRPC client keeps the code at error.data.code, not error.code.
+  const err = e as { message?: string; data?: { code?: string } | null };
+  const code = err?.data?.code;
+  return (code === undefined || code === "FORBIDDEN") && /2FA is enabled|two-factor/i.test(err?.message ?? "");
 }
 
 export default function Login() {
