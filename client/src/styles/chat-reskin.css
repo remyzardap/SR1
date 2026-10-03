@@ -85,3 +85,29 @@
   .sutaeru-chat .sutaeru-chat-mobile-title { font-size: 24px; }
   .sutaeru-chat .sutaeru-chat-mobile-subtitle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
+
+/* Phones and tablets: the chat gets the screen. No header rows, no READY strip; history, new chat and mode
+   live in the bottom row, and "Add photos or files" is just its plus. */
+.sk-chat-mobileonly { display: none; }
+@media (max-width: 1023px) {
+  .sk-chat-mobileonly { display: inline-flex; }
+  .sutaeru-chat .sutaeru-chat-header,
+  .sutaeru-chat .sutaeru-chat-mobile-modes,
+  .sutaeru-chat .sutaeru-run-status { display: none !important; }
+  .sutaeru-chat .sk-attach-button span { display: none; }
+  .sutaeru-chat .sk-attach-button { width: 44px; height: 44px; min-width: 44px; padding: 0; justify-content: center; border-radius: 50%; }
+  .sutaeru-chat .sutaeru-run-controls { position: relative; }
+  .sutaeru-chat .sk-mode-sheet {
+    position: absolute; left: 12px; right: 12px; bottom: 100%; margin-bottom: 8px; z-index: 30;
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px;
+    background: var(--art-paper); border-radius: 24px; box-shadow: 0 18px 40px -18px rgb(36 35 32 / .45), 0 0 0 1px rgb(36 35 32 / .08);
+  }
+  .sutaeru-chat .sk-mode-card {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; min-height: 44px; border: 0; text-align: left;
+    border-radius: 20px; background: var(--art-panel); color: var(--art-ink); font: inherit; cursor: pointer;
+  }
+  .sutaeru-chat .sk-mode-card.is-active { box-shadow: 0 0 0 2px var(--art-ink); background: var(--art-paper); }
+  .sutaeru-chat .sk-mode-card-icon { width: 30px; height: 30px; }
+  .sutaeru-chat .sk-mode-card-title { font: 800 16px/1.1 var(--font-d); letter-spacing: -0.3px; }
+  .sutaeru-chat .sk-mode-card-text { font: 400 13px/1.35 var(--font-b); color: var(--art-quiet); }
+}

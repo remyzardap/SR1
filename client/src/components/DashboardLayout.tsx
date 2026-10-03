@@ -452,7 +452,7 @@ function DashboardLayoutContent({
 
       <SidebarInset>
         <div ref={contentRef} className="flex flex-col flex-1 min-h-0">
-          {isMobile && <AppHeader label={mobileHeaderLabel(location)} userInitial={user?.name || user?.email || "?"} />}
+          {isMobile && location !== "/chat" && <AppHeader label={mobileHeaderLabel(location)} userInitial={user?.name || user?.email || "?"} />}
           <main className={noPadding ? "flex-1 min-w-0 flex flex-col overflow-hidden bg-sutaeru" : `flex-1 min-w-0 p-3 sm:p-6 overflow-y-auto bg-sutaeru${isMobile ? " skx-main-tabspace" : ""}`}>{children}</main>
           {isMobile && <TabBar />}
         </div>

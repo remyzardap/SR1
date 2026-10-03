@@ -33,24 +33,6 @@ export function ChatEmptyState({ agentName, onSuggestion }: ChatEmptyStateProps)
       <span className="sk-label">Kemma <b>/</b> Ready</span>
       <h2 className="sk-chat-greeting">{greeting()}{first ? `, ${first}.` : "."}</h2>
 
-      <div className="sk-chat-try">
-        <span className="sk-label">Try</span>
-        {SUGGESTIONS.map((s, i) => (
-          <motion.button
-            key={s.label}
-            type="button"
-            data-testid={`button-suggestion-${i}`}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.08 + i * 0.05 }}
-            onClick={() => onSuggestion(s.prompt)}
-            className="sk-chat-suggestion"
-          >
-            <SutaeruIcon name={s.icon} className="sk-chat-suggestion-icon" />
-            <span>{s.prompt}</span>
-          </motion.button>
-        ))}
-      </div>
     </motion.div>
   );
 }

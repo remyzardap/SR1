@@ -71,6 +71,15 @@ const MODE_META: Record<string, { icon: React.ElementType; label: string; desc: 
   image: { icon: ImageIcon, label: "Image", desc: "Image generation" },
 };
 
+/** Phone mode picker: one visual card per mode. */
+const CHAT_MODE_CARDS: Array<{ key: string; label: string; text: string; icon: "ask" | "research" | "image" | "report" | "code" }> = [
+  { key: "fast", label: "Fast", text: "Quick answers, with search", icon: "ask" },
+  { key: "deep", label: "Deep research", text: "Browse, read and verify", icon: "research" },
+  { key: "image", label: "Image", text: "Draw from a description", icon: "image" },
+  { key: "document", label: "Document", text: "Make files and reports", icon: "report" },
+  { key: "code", label: "Code mode", text: "Work on your server", icon: "code" },
+];
+
 const PLAN_REQUEST = /\b(design|build|create|make|redesign|website|page|screen|interface|dashboard|brand|visual|layout|app)\b/i;
 const PLAN_SKIP = /\b(fix|bug|error|broken|not working|change the text|rename)\b/i;
 
@@ -618,6 +627,7 @@ export default function Chat() {
   }, [messages, sessionId]);
 
   const [exportPending, setExportPending] = useState(false);
+  const [modeSheetOpen, setModeSheetOpen] = useState(false);
   const exportThreadFromServer = useCallback(async (format: "md" | "pdf") => {
     setExportPending(true);
     try {
@@ -844,7 +854,21 @@ export default function Chat() {
               <CodeAccessBar access={codeAccess} onAccess={setCodeAccess} totp={codeTotp} onTotp={setCodeTotp} fullAvailable={code.fullAvailable} locked={!!code.session} />
             )}
             <div className="sutaeru-run-controls">
+              {modeSheetOpen && (
+                <div className="sk-mode-sheet" role="radiogroup" aria-label="Chat mode">
+                  {CHAT_MODE_CARDS.filter((m) => m.key !== "code" || isAdmin).map((m) => (
+                    <button key={m.key} type="button" role="radio" aria-checked={mode === m.key} className={`sk-mode-card${mode === m.key ? " is-active" : ""}`} onClick={() => { handleSetMode(m.key); setModeSheetOpen(false); }}>
+                      <SutaeruIcon name={m.icon} signal className="sk-mode-card-icon" />
+                      <span className="sk-mode-card-title">{m.label}</span>
+                      <span className="sk-mode-card-text">{m.text}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="sutaeru-run-actions">
+                <Button size="icon" variant="outline" className="sk-chat-mobileonly" onClick={() => setSidebarOpen((o) => !o)} aria-label="Chat history" title="Chat history"><SutaeruIcon name="files" className="h-5 w-5" /></Button>
+                <Button size="icon" variant="outline" className="sk-chat-mobileonly" onClick={handleNewChat} aria-label="New chat" title="New chat"><SutaeruIcon name="plus" className="h-5 w-5" /></Button>
+                <Button size="icon" variant="outline" className="sk-chat-mobileonly" onClick={() => setModeSheetOpen((o) => !o)} aria-label="Chat mode" aria-expanded={modeSheetOpen} title="Chat mode"><SutaeruIcon name={(CHAT_MODE_CARDS.find((m) => m.key === mode) ?? CHAT_MODE_CARDS[0]).icon} className="h-5 w-5" /></Button>
                 <Button size="icon" variant="outline" onClick={() => setSettingsOpen((o) => !o)} aria-label="Run settings" title="Run settings"><SutaeruIcon name="settings" className="h-5 w-5" /></Button>
                 <Button size="icon" variant="outline" onClick={() => setMobileDetailsOpen((o) => !o)} aria-label="Run details" title="Run details"><SutaeruIcon name="review" className="h-5 w-5" /></Button>
                 <Button size="icon" variant="outline" onClick={exportThread} disabled={messages.length === 0} aria-label="Export conversation" title="Export conversation"><SutaeruIcon name="download" className="h-5 w-5" /></Button>
