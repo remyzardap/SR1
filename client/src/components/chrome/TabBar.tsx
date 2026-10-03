@@ -15,6 +15,7 @@ export interface TabBarItem {
 }
 
 const MORE_GROUP = [
+  "/more",
   "/settings",
   "/identity",
   "/memories",
@@ -42,8 +43,7 @@ export function getTabItems(): TabBarItem[] {
       match: (l) => l === "/generate" || l.startsWith("/generate"),
     },
     { label: "Files", path: "/files", icon: tabIcon("files"), match: (l) => l === "/files" },
-    // TODO(wave 2): point to "/more" once the grouped page exists.
-    { label: "More", path: "/settings", icon: tabIcon("more"), match: (l) => MORE_GROUP.some((p) => l === p || l.startsWith(`${p}/`)) },
+    { label: "More", path: "/more", icon: tabIcon("more"), match: (l) => MORE_GROUP.some((p) => l === p || l.startsWith(`${p}/`)) },
   ];
 }
 

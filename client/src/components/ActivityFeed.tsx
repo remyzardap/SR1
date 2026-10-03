@@ -48,7 +48,7 @@ export function ActivityFeed({ items, isRunning }: { items: ActivityItem[]; isRu
     <section className="sutaeru-activity my-3 text-sm" aria-label="What Kemma did" aria-live="polite">
       <button
         type="button"
-        className="flex w-full items-center gap-2 px-3 py-2 text-left text-muted-foreground"
+        className="sutaeru-activity-toggle flex w-full items-center gap-2 px-3 py-2 text-left text-muted-foreground"
         onClick={() => setOpen((v) => !v)}
         disabled={isRunning}
       >

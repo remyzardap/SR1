@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
 import { Streamdown } from "streamdown";
 import { toast } from "sonner";
 import type { Attachment } from "@/lib/attachments";
@@ -189,6 +188,30 @@ export function useCodeThread(chatSessionId: string, active: boolean): CodeThrea
   };
 }
 
+/** The running row in Code mode: the same step language as the chat transcript.
+ *  The session reports no total and no finish time, so this shows the live step and
+ *  its count instead of an invented percentage. */
+function CodeRunStep({ events }: { events: Ev[] }) {
+  const steps = events.flatMap((e) =>
+    e.type === "claude" && e.event?.type === "assistant"
+      ? (e.event.message?.content ?? []).filter((b) => b.type === "tool_use")
+      : [],
+  );
+  const last = steps[steps.length - 1];
+  const label = last ? stepLabel(String(last.name ?? ""), last.input ?? {}) : "Working";
+
+  return (
+    <div className="sk-run-card is-live" role="status" aria-live="polite">
+      <div className="sk-run-head">
+        <span className="sk-run-dot" aria-hidden="true" />
+        <span className="sk-run-label">{label}</span>
+        {steps.length > 0 && <span className="sk-run-step">STEP {steps.length}</span>}
+      </div>
+      <span className="sk-run-track" aria-hidden="true" />
+    </div>
+  );
+}
+
 /** The conversation: your messages, Kemma's replies, one pill per step, notes, and the approval card. */
 export function CodeThreadView({ code }: { code: CodeThreadApi }) {
   const bottom = useRef<HTMLDivElement>(null);
@@ -240,7 +263,7 @@ export function CodeThreadView({ code }: { code: CodeThreadApi }) {
           );
         })}
       </div>
-      {code.running && <div className="cs-working"><Loader2 size={14} className="animate-spin" /> Working…</div>}
+      {code.running && <CodeRunStep events={code.events} />}
       {code.needsApproval && s && (
         <div className="cs-approve" role="alert">
           <strong>Kemma wants to do this</strong>

@@ -66,6 +66,7 @@ function mobileHeaderLabel(location: string): string {
   if (location === "/generate" || (location.startsWith("/atelier") && location.includes("mode=describe"))) return "GENERATE";
   if (location.startsWith("/atelier") || location.startsWith("/documents")) return "DOCUMENTS";
   if (location.startsWith("/files")) return "FILES";
+  if (location.startsWith("/more")) return "WORKSPACE";
   const item = menuItems.find((i) => location === i.path || location.startsWith(`${i.path}/`));
   if (item) return item.label.toUpperCase();
   if (location.startsWith("/admin")) return "ADMIN";

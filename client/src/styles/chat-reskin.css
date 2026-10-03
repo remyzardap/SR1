@@ -1,93 +1,153 @@
-/* Chat reskin: paper page, white composer with a dark round send button, mono kickers, "Try" list.
-   Overrides the older editorial/neon rules in preview.css and sutaeru-os.css. Owned by Claude Code. */
-.sutaeru-chat { background: var(--art-paper) !important; }
+/* Chat reskin (wave 2): the phone transcript in the new visual system.
+   Everything here reads from the token layer (styles/reskin-tokens.css); no hex, no
+   fixed font sizes outside it. Overrides the older editorial rules in preview.css. */
 
-/* Header */
+.sutaeru-chat { background: var(--r-paper) !important; color: var(--r-ink); }
+
+/* ── Desktop header row and pills (phones hide these rows entirely, see below) ── */
 .sutaeru-chat .sutaeru-chat-header { background: transparent !important; backdrop-filter: none !important; border-bottom: 0 !important; padding-top: 18px; padding-bottom: 10px; }
-.sutaeru-chat .sutaeru-chat-header [class*="rounded-full"][style*="rgba(10,10,10,0.05)"] { background: #fff !important; border: 0 !important; }
-.sutaeru-chat .neon-pill { background: transparent !important; color: var(--art-quiet) !important; border: 0 !important; box-shadow: none !important; font-family: var(--font-b) !important; font-weight: 500; font-size: 13px; }
-.sutaeru-chat .neon-pill-active { background: var(--art-ink) !important; color: var(--art-paper) !important; border: 0 !important; box-shadow: none !important; font-family: var(--font-b) !important; font-weight: 600; font-size: 13px; }
-.sutaeru-chat .sutaeru-chat-header button[style*="rgba(10,10,10,0.05)"] { background: #fff !important; border: 0 !important; }
-.sutaeru-chat .sutaeru-chat-header button[style*="rgba(10,10,10,0.05)"]:hover { background: var(--sk-soft) !important; }
+.sutaeru-chat .sutaeru-chat-header [class*="rounded-full"][style*="rgba(10,10,10,0.05)"] { background: var(--r-card) !important; border: 1px solid var(--r-stroke) !important; }
+.sutaeru-chat .neon-pill { background: transparent !important; color: var(--r-quiet) !important; border: 0 !important; box-shadow: none !important; font-family: var(--r-font-body) !important; font-weight: 500; font-size: 13px; }
+.sutaeru-chat .neon-pill-active { background: var(--r-ink) !important; color: var(--r-paper) !important; border: 0 !important; box-shadow: none !important; font-family: var(--r-font-body) !important; font-weight: 600; font-size: 13px; }
+.sutaeru-chat .sutaeru-chat-header button[style*="rgba(10,10,10,0.05)"] { background: var(--r-card) !important; border: 1px solid var(--r-stroke) !important; }
+.sutaeru-chat .sutaeru-chat-header button[style*="rgba(10,10,10,0.05)"]:hover { background: var(--r-panel) !important; }
 
-/* Run status strip */
+/* ── Run status strip (desktop only) ─────────────────────────────────────── */
 .sutaeru-chat .sutaeru-run-status { background: transparent; border-bottom: 0; min-height: 44px; padding: 4px 28px; }
-.sutaeru-chat .sutaeru-status-copy strong { font: 600 11px var(--sk-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--art-quiet); }
-.sutaeru-chat .sutaeru-status-copy span { font-size: 13px; color: var(--art-ink); }
-.sutaeru-chat .sutaeru-timer { font: 500 12px var(--sk-mono); color: var(--art-quiet); }
+.sutaeru-chat .sutaeru-status-copy strong { font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: var(--r-quiet); }
+.sutaeru-chat .sutaeru-status-copy span { font-size: 13px; color: var(--r-ink); }
+.sutaeru-chat .sutaeru-timer { font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); color: var(--r-quiet); }
 
-/* Empty state */
-.sk-chat-empty { width: 100%; max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; padding: 5vh 16px 3vh; }
-.sk-chat-greeting { font: 700 clamp(40px, 6.5vw, 76px)/1.02 var(--font-d); letter-spacing: -0.04em; margin: 4px 0 26px; color: var(--art-ink); }
-.sk-chat-try { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 10px; text-align: left; }
-.sk-chat-try > .sk-label { padding: 6px 4px 2px; }
-.sk-chat-suggestion { display: flex; align-items: center; gap: 16px; width: 100%; background: #fff; border: 0; border-radius: 22px; padding: 16px 22px; font: 400 16px var(--font-b); color: var(--art-ink); text-align: left; cursor: pointer; transition: transform .15s, box-shadow .15s; }
-.sk-chat-suggestion:hover { transform: translateY(-1px); box-shadow: 0 10px 26px -16px rgb(36 35 32 / .35); }
-.sk-chat-suggestion-icon { width: 22px; height: 22px; flex: none; }
+/* ── First run ───────────────────────────────────────────────────────────── */
+.sk-chat-empty { width: 100%; max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px; padding: 24px 0 8px; text-align: left; }
+.sk-chat-greeting { font: 800 42px/1.02 var(--r-font-title); letter-spacing: var(--r-track-title-lg); margin: 0; color: var(--r-ink); }
+.sk-chat-sub { margin: 0; font: 400 20px/1.4 var(--r-font-body); color: var(--r-quiet); }
 
-/* Messages */
-.sutaeru-chat .sutaeru-message-label strong { font: 600 11px var(--sk-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--art-ink); }
-.sutaeru-chat .sutaeru-message-label span { font-family: var(--sk-mono); font-size: 11px; letter-spacing: .08em; }
-.sutaeru-chat .sutaeru-user-content { background: var(--art-ink) !important; color: var(--art-paper) !important; border: 0 !important; border-radius: 26px 26px 8px 26px !important; padding: 14px 22px !important; box-shadow: none !important; }
-.sutaeru-chat .sutaeru-user-content * { color: var(--art-paper) !important; }
-.sutaeru-chat .sutaeru-message-sources li a, .sutaeru-chat .sutaeru-answer-source-list a { background: #fff; border: 0; border-radius: 999px; }
+/* ── Transcript ──────────────────────────────────────────────────────────── */
+.sutaeru-chat .sutaeru-message-label { gap: 10px; }
+.sutaeru-chat .sutaeru-message-label strong { font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: var(--r-quiet); }
+.sutaeru-chat .sutaeru-message-label span { font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: var(--r-quiet); }
 
-/* Composer: white card, dark round send */
+/* Your question: an ink bubble, right aligned. */
+.sutaeru-chat .sutaeru-user-content { background: var(--r-ink) !important; color: var(--r-paper) !important; border: 0 !important; border-radius: var(--r-radius-bubble) !important; padding: 14px 22px !important; box-shadow: none !important; }
+.sutaeru-chat .sutaeru-user-content * { color: var(--r-paper) !important; }
+
+/* Kemma's answer: a card on the paper, one hairline stroke. */
+.sutaeru-chat .sutaeru-assistant-content { background: var(--r-card); border: 1px solid var(--r-stroke); border-radius: var(--r-radius-card); padding: 16px 20px; font: 400 16px/1.7 var(--r-font-body); color: var(--r-ink); overflow-wrap: anywhere; }
+.sutaeru-chat .sutaeru-assistant-content :is(p, li) { line-height: 1.75; }
+.sutaeru-chat .sutaeru-assistant-content :is(h1, h2, h3) { font-family: var(--r-font-title); font-weight: 700; letter-spacing: 0; }
+
+/* Sources: a row of citation chips over a grid of source cards. */
+.sutaeru-message-sources { width: 100%; margin-top: 4px; padding: 0; border-left: 0; }
+.sutaeru-message-sources > strong { display: block; margin-bottom: 10px; font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: var(--r-quiet); }
+.sutaeru-message-sources ol { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--r-gap-card); margin: 0; padding: 0; list-style: none; }
+.sutaeru-message-sources li { position: relative; }
+.sutaeru-message-sources li:first-child .art-brackets { inset: -10px; }
+.sutaeru-message-sources a { display: flex; align-items: flex-start; gap: 12px; height: 100%; padding: 14px 16px; background: var(--r-card); border: 1px solid var(--r-stroke); border-radius: 20px; color: var(--r-ink); text-decoration: none; overflow-wrap: anywhere; }
+.sutaeru-message-sources a:hover { border-color: var(--r-rule); }
+.sutaeru-cite-chip { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: var(--r-panel); color: var(--r-ink); font: 700 12px/1 var(--r-font-body); font-variant-numeric: tabular-nums; }
+.sutaeru-source-copy { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sutaeru-source-host { font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: var(--r-quiet); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sutaeru-source-title { font: 600 15px/1.35 var(--r-font-title); letter-spacing: -0.2px; color: var(--r-ink); }
+
+/* The trailing source block of a deep-research run uses the same chip. */
+.sutaeru-answer-sources { margin: 20px 0 34px; padding: 0; border-left: 0; }
+.sutaeru-answer-sources .sutaeru-editorial-kicker { display: block; margin-bottom: 10px; color: var(--r-quiet); font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; }
+.sutaeru-answer-source-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.sutaeru-answer-source-list a { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px 8px 8px; background: var(--r-card); border: 1px solid var(--r-stroke); border-radius: var(--r-radius-pill); color: var(--r-ink); font: 500 13px var(--r-font-body); max-width: 100%; overflow-wrap: anywhere; }
+.sutaeru-answer-source-list a:hover { border-color: var(--r-rule); }
+.sutaeru-source-number { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; flex: none; border-radius: 50%; background: var(--r-panel); color: var(--r-ink); font: 700 12px/1 var(--r-font-body); }
+
+/* ── Running step card ───────────────────────────────────────────────────── */
+.sk-run-card { display: flex; flex-direction: column; gap: 14px; padding: var(--r-pad-card); margin: 4px 0 10px; background: var(--r-panel); border-radius: var(--r-radius-card); }
+.sk-run-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.sk-run-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--r-accent); }
+.sk-run-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: var(--r-ink); }
+/* A live step with no measurable end: the dot track alone, no fake percentage. */
+.sk-run-track { display: none; height: 10px; background-image: radial-gradient(circle at 50% 50%, var(--r-rule) 0 1.3px, transparent 1.4px); background-size: 7px 100%; background-position: 0 center; background-repeat: repeat-x; }
+.sk-run-card.is-live .sk-run-track { display: block; }
+.sk-run-step { flex: none; font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: var(--r-quiet); }
+
+/* ── Activity feed (the step list under a running answer) ────────────────── */
+.sutaeru-activity { margin: 0 0 12px; padding: 14px 16px; background: var(--r-card); border: 1px solid var(--r-stroke); border-radius: var(--r-radius-card); color: var(--r-ink); }
+.sutaeru-activity .sutaeru-activity-toggle:hover { background: var(--r-panel); }
+.sutaeru-activity ol { border-top: 1px solid var(--r-stroke); }
+
+/* ── Offline ─────────────────────────────────────────────────────────────── */
+.sk-offline-banner { position: relative; overflow: hidden; display: flex; align-items: center; gap: 16px; margin: 4px 0 18px; padding: 22px 24px; background: var(--r-ink); color: var(--r-paper); border-radius: var(--r-radius-card); }
+.sk-offline-copy { display: flex; flex-direction: column; gap: 8px; min-width: 0; flex: 1 1 auto; padding-right: 76px; }
+.sk-offline-kicker { font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: color-mix(in srgb, var(--r-paper) 62%, transparent); }
+.sk-offline-title { margin: 0; font: 700 22px/1.25 var(--r-font-title); letter-spacing: -0.6px; color: var(--r-paper); }
+.sk-offline-ramp { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); color: var(--r-paper); opacity: 0.55; -webkit-mask-image: linear-gradient(to right, transparent, black 60%); mask-image: linear-gradient(to right, transparent, black 60%); }
+
+/* A question that never reached the server: dashed, with a dotted line and a label. */
+.sutaeru-queued-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; width: 100%; max-width: 88%; margin-left: auto; }
+.sutaeru-queued-content { background: var(--r-panel) !important; color: var(--r-quiet) !important; border: 1px dashed var(--r-rule) !important; border-radius: var(--r-radius-card) !important; padding: 14px 20px !important; box-shadow: none !important; }
+.sutaeru-queued-content * { color: var(--r-quiet) !important; }
+.sutaeru-queued-line { width: 100%; height: 1px; background-image: linear-gradient(to right, var(--r-rule) 0 4px, transparent 4px 9px); background-repeat: repeat-x; background-size: 9px 1px; }
+.sutaeru-queued-label { font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: var(--r-quiet); }
+
+/* ── Composer ────────────────────────────────────────────────────────────── */
 .sutaeru-chat .sutaeru-run-composer { background: transparent !important; border-top: 0 !important; padding-bottom: max(18px, env(safe-area-inset-bottom)); }
-.sutaeru-chat .sutaeru-input-box { background: #fff !important; border: 0 !important; border-radius: 32px !important; box-shadow: 0 18px 40px -22px rgb(36 35 32 / .38), 0 1px 0 rgb(36 35 32 / .04) !important; padding: 8px 10px 8px 24px; min-height: 64px; }
-.sutaeru-chat .sutaeru-input-box textarea { color: var(--art-ink) !important; caret-color: var(--neon-orange) !important; }
-.sutaeru-chat .sutaeru-input-box textarea::placeholder { color: #8d8a83 !important; }
-.sutaeru-chat .sutaeru-composer-send { background: var(--art-ink) !important; color: var(--art-paper) !important; border-radius: 50% !important; width: 48px; height: 48px; }
+.sutaeru-chat .sutaeru-input-box { background: var(--r-card) !important; border: 1px solid var(--r-stroke) !important; border-radius: var(--r-radius-pill) !important; box-shadow: 0 18px 40px -22px var(--r-shadow) !important; padding: 8px 10px 8px 24px; min-height: 80px; }
+.sutaeru-chat .sutaeru-input-box textarea { color: var(--r-ink) !important; caret-color: var(--r-accent) !important; }
+.sutaeru-chat .sutaeru-input-box textarea::placeholder { color: var(--r-quiet) !important; }
+.sutaeru-chat .sutaeru-composer-textarea { min-height: 60px; max-height: 220px; padding: 18px 0 14px; line-height: 1.5; }
+.sutaeru-chat .sutaeru-composer-send { background: var(--r-ink) !important; color: var(--r-paper) !important; border-radius: 50% !important; width: 52px; height: 52px; }
 .sutaeru-chat .sutaeru-composer-send:hover { filter: brightness(1.2); }
-.sutaeru-chat .sutaeru-attach-button { color: var(--art-ink); }
-.sutaeru-chat .sutaeru-attach-button:hover { background: var(--sk-soft); }
-.sutaeru-chat .sutaeru-attachment-chip { color: var(--art-ink); border-color: var(--sk-track); }
-.sutaeru-chat .sutaeru-attachment-chip button { color: var(--art-ink); }
+.sutaeru-chat .sutaeru-attach-button { color: var(--r-ink); }
+.sutaeru-chat .sutaeru-attach-button:hover { background: var(--r-panel); }
+.sutaeru-chat .sutaeru-attachment-chip { color: var(--r-ink); border-color: var(--r-stroke); }
+.sutaeru-chat .sutaeru-attachment-chip button { color: var(--r-ink); }
+/* Offline: the composer dims and says why; nothing can be sent. */
+.sutaeru-chat .sutaeru-run-controls[data-offline="true"] .sutaeru-input-box { background: var(--r-panel) !important; border-color: var(--r-stroke) !important; box-shadow: none !important; }
+.sutaeru-chat .sutaeru-run-controls[data-offline="true"] .sutaeru-composer-send { background: var(--r-rule) !important; color: var(--r-card) !important; }
 
-/* Side panel + settings card */
-.sutaeru-chat .neon-card { background: #fff !important; border: 0 !important; border-radius: 24px !important; box-shadow: none !important; }
-.sutaeru-chat .neon-label { font: 500 10.5px var(--sk-mono) !important; letter-spacing: .16em; text-transform: uppercase; color: var(--art-quiet) !important; }
+/* ── Bottom controls row (history, new chat, mode, settings, details, export) ── */
+.sutaeru-chat .sutaeru-run-actions { gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.sutaeru-chat .sutaeru-run-actions > button { min-width: 44px; min-height: 44px; border-radius: 50% !important; background: var(--r-card); border: 1px solid var(--r-stroke); color: var(--r-ink); }
+.sutaeru-chat .sutaeru-run-actions > button:hover { background: var(--r-panel); border-color: var(--r-rule); color: var(--r-ink); }
+.sutaeru-chat .sutaeru-stop-run { border-radius: var(--r-radius-pill) !important; min-height: 44px; padding-inline: 18px; color: var(--r-alert) !important; border-color: var(--r-alert) !important; background: transparent !important; font-weight: 700; }
 
-/* Activity feed matches the card language */
-.sutaeru-activity { background: #fff !important; border: 0 !important; border-radius: 24px !important; }
+/* ── Side panel + settings card (desktop) ────────────────────────────────── */
+.sutaeru-chat .neon-card { background: var(--r-card) !important; border: 1px solid var(--r-stroke) !important; border-radius: var(--r-radius-card) !important; box-shadow: none !important; }
+.sutaeru-chat .neon-label { font: 500 var(--r-size-mono)/1.4 var(--r-font-mono) !important; letter-spacing: var(--r-track-mono) !important; text-transform: uppercase; color: var(--r-quiet) !important; }
 
-/* Center the transcript column inside the chat area */
+/* ── Layout ──────────────────────────────────────────────────────────────── */
 .sutaeru-chat .sutaeru-chat-transcript .sutaeru-chat-content { margin-inline: auto !important; }
 .sutaeru-chat .sutaeru-chat-transcript > div { margin-inline: auto; width: 100%; }
 
-/* Roomier composer: the box was too tight to type in, especially on phones. */
-.sutaeru-chat .sutaeru-input-box { min-height: 80px; padding: 10px 12px 10px 22px; }
-.sutaeru-chat .sutaeru-composer-textarea { min-height: 60px; max-height: 220px; padding: 18px 0 14px; line-height: 1.5; }
-.sutaeru-chat .sutaeru-composer-send { width: 52px; height: 52px; }
 @media (max-width: 767px) {
   .sutaeru-chat .sutaeru-input-box { min-height: 72px; padding: 8px 10px 8px 18px; }
   .sutaeru-chat .sutaeru-composer-textarea { min-height: 56px; padding: 16px 0 12px; }
   .sutaeru-chat .sutaeru-composer-send { width: 48px; height: 48px; }
   .sutaeru-chat .sutaeru-run-controls { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+  .sk-chat-greeting { font-size: 38px; }
 }
 
-/* Phones: the run buttons and "Add photos or files" share one row, so the message box gets the room. */
 @media (max-width: 767px) {
   .sutaeru-chat .sutaeru-run-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .sutaeru-chat .sutaeru-run-composer,
   .sutaeru-chat .sutaeru-run-composer > div,
   .sutaeru-chat .sutaeru-composer-row,
   .sutaeru-chat .sutaeru-composer-row > div { display: contents; }
-  .sutaeru-chat .sutaeru-run-actions { order: 1; margin: 0; flex: 0 1 auto; }
-  .sutaeru-chat .sk-attach-slot { order: 2; padding: 0; flex: 1 1 auto; min-width: 0; }
-  .sutaeru-chat .sutaeru-mobile-details { order: 0; flex: 1 0 100%; }
+  /* One row: the plus first, then the six round controls; the box gets its own line.
+     (Three classes: these must beat the 44px min-size rules in preview.css.) */
+  .sutaeru-chat .sutaeru-run-controls .sk-attach-slot { order: 1; padding: 0; flex: 0 0 auto; min-width: 0; }
+  .sutaeru-chat .sutaeru-run-controls .sutaeru-run-actions { order: 2; margin: 0; flex: 1 1 auto; min-width: 0; justify-content: flex-end; flex-wrap: wrap; }
+  .sutaeru-chat .sutaeru-run-controls .sutaeru-run-actions > button { flex: none; width: 40px; min-width: 40px; max-width: none; }
+  .sutaeru-chat .sutaeru-run-controls .sutaeru-run-actions > .sutaeru-stop-run { width: auto; flex: 0 0 auto; min-width: 0; max-width: none; margin-left: auto; }
   .sutaeru-chat .sutaeru-chat-input { order: 3; flex: 1 0 100%; }
+  .sutaeru-chat .sutaeru-mobile-details { order: 0; flex: 1 0 100%; }
+}
+@media (max-width: 380px) {
+  .sutaeru-chat .sutaeru-run-controls, .sutaeru-chat .sutaeru-run-controls .sutaeru-run-actions { gap: 6px; }
+  .sutaeru-chat .sutaeru-run-controls .sutaeru-run-actions > button { width: 36px; min-width: 36px; }
+  .sutaeru-chat .sutaeru-run-controls .sk-attach-button { width: 36px; height: 36px; min-width: 36px; }
 }
 
-/* Phones: five mode icons (Code mode is the fifth, admin only) must not crowd the title. */
-@media (max-width: 767px) {
-  .sutaeru-chat .sutaeru-chat-mobile-mode-actions { gap: 4px; }
-  .sutaeru-chat .sutaeru-chat-mobile-title { font-size: 24px; }
-  .sutaeru-chat .sutaeru-chat-mobile-subtitle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-}
-
-/* Phones and tablets: the chat gets the screen. No header rows, no READY strip; history, new chat and mode
-   live in the bottom row, and "Add photos or files" is just its plus. */
+/* Phones and tablets: the chat gets the whole screen. No header rows, no status strip;
+   history, new chat and the mode picker live in the bottom row. */
 .sk-chat-mobileonly { display: none; }
 @media (max-width: 1023px) {
   .sk-chat-mobileonly { display: inline-flex; }
@@ -98,16 +158,70 @@
   .sutaeru-chat .sk-attach-button { width: 44px; height: 44px; min-width: 44px; padding: 0; justify-content: center; border-radius: 50%; }
   .sutaeru-chat .sutaeru-run-controls { position: relative; }
   .sutaeru-chat .sk-mode-sheet {
-    position: absolute; left: 12px; right: 12px; bottom: 100%; margin-bottom: 8px; z-index: 30;
-    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px;
-    background: var(--art-paper); border-radius: 24px; box-shadow: 0 18px 40px -18px rgb(36 35 32 / .45), 0 0 0 1px rgb(36 35 32 / .08);
+    position: absolute; left: 0; right: 0; bottom: 100%; margin-bottom: 10px; z-index: 30;
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 16px;
+    background: var(--r-card); border-radius: var(--r-radius-card); box-shadow: 0 18px 40px -18px var(--r-shadow), 0 0 0 1px var(--r-stroke);
   }
   .sutaeru-chat .sk-mode-card {
-    display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; min-height: 44px; border: 0; text-align: left;
-    border-radius: 20px; background: var(--art-panel); color: var(--art-ink); font: inherit; cursor: pointer;
+    position: relative;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; min-height: 44px; border: 1px solid var(--r-stroke); text-align: left;
+    border-radius: 20px; background: var(--r-panel); color: var(--r-ink); font: inherit; cursor: pointer;
+    transition: background var(--r-motion) var(--r-ease-out), border-color var(--r-motion) var(--r-ease-out);
   }
-  .sutaeru-chat .sk-mode-card.is-active { box-shadow: 0 0 0 2px var(--art-ink); background: var(--art-paper); }
+  .sutaeru-chat .sk-mode-card.is-active { background: var(--r-card); border-color: var(--r-ink); }
   .sutaeru-chat .sk-mode-card-icon { width: 30px; height: 30px; }
-  .sutaeru-chat .sk-mode-card-title { font: 800 16px/1.1 var(--font-d); letter-spacing: -0.3px; }
-  .sutaeru-chat .sk-mode-card-text { font: 400 13px/1.35 var(--font-b); color: var(--art-quiet); }
+  .sutaeru-chat .sk-mode-card-title { font: 800 16px/1.1 var(--r-font-title); letter-spacing: -0.3px; }
+  .sutaeru-chat .sk-mode-card-text { font: 400 13px/1.35 var(--r-font-body); color: var(--r-quiet); }
 }
+
+/* ── History drawer ──────────────────────────────────────────────────────── */
+/* One ink surface in both themes: the text is always the paper colour, so the
+   drawer reads the same on the desktop page and inside the phone drawer. */
+.sutaeru-chat .sutaeru-history-open { background: var(--r-ink) !important; }
+.sutaeru-history { background: transparent; color: var(--r-paper); }
+.sutaeru-history .sutaeru-history-mark,
+.sutaeru-history .sutaeru-nav-mark { color: inherit; }
+.sutaeru-history-head { padding: 12px; border-bottom: 1px solid color-mix(in srgb, var(--r-paper) 14%, transparent); }
+.sutaeru-history-new {
+  display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; min-height: 44px;
+  border: 1px solid var(--r-paper); border-radius: var(--r-radius-pill);
+  background: var(--r-paper); color: var(--r-ink); font: 600 14px var(--r-font-body);
+}
+.sutaeru-history-kicker { padding: 4px 8px; font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: color-mix(in srgb, var(--r-paper) 60%, transparent); }
+.sutaeru-history-row {
+  display: block; width: 100%; min-height: 44px; text-align: left; border: 0; border-radius: 16px; padding: 8px 12px;
+  background: transparent; color: var(--r-paper); font: 500 14px/1.35 var(--r-font-body); cursor: pointer;
+}
+.sutaeru-history-row[data-active="true"] { background: color-mix(in srgb, var(--r-paper) 14%, transparent); }
+.sutaeru-history-session {
+  display: flex; align-items: flex-start; gap: 8px; margin-bottom: 2px; padding: 10px; border-radius: 16px; cursor: pointer;
+  border: 1px solid transparent; color: var(--r-paper);
+  transition: background 160ms ease, border-color 160ms ease;
+}
+.sutaeru-history-session:hover { background: color-mix(in srgb, var(--r-paper) 8%, transparent); }
+.sutaeru-history-session[data-active="true"] { background: color-mix(in srgb, var(--r-paper) 14%, transparent); border-color: color-mix(in srgb, var(--r-paper) 16%, transparent); }
+.sutaeru-history-title { margin: 0; font: 500 13px/1.35 var(--r-font-body); color: color-mix(in srgb, var(--r-paper) 86%, transparent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sutaeru-history-session[data-active="true"] .sutaeru-history-title { color: var(--r-paper); font-weight: 700; }
+.sutaeru-history-time { margin-top: 2px; font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); color: color-mix(in srgb, var(--r-paper) 55%, transparent); }
+.sutaeru-history-muted { color: color-mix(in srgb, var(--r-paper) 60%, transparent); }
+.sutaeru-history-empty { margin: 0; font: 400 12px/1.5 var(--r-font-body); color: color-mix(in srgb, var(--r-paper) 60%, transparent); }
+.sutaeru-history-edit {
+  flex: 1 1 auto; min-width: 0; background: transparent; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--r-paper) 30%, transparent);
+  color: var(--r-paper); font: 400 13px var(--r-font-body); outline: none;
+}
+.sutaeru-history .sutaeru-history-close { color: var(--r-paper); }
+.sutaeru-history .sutaeru-history-session button { color: color-mix(in srgb, var(--r-paper) 55%, transparent); }
+.sutaeru-history .sutaeru-history-session button:hover { color: var(--r-paper); background: color-mix(in srgb, var(--r-paper) 12%, transparent); }
+
+/* Desktop agent panel: the mode tile is ink, not an orange disc. */
+.sk-mode-tile {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; flex: none; border-radius: 50%;
+  background: var(--r-ink); color: var(--r-paper);
+}
+.sk-mode-tile-desc { margin: 0; font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); color: var(--r-quiet); }
+
+/* Background art off (Settings): the wash and the grain go away. */
+[data-bg-art="off"] body::before,
+[data-bg-art="off"] body::after,
+[data-bg-art="off"] .sutaeru-chat > div[style*="feTurbulence"] { display: none !important; }

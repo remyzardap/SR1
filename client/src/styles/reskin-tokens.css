@@ -47,6 +47,7 @@
   --r-radius-panel: 28px;
   --r-radius-thumb: 18px;
   --r-radius-pill: 999px;
+  --r-radius-bubble: 26px 26px 8px 26px; /* user question, tail on the sending side */
   --r-gutter: 20px;
   --r-gap-card: 12px;
   --r-pad-card: 24px;
