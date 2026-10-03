@@ -16,4 +16,13 @@ export const rateLimitConfig = {
     requests: 100, 
     windowMs: 24 * 60 * 60 * 1000 
   },
+  // Video generation, per signed-in user: see server/routes/fn/video.ts.
+  videoGenerateHourly: { 
+    requests: 10, 
+    windowMs: 60 * 60 * 1000 
+  },
+  videoGenerateDaily: { 
+    requests: 30, 
+    windowMs: 24 * 60 * 60 * 1000 
+  },
 };

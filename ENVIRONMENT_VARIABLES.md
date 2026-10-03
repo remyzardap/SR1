@@ -269,6 +269,37 @@ image function reads the same variable and expects a Gemini image model id.
 
 ---
 
+## Video generation
+
+`POST /api/fn/video/start` enqueues a video generation job that runs asynchronously
+via pg-boss (`server/routes/fn/video.ts` and `server/lib/fnVideo.ts`). Status is
+polled via `GET /api/fn/video/status?id=<jobId>` and jobs can be cancelled via
+`POST /api/fn/video/cancel`. Per user the function allows 10 videos an hour and 30 a day.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VIDEO_ENGINE_DEFAULT` | `gemini` | Engine used when the request names none: `openai`, `gemini`, `qwen` or `forge`. If unset or unavailable, falls back to the first available engine |
+| `KEMMA_MODEL_VIDEO` | `veo-3.1-fast-generate-preview` | Gemini video model for quality `standard` |
+| `KEMMA_MODEL_VIDEO_PRO` | `veo-3.1-generate-preview` | Gemini video model for quality `high` |
+| `QWEN_VIDEO_MODEL` | `wan2.1-t2v-turbo` | Wan video model for quality `standard` |
+| `QWEN_VIDEO_MODEL_PRO` | `wan2.1-t2v-plus` | Wan video model for quality `high` |
+| `OPENAI_VIDEO_MODEL` | `sora-1.0-turbo` | OpenAI video model for quality `standard` |
+| `OPENAI_VIDEO_MODEL_PRO` | `sora-1.0` | OpenAI video model for quality `high` |
+| `FORGE_VIDEO_MODEL` | `wan2.1-t2v-1.3b` | Open-weight GPU video model for quality `standard` |
+| `FORGE_VIDEO_MODEL_PRO` | `ltx-video-2b` | Open-weight GPU video model for quality `high` |
+| `OPENAI_VIDEO_API_KEY` | empty | Dedicated API key for OpenAI video generation |
+| `OPENAI_VIDEO_BASE_URL` | `https://api.openai.com/v1` | Dedicated endpoint for OpenAI video generation |
+| `QWEN_VIDEO_API_KEY` | empty | Dedicated DashScope API key with video-synthesis permissions |
+| `QWEN_VIDEO_BASE_URL` | `https://dashscope-intl.aliyuncs.com` | DashScope video endpoint base URL |
+
+An engine is offered only when it is configured: Gemini needs `GEMINI_BACKEND=vertex`
+with readable `GOOGLE_APPLICATION_CREDENTIALS`, or `GEMINI_API_KEY` (AI Studio); Qwen
+needs `QWEN_VIDEO_API_KEY` (the token plan key does not support async video synthesis);
+OpenAI needs `OPENAI_VIDEO_API_KEY` (the gateway currently provides no video models);
+and Forge needs `FORGE_MANAGER_URL` and `FORGE_MANAGER_TOKEN`.
+
+---
+
 ## Chat image commands
 
 `/image`, `/img` and `/draw` in an allowlisted Telegram chat, or from a linked

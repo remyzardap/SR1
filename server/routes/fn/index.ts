@@ -19,6 +19,7 @@ import { handleMemories } from "./memories";
 import { handleMonitors } from "./monitors";
 import { handleResearch } from "./research";
 import { handleVoice, parseAudio } from "./voice";
+import { handleVideo, videoRouter } from "./video";
 
 type FnHandler = (userId: number, req: Request, res: Response) => Promise<void>;
 
@@ -30,6 +31,7 @@ const functions: Record<string, FnHandler> = {
   research: handleResearch,
   voice: handleVoice,
   image: handleImage,
+  video: handleVideo,
   drive: handleDrive,
 };
 
@@ -51,6 +53,9 @@ export async function handleFnRequest(req: Request, res: Response): Promise<void
 }
 
 export const fnRouter = Router();
+
+// Video subrouter handles /api/fn/video/* (start, status, cancel, engines)
+fnRouter.use("/video", videoRouter);
 
 // parseAudio only engages on a multipart request; JSON bodies stay with express.json.
 fnRouter.post("/:name", parseAudio, (req, res, next: NextFunction) => {
