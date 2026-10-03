@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { codeCall, storedCodeSession, type CodeSession } from "@/components/CodeThread";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -14,9 +15,11 @@ interface ChatSessionListProps {
   onSelectSession: (sessionId: string) => void;
   onNewSession: () => void;
   onClose?: () => void;
+  showCode?: boolean;
+  onSelectCodeSession?: (codeSessionId: string) => void;
 }
 
-export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession, onClose }: ChatSessionListProps) {
+export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession, onClose, showCode = false, onSelectCodeSession }: ChatSessionListProps) {
   const utils = trpc.useUtils();
   const { data: sessions = [], isLoading } = trpc.chat.listSessions.useQuery();
 
@@ -28,6 +31,18 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
     onSuccess: () => { utils.chat.listSessions.invalidate(); setEditingId(null); },
     onError: () => toast.error("Failed to rename session"),
   });
+
+  // Code mode threads live on the server, so they are listed from there, newest first.
+  const [codeSessions, setCodeSessions] = useState<CodeSession[]>([]);
+  useEffect(() => {
+    if (!showCode) return;
+    let cancelled = false;
+    const load = () => codeCall<{ sessions: CodeSession[] }>("/").then((r) => { if (!cancelled) setCodeSessions(r.sessions.slice(0, 20)); }).catch(() => undefined);
+    void load();
+    const t = window.setInterval(load, 15000);
+    return () => { cancelled = true; window.clearInterval(t); };
+  }, [showCode]);
+  const activeCodeId = activeSessionId ? storedCodeSession(activeSessionId) : null;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -69,6 +84,25 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
 
       {/* Session list */}
       <div className="flex-1 overflow-y-auto py-2 px-2">
+        {showCode && codeSessions.length > 0 && (
+          <div className="mb-3">
+            <p style={{ fontFamily: NEON_FM, fontSize: 10, letterSpacing: ".16em", textTransform: "uppercase", color: "rgba(255,255,255,0.55)", padding: "4px 8px" }}>Code mode</p>
+            {codeSessions.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onSelectCodeSession?.(c.id)}
+                className="w-full text-left rounded-sm px-3 py-2 text-sm"
+                style={{ background: activeCodeId === c.id ? "rgba(255,255,255,0.12)" : "transparent", color: "rgba(255,255,255,0.9)", fontFamily: NEON_FD, minHeight: 44 }}
+              >
+                <span className="block truncate">{c.title}</span>
+                <span style={{ fontFamily: NEON_FM, fontSize: 10, color: "rgba(255,255,255,0.5)" }}>
+                  {formatDate(c.updated * 1000)}{c.status === "running" ? " · working" : c.status === "needs_approval" ? " · needs you" : ""}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
         {isLoading ? (
           <div className="flex justify-center py-10">
             <Loader2 className="h-4 w-4 animate-spin" style={{ color: "rgba(255,255,255,0.55)" }} />

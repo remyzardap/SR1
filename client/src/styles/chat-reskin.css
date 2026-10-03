@@ -78,3 +78,10 @@
   .sutaeru-chat .sutaeru-mobile-details { order: 0; flex: 1 0 100%; }
   .sutaeru-chat .sutaeru-chat-input { order: 3; flex: 1 0 100%; }
 }
+
+/* Phones: five mode icons (Code mode is the fifth, admin only) must not crowd the title. */
+@media (max-width: 767px) {
+  .sutaeru-chat .sutaeru-chat-mobile-mode-actions { gap: 4px; }
+  .sutaeru-chat .sutaeru-chat-mobile-title { font-size: 24px; }
+  .sutaeru-chat .sutaeru-chat-mobile-subtitle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}

@@ -36,6 +36,7 @@ interface ChatHeaderProps {
   onInsights?: () => void;
   chatWidth?: "normal" | "wide" | "full";
   onCycleWidth?: () => void;
+  extraModes?: Array<{ key: string; label: string; icon: SutaeruIconName }>;
 }
 
 export function ChatHeader({
@@ -56,7 +57,9 @@ export function ChatHeader({
   onInsights,
   chatWidth = "normal",
   onCycleWidth,
+  extraModes = [],
 }: ChatHeaderProps) {
+  const modes = [...MODES, ...extraModes];
   const reduceMotion = useReducedMotion();
   return (
     <>
@@ -110,7 +113,7 @@ export function ChatHeader({
         {/* Mode pills */}
         {!agentHandle && onSetMode && (
           <div className="hidden md:flex items-center gap-1 p-1 rounded-full" style={{ background: "rgba(10,10,10,0.05)" }}>
-            {MODES.map((m) => (
+            {modes.map((m) => (
              <Button
                variant="ghost"
                 key={m.key}
@@ -245,10 +248,10 @@ export function ChatHeader({
           <nav className="sutaeru-chat-mobile-modes" aria-label="Chat mode">
            <div className="sutaeru-chat-mobile-heading">
              <span className="sutaeru-chat-mobile-title">Sutaeru</span>
-             <span className="sutaeru-chat-mobile-subtitle">{MODES.find((item) => item.key === mode)?.label ?? "Fast"} mode</span>
+             <span className="sutaeru-chat-mobile-subtitle">{(() => { const label = modes.find((item) => item.key === mode)?.label ?? "Fast"; return /mode$/i.test(label) ? label : `${label} mode`; })()}</span>
        </div>
            <div className="sutaeru-chat-mobile-mode-actions">
-             {MODES.map((item) => (
+             {modes.map((item) => (
                <Button key={item.key} type="button" size="icon" variant="outline"
                  onClick={() => onSetMode(item.key)}
                  aria-label={`${item.label} mode`} title={`${item.label} mode`}

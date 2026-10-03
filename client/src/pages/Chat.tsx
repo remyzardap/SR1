@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/authSession";
 import { callFunction } from "@/lib/kemmaCloud";
 import { AttachMenu } from "@/components/AttachMenu";
+import { CodeAccessBar, CodeThreadView, rememberCodeSession, storedCodeSession, useCodeThread, type CodeAccess } from "@/components/CodeThread";
 import { MAX_FILES, attachmentName, type Attachment } from "@/lib/attachments";
 import { NEON_PAGE_BG, NOISE_OVERLAY, NEON, NEON_FD, NEON_FM } from "@/lib/design";
 import { Settings, X, Cpu, Wrench, Download, PanelRightOpen, PanelRightClose, Zap, Search, FileText, Image as ImageIcon, ExternalLink } from "lucide-react";
@@ -169,6 +170,18 @@ export default function Chat() {
   const [usage, setUsage] = useState<{ inputTokens: number; outputTokens: number; totalTokens: number } | null>(null);
   const [sources, setSources] = useState<Source[]>([]);
 
+  // ─── Code mode (admin only): Claude Code on the server, inside this thread ─
+  const me = trpc.auth.me.useQuery(undefined, { retry: false });
+  const isAdmin = me.data?.role === "admin";
+  const [codeAccess, setCodeAccess] = useState<CodeAccess>("read");
+  const [codeTotp, setCodeTotp] = useState("");
+  const isCode = mode === "code" && isAdmin;
+  const code = useCodeThread(sessionId, isCode);
+  // Opening a thread that already has a code session puts it back in Code mode.
+  useEffect(() => {
+    if (isAdmin && storedCodeSession(sessionId)) setMode("code");
+  }, [sessionId, isAdmin]);
+
   useEffect(() => {
     if (!isStreaming || startedAt === null) return;
     const update = () => setElapsed(Math.floor((Date.now() - startedAt) / 1000));
@@ -223,6 +236,11 @@ export default function Chat() {
   }, [sessionId, updateSessionSettings]);
 
   const handleSetMode = (nextMode: string) => {
+    if (nextMode === "code") {
+      // Not a saved thread setting: the server only knows the chat modes.
+      if (isAdmin) setMode("code");
+      return;
+    }
     setMode(nextMode);
     const tools = MODE_DEFAULTS[nextMode] ?? MODE_DEFAULTS.fast;
     setAllowedTools(tools);
@@ -340,6 +358,17 @@ export default function Chat() {
         }));
       const attached = typeof submission === "object" && submission.attachments ? submission.attachments : attachments;
       const sent: Attachment[] = [...attached, ...dropped].slice(0, MAX_FILES);
+
+      if (isCode) {
+        if (code.running || code.busy) return;
+        if (codeAccess === "full" && !code.session && codeTotp.length !== 6) {
+          toast.error("Enter the 6-digit authenticator code for full access.");
+          return;
+        }
+        const ok = await code.send(messageText, { access: codeAccess, totp: codeTotp, attachments: sent });
+        if (ok) { setInput(""); setAttachments([]); setCodeTotp(""); }
+        return;
+      }
 
       const userMsg: Message = {
         id: crypto.randomUUID(),
@@ -551,7 +580,7 @@ export default function Chat() {
         setCurrentStep("");
       }
     },
-    [input, isStreaming, messages, sessionId, mode, messageModel, taggedSkills, attachments]
+    [input, isStreaming, messages, sessionId, mode, messageModel, taggedSkills, attachments, isCode, code, codeAccess, codeTotp]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -649,6 +678,8 @@ export default function Chat() {
               activeSessionId={sessionId}
               onSelectSession={handleSelectSession}
               onNewSession={handleNewChat}
+              showCode={isAdmin}
+              onSelectCodeSession={(id) => { rememberCodeSession(id, id); handleSelectSession(id); }}
               onClose={() => setSidebarOpen(false)}
             />
           </div>
@@ -664,6 +695,7 @@ export default function Chat() {
           onNewChat={handleNewChat}
           onToggleSidebar={() => setSidebarOpen((o) => !o)}
           onSetMode={handleSetMode}
+          extraModes={isAdmin ? [{ key: "code", label: "Code mode", icon: "make" }] : []}
           onToggleMax={() => handleSetMode(mode === "deep" ? "fast" : "deep")}
           onExport={(format) => void exportThreadFromServer(format)}
           exportPending={exportPending}
@@ -684,7 +716,7 @@ export default function Chat() {
         </div>
         <div className="flex flex-1 min-h-0">
           <div className="flex flex-col flex-1 min-w-0">
-            <ChatMessages
+            {isCode ? <CodeThreadView code={code} /> : <ChatMessages
               messages={messages}
               isStreaming={isStreaming}
               messagesEndRef={messagesEndRef as RefObject<HTMLDivElement>}
@@ -693,7 +725,7 @@ export default function Chat() {
               steps={agentSteps}
               activity={activity}
               onSelectPlan={handleSelectPlan}
-            />
+            />}
 
             {historyState === "loading" && messages.length === 0 && (
               <div role="status" className="flex-none mx-3 sm:mx-6 mb-3 text-center text-xs text-muted-foreground">Loading conversation…</div>
@@ -809,6 +841,9 @@ export default function Chat() {
               </div>
             )}
 
+            {isCode && (
+              <CodeAccessBar access={codeAccess} onAccess={setCodeAccess} totp={codeTotp} onTotp={setCodeTotp} fullAvailable={code.fullAvailable} locked={!!code.session} />
+            )}
             <div className="sutaeru-run-controls">
               <div className="sutaeru-run-actions">
                 <Button size="icon" variant="outline" onClick={() => setSettingsOpen((o) => !o)} aria-label="Run settings" title="Run settings"><SutaeruIcon name="settings" className="h-5 w-5" /></Button>
@@ -825,11 +860,11 @@ export default function Chat() {
                   </div>
                    <ChatInput
                     value={input}
-                    isStreaming={isStreaming}
+                    isStreaming={isCode ? code.running : isStreaming}
                     onChange={setInput}
                     onKeyDown={handleKeyDown}
                      onSend={(message) => handleSend(message)}
-                    onStop={stopRun}
+                    onStop={isCode ? () => void code.stop() : stopRun}
                      allowAttachments={false}
                   />
                 </div>

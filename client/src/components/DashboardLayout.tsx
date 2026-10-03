@@ -391,19 +391,6 @@ function DashboardLayoutContent({
                 );
               })}
               {user?.role === "admin" && (
-                <SidebarMenuItem key="/sessions">
-                  <SidebarMenuButton
-                    isActive={location.startsWith("/sessions")}
-                    onClick={() => setLocation("/sessions")}
-                    tooltip="Code mode"
-                    className="sutaeru-nav-item sk-shell-item"
-                  >
-                    <SutaeruIcon name="make" className="sk-shell-icon" />
-                    <span>Code mode</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-              {user?.role === "admin" && (
                 <SidebarMenuItem key="/admin">
                   <SidebarMenuButton
                     isActive={location === "/admin" || location === "/admin/audit-logs"}
