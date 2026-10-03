@@ -169,6 +169,11 @@ export interface VideoEngineInfo {
   supportsReference: boolean;
   minDurationSec: number;
   maxDurationSec: number;
+  /** Shapes the engine accepts. */
+  aspectRatios: VideoAspectRatio[];
+  /** Typical wall-clock time for one video, shown on the engine card. */
+  estimateMinSeconds: number;
+  estimateMaxSeconds: number;
 }
 
 export type VideoJobState = "QUEUED" | "DRAWING" | "SAVING" | "DONE" | "FAILED" | "CANCELLED";
@@ -279,6 +284,14 @@ export function resolveVideoEngine(prompt: string, requestedEngine?: VideoEngine
   return requestedEngine ?? defaultVideoEngine();
 }
 
+/** Rough time for one video per engine (Gemini measured at about 50 s for 5 s of video). */
+export const VIDEO_TIME_ESTIMATE: Record<VideoEngineId, { min: number; max: number }> = {
+  gemini: { min: 40, max: 90 },
+  qwen: { min: 60, max: 120 },
+  openai: { min: 60, max: 180 },
+  forge: { min: 120, max: 300 },
+};
+
 export function listVideoEngines(): VideoEngineInfo[] {
   const def = defaultVideoEngine();
   return VIDEO_ENGINE_IDS.map((id) => ({
@@ -291,6 +304,9 @@ export function listVideoEngines(): VideoEngineInfo[] {
     supportsReference: supportsVideoReference(id),
     minDurationSec: VIDEO_DURATION_LIMITS[id].min,
     maxDurationSec: VIDEO_DURATION_LIMITS[id].max,
+    aspectRatios: [...VIDEO_ASPECT_RATIOS],
+    estimateMinSeconds: VIDEO_TIME_ESTIMATE[id].min,
+    estimateMaxSeconds: VIDEO_TIME_ESTIMATE[id].max,
   }));
 }
 

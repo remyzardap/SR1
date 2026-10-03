@@ -20,6 +20,7 @@ import Skills from "./pages/Skills";
 import Memories from "./pages/Memories";
 import Monitors from "./pages/Monitors";
 import Images from "./pages/Images";
+import Video from "./pages/Video";
 import Connections from "./pages/Connections";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
@@ -166,6 +167,15 @@ function AppRoutes() {
           </DashboardLayout>
         ) : (
           <ProtectedRoute component={Images} />
+        )}
+      </Route>
+      <Route path="/video">
+        {isAuthenticated ? (
+          <DashboardLayout>
+            <Video />
+          </DashboardLayout>
+        ) : (
+          <ProtectedRoute component={Video} />
         )}
       </Route>
       <Route path="/connections">
