@@ -362,15 +362,31 @@ describe("stream route: request validation", () => {
 
 // ── (n) thinking/voice through the route ─────────────────────────────────────
 describe("stream route: thinking and voice flags", () => {
-  it("isThinking routes step 1 to the long-doc slot and isVoice swaps in the voice prompt", async () => {
+  it("isThinking routes to orchestrator (planner) and isVoice swaps in the voice prompt in synthesis", async () => {
     process.env.KEMMA_MODEL_LONG_DOC = "qwen-long";
-    const net = stubFetch(() => jsonRes(completion("Deep voice answer.")));
+    // Planner returns JSON array of subqueries so orchestrator works
+    let callCount = 0;
+    const net = stubFetch(() => {
+      callCount++;
+      if (callCount === 1) return jsonRes(completion('["Sub query 1"]')); // planner
+      return jsonRes(completion("Deep voice answer.")); // others
+    });
     const req = fakeReq({ ...USER_BODY, isThinking: true, isVoice: true });
     const res = fakeRes();
     await kemmaStreamRoute(req, res);
-    expect(net.calls[0].body.model).toBe("qwen-long");
-    // Qwen requests carry the system prompt as a marked text-part array (prompt-cache markers), others as a string.
-    const sys = net.calls[0].body.messages[0].content;
+    
+    // Call 0 is the planner (gemini-3.8-flash)
+    expect(net.calls[0].body.model).toBe("gemini-3.8-flash");
+    
+    // Find the synthesis call to check if voice prompt is injected
+    const synthesisCall = net.calls.find((c: any) => {
+      const sys = c.body.messages[0].content;
+      const sysText = typeof sys === "string" ? sys : sys.map((p: any) => p.text ?? "").join("");
+      return sysText.includes("You synthesize");
+    });
+    expect(synthesisCall).toBeDefined();
+    
+    const sys = synthesisCall.body.messages[0].content;
     const sysText = typeof sys === "string" ? sys : sys.map((p: { text?: string }) => p.text ?? "").join("");
     expect(sysText).toContain("## Voice mode");
     expect(quota.checkQuota).toHaveBeenCalledWith(1, "think");

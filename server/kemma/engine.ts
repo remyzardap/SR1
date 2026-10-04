@@ -39,6 +39,9 @@ import { logUsage, checkSpendCap } from "../core/usage";
 import { KEMMA_TOOLS, SKILL_TOOLS, VPS_FILES_TOOL, SKILL_TOOL_NAMES, type ToolDefinition } from "./tools";
 import { getMemoriesContext } from "./memory";
 import { type Source, extractSources, dedupeSources, annotateSearchResult, keepCitedSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
+import { runOrchestrator } from "./orchestrator";
+import { OrchestratorEventEmitter } from "./orchestrator/events";
+import type { OrchestratorContext } from "./orchestrator/types";
 
 export interface KemmaMessage {
   role: "user" | "assistant" | "system" | "tool";
@@ -69,6 +72,8 @@ export interface EngineInput {
   isSubAgent?: boolean;
   modelOverride?: string;
   skills?: Array<{ id: number; name: string; description?: string | null; content?: unknown }>;
+  signal?: AbortSignal;
+  useOrchestrator?: boolean;
   onStream?: (chunk: string) => void;
   onToolStart?: (tool: string, input: unknown) => void;
   onToolEnd?: (tool: string, result: unknown, durationMs: number) => void;
@@ -230,7 +235,96 @@ async function runParallelSubAgents(
   };
 }
 
+export async function orchestratorExecute(input: EngineInput): Promise<EngineOutput> {
+  const startTime = Date.now();
+  if (input.modelOverride && isAdminOnlyModel(input.modelOverride) && !(await isAdminUser(input.userId))) {
+    input = { ...input, modelOverride: undefined };
+  }
+  const { userId, userName, messages, tier, isThinking, isVoice = false, sessionId, reportId } = input;
+
+  const msgQuota = await checkQuota(userId, "message");
+  if (!msgQuota.allowed) return makeErrorResponse(msgQuota.reason ?? "Daily message limit reached", startTime);
+
+  if (isThinking) {
+    const thinkQuota = await checkQuota(userId, "think");
+    if (!thinkQuota.allowed) return makeErrorResponse(thinkQuota.reason ?? "Daily Think limit reached", startTime);
+  }
+
+  const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
+  const query = typeof lastUserMessage?.content === "string" ? lastUserMessage.content : "";
+
+  const context: OrchestratorContext = {
+    userId,
+    userName,
+    sessionId,
+    reportId,
+    tier,
+    isThinking,
+    isVoice,
+    allowedTools: input.allowedTools,
+    modelOverride: input.modelOverride,
+    signal: input.signal,
+  };
+
+  const events = new OrchestratorEventEmitter();
+
+  if (input.onNotice) events.on("notice", input.onNotice);
+  if (input.onQuotaWarn) events.on("budget:exhausted", input.onQuotaWarn);
+  if (input.onStream) events.on("token:stream", input.onStream);
+  if (input.onToolStart) events.on("tool:start", (_task, tool, inArgs) => input.onToolStart!(tool, inArgs));
+  if (input.onToolEnd) events.on("tool:end", (_task, tool, res, dur) => input.onToolEnd!(tool, res, dur));
+
+  const result = await runOrchestrator({
+    query,
+    context,
+    events,
+    budgetConfig: {
+      maxToolCalls: input.toolBudget ?? (input.isThinking ? 60 : 20),
+    },
+    llmCaller: callLLM,
+    subAgentRunner: async (subQuery, subBudget) => {
+      const output = await kemmaExecute({
+        ...input,
+        messages: [{ role: "user", content: subQuery }],
+        isThinking: false,
+        toolBudget: subBudget,
+        isSubAgent: true,
+        onStream: undefined,
+        onNotice: undefined,
+      });
+      return {
+        response: output.response,
+        sources: output.sources,
+        toolCalls: output.toolCalls,
+        tokensUsed: output.tokensUsed,
+        modelsUsed: output.modelsUsed,
+        durationMs: output.durationMs,
+      };
+    },
+  });
+
+  await incrementQuota(userId, "message");
+  if (result.isAgentic) await incrementQuota(userId, "agentic_task");
+  if (isThinking) await incrementQuota(userId, "think");
+  if (result.tokensUsed.total > 0) await incrementQuota(userId, "token", result.tokensUsed.total);
+
+  return {
+    response: result.response,
+    toolCalls: result.toolCalls,
+    isAgentic: result.isAgentic,
+    tokensUsed: result.tokensUsed,
+    modelsUsed: result.modelsUsed,
+    stepsUsed: result.stepsUsed,
+    durationMs: Date.now() - startTime,
+    sources: result.sources,
+    isError: result.isError,
+  };
+}
+
 export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
+  if (input.useOrchestrator) {
+    return orchestratorExecute(input);
+  }
   const startTime = Date.now();
   // Admin-only models are re-checked against the DB here, whatever the caller passed.
   if (input.modelOverride && isAdminOnlyModel(input.modelOverride) && !(await isAdminUser(input.userId))) {
@@ -387,6 +481,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         sessionId,
         reportId,
         purpose: step === 1 ? "initial" : "follow-up",
+        signal: input.signal,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Kemma hit an error";
@@ -646,7 +741,7 @@ Return the extracted text in a structured format.`;
 // LLM CALLERS (with fallback chain, spend caps, and usage logging)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-interface CallLLMOptions {
+export interface CallLLMOptions {
   route: RouteConfig;
   systemPrompt: string;
   /** Per-message context (retrieved memories). Kept out of the system prompt so the cached prefix stays stable. */
@@ -662,12 +757,13 @@ interface CallLLMOptions {
   sessionId?: string;
   reportId?: string;
   purpose?: string;
+  signal?: AbortSignal;
 }
 
-interface LLMResult { content: string | null; toolCalls?: ToolCall[]; usage?: TokenUsage }
+export interface LLMResult { content: string | null; toolCalls?: ToolCall[]; usage?: TokenUsage }
 
-async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
-  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onNotice, userId, sessionId, reportId, purpose } = input;
+export async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
+  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onNotice, userId, sessionId, reportId, purpose, signal } = input;
 
   const cap = await checkSpendCap(route.provider);
   if (!cap.allowed) {
@@ -686,7 +782,7 @@ async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
     }
 
     try {
-      const result = await callSingleLLM({ route: tryRoute, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream });
+      const result = await callSingleLLM({ route: tryRoute, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, signal });
 
       await logUsage({
         userId,
@@ -726,6 +822,7 @@ interface SingleLLMOptions {
   tools?: any[];
   stream: boolean;
   onStream?: (chunk: string) => void;
+  signal?: AbortSignal;
 }
 
 // Providers that rejected stream_options once; not sent again for the life of the process.
@@ -814,6 +911,7 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<LLMResult> {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${target.auth}` },
       body: JSON.stringify(buildBody(opts)),
+      signal: input.signal,
     });
 
   let cacheMarkers = !!cachePrefix && usesExplicitCacheMarkers(route.provider);
