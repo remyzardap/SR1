@@ -119,7 +119,7 @@ export function parseGenerateRequest(body: unknown): GenerateRequest {
 // ─── Budgets ──────────────────────────────────────────────────────────────────
 
 export const CALL_CAPS: Record<DocKind, number> = { short: 6, medium: 40, academic: 60 };
-export const TIME_CAPS_MS: Record<DocKind, number> = { short: 90_000, medium: 6 * 60_000, academic: 10 * 60_000 };
+export const TIME_CAPS_MS: Record<DocKind, number> = { short: 150_000, medium: 10 * 60_000, academic: 16 * 60_000 };
 
 /** Raised when a per-request cap is hit. The pipeline stops cleanly and sends what it has. */
 export class CapError extends Error {
@@ -297,7 +297,7 @@ export async function runDocumentPipeline(args: PipelineArgs): Promise<PipelineR
       { role: "system", content: system },
       { role: "user", content: user },
     ];
-    const result = await raceAbort(complete(messages, { userId, slot: "longDoc", purpose: `documents:${purpose}`, maxTokens, signal: run }));
+    const result = await raceAbort(complete(messages, { userId, slot: "chat", purpose: `documents:${purpose}`, maxTokens, signal: run }));
     tokens += result.inputTokens + result.outputTokens;
     check();
     return result.text;
