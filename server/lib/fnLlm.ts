@@ -38,6 +38,8 @@ export interface LlmOptions {
   /** Recorded in usage_logs for cost tracking. */
   purpose: string;
   maxTokens?: number;
+  /** Aborts the request (and any retry wait) when the caller goes away. */
+  signal?: AbortSignal;
 }
 
 export class LlmUnavailableError extends Error {
@@ -67,7 +69,7 @@ function endpointFor(baseUrl: string): string {
 async function request(
   route: RouteConfig,
   messages: ChatMessage[],
-  { stream, maxTokens = 2000 }: { stream: boolean; maxTokens?: number }
+  { stream, maxTokens = 2000, signal }: { stream: boolean; maxTokens?: number; signal?: AbortSignal }
 ): Promise<Response> {
   const target = await resolveRouteAuth(route);
   // Transient failures (429, 5xx, network) retry on the same model before the caller tries the next
@@ -76,6 +78,7 @@ async function request(
   const send = (streamUsage: boolean) =>
     fetchWithRetry(endpointFor(target.baseUrl), {
       method: "POST",
+      signal,
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${target.auth}` },
       body: JSON.stringify({
         model: target.model,
@@ -111,7 +114,7 @@ export async function complete(messages: ChatMessage[], options: LlmOptions): Pr
   let lastError: unknown;
   for (const route of routes) {
     try {
-      const res = await request(route, messages, { stream: false, maxTokens: options.maxTokens });
+      const res = await request(route, messages, { stream: false, maxTokens: options.maxTokens, signal: options.signal });
       const data = (await res.json()) as {
         choices?: Array<{ message?: { content?: string } }>;
         usage?: unknown;
@@ -126,6 +129,7 @@ export async function complete(messages: ChatMessage[], options: LlmOptions): Pr
       return { text, model: route.model, provider: route.provider, inputTokens, outputTokens };
     } catch (err) {
       lastError = err;
+      if (options.signal?.aborted) break;
     }
   }
   throw lastError instanceof Error ? lastError : new Error("Language model request failed.");

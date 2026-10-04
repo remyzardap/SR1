@@ -7,6 +7,7 @@ import { appRouter } from '../routers';
 import { createContext } from './context';
 import { registerChatStreamRoute } from '../routers/chat';
 import { registerAtelierRoutes } from '../routers/atelier';
+import { registerDocumentBody, registerDocumentRoutes } from '../routers/documents';
 import intelligenceRouter, { setupIntelligenceWebSocket } from '../routers/intelligence';
 import { registerGoogleCallbackRoute } from '../routers/googleCallback';
 import { registerTelegramWebhookRoute } from '../routers/telegramWebhook';
@@ -84,6 +85,7 @@ const attachmentBody = express.json({ limit: '32mb', verify: (req, _res, buf) =>
 app.use('/api/fn', requireSession, attachmentBody);
 app.use('/api/kemma/stream', requireSession, attachmentBody);
 app.post('/api/admin/code-sessions', requireSession, attachmentBody);
+registerDocumentBody(app, requireSession, attachmentBody); // /api/documents/generate: sources travel in the body, 413 JSON on overflow
 app.post('/api/admin/code-sessions/:id/message', requireSession, attachmentBody);
 app.use(['/api/fn', '/api/kemma/stream', '/api/admin/code-sessions'], (err: any, _req: any, res: any, next: any) => {
   if (err?.type === 'entity.too.large') return res.status(413).json({ error: 'That upload is too large. Keep attachments under 20 MB in total.' });
@@ -115,6 +117,8 @@ app.use('/webhooks/whatsapp', whatsappWebhookRouter); // Meta verifies with a GE
 registerChatStreamRoute(app as any); // already has its own auth
 app.use('/api/atelier', requireSession);
 registerAtelierRoutes(app);
+app.use('/api/documents', requireSession);
+registerDocumentRoutes(app);
 app.use('/api/intelligence', requireSession, intelligenceRouter);
 app.use('/api/admin/code-sessions', requireSession, codeSessionsRouter); // headless Claude Code on the VPS, owner only
 app.use('/api/admin/messaging', requireSession, adminMessagingRouter); // status and pairing for the in-app WhatsApp screen
