@@ -291,13 +291,13 @@ export async function runDocumentPipeline(args: PipelineArgs): Promise<PipelineR
       );
     });
 
-  const llm = async (system: string, user: string, purpose: string, maxTokens: number): Promise<string> => {
+  const llm = async (system: string, user: string, purpose: string, maxTokens: number, reasoning: "low" | "medium" = "low"): Promise<string> => {
     takeCall();
     const messages: ChatMessage[] = [
       { role: "system", content: system },
       { role: "user", content: user },
     ];
-    const result = await raceAbort(complete(messages, { userId, slot: "chat", purpose: `documents:${purpose}`, maxTokens, signal: run }));
+    const result = await raceAbort(complete(messages, { userId, slot: "chat", reasoning, purpose: `documents:${purpose}`, maxTokens, signal: run }));
     tokens += result.inputTokens + result.outputTokens;
     check();
     return result.text;
@@ -532,7 +532,7 @@ export async function runDocumentPipeline(args: PipelineArgs): Promise<PipelineR
       });
       const system = extra ? `${p.system}\n\n${extra}` : p.system;
       const maxTokens = Math.min(4000, Math.max(700, Math.round((section.targetWords || 400) * 2.4)));
-      const text = stripFences(await llm(system, p.user, "section", maxTokens));
+      const text = stripFences(await llm(system, p.user, "section", maxTokens, kind === "academic" ? "medium" : "low"));
       if (!text) throw new Error("empty section");
       return text;
     };

@@ -35,6 +35,8 @@ export interface LlmOptions {
   userId: number;
   /** Which model slot to start from; the router picks the provider and key. */
   slot?: "chat" | "longDoc";
+  /** Thinking budget for models that support it. Default: the same setting the chat engine uses (low for flash). */
+  reasoning?: "low" | "medium" | "high";
   /** Recorded in usage_logs for cost tracking. */
   purpose: string;
   maxTokens?: number;
@@ -69,9 +71,14 @@ function endpointFor(baseUrl: string): string {
 async function request(
   route: RouteConfig,
   messages: ChatMessage[],
-  { stream, maxTokens = 2000, signal }: { stream: boolean; maxTokens?: number; signal?: AbortSignal }
+  { stream, maxTokens = 2000, signal, reasoning }: { stream: boolean; maxTokens?: number; signal?: AbortSignal; reasoning?: "low" | "medium" | "high" }
 ): Promise<Response> {
   const target = await resolveRouteAuth(route);
+  // Loaded lazily: the engine imports a lot, and this keeps the two modules from importing each other at load time.
+  const { reasoningEffortFor } = await import("../kemma/engine");
+  // Only routes that take a thinking budget get one; an override just picks the level for them.
+  const routeEffort = reasoningEffortFor(route);
+  const effort = routeEffort ? (reasoning ?? routeEffort) : undefined;
   // Transient failures (429, 5xx, network) retry on the same model before the caller tries the next
   // route. Streams ask for a final usage chunk so they are metered; a provider that rejects the
   // option gets one retry without it.
@@ -85,6 +92,7 @@ async function request(
         messages,
         max_tokens: maxTokens,
         stream,
+        ...(effort ? { reasoning_effort: effort } : {}),
         ...(stream && streamUsage ? { stream_options: { include_usage: true } } : {}),
       }),
     });
@@ -114,7 +122,7 @@ export async function complete(messages: ChatMessage[], options: LlmOptions): Pr
   let lastError: unknown;
   for (const route of routes) {
     try {
-      const res = await request(route, messages, { stream: false, maxTokens: options.maxTokens, signal: options.signal });
+      const res = await request(route, messages, { stream: false, maxTokens: options.maxTokens, signal: options.signal, reasoning: options.reasoning });
       const data = (await res.json()) as {
         choices?: Array<{ message?: { content?: string } }>;
         usage?: unknown;
