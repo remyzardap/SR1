@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, TabStopType } from "docx";
 import ExcelJS from "exceljs";
 import PptxGenJS from "pptxgenjs";
 import PDFDocument from "pdfkit";
@@ -81,6 +81,12 @@ export interface StructuredContent {
     body: string;
     bullets?: string[];
     tableData?: { headers: string[]; rows: string[][] };
+    /** Academic blocks: an abstract is set off from the text, references are a list of entries. */
+    kind?: "abstract" | "references";
+    /** References only: one formatted entry per item. */
+    items?: string[];
+    /** References only: true renders [1], [2] labels (IEEE), false a hanging indent (APA, MLA, Harvard). */
+    numbered?: boolean;
   }>;
   summary?: string;
 }
@@ -122,6 +128,32 @@ export async function generatePDF(
     doc.moveDown(4);
 
     for (const section of content.sections) {
+      if (section.kind === "abstract") {
+        const boxWidth = doc.page.width - 120;
+        const innerWidth = boxWidth - 28;
+        const bodyFont = style.fontStyle === "serif" ? "Times-Roman" : "Helvetica";
+        doc.font(bodyFont).fontSize(10.5);
+        const textHeight = doc.heightOfString(section.body, { width: innerWidth, align: "justify" });
+        const boxHeight = textHeight + 44;
+        if (doc.y + boxHeight > doc.page.height - 60) doc.addPage();
+        const top = doc.y;
+        doc.rect(60, top, boxWidth, boxHeight).fill(isDark ? "#1e293b" : "#f1f5f9");
+        doc.rect(60, top, 4, boxHeight).fill(accentColor);
+        doc
+          .fillColor(accentColor)
+          .fontSize(11)
+          .font(style.fontStyle === "serif" ? "Times-Bold" : "Helvetica-Bold")
+          .text(section.heading || "Abstract", 78, top + 12, { width: innerWidth });
+        doc
+          .fillColor(textColor)
+          .fontSize(10.5)
+          .font(bodyFont)
+          .text(section.body, 78, top + 30, { width: innerWidth, align: "justify" });
+        doc.x = 60;
+        doc.y = top + boxHeight + 16;
+        continue;
+      }
+
       // Section heading
       doc
         .fillColor(isDark ? accentColor : accentColor)
@@ -137,6 +169,26 @@ export async function generatePDF(
         .stroke();
 
       doc.moveDown(0.5);
+
+      if (section.kind === "references" && section.items && section.items.length > 0) {
+        const entryWidth = doc.page.width - 120;
+        const labelWidth = 30;
+        const hang = 18;
+        doc.fillColor(textColor).fontSize(10.5).font(style.fontStyle === "serif" ? "Times-Roman" : "Helvetica");
+        section.items.forEach((entry, i) => {
+          if (section.numbered) {
+            const top = doc.y;
+            doc.text(`[${i + 1}]`, 60, top, { width: labelWidth, lineBreak: false });
+            doc.text(entry, 60 + labelWidth, top, { width: entryWidth - labelWidth, align: "left" });
+          } else {
+            doc.text(entry, 60 + hang, undefined, { width: entryWidth - hang, indent: -hang, align: "left" });
+          }
+          doc.x = 60;
+          doc.moveDown(0.4);
+        });
+        doc.moveDown(1.5);
+        continue;
+      }
 
       // Body text
       doc
@@ -247,9 +299,51 @@ export async function generateDOCX(
   children.push(new Paragraph({ text: "" }));
 
   for (const section of content.sections) {
+    if (section.kind === "abstract") {
+      const accent = style.accentColor.replace("#", "");
+      const block = {
+        shading: { fill: "F1F5F9" },
+        border: { left: { style: BorderStyle.SINGLE, size: 24, space: 8, color: accent } },
+        indent: { left: 200, right: 200 },
+      };
+      children.push(
+        new Paragraph({
+          ...block,
+          spacing: { before: 120, after: 0 },
+          children: [new TextRun({ text: section.heading || "Abstract", bold: true, color: accent })],
+        })
+      );
+      children.push(
+        new Paragraph({ ...block, spacing: { after: 160 }, alignment: AlignmentType.JUSTIFIED, children: [new TextRun({ text: section.body })] })
+      );
+      continue;
+    }
+
     children.push(
       new Paragraph({ text: section.heading, heading: HeadingLevel.HEADING_2 })
     );
+
+    if (section.kind === "references" && section.items && section.items.length > 0) {
+      section.items.forEach((entry, i) => {
+        if (section.numbered) {
+          children.push(
+            new Paragraph({
+              tabStops: [{ type: TabStopType.LEFT, position: 600 }],
+              indent: { left: 600, hanging: 600 },
+              spacing: { after: 80 },
+              children: [new TextRun({ text: `[${i + 1}]\t${entry}` })],
+            })
+          );
+        } else {
+          children.push(
+            new Paragraph({ indent: { left: 720, hanging: 720 }, spacing: { after: 80 }, children: [new TextRun({ text: entry })] })
+          );
+        }
+      });
+      children.push(new Paragraph({ text: "" }));
+      continue;
+    }
+
     children.push(new Paragraph({ text: section.body }));
 
     if (section.bullets) {
@@ -327,9 +421,14 @@ export async function generateXLSX(
       }
     }
 
-    if (section.tableData) {
+    const sheetTable =
+      section.tableData ??
+      (section.kind === "references" && section.items && section.items.length > 0
+        ? { headers: ["#", "Reference"], rows: section.items.map((entry, i) => [String(i + 1), entry]) }
+        : undefined);
+    if (sheetTable) {
       const ws = workbook.addWorksheet(section.heading.substring(0, 31));
-      const headerRow = ws.addRow(section.tableData.headers);
+      const headerRow = ws.addRow(sheetTable.headers);
       headerRow.eachCell((cell) => {
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + accentHex } };
         cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
@@ -338,10 +437,15 @@ export async function generateXLSX(
           right: { style: "thin" },
         };
       });
-      for (const dataRow of section.tableData.rows) {
+      for (const dataRow of sheetTable.rows) {
         ws.addRow(dataRow);
       }
       ws.columns.forEach((col) => { col.width = 20; });
+      if (!section.tableData) {
+        ws.getColumn(1).width = 6;
+        ws.getColumn(2).width = 110;
+        ws.getColumn(2).alignment = { wrapText: true, vertical: "top" };
+      }
     }
 
     row++;
@@ -460,8 +564,31 @@ export function generateMarkdown(content: StructuredContent): Buffer {
   lines.push("");
 
   for (const section of content.sections) {
+    if (section.kind === "abstract") {
+      lines.push(`> **${section.heading || "Abstract"}**`);
+      lines.push(">");
+      for (const paragraph of section.body.split(/\n{2,}/)) {
+        lines.push(`> ${paragraph.replace(/\n/g, " ")}`);
+        lines.push(">");
+      }
+      lines.pop();
+      lines.push("");
+      continue;
+    }
+
     lines.push(`## ${section.heading}`);
     lines.push("");
+
+    if (section.kind === "references" && section.items && section.items.length > 0) {
+      section.items.forEach((entry, i) => {
+        // Markdown has no hanging indent: numbered entries use a list, the rest are paragraphs.
+        lines.push(section.numbered ? `${i + 1}. ${entry}` : entry);
+        if (!section.numbered) lines.push("");
+      });
+      lines.push("");
+      continue;
+    }
+
     lines.push(section.body);
     lines.push("");
 

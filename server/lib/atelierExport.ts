@@ -48,6 +48,8 @@ const sectionSchema = z.object({
   title: z.string().max(MAX_TITLE_CHARS).nullish(),
   content: z.string().max(MAX_BODY_CHARS).nullish(),
   data: sectionDataSchema.nullish(),
+  // References only: apa, mla and harvard use a hanging indent, ieee a numbered list.
+  style: z.string().max(16).nullish(),
 });
 
 const reportSchema = z.object({
@@ -128,6 +130,21 @@ function sheetHeading(raw: string, fallback: string, used: Set<string>): string 
   return heading;
 }
 
+// ─── References ───────────────────────────────────────────────────────────────
+
+function numbered(style?: string | null): boolean {
+  return oneLine(style).toLowerCase() === "ieee";
+}
+
+// One entry per line. A leading bullet or "[1]" / "1." label is dropped:
+// IEEE is numbered by the renderer and the others hang, so a label would double up.
+function referenceEntries(body: string): string[] {
+  return body
+    .split(/\n+/)
+    .map((line) => line.replace(/^\s*(?:[-*\u2022]\s+|\[\d{1,3}\]\s*|\d{1,3}[.)]\s+)/, "").replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
 // ─── Theme to style ───────────────────────────────────────────────────────────
 
 const ATELIER_THEME_STYLES: Record<string, string> = {
@@ -183,6 +200,23 @@ export function reportToStructuredContent(report: AtelierReportInput): Structure
         const tableData = chartTableFrom(section.data);
         if (tableData) {
           sections.push({ heading: sheetHeading(title, "Chart", usedHeadings), body, tableData });
+        }
+        break;
+      }
+      case "abstract": {
+        if (body) sections.push({ heading: "Abstract", body, kind: "abstract" });
+        break;
+      }
+      case "references": {
+        const items = referenceEntries(body);
+        if (items.length > 0) {
+          sections.push({
+            heading: sheetHeading(title || "References", "References", usedHeadings),
+            body: items.join("\n"),
+            kind: "references",
+            items,
+            numbered: numbered(section.style),
+          });
         }
         break;
       }
