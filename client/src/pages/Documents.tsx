@@ -2,6 +2,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
 import AtelierGuided from "./AtelierGuided";
 import QuickCreate from "./QuickCreate";
+import EditDocument from "./EditDocument";
 import { PageTitle } from "@/components/chrome/PageTitle";
 import { FocusBrackets } from "@/components/art";
 import "@/styles/documents-start.css";
@@ -130,7 +131,7 @@ export default function Documents() {
           {mode === "describe" ? <QuickCreate embedded /> : <AtelierGuided embedded entry="new" />}
         </>
       ) : (
-        <AtelierGuided embedded entry="edit" />
+        <EditDocument embedded onBack={() => setStart(null)} />
       )}
     </div>
   );

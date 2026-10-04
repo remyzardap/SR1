@@ -1,0 +1,548 @@
+/*
+ * Edit document screen styles (Wave 3 / U2).
+ * Follows the visual tokens in reskin-tokens.css and shared page patterns.
+ * Single column flow for mobile and desktop, strictly using CSS variables.
+ */
+
+.sk-edit-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 780px;
+  margin-inline: auto;
+  min-width: 0;
+}
+@media (max-width: 1023px) {
+  .sk-edit-doc {
+    padding-bottom: calc(68px + 18px + env(safe-area-inset-bottom, 0px) + 28px);
+  }
+}
+
+/* ── 1. Upload Zone ────────────────────────────────────────────────────────── */
+.sk-edit-dropzone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 36px 20px;
+  border: 2px dashed var(--r-stroke);
+  border-radius: var(--r-radius-card-lg);
+  background: var(--r-card);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+  min-width: 0;
+}
+.sk-edit-dropzone:hover,
+.sk-edit-dropzone.is-dragover {
+  border-color: var(--r-ink);
+  background: var(--r-panel);
+}
+.sk-edit-dropzone:focus-visible {
+  outline: 2px solid var(--r-accent);
+  outline-offset: 3px;
+}
+.sk-edit-dropzone-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--r-panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--r-ink);
+  margin-bottom: 14px;
+}
+.sk-edit-dropzone-icon svg {
+  width: 24px;
+  height: 24px;
+}
+.sk-edit-dropzone-title {
+  font: 800 19px/1.2 var(--r-font-title);
+  letter-spacing: -0.4px;
+  color: var(--r-ink);
+  margin: 0 0 6px;
+}
+.sk-edit-dropzone-desc {
+  font: 400 14px/1.45 var(--r-font-body);
+  color: var(--r-quiet);
+  margin: 0 0 12px;
+}
+.sk-edit-dropzone-types {
+  font: 500 var(--r-size-mono)/1.4 var(--r-font-mono);
+  letter-spacing: var(--r-track-mono);
+  text-transform: uppercase;
+  color: var(--r-quiet);
+}
+
+/* Uploaded file card */
+.sk-edit-filecard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 24px;
+  border: 1px solid var(--r-stroke);
+  border-radius: var(--r-radius-card-lg);
+  background: var(--r-card);
+  min-width: 0;
+}
+.sk-edit-filecard-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.sk-edit-filecard-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--r-panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--r-ink);
+  flex: none;
+}
+.sk-edit-filecard-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.sk-edit-filecard-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+.sk-edit-filecard-name {
+  font: 800 16px/1.3 var(--r-font-title);
+  letter-spacing: -0.3px;
+  color: var(--r-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sk-edit-filecard-meta {
+  font: 500 var(--r-size-mono)/1.4 var(--r-font-mono);
+  letter-spacing: var(--r-track-mono);
+  text-transform: uppercase;
+  color: var(--r-quiet);
+}
+.sk-edit-filecard-preview {
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--r-panel);
+  border-radius: 14px;
+  font: 400 13px/1.55 var(--r-font-body);
+  color: var(--r-quiet);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── 2. What to do Visual Cards ────────────────────────────────────────────── */
+.sk-edit-section-label {
+  font: 500 var(--r-size-mono)/1.5 var(--r-font-mono);
+  letter-spacing: var(--r-track-mono);
+  text-transform: uppercase;
+  color: var(--r-quiet);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.sk-edit-modes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  min-width: 0;
+}
+@media (min-width: 640px) {
+  .sk-edit-modes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+.sk-edit-card-cell {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+.sk-edit-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-radius-card-lg);
+  overflow: hidden;
+  background: var(--r-card);
+  color: var(--r-ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--r-ink) 4%, transparent);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.sk-edit-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px -20px color-mix(in srgb, var(--r-ink) 35%, transparent);
+}
+.sk-edit-card:focus-visible {
+  outline: 2px solid var(--r-accent);
+  outline-offset: 3px;
+}
+.sk-edit-card-art {
+  display: block;
+  background: var(--r-panel);
+  padding: 16px 16px 4px;
+}
+.sk-edit-card-art svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 128px;
+}
+.sk-edit-card-art .a-paper { fill: var(--r-card); stroke: var(--r-ink); stroke-width: 2; }
+.sk-edit-card-art .a-line { fill: none; stroke: var(--r-ink); stroke-width: 3; stroke-linecap: round; opacity: .75; }
+.sk-edit-card-art .a-line-light { stroke: var(--r-paper); opacity: 1; }
+.sk-edit-card-art .a-spot { fill: var(--r-ink); }
+.sk-edit-card-art .a-plus { fill: none; stroke: var(--r-paper); stroke-width: 3.4; stroke-linecap: round; }
+.sk-edit-card-art .a-mark { fill: var(--r-ink); opacity: .14; }
+.sk-edit-card-art .a-pen { fill: var(--r-ink); stroke: var(--r-paper); stroke-width: 2; stroke-linejoin: round; }
+.sk-edit-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px 20px;
+}
+.sk-edit-card-label {
+  font: 500 var(--r-size-mono)/1.5 var(--r-font-mono);
+  letter-spacing: var(--r-track-mono);
+  text-transform: uppercase;
+  color: var(--r-quiet);
+}
+.sk-edit-card-title {
+  font: 800 20px/1.2 var(--r-font-title);
+  letter-spacing: -0.6px;
+}
+.sk-edit-card-text {
+  font: 400 14px/1.45 var(--r-font-body);
+  color: var(--r-quiet);
+}
+
+/* ── 3. Optional Instructions ──────────────────────────────────────────────── */
+.sk-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.sk-edit-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 14px 16px;
+  border: 1px solid var(--r-stroke);
+  border-radius: var(--r-radius-card);
+  background: var(--r-card);
+  color: var(--r-ink);
+  font: 400 14px/1.55 var(--r-font-body);
+  resize: vertical;
+  transition: border-color 0.2s ease, outline 0.2s ease;
+  box-sizing: border-box;
+}
+.sk-edit-textarea:focus {
+  outline: 2px solid var(--r-ink);
+  outline-offset: 1px;
+}
+
+/* ── 4. Optional Extra Sources ─────────────────────────────────────────────── */
+.sk-edit-sources-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 24px;
+  border-radius: var(--r-radius-card-lg);
+  border: 1px solid var(--r-stroke);
+  background: var(--r-card);
+  min-width: 0;
+}
+.sk-edit-sources-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.sk-edit-sources-notice {
+  font: 500 var(--r-size-mono)/1.4 var(--r-font-mono);
+  letter-spacing: var(--r-track-mono);
+  text-transform: uppercase;
+  color: var(--r-quiet);
+  background: var(--r-panel);
+  padding: 8px 12px;
+  border-radius: var(--r-radius-pill);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sk-edit-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--r-stroke);
+  background: var(--r-card);
+  color: var(--r-ink);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  flex: none;
+}
+.sk-edit-icon-btn:hover:not(:disabled) {
+  background: var(--r-panel);
+  border-color: var(--r-ink);
+}
+.sk-edit-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.sk-edit-icon-btn.is-active {
+  background: var(--r-ink);
+  color: var(--r-paper);
+  border-color: var(--r-ink);
+}
+
+.sk-edit-subform {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--r-panel);
+  border-radius: var(--r-radius-card);
+  margin-top: 4px;
+}
+.sk-edit-subform-row {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+.sk-edit-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--r-stroke);
+  border-radius: var(--r-radius-pill);
+  background: var(--r-card);
+  color: var(--r-ink);
+  font: 400 13px/1.4 var(--r-font-body);
+}
+.sk-edit-input:focus {
+  outline: 2px solid var(--r-ink);
+  outline-offset: 1px;
+}
+
+.sk-edit-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+.sk-edit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 12px 6px 10px;
+  border-radius: var(--r-radius-pill);
+  border: 1px solid var(--r-stroke);
+  background: var(--r-panel);
+  font: 500 13px/1.3 var(--r-font-body);
+  color: var(--r-ink);
+}
+.sk-edit-chip-icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--r-quiet);
+}
+.sk-edit-chip-name {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sk-edit-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  background: transparent;
+  color: var(--r-quiet);
+  cursor: pointer;
+  border-radius: 50%;
+  margin-left: 2px;
+}
+.sk-edit-chip-remove:hover {
+  color: var(--r-ink);
+  background: var(--r-card);
+}
+
+/* ── 5. Generate Button ────────────────────────────────────────────────────── */
+.sk-edit-cta {
+  width: 100%;
+  min-height: 56px;
+  font: 700 16px/1 var(--r-font-title);
+  letter-spacing: -0.3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* ── 6. Folded Summary Card ────────────────────────────────────────────────── */
+.sk-edit-summary {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 24px;
+  border-radius: var(--r-radius-card-lg);
+  border: 1px solid var(--r-stroke);
+  background: var(--r-card);
+  min-width: 0;
+}
+.sk-edit-summary-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.sk-edit-summary-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 800 18px/1.3 var(--r-font-title);
+  letter-spacing: -0.4px;
+  color: var(--r-ink);
+  min-width: 0;
+}
+.sk-edit-summary-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sk-edit-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.sk-edit-summary-request {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--r-panel);
+  font: 400 14px/1.55 var(--r-font-body);
+  color: var(--r-ink);
+}
+
+/* ── 7. Progress Card ──────────────────────────────────────────────────────── */
+.sk-edit-progress {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+  border-radius: var(--r-radius-card-lg);
+  border: 1px solid var(--r-stroke);
+  background: var(--r-card);
+  min-width: 0;
+}
+.sk-edit-progress-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.sk-edit-progress-title {
+  font: 800 24px/1.2 var(--r-font-title);
+  letter-spacing: -0.6px;
+  color: var(--r-ink);
+  margin: 0;
+}
+.sk-edit-progress-body {
+  font: 400 14px/1.5 var(--r-font-body);
+  color: var(--r-quiet);
+  margin: 0;
+}
+
+/* ── 8. Result Card & Preview ──────────────────────────────────────────────── */
+.sk-edit-result {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.sk-edit-result-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 24px;
+  border-radius: var(--r-radius-card-lg);
+  border: 1px solid var(--r-stroke);
+  background: var(--r-card);
+  min-width: 0;
+}
+@media (min-width: 640px) {
+  .sk-edit-result-toolbar {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+}
+.sk-edit-result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.sk-edit-result-title {
+  font: 800 24px/1.2 var(--r-font-title);
+  letter-spacing: -0.6px;
+  color: var(--r-ink);
+  margin: 0;
+}
+.sk-edit-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Responsive tweaks for narrow screens (360px - 430px) */
+@media (max-width: 480px) {
+  .sk-edit-dropzone { padding: 28px 16px; }
+  .sk-edit-filecard { padding: 16px 18px; }
+  .sk-edit-sources-card { padding: 16px 18px; }
+  .sk-edit-summary { padding: 18px 20px; }
+  .sk-edit-progress { padding: 18px 20px; }
+  .sk-edit-result-toolbar { padding: 18px 20px; }
+  .sk-edit-card-body { padding: 14px 16px 16px; }
+  .sk-edit-progress-title { font-size: 20px; }
+  .sk-edit-result-title { font-size: 20px; }
+}
