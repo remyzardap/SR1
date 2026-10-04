@@ -73,7 +73,12 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
 
   const heartbeat = setInterval(() => res.write(": ping\n\n"), 20000);
   let aborted = false;
-  const clientGone = () => { aborted = true; clearInterval(heartbeat); };
+  const abortController = new AbortController();
+  const clientGone = () => {
+    aborted = true;
+    clearInterval(heartbeat);
+    abortController.abort(new Error("Client disconnected"));
+  };
   // The request readable is auto-destroyed once express.json() consumed the body, so its
   // "close" can fire before this listener is attached: watch the response side for real
   // disconnects, and the request side only for abandoned uploads (same fix as /api/fn).
@@ -118,7 +123,9 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
       tier: quota.tier,
       isThinking,
       isVoice,
+      useOrchestrator: isThinking,
       sessionId,
+      signal: abortController.signal,
       modelOverride: resolved.model === "auto" ? undefined : resolved.model,
       allowedTools: resolved.allowedTools,
       onStream: (chunk) => {
