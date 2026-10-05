@@ -151,7 +151,7 @@ export async function handleResearch(userId: number, req: Request, res: Response
       outputTokens: output.tokensUsed.output,
       totalTokens: output.tokensUsed.total,
     });
-    send("done", output.modelsUsed[output.modelsUsed.length - 1] ?? "Kemma");
+    send("done", output.modelsUsed[output.modelsUsed.length - 1] ?? "Sutaeru");
   } catch (err) {
     const message = err instanceof FnError ? err.message : "Deep research could not be completed. Please try again.";
     if (res.writableEnded || aborted) return;

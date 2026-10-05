@@ -130,12 +130,12 @@ router.post('/kemma/call', async (req, res) => {
         conversationId: session.conversation_id,
         signedUrl: session.signed_url,
       },
-      message: `Hey ${callerName}... it's Kemma. ${kemmaContext.targetName} asked me to catch this for them.`,
+      message: `Hey ${callerName}... it's Sutaeru. ${kemmaContext.targetName} asked me to catch this for them.`,
     });
   } catch (error) {
     console.error('[Intelligence] Kemma call error:', error);
     res.status(500).json({
-      error: 'Failed to initiate Kemma call',
+      error: 'Failed to initiate Sutaeru call',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }

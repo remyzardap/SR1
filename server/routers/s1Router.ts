@@ -2,7 +2,7 @@
  * S1 — Intelligent Routing Layer
  *
  * Classifies user messages and routes to the best available backend model.
- * S1 is the single personality — all models respond as Kemma, never as themselves.
+ * S1 is the single personality — all models respond as Sutaeru, never as themselves.
  * The answer is a BLEND, not a single pick: every request is sent in parallel to
  * Qwen and Gemini (plus Perplexity Sonar for web/news questions), then one
  * synthesis pass merges the drafts into a single S1 answer. If only one backend
@@ -333,7 +333,7 @@ export type S1Persona = "kemma" | "narrator";
 // (KEMMA_PERSONA) — the same persona the chat engine and the voice services use.
 const PERSONA_VOICES: Record<S1Persona, { name: string; style: string }> = {
   kemma: {
-    name: "Kemma",
+    name: "Sutaeru",
     style: KEMMA_PERSONA,
   },
   narrator: {
@@ -354,7 +354,7 @@ export function buildS1SystemPrompt(
   // The kemma persona is the one character defined in server/kemma/personality.ts:
   // she is Kemma in chat, in Telegram, on a call and in this blend prompt. The
   // narrator is the separate S1 documentary voice.
-  const self = persona === "kemma" ? "Kemma" : "S1";
+  const self = persona === "kemma" ? "Sutaeru" : "S1";
 
   const personalityBlock = persona === "kemma"
     ? ""

@@ -83,6 +83,12 @@ Mobile chrome (`client/src/styles/chrome.css`): 94px sticky header with logo, mo
 - The choices reach the engine as one sentence appended to the prompt (`direction()` in `client/src/lib/studio.ts`). It is off until the person taps a tile or the switch, and the exact words are shown above the options.
 - Sticky positioning depends on nothing between the page and the window being a scroll container: `html, body` use `overflow-x: clip`, and padded dashboard pages use `.sk-inset-flow`.
 
+## Naming
+
+The assistant has no name of its own. In the app it is Sutaeru: the chat input says "Ask anything…", replies are labelled Sutaeru, and the model's persona and the voice greeting say Sutaeru. Modes are Chat and Agent.
+
+The old name "Kemma" remains only in internal identifiers, on purpose, because renaming them changes deployed behaviour: the `KEMMA_MODEL_*` and related environment variables (set on the live deployment), the `/api/kemma/stream` route and the `kemma` tRPC router, the `server/kemma/` folder, the `"kemma"` value of `blocks.source` in the database (existing rows), and file and function names such as `kemmaCloud.ts` and `KEMMA_PERSONA`. If these are ever renamed, do it as its own change with a data migration and an environment cutover, not as a text edit.
+
 ## PWA
 
 - Manifest (`client/public/manifest.webmanifest`): name "Sutaeru", standalone, portrait, scope `/`, background and theme colour `#F7F6F2` (the light paper, matching `index.html`); icons 192, 512 and maskable 512; shortcuts for Chat and Files.

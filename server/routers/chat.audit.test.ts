@@ -389,12 +389,12 @@ describe("SSE frames on the happy path", () => {
     expect(res.ended).toBe(true);
   });
 
-  it("keeps the Kemma persona in the system prompt and the caller messages after it", async () => {
+  it("keeps the persona in the system prompt and the caller messages after it", async () => {
     await callStream(body());
     const call = llmCall()!;
     const messages = call.body.messages as Array<{ role: string; content: string }>;
     expect(messages[0].role).toBe("system");
-    expect(messages[0].content).toContain("You are Kemma");
+    expect(messages[0].content).toContain("You are Sutaeru");
     expect(messages[0].content).toContain("You are speaking with Ada");
     expect(messages[1]).toEqual({ role: "user", content: "hello there" });
   });

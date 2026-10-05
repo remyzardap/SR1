@@ -34,7 +34,7 @@ function seconds(ms?: number) {
   return ms == null ? "" : ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`;
 }
 
-/** Live timeline of what Kemma is doing: searches, pages read, tools, and the final write-up. */
+/** Live timeline of what Sutaeru is doing: searches, pages read, tools, and the final write-up. */
 export function ActivityFeed({ items, isRunning }: { items: ActivityItem[]; isRunning: boolean }) {
   const [open, setOpen] = useState(true);
   if (items.length === 0) return null;
@@ -45,7 +45,7 @@ export function ActivityFeed({ items, isRunning }: { items: ActivityItem[]; isRu
   const expanded = isRunning || open;
 
   return (
-    <section className="sutaeru-activity my-3 text-sm" aria-label="What Kemma did" aria-live="polite">
+    <section className="sutaeru-activity my-3 text-sm" aria-label="What Sutaeru did" aria-live="polite">
       <button
         type="button"
         className="sutaeru-activity-toggle flex w-full items-center gap-2 px-3 py-2 text-left text-muted-foreground"

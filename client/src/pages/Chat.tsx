@@ -614,7 +614,7 @@ export default function Chat() {
             if (!assistantText.trim()) return;
             const conversation = [...latest.filter((m) => m.id !== assistantId), { role: "assistant" as const, content: assistantText }]
               .slice(-8)
-              .map((m) => `${m.role === "user" ? "User" : "Kemma"}: ${m.content}`)
+              .map((m) => `${m.role === "user" ? "User" : "Sutaeru"}: ${m.content}`)
               .join("\n\n")
               .slice(0, 30000);
             const result = await callFunction<{ memories: Array<{ type: string; content: string }> }>("memories", { action: "extract", conversation, source: "chat" });
@@ -672,7 +672,7 @@ export default function Chat() {
 
   const exportThread = useCallback(() => {
     const md = messages
-      .map((m) => `**${m.role === "user" ? "You" : "Kemma"}:** ${m.content}`)
+      .map((m) => `**${m.role === "user" ? "You" : "Sutaeru"}:** ${m.content}`)
       .join("\n\n");
     const blob = new Blob([md], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
@@ -771,7 +771,7 @@ export default function Chat() {
         <ChatInsightsDialog
           open={insightsOpen}
           onOpenChange={setInsightsOpen}
-          initialConversation={messages.filter((m) => m.content.trim()).map((m) => `${m.role === "user" ? "User" : "Kemma"}: ${m.content}`).join("\n\n")}
+          initialConversation={messages.filter((m) => m.content.trim()).map((m) => `${m.role === "user" ? "User" : "Sutaeru"}: ${m.content}`).join("\n\n")}
         />
 
         <div className="sutaeru-run-status" role="status" aria-live="off">

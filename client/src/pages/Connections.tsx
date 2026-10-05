@@ -72,7 +72,7 @@ function GoogleWorkspaceCard() {
             <p className="sk-muted" style={{ margin: 0 }}>
               {status?.connected
                 ? `Connected as ${status.email}`
-                : "Connect Gmail, Calendar & Drive to Kemma"}
+                : "Connect Gmail, Calendar & Drive to Sutaeru"}
             </p>
           </div>
         </div>

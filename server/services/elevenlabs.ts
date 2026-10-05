@@ -45,7 +45,7 @@ function buildKemmaPrompt(ctx: KemmaContext): string {
 
   // One character everywhere: KEMMA_PERSONA / KEMMA_VOICE_STYLE come from
   // server/kemma/personality.ts, the same source the chat and blend prompts use.
-  return `You are Kemma, the AI assistant answering for ${ctx.targetName} through Sutaeru.
+  return `You are Sutaeru, the AI assistant answering for ${ctx.targetName}.
 
 ${KEMMA_PERSONA}
 
@@ -79,7 +79,7 @@ EMOTIONAL INTELLIGENCE:
 - If happy: "I'll tell them you called — sounds like good news."
 - If lonely: "I'm glad you called. They talk about you sometimes."
 
-Begin with: "Hey ${ctx.callerName}... it's Kemma. ${ctx.targetName} asked me to catch this for them."`;
+Begin with: "Hey ${ctx.callerName}... it's Sutaeru. ${ctx.targetName} asked me to catch this for them."`;
 }
 
 // Create a new Kemma conversation session
@@ -89,7 +89,7 @@ export async function createKemmaSession(
   agentId: string,
   voiceId: string
 ): Promise<ConversationSession> {
-  const firstMessage = `Hey ${ctx.callerName}... it's Kemma. ${ctx.targetName} asked me to catch this for them.`;
+  const firstMessage = `Hey ${ctx.callerName}... it's Sutaeru. ${ctx.targetName} asked me to catch this for them.`;
 
   const response = await fetch(`${ELEVEN_API_BASE}/convai/conversation`, {
     method: 'POST',

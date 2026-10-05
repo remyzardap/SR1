@@ -85,7 +85,7 @@ export const kemmaRouter = router({
         });
         return result;
       } catch (e) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Kemma error: ${(e as Error).message}` });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Sutaeru error: ${(e as Error).message}` });
       }
     }),
 

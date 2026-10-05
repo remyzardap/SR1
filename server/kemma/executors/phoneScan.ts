@@ -242,14 +242,14 @@ function generateScanInstructions(
     return {
       platform: 'ios',
       method: 'shortcut',
-      instructions: `Use the Sutaeru app to scan documents with your camera. Kemma extracts the text and data automatically.`,
+      instructions: `Use the Sutaeru app to scan documents with your camera. Sutaeru extracts the text and data automatically.`,
       expectedOutput: 'Structured JSON with extracted document data'
     };
   } else {
     return {
       platform: 'android',
       method: 'termux',
-      instructions: `Use the Sutaeru app camera to scan documents. Kemma processes the image and extracts the text.`,
+      instructions: `Use the Sutaeru app camera to scan documents. Sutaeru processes the image and extracts the text.`,
       expectedOutput: 'Structured JSON with extracted document data'
     };
   }
