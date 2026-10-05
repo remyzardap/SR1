@@ -36,6 +36,10 @@
 
 **Spec**
 0. **Secret scan on PRs:** already fixed in PR #3 (`permissions: contents: read, pull-requests: read` on the `secret-scan` job in `deploy.yml`). Don't change `deploy.yml`.
+0b. **Make `npm test` run the server tests.**
+   - **Today:** `vite.config.ts` sets `root: client`, so `vitest run` only finds the 2 client test files. The 128 server test files (1,749 tests, all passing when run with `npx vitest run --root . server`) never run.
+   - **Fix:** add a root `vitest.config.ts` (`root: "."`, `environment: "node"`; include `server/**/*.test.ts`, `shared/**/*.test.ts` and `client/src/**/*.test.ts`; exclude `server/e2e.test.ts` and `**/*.db.test.ts`; same `@`/`@shared` aliases as Vite).
+   - **Scripts:** `test:e2e` stays separate (it hits the live deployment); add `test:db` for `*.db.test.ts`.
 1. **CI** (`ci.yml`), on `pull_request` and push to `develop`: Node 20, `npm ci`, `npm run check`, `npm test`. Add a second job, `db-tests`, with a service container `pgvector/pgvector:pg16` and `TEST_DATABASE_URL` set. It runs `npm run test:db`, a vitest project for files matching `*.db.test.ts`, which skip when `TEST_DATABASE_URL` is unset. The job doesn't need to pass until P2, but it must exist. Cache npm.
 2. **Baseline**: run check and test on the current `develop`, and record failing tests by name in `BASELINE.md`. Don't fix them unless the fix is one line and obviously right; list them for the owner instead.
 3. **Flags** (`flags.ts`): `flag(name: FlagName): boolean`, read at call time from `FF_<NAME>` env (`1/true/on` are true). Keep a typed registry with defaults and a description per flag. Phase 1 flags, all **off** by default unless noted:
