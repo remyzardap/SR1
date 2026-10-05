@@ -97,7 +97,7 @@ Do:
 
 Don't:
   - Touch files outside the WP without a written reason.
-  - Change .env, secrets, deploy.yml (except P1-01), or restart containers.
+  - Change .env, secrets or deploy.yml, or restart containers.
   - Turn on a feature flag by default unless the WP says so.
 
 If the spec is wrong or impossible as written, stop and explain in the PR rather than improvising.
