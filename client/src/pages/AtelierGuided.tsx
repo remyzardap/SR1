@@ -10,22 +10,23 @@ import "@/styles/atelier-reskin.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ReportType = "Business Report" | "Pitch Deck" | "Market Research" | "Proposal" | "Executive Brief";
-type Theme = "corporate" | "monochrome" | "editorial";
-type Phase = "select" | "interview" | "generating" | "preview";
+export type ReportType = "Business Report" | "Pitch Deck" | "Market Research" | "Proposal" | "Executive Brief";
+export type Theme = "corporate" | "monochrome" | "editorial";
+export type Phase = "select" | "interview" | "generating" | "preview";
 type UploadMode = "rewrite" | "reformat";
+export type ExportFormat = "pdf" | "docx" | "xlsx" | "md";
 
-interface Message { role: "user" | "assistant"; content: string; }
+export interface Message { role: "user" | "assistant"; content: string; }
 
-interface ReportSection {
+export interface ReportSection {
   id: string;
-  type: "cover" | "summary" | "section" | "table" | "chart" | "image";
+  type: "cover" | "summary" | "section" | "table" | "chart" | "image" | "abstract" | "references";
   title?: string;
   content?: string;
   data?: any;
 }
 
-interface ReportStructure {
+export interface ReportStructure {
   title: string;
   subtitle?: string;
   theme: Theme;
@@ -36,7 +37,7 @@ interface ReportStructure {
 
 // ─── Theme tokens ─────────────────────────────────────────────────────────────
 
-const THEMES: Record<Theme, {
+export const THEMES: Record<Theme, {
   label: string; preview: string;
   bg: string; surface: string; text: string;
   muted: string; accent: string; border: string; heading: string;
@@ -68,7 +69,8 @@ const REPORT_TYPES: { type: ReportType; icon: SutaeruIconName; desc: string }[] 
 
 // ─── SSE parser ───────────────────────────────────────────────────────────────
 
-function parseSse(raw: string): { events: Array<{ event: string; data: string }>; remainder: string } {
+/** Splits an event-stream buffer into complete `event:`/`data:` pairs. Shared by the document flows. */
+export function parseSse(raw: string): { events: Array<{ event: string; data: string }>; remainder: string } {
   const events: Array<{ event: string; data: string }> = [];
   const blocks = raw.split("\n\n");
   const remainder = blocks.pop() ?? "";
@@ -218,24 +220,84 @@ function ImageSection({ section, t }: { section: ReportSection; t: typeof THEMES
   );
 }
 
-function ReportPreview({ report }: { report: ReportStructure }) {
+function AbstractSection({ section, t }: { section: ReportSection; t: typeof THEMES[Theme] }) {
+  return (
+    <div className="p-6 rounded-2xl mb-5" style={{ background: t.surface, border: `1px solid ${t.border}`, borderLeft: `3px solid ${t.accent}` }}>
+      <h2 className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: t.accent, fontFamily: "'JetBrains Mono', monospace" }}>
+        {section.title ?? "Abstract"}
+      </h2>
+      <div className="text-[14px] leading-relaxed whitespace-pre-wrap" style={{ color: t.text }}>
+        {section.content}
+      </div>
+    </div>
+  );
+}
+
+function ReferencesSection({ section, t }: { section: ReportSection; t: typeof THEMES[Theme] }) {
+  const entries = (section.content ?? "").split("\n").map((line) => line.trim()).filter(Boolean);
+  return (
+    <div className="mb-5">
+      <h2 className="text-xl font-bold mb-3" style={{ color: t.heading, fontFamily: "'Syne', sans-serif" }}>
+        {section.title ?? "References"}
+      </h2>
+      <ol className="flex flex-col gap-2 text-[13px] leading-relaxed" style={{ color: t.text }}>
+        {entries.map((entry, i) => (
+          <li key={i} style={{ paddingLeft: 26, textIndent: -26 }}>{entry}</li>
+        ))}
+      </ol>
+      <div className="mt-4 h-px" style={{ background: t.border }} />
+    </div>
+  );
+}
+
+export function ReportPreview({ report }: { report: ReportStructure }) {
   const t = THEMES[report.theme] ?? THEMES.corporate;
   return (
     <div className="w-full rounded-2xl overflow-hidden" style={{ background: t.bg, fontFamily: "'Manrope', sans-serif" }}>
       <div className="p-4 sm:p-8 max-w-3xl mx-auto">
         {report.sections.map((section) => {
           switch (section.type) {
-            case "cover":   return <CoverSection   key={section.id} section={section} t={t} />;
-            case "summary": return <SummarySection  key={section.id} section={section} t={t} />;
-            case "table":   return <TableSection    key={section.id} section={section} t={t} />;
-            case "chart":   return <ChartSection    key={section.id} section={section} t={t} />;
-            case "image":   return <ImageSection    key={section.id} section={section} t={t} />;
-            default:        return <TextSection     key={section.id} section={section} t={t} />;
+            case "cover":      return <CoverSection      key={section.id} section={section} t={t} />;
+            case "summary":    return <SummarySection    key={section.id} section={section} t={t} />;
+            case "abstract":   return <AbstractSection   key={section.id} section={section} t={t} />;
+            case "references": return <ReferencesSection key={section.id} section={section} t={t} />;
+            case "table":      return <TableSection      key={section.id} section={section} t={t} />;
+            case "chart":      return <ChartSection      key={section.id} section={section} t={t} />;
+            case "image":      return <ImageSection      key={section.id} section={section} t={t} />;
+            default:           return <TextSection       key={section.id} section={section} t={t} />;
           }
         })}
       </div>
     </div>
   );
+}
+
+/**
+ * Sends a finished report to the export endpoint and starts the browser download.
+ * Shared by the guided studio and the new-document flow so both hand over the same files.
+ */
+export async function downloadReportExport(report: ReportStructure, format: ExportFormat): Promise<string> {
+  const res = await fetch(`${import.meta.env.VITE_SR1_API_ORIGIN || ""}/api/atelier/export`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ report, format, theme: report.theme }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error ?? `Export failed (${res.status})`);
+  }
+  const blob = await res.blob();
+  const filename = res.headers.get("X-Filename") ?? `report.${format}`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  return filename;
 }
 
 // ─── Running view (shared by both phases that build) ──────────────────────────
@@ -260,11 +322,18 @@ function RunTimeline({ steps, current }: { steps: string[]; current: number }) {
 
 // ─── Main Documents page ────────────────────────────────────────────────────────
 
-export default function AtelierGuided({ embedded = false, entry }: { embedded?: boolean; entry?: "new" | "edit" } = {}) {
+export default function AtelierGuided({ embedded = false, entry, initialPhase, onExitInterview }: {
+  embedded?: boolean;
+  entry?: "new" | "edit";
+  /** Opens straight on the interview. Used by the New document screen's secondary link. */
+  initialPhase?: Phase;
+  /** Called instead of going back to the type picker when the interview closes. */
+  onExitInterview?: () => void;
+} = {}) {
   const { data: identity } = trpc.identity.get.useQuery();
 
   // Phase management
-  const [phase, setPhase] = useState<Phase>("select");  const [reportType, setReportType] = useState<ReportType>("Business Report");
+  const [phase, setPhase] = useState<Phase>(initialPhase ?? "select");  const [reportType, setReportType] = useState<ReportType>("Business Report");
   const [theme, setTheme] = useState<Theme>("corporate");
   const [uploadMode, setUploadMode] = useState<UploadMode>("rewrite");
 
@@ -443,26 +512,7 @@ export default function AtelierGuided({ embedded = false, entry }: { embedded?: 
     if (!report || exporting) return;
     setExporting(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_SR1_API_ORIGIN || ""}/api/atelier/export`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ report, format: exportFormat, theme: report.theme }),
-      });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? `Export failed (${res.status})`);
-      }
-      const blob = await res.blob();
-      const filename = res.headers.get("X-Filename") ?? `report.${exportFormat}`;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      const filename = await downloadReportExport(report, exportFormat);
       toast.success(`Exported ${filename}`);
     } catch (err) {
       toast.error((err as Error).message);
@@ -523,6 +573,12 @@ export default function AtelierGuided({ embedded = false, entry }: { embedded?: 
       setStreaming(false);
     }
   };
+
+  // Opened straight on the interview (the New document screen's secondary link): ask the first question.
+  useEffect(() => {
+    if (initialPhase === "interview" && !uploadedFile) void startInterview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ─── Phase: Select ──────────────────────────────────────────────────────────
   if (phase === "select") {
@@ -673,7 +729,7 @@ export default function AtelierGuided({ embedded = false, entry }: { embedded?: 
                 Build Report
               </button>
             )}
-            <button type="button" onClick={() => setPhase("select")} aria-label="Close interview" className="sk-icon-btn">
+            <button type="button" onClick={() => (onExitInterview ? onExitInterview() : setPhase("select"))} aria-label="Close interview" className="sk-icon-btn">
               <SutaeruIcon name="close" />
             </button>
           </div>

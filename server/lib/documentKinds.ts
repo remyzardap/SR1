@@ -752,14 +752,14 @@ function fmtDate(s: string | undefined, style: CitationStyle): string {
   return `${MONTHS_IEEE[d.m]} ${d.d}, ${d.y}`;
 }
 
-function formatApa(s: Source): string {
+function formatApa(s: Source, letter = ""): string {
   const names = s.authors.map((p) => (p.org ? p.last : `${p.last}, ${initials(p.given, true)}`.replace(/, $/, "")));
   let authors = "";
   if (names.length === 1) authors = names[0];
   else if (names.length === 2) authors = `${names[0]}, & ${names[1]}`;
   else if (names.length > 2 && names.length <= 20) authors = `${names.slice(0, -1).join(", ")}, & ${names[names.length - 1]}`;
   else if (names.length > 20) authors = `${names.slice(0, 19).join(", ")}, . . . ${names[names.length - 1]}`;
-  const date = `(${s.year || "n.d."})`;
+  const date = `(${yearWithLetter(s.year, letter, "apa") || "n.d."})`;
   const site = s.site && !s.authors.some((p) => p.last.toLowerCase() === s.site.toLowerCase()) ? endDot(s.site) : "";
   const tail = s.url ? (s.accessed ? `Retrieved ${fmtDate(s.accessed, "apa")}, from ${s.url}` : s.url) : "";
   const parts = authors ? [endDot(authors), `${date}.`, endDot(s.title), site, tail] : [endDot(s.title), `${date}.`, site, tail];
@@ -781,7 +781,7 @@ function formatMla(s: Source): string {
   return parts.filter(Boolean).join(" ");
 }
 
-function formatHarvard(s: Source): string {
+function formatHarvard(s: Source, letter = ""): string {
   const p = s.authors;
   const name = (x: Person) => (x.org ? x.last : `${x.last}, ${initials(x.given, false)}`.replace(/, $/, ""));
   let authors = "";
@@ -789,7 +789,7 @@ function formatHarvard(s: Source): string {
   else if (p.length === 2) authors = `${name(p[0])} and ${name(p[1])}`;
   else if (p.length === 3) authors = `${name(p[0])}, ${name(p[1])} and ${name(p[2])}`;
   else if (p.length > 3) authors = `${name(p[0])} et al.`;
-  const date = `(${s.year || "no date"})`;
+  const date = `(${yearWithLetter(s.year, letter, "harvard") || "no date"})`;
   const lead = authors ? `${authors} ${date}` : `${s.title} ${date}`;
   const title = authors ? endDot(s.title) : "";
   const site = s.site ? endDot(s.site) : "";
@@ -819,17 +819,21 @@ function formatIeee(s: Source, n: number): string {
  * years and sites are used only when a note carries them; nothing is invented.
  */
 export function referencesFrom(notes: Note[], style: CitationStyle): string[] {
-  return sortSources(collectSources(notes), style).map((src, i) => formatSource(src, style, i + 1));
+  const sources = sortSources(collectSources(notes), style);
+  if (style === "ieee") return sources.map((src, i) => formatSource(src, style, i + 1));
+  // The list carries the same a/b letter as the text, so a reader can match them.
+  const { letters } = labelLetters(sources, style);
+  return sources.map((src, i) => formatSource(src, style, i + 1, letters[i]));
 }
 
-function formatSource(src: Source, style: CitationStyle, n: number): string {
+function formatSource(src: Source, style: CitationStyle, n: number, letter = ""): string {
   switch (style) {
     case "apa":
-      return formatApa(src);
+      return formatApa(src, letter);
     case "mla":
       return formatMla(src);
     case "harvard":
-      return formatHarvard(src);
+      return formatHarvard(src, letter);
     case "ieee":
       return formatIeee(src, n);
   }
@@ -850,6 +854,53 @@ export function assignRefs(notes: Note[], style: CitationStyle): Note[] {
 function shortTitle(title: string): string {
   const words = title.replace(/[.,:;!?]+$/, "").split(/\s+/);
   return words.slice(0, 4).join(" ").replace(/[.,:;!?]+$/, "");
+}
+
+/**
+ * Same authors, same year: the two sources would print the same in-text label, so each style
+ * tells them apart its own way. APA and Harvard add a letter after the year ("Smith, 2021a",
+ * "Smith 2021b", "n.d.-a" when no year is known); MLA carries no year at all and uses the
+ * short title instead ("Smith, "Battery costs""), with a letter behind it in the rare case two
+ * same-author works share a short title too.
+ *
+ * `sources` must be in reference-list order, so the letters follow the list the reader looks up.
+ * Returns the label of every source and the letter of every source, both index-aligned; the
+ * reference list prints the same letter, so the text and the list always agree.
+ */
+function labelLetters(sources: Source[], style: Exclude<CitationStyle, "ieee">): { labels: string[]; letters: string[] } {
+  const base = sources.map((s) => inTextLabel(s, style));
+  const baseCount = new Map<string, number>();
+  for (const l of base) baseCount.set(l, (baseCount.get(l) ?? 0) + 1);
+  const mid =
+    style === "mla"
+      ? sources.map((s, i) => ((baseCount.get(base[i]) ?? 0) > 1 ? `${base[i]}, \u201C${shortTitle(s.title)}\u201D` : base[i]))
+      : base;
+  const midCount = new Map<string, number>();
+  for (const l of mid) midCount.set(l, (midCount.get(l) ?? 0) + 1);
+  const seen = new Map<string, number>();
+  const letters = mid.map((l) => {
+    if ((midCount.get(l) ?? 0) < 2) return "";
+    const n = seen.get(l) ?? 0;
+    seen.set(l, n + 1);
+    return n < 26 ? String.fromCharCode(97 + n) : String(n + 1);
+  });
+  return { labels: mid.map((l, i) => withLetter(l, letters[i], style)), letters };
+}
+
+/** Attaches the disambiguation letter the way the style prints it. */
+function withLetter(label: string, letter: string, style: Exclude<CitationStyle, "ieee">): string {
+  if (!letter) return label;
+  if (style === "mla") return `${label} ${letter}`;
+  if (style === "apa" && label.endsWith("n.d.")) return `${label.slice(0, -"n.d.".length)}n.d.-${letter}`;
+  if (style === "harvard" && label.endsWith("no date")) return `${label} ${letter}`;
+  return `${label}${letter}`;
+}
+
+/** The same letter inside the reference list's brackets: "(2021a)", "(n.d.-a)", "(no date a)". */
+function yearWithLetter(year: string, letter: string, style: Exclude<CitationStyle, "ieee">): string {
+  if (!letter) return year;
+  if (!year) return style === "apa" ? `n.d.-${letter}` : `no date ${letter}`;
+  return `${year}${letter}`;
 }
 
 /** In-text label of one source: "(Smith, 2021)" APA, "(Smith 2021)" Harvard, "(Smith)" MLA, without parentheses. */
@@ -885,7 +936,9 @@ function replaceMarkers(text: string, fn: (nums: number[]) => string | null): st
  * Converts the internal stable markers ([n] from assignRefs) into the style's
  * in-text form: APA "(Smith, 2021; Lee, 2020)", Harvard "(Smith 2021)", MLA
  * "(Smith)". Several sources in one marker are merged into one parenthesis in
- * reference-list order. A marker with no matching source is left as it is (so
+ * reference-list order. Two sources that would print the same label (same authors,
+ * same year) get the style's own letter or short title, the same one the reference
+ * list shows. A marker with no matching source is left as it is (so
  * qualityChecks can flag it). IEEE keeps [n]; use finalizeCitations to get its
  * numbering in citation order across all sections.
  * `notes` must be the same full note set that was given to assignRefs.
@@ -894,15 +947,16 @@ export function renderCitations(a: { text: string; notes: Note[]; style: Citatio
   if (a.style === "ieee") return a.text;
   const sources = sortSources(collectSources(a.notes), a.style);
   const style = a.style;
+  // Same order the reference list uses, so `[3]` here and entry 3 there are the same work.
+  const { labels } = labelLetters(sources, style);
   return replaceMarkers(a.text, (nums) => {
-    const labels: string[] = [];
+    const out: string[] = [];
     for (const n of [...new Set(nums)].sort((x, y) => x - y)) {
-      const src = sources[n - 1];
-      if (!src) return null;
-      const label = inTextLabel(src, style);
-      if (!labels.includes(label)) labels.push(label);
+      const label = labels[n - 1];
+      if (!label) return null;
+      if (!out.includes(label)) out.push(label);
     }
-    return `(${labels.join("; ")})`;
+    return `(${out.join("; ")})`;
   });
 }
 
