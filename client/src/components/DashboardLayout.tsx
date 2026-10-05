@@ -44,6 +44,7 @@ import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
 const menuItems: Array<{ icon: SutaeruIconName; label: string; path: string; group: string }> = [
   { icon: "ask", label: "Chat", path: "/chat", group: "workspace" },
   { icon: "make", label: "Atelier", path: "/atelier", group: "workspace" },
+  { icon: "make", label: "Design", path: "/design", group: "workspace" },
   { icon: "image", label: "Images", path: "/images", group: "workspace" },
   { icon: "files", label: "Files", path: "/files", group: "workspace" },
   { icon: "memory", label: "Memories", path: "/memories", group: "intelligence" },

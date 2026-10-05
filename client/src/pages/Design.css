@@ -1,0 +1,264 @@
+.sk-design-workspace {
+  --bg-paper: #F7F6F2;
+  --bg-panel: #EFEDE7;
+  --bg-card: #FFFFFF;
+  --stroke-card: #E3E1DB;
+  --color-ink: #242320;
+  --color-quiet: #66645F;
+  --color-rule: #B6BBC3;
+  --color-accent: #F4511E;
+  --color-alert: #B3402A;
+
+  --font-title: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --gutter-desktop: 72px;
+  --gutter-mobile: 20px;
+  --gap-desktop: 24px;
+  --gap-mobile: 12px;
+  --pad-card: 24px;
+  --pad-composer: 24px;
+
+  --radius-card: 28px;
+  --radius-card-sm: 16px;
+  --radius-pill: 999px;
+
+  background-color: var(--bg-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.dark .sk-design-workspace {
+  --bg-paper: #111111;
+  --bg-panel: #1A1A1A;
+  --bg-card: #151515;
+  --stroke-card: #282828;
+  --color-ink: #FFFFFF;
+  --color-quiet: #999999;
+  --color-rule: #333333;
+  --color-accent: #FF5A36;
+}
+
+/* Stepper in Topbar */
+.sk-design-workspace .topbar-stepper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1.54px;
+  text-transform: uppercase;
+  color: var(--color-quiet);
+}
+
+.sk-design-workspace .step-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sk-design-workspace .step-node.active {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
+.sk-design-workspace .step-pill-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-ink);
+  color: var(--bg-paper);
+}
+
+.sk-design-workspace .step-separator {
+  color: var(--color-rule);
+}
+
+/* Main Stage Layout */
+.sk-design-workspace .proposal-stage {
+  flex: 1;
+  display: flex;
+  padding: 16px 48px 16px;
+  gap: 24px;
+  overflow: hidden;
+  position: relative;
+  z-index: 10;
+}
+
+/* Left Rail: WHAT I UNDERSTOOD */
+.sk-design-workspace .left-rail {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--stroke-card);
+  padding-right: 20px;
+}
+
+.sk-design-workspace .rail-recap-box {
+  background-color: var(--bg-card);
+  border: 1px solid var(--stroke-card);
+  border-radius: var(--radius-card-sm);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sk-design-workspace .recap-quote {
+  font-family: var(--font-title);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-ink);
+}
+
+.sk-design-workspace .understand-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.sk-design-workspace .understand-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--bg-panel);
+}
+
+.sk-design-workspace .understand-label, .sk-design-workspace .mono-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1.54px;
+  text-transform: uppercase;
+  color: var(--color-quiet);
+}
+
+.sk-design-workspace .understand-val {
+  font-family: var(--font-body);
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.sk-design-workspace .rail-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sk-design-workspace .btn-secondary {
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--stroke-card);
+  background-color: var(--bg-card);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-ink);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+}
+
+/* Main Area */
+.sk-design-workspace .proposal-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.sk-design-workspace .heading-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.sk-design-workspace .section-title {
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1.15;
+  letter-spacing: -1.2px;
+  color: var(--color-ink);
+}
+
+.sk-design-workspace .canvas-container {
+  flex: 1;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--stroke-card);
+  border-radius: var(--radius-card);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sk-design-workspace .chat-input-wrapper {
+  margin-top: auto;
+  border-top: 1px solid var(--stroke-card);
+  padding-top: 16px;
+}
+
+.sk-design-workspace .chat-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-card-sm);
+  border: 1px solid var(--stroke-card);
+  background-color: var(--bg-card);
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-ink);
+  outline: none;
+}
+
+.sk-design-workspace .chat-input:focus {
+  border-color: var(--color-ink);
+}
+
+/* Focus Brackets */
+.sk-design-workspace .focus-bracket-target { position: relative; }
+.sk-design-workspace .focus-bracket-tl,
+.sk-design-workspace .focus-bracket-tr,
+.sk-design-workspace .focus-bracket-bl,
+.sk-design-workspace .focus-bracket-br {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  pointer-events: none;
+  z-index: 50;
+}
+.sk-design-workspace .focus-bracket-tl { top: -4px; left: -4px; border-top: 2px solid var(--color-ink); border-left: 2px solid var(--color-ink); }
+.sk-design-workspace .focus-bracket-tr { top: -4px; right: -4px; border-top: 2px solid var(--color-ink); border-right: 2px solid var(--color-ink); }
+.sk-design-workspace .focus-bracket-bl { bottom: -4px; left: -4px; border-bottom: 2px solid var(--color-ink); border-left: 2px solid var(--color-ink); }
+.sk-design-workspace .focus-bracket-br { bottom: -4px; right: -4px; border-bottom: 2px solid var(--color-ink); border-right: 2px solid var(--color-ink); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sk-design-workspace .proposal-stage {
+    flex-direction: column;
+    padding: 16px 20px;
+    overflow-y: auto;
+  }
+  .sk-design-workspace .left-rail {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--stroke-card);
+    padding-right: 0;
+    padding-bottom: 16px;
+  }
+  .sk-design-workspace .topbar-stepper {
+    display: none;
+  }
+}
