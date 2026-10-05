@@ -4,13 +4,18 @@ import {
   numeric,
   integer,
   json,
+  jsonb,
   pgEnum,
   pgTable,
   text,
   timestamp,
   varchar,
+  char,
   bigint,
   uniqueIndex,
+  index,
+  primaryKey,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
@@ -320,6 +325,8 @@ export const chatSessions = pgTable("chat_sessions", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   lastMessageAt: bigint("lastMessageAt", { mode: "number" }),
+  // Context manager cache (P1-13): { prefixHash, upToIndex, summary, model, createdAt }.
+  contextCache: jsonb("context_cache").$type<Record<string, unknown>>(),
 });
 export type ChatSession = typeof chatSessions.$inferSelect;
 export type InsertChatSession = typeof chatSessions.$inferInsert;
@@ -335,6 +342,8 @@ export const chatMessages = pgTable("chat_messages", {
   settings: json("settings").$type<Record<string, unknown>>().default({}),
   embedding: json("embedding").$type<number[]>(),
   createdAt: timestamp("created_at").notNull(),
+  // Per-message extras: sources, activity, usage, model, thinking, cancelled (P1-05, P1-07).
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
 });
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = typeof chatMessages.$inferInsert;
@@ -587,3 +596,68 @@ export const skillReviews = pgTable(
   (t) => [uniqueIndex("skill_reviews_slug_hash").on(t.skillSlug, t.contentHash)],
 );
 export type SkillReviewRow = typeof skillReviews.$inferSelect;
+
+// ─── Shared key-value cache (search results, fetched pages): server/core/kvCache.ts ───
+export const kvCache = pgTable(
+  "kv_cache",
+  {
+    namespace: varchar("namespace", { length: 32 }).notNull(),
+    key: varchar("key", { length: 128 }).notNull(),
+    value: jsonb("value").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ name: "kv_cache_pkey", columns: [t.namespace, t.key] }),
+    index("kv_cache_expires_idx").on(t.expiresAt),
+  ],
+);
+export type KvCacheRow = typeof kvCache.$inferSelect;
+export type InsertKvCache = typeof kvCache.$inferInsert;
+
+// ─── Approvals: a write tool that acts outside Sutaeru waits for the user (P1-11) ───
+export type ApprovalRisk = "read" | "write" | "destructive";
+export type ApprovalStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "expired"
+  | "cancelled"
+  | "executing"
+  | "executed"
+  | "failed";
+
+export const approvals = pgTable(
+  "approvals",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    userId: integer("user_id").notNull(),
+    sessionId: varchar("session_id", { length: 36 }),
+    runId: varchar("run_id", { length: 36 }),
+    tool: varchar("tool", { length: 160 }).notNull(),
+    risk: varchar("risk", { length: 16 }).$type<ApprovalRisk>().notNull(),
+    args: jsonb("args").notNull(),
+    // sha256 of the canonical JSON of the args that will run
+    argsHash: char("args_hash", { length: 64 }).notNull(),
+    // e.g. drive:<fileId>, for edits of existing resources
+    targetRef: text("target_ref"),
+    // revision, etag or modifiedTime captured at request time
+    targetRevision: text("target_revision"),
+    preview: jsonb("preview"),
+    status: varchar("status", { length: 16 }).$type<ApprovalStatus>().notNull().default("pending"),
+    decidedArgs: jsonb("decided_args"),
+    decidedAt: timestamp("decided_at"),
+    executedAt: timestamp("executed_at"),
+    // compact outcome (ids, status), never full content
+    result: jsonb("result"),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    // Named the way Postgres names the inline REFERENCES in 0025_phase1_core.sql.
+    foreignKey({ name: "approvals_user_id_fkey", columns: [t.userId], foreignColumns: [users.id] }),
+    index("approvals_user_status_idx").on(t.userId, t.status),
+  ],
+);
+export type ApprovalRow = typeof approvals.$inferSelect;
+export type InsertApproval = typeof approvals.$inferInsert;
