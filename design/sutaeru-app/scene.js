@@ -37,8 +37,8 @@
     look: [
       { id: "photo", label: "Photo", sub: "True to life" },
       { id: "film", label: "Film", sub: "Grain and fade" },
-      { id: "illustration", label: "Illustration", sub: "Flat with outlines" },
-      { id: "clay", label: "Clay 3D", sub: "Soft rendered" },
+      { id: "illustration", label: "Painted", sub: "Watercolour still life" },
+      { id: "clay", label: "Clay 3D", sub: "Soft studio render" },
       { id: "ink", label: "Ink and dots", sub: "Halftone print" },
     ],
     ratio: [

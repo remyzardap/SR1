@@ -35,6 +35,8 @@
     "var-night-2": { by: "Olena Bohovyk", id: "1671207589776-730a149bc597", f: [40, 69] },
     "var-night-3": { by: "Martyn Yakub", id: "1636405348751-3a7faad27231", f: [34, 71] },
     "var-night-4": { by: "John Forson", id: "1518358246973-95637f1df901", f: [52, 80] },
+    "look-painted": { by: "Europeana", id: "1741119336848-4e2eb08b9709", f: [46, 56] },
+    "look-clay": { by: "BlushStudio Creations", id: "1744853261830-5167b853519f", f: [50, 58] },
     "eng-gemini": { by: "Brett Jordan", id: "1610454059772-5c751844f937", f: [50, 50], tileOnly: true },
     "eng-openai": { by: "pariwat pannium", id: "1647919234555-3d06e2c923f4", f: [50, 60], tileOnly: true },
     "eng-wan": { by: "Danielle-Claude Bélanger", id: "1733338638542-45e79232a3df", f: [50, 50], tileOnly: true },
@@ -61,7 +63,11 @@
   function comp(params, o) {
     o = o || {};
     const p = Object.assign({}, SC.DEFAULT, params);
-    if (p.look === "illustration" || p.look === "clay") return `<div class="ph ph-drawn">${SC.render(p, o.ratio ? { ratio: o.ratio, thumb: o.size === "t" } : { thumb: o.size === "t" })}</div>`;
+    if (p.look === "illustration" || p.look === "clay") {
+      /* Painted and clay are shown with a real style reference, framed by the chosen shot and shape */
+      const name = p.look === "clay" ? "look-clay" : "look-painted";
+      return comp(Object.assign({}, p, { look: "photo", lens: "24", angle: p.angle === "dutch" ? "dutch" : "eye", shot: p.shot === "detail" ? "close" : p.shot }), Object.assign({}, o, { name }));
+    }
     const b = o.name ? { name: o.name, grade: o.name.startsWith("angle-") && !PHOTOS[o.name].tileOnly } : base(p);
     const ph = PHOTOS[b.name];
     const fr = framing(p);
@@ -138,6 +144,7 @@
   }
 
   function variants(p) {
+    if (isRef(p)) return ["wide", "medium", "close", "wide"].map((s, i) => ({ name: refName(p), p: Object.assign({}, p, { shot: s, angle: i === 3 ? "dutch" : p.angle }) }));
     const b = base(p);
     if (!b.grade) return [b.name, `var-${p.light}-2`, `var-${p.light}-3`, `var-${p.light}-4`].map((n) => ({ name: n, p }));
     const shots = ["medium", "close", "detail", "wide"];
@@ -149,9 +156,12 @@
     return Object.values(PHOTOS).filter((v) => !seen.has(v.by) && seen.add(v.by)).map((v) => v.by);
   }
 
+  const isRef = (p) => p.look === "illustration" || p.look === "clay";
+  const refName = (p) => (p.look === "clay" ? "look-clay" : "look-painted");
   function focus(p) {
+    if (isRef(p)) return PHOTOS[refName(p)].f;
     const ph = PHOTOS[base(p).name];
     return p.shot === "detail" && ph.rim ? ph.rim : ph.f;
   }
-  window.SutaeruPhoto = { focus, PHOTOS, comp, hydrate, base, variants, credits, src, loadImg, framing };
+  window.SutaeruPhoto = { isRef, refName, focus, PHOTOS, comp, hydrate, base, variants, credits, src, loadImg, framing };
 })();

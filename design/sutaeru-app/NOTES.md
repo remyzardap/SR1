@@ -58,6 +58,33 @@ Navigation is the logo at top left, which opens a sheet. There is no bottom bar.
 
 Photographers: Thomas Park, Barney Goodman, Giorgio Trovato, René Porter, Olena Bohovyk, Debby Hudson, Erik Witsoe, Zach Lezniewicz, Thabet Studio, engin akyurt, Charmil Gandhi, tabitha turner, Jei Lee, Daniel Dan, Monaz Nazary, Tim Foster, Jocelyn Morales, Luca Massimilian, Martyn Yakub, John Forson, Brett Jordan, pariwat pannium, Danielle-Claude Bélanger. Photo ids are in `photo.js`.
 
+
+## Documents (docs.js)
+
+- **Finished files show as real miniature documents, not icons.** Each is composed on a 560×340 stage and scaled to its box. Short boxes zoom in to fill.
+  - Report: fanned A4 pages with a cover photo, key figures and a supplier table.
+  - Deck: a 16:9 title slide on a cover photo, with slides behind it.
+  - Sheet: a spreadsheet window with real BOQ figures, tabs and a pinned site photo.
+  - Brief: a one-page memo with a photo band, two decisions and the seal.
+  - Monitor: a live chart card.
+- **Used in** Agent output cards, Files, "Turn this into", the agent session draft (which resolves out of dither as work progresses) and the result card. On wide screens the result card shows the document with the 済 stamp pressed on it in vermilion.
+- **Pages stay paper-coloured in both themes**, slightly dimmed in dark mode.
+
+## Style references
+
+- **Painted and Clay 3D now show real reference images** instead of drawings: a public-domain watercolour still life (Europeana) and a soft 3D render (BlushStudio Creations).
+- **The other tiles keep showing the photo** while one of these looks is chosen, so framing and light stay readable.
+
+## Polish
+
+- Cards have a hairline top highlight and layered shadows.
+- On desktop, cards lift slightly on hover and photos zoom gently.
+- Focus rings are two-tone, so they stay visible on photos and in dark mode.
+- Inter uses its contextual and tabular figures.
+- Screens cross-fade with the View Transitions API, and the picture glides from the studio viewfinder into the image-run frame. Browsers without View Transitions fall back to the normal entrance.
+
+Cover and reference photographers: Bernd Dittrich, Bagus Alif Widhiwipati, kadek wahyudi, Ethan Feng, Matthew Henry, Point Normal, Rafli Raihan, Anders J, Europeana, BlushStudio Creations.
+
 ## Design decisions
 
 - **Orange only means live**: running dots, the progress dial, the next stepped bar, the live-preview tag. Buttons are ink.

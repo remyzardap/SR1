@@ -65,7 +65,7 @@
     const s = o.signal && SIG[name] ? `<circle class="sig" cx="${SIG[name][0]}" cy="${SIG[name][1]}" r="5"/>` : "";
     return `<svg class="ico ${o.cls || ""}" viewBox="0 0 96 96" aria-hidden="true">${P[name] || ""}${s}</svg>`;
   }
-  const SB = window.SutaeruBrand, SP = window.SutaeruPhoto;
+  const SB = window.SutaeruBrand, SP = window.SutaeruPhoto, SD = window.SutaeruDocs;
   const GLYPH = (cls = "glyph", detail = "compact") => SB.glyph({ cls, detail });
   const ENGINE_MARK = {
     gemini: '<svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 14c2 18 12 30 30 34-18 4-28 16-30 34-2-18-12-30-30-34 18-4 28-16 30-34Z" fill="currentColor"/></svg>',
@@ -176,14 +176,14 @@
     },
   };
   const FILES = [
-    { t: "report", name: "Off grid solar cost per kWh", meta: "Edited 2 h ago · 14 sources", go: "done" },
+    { t: "report", name: "Off grid solar cost per kWh", meta: "Edited 2 h ago · 14 sources", go: "done", doc: { title: "Off grid solar cost per kWh", figs: [["Low", "0.28"], ["High", "0.45"], ["Sources", "14"]], bars: [0.9, 0.74, 0.62, 0.5] } },
     { t: "deck", name: "TGWI investor update Q3", meta: "Yesterday · 18 slides" },
     { t: "sheet", name: "Villa BOQ and budget", meta: "3 days ago · 6 tabs" },
     { t: "image", name: "Ceramic mug, morning light", meta: "Gemini · 1:1", p: { shot: "close", light: "window", look: "photo" } },
-    { t: "report", name: "Clay thermal storage review", meta: "Last week · 22 sources" },
-    { t: "deck", name: "Kopdes PLTS proposal", meta: "2 weeks ago · 12 slides" },
+    { t: "report", name: "Clay thermal storage review", meta: "Last week · 22 sources", doc: { title: "Clay thermal storage review", cover: "cov-clay", figs: [["Sources", "22"], ["Cycles", "4,000"], ["Saved", "18%"]] } },
+    { t: "deck", name: "Kopdes PLTS proposal", meta: "2 weeks ago · 12 slides", doc: { title: "Kopdes PLTS proposal", kicker: "Koperasi desa · 2026", cover: "cov-panels", meta: "01 / 12" } },
     { t: "image", name: "Night lamp, film look", meta: "OpenAI · 4:5", p: { light: "night", look: "film", ratio: "4:5", shot: "close" } },
-    { t: "report", name: "Weekly market brief", meta: "Step 3 of 5", live: true },
+    { t: "report", name: "Weekly market brief", meta: "Step 3 of 5", live: true, doc: { title: "Weekly market brief", kicker: "Monday edition", cover: "cov-jakarta", figs: [["IDX", "+1.2%"], ["Rupiah", "15,640"], ["Coal", "Down 3%"]] } },
   ];
 
   /* ── State ─────────────────────────────────────────────────────────── */
@@ -333,17 +333,11 @@
   /* ── Small drawings that follow the theme ──────────────────────────── */
   function outPreview(id) {
     if (id === "image") return SP.comp(Object.assign({}, state.studio.p, { shot: "medium" }), { size: "t", w: 200, ratio: 1.9 });
-    const v = 'viewBox="0 0 200 104" preserveAspectRatio="xMidYMid meet"';
-    if (id === "report") return `<svg ${v}><rect x="74" y="8" width="70" height="88" rx="6" class="f-card s-stroke" opacity=".7"/><rect x="62" y="14" width="74" height="86" rx="6" class="f-card"/><rect x="72" y="26" width="36" height="6" rx="3" class="f-ink"/><rect x="72" y="38" width="54" height="3" rx="1.5" class="f-seg"/><rect x="72" y="45" width="48" height="3" rx="1.5" class="f-seg"/>${[10, 15, 19, 24].map((hh, i) => `<rect x="${74 + i * 12}" y="${88 - hh}" width="8" height="${hh}" rx="2" class="${i === 3 ? "f-ink" : "f-rule"}"/>`).join("")}</svg>`;
-    if (id === "deck") return `<svg ${v}><rect x="62" y="12" width="92" height="52" rx="6" class="f-card" opacity=".55"/><rect x="54" y="22" width="92" height="52" rx="6" class="f-card" opacity=".8"/><rect x="46" y="32" width="92" height="56" rx="6" class="f-card"/><rect x="56" y="44" width="42" height="7" rx="3.5" class="f-ink"/><rect x="56" y="56" width="30" height="3" rx="1.5" class="f-seg"/>${[0, 1, 2, 3, 4].map((i) => `<circle cx="${112 + (i % 3) * 7}" cy="${58 + Math.floor(i / 3) * 7 + (i % 2) * 2}" r="${1.6 + i * 0.5}" class="f-ink"/>`).join("")}<rect x="56" y="70" width="70" height="3" rx="1.5" class="f-seg"/></svg>`;
-    if (id === "sheet") { let g = ""; for (let r = 0; r < 5; r++) for (let c = 0; c < 6; c++) g += `<rect x="${44 + c * 19}" y="${14 + r * 16}" width="17" height="14" rx="2" class="${r === 0 ? "f-rule" : c === 4 ? "f-ink" : "f-card"}" ${r && c === 4 ? `opacity="${0.35 + r * 0.15}"` : ""}/>`; return `<svg ${v}>${g}</svg>`; }
-    if (id === "brief") return `<svg ${v}><rect x="64" y="8" width="72" height="92" rx="6" class="f-card"/><rect x="74" y="20" width="50" height="8" rx="3" class="f-ink"/><rect x="74" y="32" width="38" height="8" rx="3" class="f-ink"/><rect x="74" y="48" width="52" height="3" rx="1.5" class="f-seg"/><rect x="74" y="55" width="46" height="3" rx="1.5" class="f-seg"/><rect x="74" y="70" width="23" height="18" rx="4" class="f-panel"/><rect x="101" y="70" width="23" height="18" rx="4" class="f-panel"/><rect x="78" y="76" width="12" height="3" rx="1.5" class="f-ink"/><rect x="105" y="76" width="12" height="3" rx="1.5" class="f-ink"/></svg>`;
-    if (id === "monitor") return `<svg ${v}><path d="M30 70 L58 62 L82 66 L106 50 L130 56 L154 36 L172 40" class="s-ink" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="154" cy="36" r="5" class="f-acc"/>${[0, 1, 2, 3, 4, 5].map((i) => `<rect x="${30 + i * 28}" y="84" width="2" height="8" rx="1" class="f-rule"/>`).join("")}<rect x="30" y="20" width="44" height="6" rx="3" class="f-seg"/></svg>`;
-    return "";
+    return SD.html(id);
   }
   function filePreview(f) {
     if (f.t === "image") return SP.comp(Object.assign({}, SC.DEFAULT, f.p || {}), { size: "t", w: 300, name: f.photo, ratio: 2.1 });
-    return outPreview(f.t);
+    return SD.html(f.t, f.doc);
   }
 
   /* ── Router ────────────────────────────────────────────────────────── */
@@ -362,6 +356,10 @@
     renderView(true);
   }
   function renderView(scrollTop) {
+    if (document.startViewTransition && state.booted && !RM()) { document.startViewTransition(() => paint(scrollTop)); return; }
+    paint(scrollTop);
+  }
+  function paint(scrollTop) {
     leave();
     const m = main();
     m.innerHTML = VIEWS[cur].html();
@@ -792,6 +790,7 @@
   /* Every tile is your picture with that one choice changed. */
   function optThumb(g, o) {
     const p = Object.assign({}, state.studio.p, { [g]: o.id });
+    if (g !== "look" && SP.isRef(state.studio.p)) p.look = "photo";
     if (g === "ratio") {
       const W = 92, H = 70; let w = o.r >= W / H ? W : H * o.r, h = w / o.r;
       return `<span class="sh" style="width:${w.toFixed(1)}px;height:${h.toFixed(1)}px">${SP.comp(p, { size: "auto", w, ratio: o.r })}</span>`;
@@ -801,7 +800,8 @@
   const vfInner = (w) => state.studio.vf === "sketch" ? SC.render(state.studio.p) : SP.comp(state.studio.p, { size: "l", w: w || 460 });
   function vfCredit() {
     const p = state.studio.p;
-    if (state.studio.vf === "sketch" || p.look === "illustration" || p.look === "clay") return p.look === "illustration" || p.look === "clay" ? "Drawn preview" : "Composition sketch";
+    if (state.studio.vf === "sketch") return "Composition sketch";
+    if (SP.isRef(p)) return `Style reference · ${SP.PHOTOS[SP.refName(p)].by} · Unsplash`;
     const b = SP.base(p); return `Photo · ${SP.PHOTOS[b.name].by} · Unsplash`;
   }
   VIEWS.studio = {
@@ -815,7 +815,7 @@
             <div class="vf" id="vf">
               <span class="tag vf-tag"><span class="live-dot"></span>Live preview</span>
               <div class="vf-tools"><div class="seg small vf-mode" role="group" aria-label="Preview style"><span class="thumb"></span><button type="button" data-vf="photo" aria-pressed="${st.vf !== "sketch"}">Photo</button><button type="button" data-vf="sketch" aria-pressed="${st.vf === "sketch"}">Sketch</button></div><button class="icon-btn" id="gridBtn" aria-pressed="${st.grid}" aria-label="Thirds grid">${icon("grid")}</button></div>
-              <div class="vf-frame" id="vff"><div class="scene">${vfInner()}</div><div class="thirds" style="opacity:${st.grid ? 0.5 : 0}"><i></i><i></i><i></i><i></i></div><div class="af"><i></i><i></i><i></i><i></i></div></div>
+              <div class="vf-frame" id="vff" style="view-transition-name:shot"><div class="scene">${vfInner()}</div><div class="thirds" style="opacity:${st.grid ? 0.5 : 0}"><i></i><i></i><i></i><i></i></div><div class="af"><i></i><i></i><i></i><i></i></div></div>
               <span class="mono ph-credit" id="vfCredit">${vfCredit()}</span>
             </div>
             <div class="readout" id="readout"></div>
@@ -871,7 +871,7 @@
         const olds = $$(".scene", fr);
         if (RM()) { olds.forEach((o) => o.remove()); fr.prepend(n); }
         else { n.style.opacity = "0"; olds[olds.length - 1].after(n); requestAnimationFrame(() => requestAnimationFrame(() => { n.style.opacity = "1"; })); setTimeout(() => olds.forEach((o) => o.remove()), 300); }
-        const af = $(".af", fr), f = st.vf === "sketch" || st.p.look === "illustration" || st.p.look === "clay" ? [50, 54] : SP.focus(st.p);
+        const af = $(".af", fr), f = st.vf === "sketch" ? [50, 54] : SP.focus(st.p);
         af.style.left = f[0] + "%"; af.style.top = f[1] + "%";
         af.classList.remove("lock"); void af.offsetWidth; af.classList.add("lock");
         sizeFrame();
@@ -927,7 +927,7 @@
         <div class="studio-head">${stepsHTML(done ? 3 : 2)}<h1 class="title">${title}</h1><p class="lede" style="margin-top:10px">${lede}</p></div>
         <div class="run-grid">
           <div>
-            <div class="run-stage"><div class="run-frame" id="rf"><div class="scene">${SP.comp(v.p, { size: "l", w: 560, name: v.name })}</div><canvas id="rc" aria-hidden="true"></canvas><span class="tag chip-on" id="rchip">${done ? `Done · took ${im.took} s` : stopped ? "Stopped" : `${e.name} · ${im.quality === "high" ? "High" : "Standard"}`}</span></div></div>
+            <div class="run-stage"><div class="run-frame" id="rf" style="view-transition-name:shot"><div class="scene">${SP.comp(v.p, { size: "l", w: 560, name: v.name })}</div><canvas id="rc" aria-hidden="true"></canvas><span class="tag chip-on" id="rchip">${done ? `Done · took ${im.took} s` : stopped ? "Stopped" : `${e.name} · ${im.quality === "high" ? "High" : "Standard"}`}</span></div></div>
             ${done && im.count > 1 ? `<div class="variants" role="radiogroup" aria-label="Pictures" style="grid-template-columns:repeat(${im.count}, minmax(0, 120px))">${Array.from({ length: im.count }, (_, i) => `<button class="variant" role="radio" aria-checked="${im.pick === i}" data-pick="${i}" aria-label="Picture ${i + 1}">${SP.comp(vs[i].p, { size: "t", w: 120, name: vs[i].name })}</button>`).join("")}</div>` : ""}
           </div>
           <div class="stack">
@@ -1047,7 +1047,7 @@
             const nd = st === "cur" ? orb("run") : st === "stop" ? `<span class="dot" style="background:var(--alert)"></span>` : `<span class="dot"></span>`;
             return `<div class="fl ${st === "stop" ? "cur" : st}"><span class="nd">${nd}</span><b>${esc(x.name)}</b><span class="mono side" ${st === "stop" ? 'style="color:var(--alert)"' : st === "cur" ? 'style="color:var(--ink)"' : ""}>${side}</span>${detail}</div>`;
           }).join("");
-          $("#draft", m).innerHTML = `<span class="mono">${k.draft.eyebrow}</span><h3>${esc(k.draft.title)}</h3><p>${esc(k.draft.lede)}</p>${k.draft.rows.map(([a, b], i) => `<div class="sup" data-row="${i}"><b>${esc(a)}</b><span class="mono">${esc(b)}</span></div>`).join("")}${done ? `<button class="btn ink big" style="width:100%;margin-top:16px" data-go="done">Open the ${k.result.kind.toLowerCase()} ${icon("arrow")}</button>` : ""}`;
+          $("#draft", m).innerHTML = `<div class="draft-doc">${SD.html(s.type)}<canvas id="draftDither" aria-hidden="true"></canvas></div><span class="mono">${k.draft.eyebrow}</span><h3>${esc(k.draft.title)}</h3><p>${esc(k.draft.lede)}</p>${k.draft.rows.map(([a, b], i) => `<div class="sup" data-row="${i}"><b>${esc(a)}</b><span class="mono">${esc(b)}</span></div>`).join("")}${done ? `<button class="btn ink big" style="width:100%;margin-top:16px" data-go="done">Open the ${k.result.kind.toLowerCase()} ${icon("arrow")}</button>` : ""}`;
           $("#stopArea", m).innerHTML = done ? `<div class="card banner">${SB.stamp({ cls: "stamp mini-stamp" })}<div class="tx"><b>${k.result.kind} ready.</b><span class="mono">Telegram notified · saved to Files</span></div><button class="btn ink" data-go="done">Open ${icon("arrow")}</button></div>`
             : stopped ? `<div class="card banner stop-confirm"><div class="tx"><b>Stopped at ${Math.round(p * 100)}%.</b><span class="mono">What Sutaeru found so far is kept</span></div><button class="btn ink" data-act="resume">${icon("refresh")}Resume</button></div>`
             : s.confirm ? `<div class="card banner stop-confirm"><div class="tx"><b>Stop this session?</b><span class="mono">Sutaeru keeps what it found so far</span></div><button class="btn" data-act="keep">Keep working</button><button class="btn alert" data-act="stop">${icon("stop")}Stop</button></div>`
@@ -1060,6 +1060,7 @@
         if (pg) { const n = Math.floor(sp * x.pages); $$("i", pg).forEach((b, i) => { b.className = i < n ? "on" : i === n && !stopped ? "live" : ""; }); $("#pageN", m).textContent = `Page ${Math.min(x.pages, n + 1)} of ${x.pages}`; }
         const sb = $("#stepBar", m); if (sb) drawBar(sb, sp, { t, live: !stopped });
         $$(".sup", m).forEach((row, i) => row.classList.toggle("pending", !done && p < 0.5 + i * 0.16));
+        const dd = $("#draftDither", m); if (dd && (!dd._t || t - dd._t > 90)) { dd._t = t; drawResolve(dd, done ? 1 : Math.min(0.97, p * 1.05), t); }
       };
       loop(render);
       const sphere = $("#sphere", m);
@@ -1086,6 +1087,7 @@
         <button class="btn ghost" data-go="session" style="margin-left:-16px">${icon("back")}${esc(k.title)}</button>
         <div class="hero-card result" style="margin-top:12px">
           <span class="done-stamp${state.stamped ? "" : " pressing"}">${SB.stamp()}</span>
+          <div class="result-doc">${SD.html(s.type, { title: r.title })}<span class="doc-stamp${state.stamped ? "" : " pressing"}">${SB.stamp()}</span></div>
           <canvas class="edge art-deco" id="edge" aria-hidden="true"></canvas>
           <span class="mono" style="position:relative">Result · ${r.kind}</span>
           <h1 class="title">${esc(r.title)}</h1>
@@ -1280,9 +1282,11 @@
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (state.navOpen) closeNav(); const pop = $(".popover"); if (pop) pop.remove(); } });
     $("#nav").setAttribute("inert", ""); $("#nav").setAttribute("aria-hidden", "true");
     let hyd = 0;
-    new MutationObserver(() => { if (!hyd) hyd = requestAnimationFrame(() => { hyd = 0; SP.hydrate(document); }); }).observe(document.body, { childList: true, subtree: true });
+    new MutationObserver(() => { if (!hyd) hyd = requestAnimationFrame(() => { hyd = 0; SP.hydrate(document); SD.fit(document); }); }).observe(document.body, { childList: true, subtree: true });
+    if (document.startViewTransition) document.documentElement.classList.add("vt");
     window.addEventListener("hashchange", route);
     route();
+    state.booted = true;
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeSegs(); redraws.forEach((f) => f()); });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
