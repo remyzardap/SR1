@@ -10,6 +10,7 @@
     "migrate": "tsx server/migrate.ts",
     "check": "tsc --noEmit",
     "eval:research": "tsx --env-file=.env evals/research/run.ts",
+    "bench": "tsx --env-file=.env scripts/bench-chat.ts",
     "format": "prettier --write .",
     "test": "vitest run",
     "test:db": "vitest run --mode db",
