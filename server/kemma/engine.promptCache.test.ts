@@ -181,7 +181,7 @@ describe("Qwen explicit cache markers", () => {
     const net = stubFetch(() => jsonRes(completion("ok")));
     await run();
     const [sys, user] = net.calls[0].body.messages;
-    expect(sys.content).toEqual([{ type: "text", text: expect.stringContaining("You are Sutaeru"), cache_control: { type: "ephemeral" } }]);
+    expect(sys.content).toEqual([{ type: "text", text: expect.stringContaining("You are Kemma"), cache_control: { type: "ephemeral" } }]);
     expect(user.content).toEqual([{ type: "text", text: "hello", cache_control: { type: "ephemeral" } }]);
   });
 

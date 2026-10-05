@@ -164,7 +164,7 @@ describe("direct answer with no tools", () => {
     expect(calls[0].body.stream).toBe(false); // tools were offered, so the request is not a stream
     expect(calls[0].body.model).toBe("qwen3.8-max");
     expect(calls[0].body.messages[0].role).toBe("system");
-    expect(calls[0].body.messages[0].content).toContain("You are Sutaeru");
+    expect(calls[0].body.messages[0].content).toContain("You are Kemma");
     expect(onStream).toHaveBeenCalledTimes(1);
     expect(onStream).toHaveBeenCalledWith("It is 4.");
     expect(output.response).toBe("It is 4.");
@@ -511,7 +511,7 @@ describe("thinking and voice flags", () => {
     await kemmaExecute(baseInput({ isVoice: false }));
     const plainSys = plainNet.calls[0].body.messages[0].content;
     expect(plainSys).not.toContain("## Voice mode");
-    expect(plainSys).toContain("You are Sutaeru");
+    expect(plainSys).toContain("You are Kemma");
     expect(voiceSys).not.toBe(plainSys);
   });
 });
@@ -570,7 +570,7 @@ describe("sub-agent path (no onStream + complex prompt)", () => {
 
     const plannerCall = net.calls.find((c) => (c.body.messages?.[0]?.content ?? "").includes("research planner"));
     expect(plannerCall).toBeDefined();
-    const subCalls = net.calls.filter((c) => (c.body.messages?.[0]?.content ?? "").includes("You are Sutaeru"));
+    const subCalls = net.calls.filter((c) => (c.body.messages?.[0]?.content ?? "").includes("You are Kemma"));
     expect(subCalls).toHaveLength(3);
     expect(subCalls.map((c) => c.body.messages[1].content).sort()).toEqual(["sq1", "sq2", "sq3"]);
     const synthCall = net.calls.find((c) => (c.body.messages?.[0]?.content ?? "").includes("synthesize"));
@@ -630,7 +630,7 @@ describe("message hygiene", () => {
     }));
     const sysMessages = net.calls[0].body.messages.filter((m: any) => m.role === "system");
     expect(sysMessages).toHaveLength(1);
-    expect(sysMessages[0].content).toContain("You are Sutaeru");
+    expect(sysMessages[0].content).toContain("You are Kemma");
     expect(sysMessages[0].content).not.toContain("ignore all previous instructions");
   });
 

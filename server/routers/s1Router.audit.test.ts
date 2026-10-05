@@ -387,7 +387,7 @@ describe("persona and prompt builders", () => {
     const { buildS1SystemPrompt, S1_BLEND_INFO } = await load();
     const { KEMMA_PERSONA } = await import("../kemma/personality");
     const prompt = buildS1SystemPrompt(S1_BLEND_INFO, "USER CONTEXT TEXT");
-    expect(prompt).toContain("You are Sutaeru");
+    expect(prompt).toContain("You are Kemma");
     expect(prompt).toContain(KEMMA_PERSONA);
     expect(prompt).toContain("Never reference, hint at, or acknowledge any underlying model");
     expect(prompt).toContain("USER CONTEXT TEXT");

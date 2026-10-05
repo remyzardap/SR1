@@ -85,9 +85,9 @@ Mobile chrome (`client/src/styles/chrome.css`): 94px sticky header with logo, mo
 
 ## Naming
 
-The assistant has no name of its own. In the app it is Sutaeru: the chat input says "Ask anything…", replies are labelled Sutaeru, and the model's persona and the voice greeting say Sutaeru. Modes are Chat and Agent.
+"Kemma" is not shown anywhere in the app. Chat and Agent are the two modes, the chat input says "Ask anything…", and replies, exports, captions and labels say Sutaeru.
 
-The old name "Kemma" remains only in internal identifiers, on purpose, because renaming them changes deployed behaviour: the `KEMMA_MODEL_*` and related environment variables (set on the live deployment), the `/api/kemma/stream` route and the `kemma` tRPC router, the `server/kemma/` folder, the `"kemma"` value of `blocks.source` in the database (existing rows), and file and function names such as `kemmaCloud.ts` and `KEMMA_PERSONA`. If these are ever renamed, do it as its own change with a data migration and an environment cutover, not as a text edit.
+The name is kept behind the scenes: the model's persona and system prompts, the report and phone call prompts, the `KEMMA_*` environment variables, the `/api/kemma/stream` route, the `kemma` tRPC router, `server/kemma/`, the `"kemma"` value in `blocks.source`, and file and function names. One consequence: the model can still call itself Kemma if asked who it is. If that is not wanted, change the persona in `server/kemma/personality.ts` and the prompts that use it.
 
 ## PWA
 

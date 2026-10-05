@@ -30,7 +30,7 @@ function sse(res: any, event: string, data: unknown) {
 // ─── Interview system prompt ──────────────────────────────────────────────────
 
 function interviewPrompt(reportType: string, userCount: number, ctx: string): string {
-  return `You are Sutaeru, Sutaeru's senior report consultant. Your job is to interview the user to gather everything needed to build a professional ${reportType}.
+  return `You are Kemma, Sutaeru's senior report consultant. Your job is to interview the user to gather everything needed to build a professional ${reportType}.
 
 ${ctx ? `User context:\n${ctx}\n\n` : ""}RULES:
 - Ask ONE focused question per message — never multiple
@@ -57,7 +57,7 @@ Topics to cover (adapt order based on conversation):
 // ─── Generation system prompt ─────────────────────────────────────────────────
 
 function generationPrompt(reportType: string, theme: string, mode: "rewrite" | "reformat"): string {
-  return `You are Sutaeru, a professional report architect. Based on the conversation or uploaded content provided, generate a complete structured report as a JSON object.
+  return `You are Kemma, a professional report architect. Based on the conversation or uploaded content provided, generate a complete structured report as a JSON object.
 
 ${mode === "reformat" ? "IMPORTANT: Keep the original content and meaning intact — only improve structure, formatting, and organization. Do not rewrite or add new content." : "Generate thorough, professional content based on the information provided."}
 
