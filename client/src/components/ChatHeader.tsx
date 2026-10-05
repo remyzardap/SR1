@@ -37,6 +37,8 @@ interface ChatHeaderProps {
   chatWidth?: "normal" | "wide" | "full";
   onCycleWidth?: () => void;
   extraModes?: Array<{ key: string; label: string; icon: SutaeruIconName }>;
+  isAgentMode?: boolean;
+  onSetAgentMode?: (isAgent: boolean) => void;
 }
 
 export function ChatHeader({
@@ -58,6 +60,8 @@ export function ChatHeader({
   chatWidth = "normal",
   onCycleWidth,
   extraModes = [],
+  isAgentMode = false,
+  onSetAgentMode,
 }: ChatHeaderProps) {
   const modes = [...MODES, ...extraModes];
   const reduceMotion = useReducedMotion();
@@ -110,8 +114,32 @@ export function ChatHeader({
           </div>
         </div>
 
+        {/* Chat | Agent switch */}
+        {!agentHandle && onSetAgentMode && (
+          <nav className="flex items-center shrink-0 p-[3px] rounded-full" style={{ background: "rgba(10,10,10,0.05)" }} aria-label="Chat or agent mode">
+            <Button
+              variant="ghost"
+              onClick={() => onSetAgentMode(false)}
+              aria-pressed={!isAgentMode}
+              className="rounded-full px-3 py-1 text-[11px] font-semibold transition-all"
+              style={!isAgentMode ? { background: NEON.cream, color: NEON.ink } : { color: NEON.muted }}
+            >
+              Chat
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => onSetAgentMode(true)}
+              aria-pressed={isAgentMode}
+              className="rounded-full px-3 py-1 text-[11px] font-semibold transition-all"
+              style={isAgentMode ? { background: NEON.cream, color: NEON.ink } : { color: NEON.muted }}
+            >
+              Agent
+            </Button>
+          </nav>
+        )}
+
         {/* Mode pills */}
-        {!agentHandle && onSetMode && (
+        {!agentHandle && !isAgentMode && onSetMode && (
           <div className="hidden md:flex items-center gap-1 p-1 rounded-full" style={{ background: "rgba(10,10,10,0.05)" }}>
             {modes.map((m) => (
              <Button
@@ -159,7 +187,7 @@ export function ChatHeader({
             </AnimatePresence>
           )}
 
-          {!agentHandle && onToggleMax && (
+          {!agentHandle && !isAgentMode && onToggleMax && (
              <Button
                variant="ghost"
               onClick={onToggleMax}
@@ -244,7 +272,7 @@ export function ChatHeader({
 
        </div>
 
-       {!agentHandle && onSetMode && (
+       {!agentHandle && !isAgentMode && onSetMode && (
           <nav className="sutaeru-chat-mobile-modes" aria-label="Chat mode">
            <div className="sutaeru-chat-mobile-heading">
              <span className="sutaeru-chat-mobile-title">Sutaeru</span>

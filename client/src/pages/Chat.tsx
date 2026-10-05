@@ -5,6 +5,7 @@ import { useSeoMeta } from "@/hooks/useSeoMeta";
 import { toast } from "sonner";
 import { ChatSessionList } from "@/components/ChatSessionList";
 import { ChatHeader } from "@/components/ChatHeader";
+import { ChatAgentView } from "@/components/ChatAgentView";
 import { ChatMessages } from "@/components/ChatMessages";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatErrorBanner } from "@/components/ChatErrorBanner";
@@ -148,6 +149,7 @@ export default function Chat() {
   });
   const [hasPersistedHistory, setHasPersistedHistory] = useState(() => sessionStorage.getItem("sutaeru_chat_has_history") === "1");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isAgentMode, setIsAgentMode] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [agentPanelOpen, setAgentPanelOpen] = useState(false);
   type ChatWidth = "normal" | "wide" | "full";
@@ -763,6 +765,8 @@ export default function Chat() {
           onInsights={() => setInsightsOpen(true)}
           chatWidth={chatWidth}
           onCycleWidth={cycleChatWidth}
+          isAgentMode={isAgentMode}
+          onSetAgentMode={setIsAgentMode}
         />
         <ChatInsightsDialog
           open={insightsOpen}
@@ -777,7 +781,7 @@ export default function Chat() {
         </div>
         <div className="flex flex-1 min-h-0">
           <div className="flex flex-col flex-1 min-w-0">
-            {isCode ? <CodeThreadView code={code} /> : <ChatMessages
+            {isAgentMode ? <ChatAgentView /> : isCode ? <CodeThreadView code={code} /> : <ChatMessages
               messages={messages}
               isStreaming={isStreaming}
               messagesEndRef={messagesEndRef as RefObject<HTMLDivElement>}
