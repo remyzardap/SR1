@@ -58,6 +58,20 @@ GEMINI_API_KEY=
 SONAR_API_KEY=
 ```
 
+### Tiered page reader (P1-09, behind `FF_READER_V2`)
+
+Tier 1 is a plain, SSRF-guarded fetch with local extraction; these configure tier 2, the hosted
+reader used when tier 1 can't get through cleanly (blocked, a JS-app shell, too little text).
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `READER_FALLBACK` | empty | Tier-2 provider: `jina` or `firecrawl`. Empty skips tier 2 and goes straight to tier 3 (if configured) |
+| `JINA_API_KEY` | empty | Optional for Jina Reader; raises its rate limit. Works keyless at a lower one |
+| `FIRECRAWL_API_KEY` | empty | Required to use Firecrawl as the tier-2 provider |
+| `READER_COST_JINA` | `0.002` | Flat per-call cost estimate for a tier-2 Jina read, written to `usage_logs` |
+| `READER_COST_FIRECRAWL` | `0.005` | Flat per-call cost estimate for a tier-2 Firecrawl read |
+| `READER_COST_BROWSER_USE_TASK` | `0.03` | Flat per-task cost estimate for a tier-3 (browser-use) read |
+
 ### LiteLLM gateway (KoboiLLM)
 
 OpenAI-compatible gateway available as a fourth provider. Calls go to `{LITELLM_BASE_URL}/chat/completions` with `Authorization: Bearer <key>`.

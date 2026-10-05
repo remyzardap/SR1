@@ -133,6 +133,18 @@ const browseTool: ToolDefinition = {
       waitForSelector: {
         type: "string",
         description: "CSS selector to wait for before extracting (for dynamic content)"
+      },
+      query: {
+        type: "string",
+        description: "What you're looking for on this page. When the page is long, the most relevant sections are returned instead of the whole thing."
+      },
+      interactive: {
+        type: "boolean",
+        description: "Use a real browser to render the page (slower). Only set this when the page needs JavaScript or a login/click to show its content."
+      },
+      max_chars: {
+        type: "number",
+        description: "Maximum characters of page content to return (default: 10000)"
       }
     },
     required: ["url"]

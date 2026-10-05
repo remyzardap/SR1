@@ -101,6 +101,8 @@ import { STYLE_DEFINITIONS, type StructuredContent, type StyleOption } from "../
 import { BrowserUse } from "browser-use-sdk";
 import fsp from "fs/promises";
 import nodePath from "path";
+import { flag } from "../core/flags";
+import { readPage } from "./reader";
 import { runVpsFiles, VpsFilesError } from "./executors/vpsFiles";
 import { getEnabledSkills } from "./skillReviews";
 import { getMcpRegistry, MCP_TOOL_PREFIX } from "./mcp/client";
@@ -234,7 +236,11 @@ export async function runCode(language: "python" | "nodejs", code: string): Prom
 //
 // Install: npm install browser-use-sdk
 
-const BROWSER_USE_API_KEY = process.env.BROWSER_USE_API_KEY;
+// Read at call time, not at import time: Secret Manager fills process.env after the module
+// graph loads, so a module-level `const` here would capture an empty value forever (P1-09).
+function browserUseApiKey(): string | undefined {
+  return process.env.BROWSER_USE_API_KEY;
+}
 const BROWSE_TIMEOUT_MS = 60_000; // real browser navigation needs more headroom than a plain fetch
 const DEFAULT_MAX_LENGTH = 10_000;
 
@@ -282,7 +288,7 @@ async function ensureDriveFolderPath(userId: number, folderPath: string): Promis
 
 let browserUseClient: BrowserUse | null = null;
 function getBrowserUseClient(): BrowserUse {
-  if (!browserUseClient) browserUseClient = new BrowserUse({ apiKey: BROWSER_USE_API_KEY });
+  if (!browserUseClient) browserUseClient = new BrowserUse({ apiKey: browserUseApiKey() });
   return browserUseClient;
 }
 
@@ -292,6 +298,12 @@ export interface BrowseOptions {
   extractImages?: boolean;
   maxLength?: number;
   waitForSelector?: string;
+  /** P1-09 (behind flag("READER_V2")): what the caller is looking for on the page. */
+  query?: string;
+  /** P1-09: use the browser agent even when the tiered reader would otherwise handle it. */
+  interactive?: boolean;
+  /** For usage logging only (P1-09 tier 2/3 cost rows); omit to skip logging. */
+  userId?: number;
 }
 
 export interface BrowseResult {
@@ -299,6 +311,11 @@ export interface BrowseResult {
   content: string;
   links?: string[];
   images?: string[];
+  /** P1-09 (readPage path only): which tier produced this content, and whether it was cut down to fit. */
+  tier?: 1 | 2 | 3;
+  truncated?: boolean;
+  url?: string;
+  publishedAt?: string;
 }
 
 export interface BrowseError extends Error {
@@ -342,9 +359,23 @@ function truncateChars(text: string, maxLength: number): string {
  * contract is simpler and won't break silently on an SDK version bump.
  */
 export async function browse(url: string, options: BrowseOptions = {}): Promise<BrowseResult> {
+  // P1-09: the tiered reader (fetch + Readability/unpdf, escalating to Jina/Firecrawl, then this
+  // same browser agent as a last resort) replaces sending every URL straight to browser-use.
+  // Flag off, this function is byte-for-byte what it was before P1-09.
+  if (flag("READER_V2")) {
+    const normalized = validateUrl(url);
+    const page = await readPage(normalized, {
+      query: options.query,
+      maxChars: options.maxLength,
+      interactive: options.interactive,
+      userId: options.userId,
+    });
+    return { title: page.title || "Untitled", content: page.markdown, tier: page.tier, truncated: page.truncated, url: page.finalUrl, publishedAt: page.publishedAt };
+  }
+
   const normalizedUrl = validateUrl(url);
 
-  if (!BROWSER_USE_API_KEY) {
+  if (!browserUseApiKey()) {
     throw createBrowseError(
       "BROWSER_USE_API_KEY is not configured. Browsing is unavailable until it is set.",
       "NOT_CONFIGURED"
@@ -615,15 +646,19 @@ export async function executeToolCall(userId: number, toolName: string, args: un
       case "browse": {
         // FIX: previously only `url` was forwarded — extractLinks,
         // extractImages, maxLength, waitForSelector were silently dropped.
-        const { url, extractText, extractLinks, extractImages, maxLength, waitForSelector } = safeArgs;
+        // P1-09 adds query/interactive/max_chars (old fields keep working unchanged).
+        const { url, extractText, extractLinks, extractImages, maxLength, waitForSelector, query, interactive, max_chars } = safeArgs;
         if (typeof url !== "string") return createErrorResult('Missing or invalid "url" parameter', "INVALID_PARAMS");
         return createSuccessResult(
           await browse(url, {
             extractText: typeof extractText === "boolean" ? extractText : undefined,
             extractLinks: typeof extractLinks === "boolean" ? extractLinks : undefined,
             extractImages: typeof extractImages === "boolean" ? extractImages : undefined,
-            maxLength: typeof maxLength === "number" ? maxLength : undefined,
+            maxLength: typeof max_chars === "number" ? max_chars : typeof maxLength === "number" ? maxLength : undefined,
             waitForSelector: typeof waitForSelector === "string" ? waitForSelector : undefined,
+            query: typeof query === "string" ? query : undefined,
+            interactive: typeof interactive === "boolean" ? interactive : undefined,
+            userId,
           })
         );
       }
