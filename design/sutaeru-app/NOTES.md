@@ -46,12 +46,12 @@ Navigation is the logo at top left, which opens a sheet. There is no bottom bar.
 
 ## Photography (photo.js)
 
-- **Studio previews use real photographs from Unsplash.** They are free under the Unsplash License, and Unsplash+ photos were excluded. Files are in `img/t` (480 px) and `img/l` (1280 px), WebP.
+- **Studio previews use real photographs from Unsplash.** They are free under the Unsplash License, and Unsplash+ photos were excluded. Files are WebP in three sizes: `img/t` (480 px), `img/m` (800 px) and `img/l` (1280 px). Each frame loads the tile first, then the smallest size that stays sharp at the device's pixel ratio and the current zoom, so a phone rarely downloads the 1280 px file.
 - **Camera angle picks the photograph.** Overhead, high and low each have their own. Eye level uses the light's photograph, and tilted rotates it.
 - **Light picks the photograph at eye level, and grades the angle photographs.** The grades are warm golden, dark with a lamp pool for night, lifted studio, glow for backlit, and cool window.
 - **Shot and lens zoom toward the cup.** Each photograph carries a measured focal point, plus a rim point for Detail. Long lenses blur the edges like shallow depth of field.
 - **Shape crops, and film adds real grain, fade and vignette.**
-- **Ink and dots prints the framed photograph as a halftone** (canvas, auto levels, S curve). Illustration and Clay use the drawn renderer.
+- **Ink and dots prints the framed photograph as a halftone** (canvas, auto levels, S curve). Painted and Clay show style references (below).
 - **Every option tile is the current picture with that one choice changed.**
 - **A Photo / Sketch switch** on the viewfinder keeps the exact composition drawing available.
 - **Credits.** The photographer shows under the viewfinder, and the full list is in "Sample photos · Unsplash" at the end of the studio.
@@ -85,6 +85,40 @@ Photographers: Thomas Park, Barney Goodman, Giorgio Trovato, René Porter, Olena
 
 Cover and reference photographers: Bernd Dittrich, Bagus Alif Widhiwipati, kadek wahyudi, Ethan Feng, Matthew Henry, Point Normal, Rafli Raihan, Anders J, Europeana, BlushStudio Creations.
 
+## Phone app (PWA)
+
+The prototype is built for the installed phone app first. Desktop gets the same screens with more room.
+
+- **Installs like an app.**
+  - The manifest has an id, standalone display, portrait orientation, shortcuts with icons, and three store-style screenshots (`screens/`).
+  - Android shows its real install prompt from a card on Home.
+  - iPhone Safari gets a three-step Add to Home Screen guide in a sheet. Both can be dismissed for good.
+- **Launch.**
+  - iPhone splash screens (`splash/`, 12 files) for current screen sizes, in light and dark.
+  - The status bar colour follows the theme.
+- **Works offline.**
+  - `sw.js` precaches the app shell, the photo tiles and the document covers. Navigation is network first, falling back to the cached page.
+  - Photos are cache first; scripts, styles and fonts are stale while revalidate.
+  - A cold launch with no network still opens Home with past chats and file thumbnails.
+  - When the connection drops, a banner says so and the composer reads "Ask now. It sends when you reconnect."
+  - A question asked offline sits at the top of Recently updated as "Waiting to send" and goes out on its own when the phone reconnects.
+- **Sheets instead of popovers on phones.**
+  - Attach, Sources, the nav and the Stop confirmation rise from the bottom with a grab handle.
+  - Swipe down, tap outside or press Escape to close.
+- **The back gesture behaves.**
+  - Opening a sheet or the nav adds a history entry, so Android back (and browser back) closes it instead of leaving the screen.
+  - Moving between screens from the nav does not leave dead entries behind.
+  - An installed iPhone app has no back button, so a swipe from the left edge goes back, with a small arrow that follows the finger.
+- **Keyboard.**
+  - The viewport uses `interactive-widget=resizes-content`, and `visualViewport` lifts docked composers above the on-screen keyboard.
+  - While typing, the docked Start (Agent) and Begin (Studio) bars step aside so the field stays in view.
+- **Touch.**
+  - Every target is 44 px or more, with no double-tap zoom delay.
+  - Selections give a short vibration where the phone supports it (never on iPhone, which ignores it).
+  - Toasts drop in under the header on phones, below the offline banner when it shows, so they never cover the composer.
+- **Studio on a phone.** The viewfinder stays pinned while the options scroll under it, and shrinks as you scroll (266 px to 163 px tall) so more tiles fit.
+- **Inside the artifact viewer** the page runs in a sandboxed frame, so install, the service worker and the iPhone back swipe stay off there. They work when `index.html` is served over https (or localhost) at the top level.
+
 ## Design decisions
 
 - **Orange only means live**: running dots, the progress dial, the next stepped bar, the live-preview tag. Buttons are ink.
@@ -110,11 +144,13 @@ The brief marks the dark values as proposals. This prototype uses `paper #1C1B19
 - No console or page errors through a scripted pass: nav sheet, studio picks, image run to done, stop and resume.
 - Touch targets measure 44px or more, through padding or an invisible hit area where the visual is smaller (pills, toggles, citation chips).
 - `prefers-reduced-motion` and the in-app Reduce motion setting snap every bar, dial and stream to its end state.
+- PWA script at 390×844 (touch): sheets open and close with back, nav back, offline banner, offline queue and auto send on reconnect, stop sheet, collapsing viewfinder, active service worker and a cold offline launch.
 
 ## Not built here (still open)
 
 - Memories, Skills, Monitors, Connections and Identity pages. The nav lists them as "Full app".
-- Offline state, service worker app shell and Admin.
+- Admin.
+- Push notifications for finished sessions (needs a backend).
 - Real data. Answers, sessions and files are samples; follow-ups say so on screen.
 - Open items from the brief that this prototype does not settle:
   - `client/public/logo.svg` is still the old drawing.

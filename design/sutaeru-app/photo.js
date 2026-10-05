@@ -45,7 +45,10 @@
   const SHOT_Z = { detail: 2.2, close: 1.5, medium: 1.12, wide: 1 };
   const LENS_Z = { "24": 1, "35": 1.02, "50": 1.06, "85": 1.16, "100": 1.34 };
   const LENS_B = { "24": 0, "35": 0, "50": 0.6, "85": 3.2, "100": 6.5 };
-  const src = (name, size) => `${DIR}${size === "l" && !PHOTOS[name].tileOnly ? "l" : "t"}/${name}.webp`;
+  const DPR = Math.min(2, window.devicePixelRatio || 1);
+  const src = (name, size) => `${DIR}${size === "l" && !PHOTOS[name].tileOnly ? "l" : size === "m" && !PHOTOS[name].tileOnly ? "m" : "t"}/${name}.webp`;
+  /* Phones get the 800 px set; only big, zoomed frames on dense screens fetch 1280 px */
+  const pick = (name, need) => src(name, need <= 480 ? "t" : need <= 820 ? "m" : "l");
   const loaded = new Set();
   const imgCache = new Map();
 
@@ -75,8 +78,8 @@
     const k = (o.w || 520) / 520;
     const vars = `--fx:${f[0]}%;--fy:${f[1]}%;--z:${fr.z.toFixed(3)};--r:${fr.r}deg;--b:${(fr.b * k).toFixed(2)}px`;
     const cls = `ph look-${p.look}${b.grade ? ` grade-${p.light}` : ""}${fr.b ? " dof" : ""}`;
-    const size = o.size === "auto" ? (fr.z > 1.75 ? "l" : "t") : (o.size || "l");
-    const hi = src(b.name, size), lo = src(b.name, "t");
+    const need = (o.w || 520) * DPR * fr.z;
+    const hi = o.size === "t" ? pick(b.name, Math.min(need, 480)) : pick(b.name, need), lo = src(b.name, "t");
     if (p.look === "ink") return `<div class="${cls}" style="${vars}"><canvas class="ph-ht" data-src="${hi}" data-fx="${f[0]}" data-fy="${f[1]}" data-z="${fr.z}" data-r="${fr.r}" data-grade="${b.grade ? p.light : ""}"></canvas></div>`;
     const first = loaded.has(hi) ? hi : lo;
     return `<div class="${cls}" style="${vars}"><img class="ph-img${first === hi ? " hi" : ""}" src="${first}" ${first === hi ? "" : `data-hi="${hi}"`} alt="" decoding="async" draggable="false"><i class="ph-blur"></i><i class="ph-tone"></i><i class="ph-grain"></i><i class="ph-vig"></i></div>`;
@@ -163,5 +166,5 @@
     const ph = PHOTOS[base(p).name];
     return p.shot === "detail" && ph.rim ? ph.rim : ph.f;
   }
-  window.SutaeruPhoto = { isRef, refName, focus, PHOTOS, comp, hydrate, base, variants, credits, src, loadImg, framing };
+  window.SutaeruPhoto = { pick, isRef, refName, focus, PHOTOS, comp, hydrate, base, variants, credits, src, loadImg, framing };
 })();

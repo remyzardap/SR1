@@ -935,10 +935,10 @@ canvas.bar.thick { height: 22px; }
   transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
   display: inline-flex; align-items: center; gap: 10px;
   min-height: 44px; padding: 0 18px 0 14px; border-radius: 22px;
-  background: var(--ink); color: var(--paper); font: 600 14px/1 var(--body);
+  background: var(--ink); color: var(--paper); font: 600 14px/1.3 var(--body); padding-block: 10px;
   box-shadow: var(--lift);
   transition: opacity 260ms var(--ease), transform 420ms var(--ease);
-  max-width: calc(100vw - 32px);
+  width: max-content; max-width: calc(100vw - 32px);
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast .ico { width: 16px; height: 16px; stroke-width: 9; }
@@ -1042,8 +1042,13 @@ canvas.bar.thick { height: 22px; }
 @keyframes fadein { to { opacity: 1; } }
 @keyframes fadeup { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes press { 0% { opacity: 0; transform: scale(1.5) rotate(-8deg); } 60% { opacity: 1; transform: scale(.94) rotate(1deg); } 100% { opacity: 1; transform: none; } }
-[data-reduce-motion="true"] .intro *, .no-intro * { animation: none !important; opacity: 1 !important; transform: none !important; stroke-dashoffset: 0 !important; }
-@media (prefers-reduced-motion: reduce) { .intro * { animation: none !important; opacity: 1 !important; transform: none !important; stroke-dashoffset: 0 !important; } }
+/* Reduced motion skips the intro. Only the animated parts are reset: SVG transforms that place the gate and the seal's kana must survive. */
+[data-reduce-motion="true"] .intro :is(.loop, .gate, .sea, .glint, .sun, .word, .hero-seal, .tagline, .ramp) { animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; }
+[data-reduce-motion="true"] .intro :is(.sun, .word, .hero-seal) { transform: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .intro :is(.loop, .gate, .sea, .glint, .sun, .word, .hero-seal, .tagline, .ramp) { animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; }
+  .intro :is(.sun, .word, .hero-seal) { transform: none !important; }
+}
 
 /* 済 settled stamp, pressed onto finished work */
 .done-stamp { position: absolute; width: 92px; height: 92px; right: 22px; bottom: 22px; color: var(--hero-ink); opacity: .9; transform: rotate(-9deg); pointer-events: none; z-index: 1; }
@@ -1239,3 +1244,85 @@ html { scrollbar-color: var(--rule) transparent; scrollbar-width: thin; }
 .draft-doc { position: relative; height: 160px; margin: -8px -8px 18px; border-radius: 18px; background: var(--panel); overflow: hidden; }
 .draft-doc canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 @media (min-width: 760px) { .draft-doc { height: 200px; } }
+
+/* ── Phone app (PWA) ─────────────────────────────────────────────────── */
+html { touch-action: manipulation; }
+button, .opt, .file, .out, .engine, .nav-item, .recent-row, .pill, .btn, img, .doc-stage { -webkit-touch-callout: none; }
+button, .btn, .pill, .opt, .seg, .tag, .mono, .nav, .top { -webkit-user-select: none; user-select: none; }
+.backlink { margin: -10px 0 6px -16px; color: var(--quiet); }
+.backlink .ico { width: 18px; height: 18px; }
+.studio-head .backlink { display: inline-flex; }
+@media (min-width: 1100px) { .backlink { margin-top: -18px; } }
+
+/* Bottom sheet */
+.sheet-wrap { position: fixed; inset: 0; z-index: 70; }
+.sheet-scrim { position: absolute; inset: 0; background: var(--scrim); opacity: 0; transition: opacity 380ms var(--ease); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88dvh; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--card); border-radius: 28px 28px 0 0; padding: 10px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+  transform: translateY(104%); transition: transform 460ms var(--ease); box-shadow: 0 -20px 60px -30px rgba(0,0,0,.45); }
+.sheet-wrap.open .sheet { transform: none; }
+.sheet-wrap.open .sheet-scrim { opacity: 1; }
+.grab { display: block; width: 40px; height: 5px; border-radius: 3px; background: var(--seg-off); margin: 0 auto 8px; }
+.sheet-title { padding: 10px 8px 8px; }
+.sheet-p { margin: 0 8px 18px; color: var(--quiet); font-size: 15px; line-height: 1.55; }
+.sheet-acts { display: flex; flex-direction: column; gap: 10px; }
+.sheet-acts .btn { width: 100%; }
+.sheet-done { width: 100%; margin-top: 14px; }
+@media (min-width: 760px) {
+  .sheet { left: 50%; right: auto; bottom: 24px; width: 420px; border-radius: 28px; transform: translate(-50%, 120%); padding-bottom: 18px; }
+  .sheet-wrap.open .sheet { transform: translate(-50%, 0); }
+  .grab { display: none; }
+}
+
+/* Install card and iPhone guide */
+.install { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; padding: 14px; margin-top: 14px; border-radius: 24px; }
+.install-ico { width: 56px; height: 56px; border-radius: 15px; background: var(--paper); display: grid; place-items: center; box-shadow: inset 0 0 0 1px var(--stroke); grid-row: span 2; }
+.install-ico .glyph { width: 40px; height: 22px; color: var(--ink); }
+.install b { display: block; font: 700 16px/1.2 var(--disp); }
+.install small { display: block; color: var(--quiet); font-size: 13px; margin-top: 2px; }
+.install-acts { display: flex; gap: 6px; grid-column: 2; }
+.install-acts .btn { min-height: 40px; padding: 0 16px; font-size: 14px; }
+.ios-phone { margin: 6px auto 16px; width: 200px; height: 150px; border-radius: 26px 26px 0 0; background: linear-gradient(160deg, var(--panel), var(--paper)); border: 1px solid var(--stroke); border-bottom: 0; padding: 18px 16px 0; overflow: hidden; }
+.ios-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 10px; }
+.ios-grid i { aspect-ratio: 1; border-radius: 10px; background: var(--seg-off); opacity: .7; }
+.ios-app { display: flex; flex-direction: column; align-items: center; gap: 4px; animation: appear 1.2s var(--ease) .3s both; }
+.ios-app .glyph { width: 100%; aspect-ratio: 1; border-radius: 10px; background: var(--card); padding: 9px 5px; box-shadow: 0 6px 14px -8px rgba(0,0,0,.4); color: var(--ink); }
+.ios-app small { font-size: 9px; color: var(--quiet); }
+@keyframes appear { from { opacity: 0; transform: scale(.6); } }
+.ios-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ios-steps li { display: grid; grid-template-columns: 22px 40px 1fr; gap: 10px; align-items: center; padding: 12px 8px; border-top: 1px solid var(--hair); font-size: 15px; }
+.ios-steps .n { font: 500 12px/1 var(--mono); color: var(--quiet); }
+.ios-steps .step-ico { width: 40px; height: 40px; border-radius: 12px; background: var(--panel); display: grid; place-items: center; }
+.ios-steps .step-ico .ico { width: 20px; height: 20px; }
+
+/* Offline */
+.offline-bar { position: fixed; z-index: 29; left: 50%; top: calc(env(safe-area-inset-top, 0px) + var(--top-h) + 10px); transform: translate(-50%, -12px); opacity: 0; pointer-events: none;
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px 10px 12px; border-radius: 18px; background: var(--hero); color: var(--hero-ink); box-shadow: var(--lift);
+  transition: opacity 300ms var(--ease), transform 420ms var(--ease); width: max-content; max-width: calc(100vw - 32px); }
+[data-offline] .offline-bar { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.offline-bar .dots { display: grid; grid-template-columns: repeat(3, 5px); gap: 3px; }
+.offline-bar .dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--hero-ink); opacity: .35; }
+.offline-bar .dots i:nth-child(3n) { opacity: .9; } .offline-bar .dots i:nth-child(3n+2) { opacity: .6; }
+.offline-bar b { font: 700 14px/1.2 var(--disp); display: block; }
+.offline-bar small { display: block; font-size: 12px; color: var(--hero-quiet); }
+.recent-row.queued { opacity: .85; }
+.recent-row .dotline { flex: 1; height: 2px; min-width: 40px; background-image: radial-gradient(circle, var(--rule) 1px, transparent 1.2px); background-size: 6px 2px; }
+
+/* Keyboard: keep docked composers above it; hide the go bar while typing */
+.kb-open .home-dock, .kb-open .follow { transform: translateY(calc(-1 * var(--kb, 0px))); }
+.kb-open .go-bar { display: none; }
+
+/* Edge swipe back (installed iPhone app) */
+.edge-back { position: fixed; left: 0; top: 0; z-index: 95; width: 44px; height: 44px; border-radius: 50%; background: var(--ink); color: var(--paper); display: grid; place-items: center; opacity: 0; pointer-events: none; transition: opacity 160ms, background 160ms; }
+.edge-back svg { width: 22px; height: 22px; }
+.edge-back.armed { box-shadow: 0 0 0 6px color-mix(in srgb, var(--ink) 18%, transparent); }
+
+/* Installed app: a touch more room under the status bar */
+.standalone .top { padding-top: 2px; }
+@media (display-mode: standalone) { .xhair { top: calc(env(safe-area-inset-top, 0px) + var(--top-h) + 10px) !important; } }
+
+@media (max-width: 759px) {
+  .toast { top: calc(env(safe-area-inset-top, 0px) + var(--top-h) + 10px); bottom: auto; transform: translate(-50%, -16px); }
+  .toast.show { transform: translate(-50%, 0); }
+  [data-offline] .toast { top: calc(env(safe-area-inset-top, 0px) + var(--top-h) + 18px + var(--ob-h, 64px)); }
+}

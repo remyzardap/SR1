@@ -204,6 +204,9 @@
     navOpen: false,
   };
   const RM = () => state.reduce || mqReduce.matches;
+  const isPhone = () => window.innerWidth < 760;
+  /* A light haptic tick on selection (Android); silently ignored where unsupported */
+  const tick = () => { try { if (navigator.vibrate && !RM()) navigator.vibrate(8); } catch (e) { /* not allowed here */ } };
 
   /* ── View lifecycle ────────────────────────────────────────────────── */
   let life = [];
@@ -345,7 +348,10 @@
   const TITLES = { files: "Files", settings: "Settings" };
   let cur = "";
   const main = () => $("#main");
-  function go(v) { if (location.hash.slice(1) === v) renderView(); else location.hash = v; }
+  function go(v) {
+    if (history.state && (history.state.nav || history.state.sheet)) { history.replaceState(null, "", "#" + v); route(); return; }
+    if (location.hash.slice(1) === v) renderView(); else location.hash = v;
+  }
   function route() {
     let v = location.hash.slice(1) || "home";
     if (!VIEWS[v]) v = "home";
@@ -409,15 +415,51 @@
     const nb = $("#navBar"); if (nb && state.navOpen) drawBar(nb, s.p, { mode: "converge", t: performance.now() });
   }
   function openNav() {
-    state.navOpen = true; document.body.classList.add("nav-open");
+    state.navOpen = true; document.body.classList.add("nav-open"); tick();
+    try { history.pushState({ nav: true }, "", location.href); } catch (e) { /* sandboxed */ }
     $("#logoBtn").setAttribute("aria-expanded", "true"); $("#nav").removeAttribute("inert"); $("#nav").setAttribute("aria-hidden", "false");
     renderNav(); setTimeout(() => { const f = $("#nav [aria-current]") || $("#nav button"); f && f.focus({ preventScroll: true }); }, 60);
   }
-  function closeNav(silent) {
+  function closeNav(silent, fromPop) {
     if (!state.navOpen) return;
     state.navOpen = false; document.body.classList.remove("nav-open");
+    if (!fromPop && history.state && history.state.nav) { try { history.back(); } catch (e) { /* sandboxed */ } }
     $("#logoBtn").setAttribute("aria-expanded", "false"); $("#nav").setAttribute("inert", ""); $("#nav").setAttribute("aria-hidden", "true");
     if (!silent) $("#logoBtn").focus({ preventScroll: true });
+  }
+
+  /* ── Bottom sheet: grab handle, swipe down to dismiss, back button closes it ── */
+  function openSheet(o) {
+    const wrap = document.createElement("div");
+    wrap.className = "sheet-wrap";
+    wrap.innerHTML = `<div class="sheet-scrim"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(o.label)}"><span class="grab" aria-hidden="true"></span>${o.html}</div>`;
+    document.body.appendChild(wrap);
+    const panel = $(".sheet", wrap), prevFocus = document.activeElement;
+    requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add("open")));
+    tick();
+    let pushed = false;
+    try { history.pushState({ sheet: true }, "", location.href); pushed = true; } catch (e) { /* sandboxed */ }
+    let closed = false;
+    const close = (fromPop) => {
+      if (closed) return; closed = true;
+      wrap.classList.remove("open");
+      setTimeout(() => wrap.remove(), RM() ? 0 : 420);
+      window.removeEventListener("popstate", onPop); document.removeEventListener("keydown", onKey);
+      if (!fromPop && pushed && history.state && history.state.sheet) { try { history.back(); } catch (e) { /* ignore */ } }
+      if (prevFocus && prevFocus.focus) prevFocus.focus({ preventScroll: true });
+      o.onClose && o.onClose();
+    };
+    const onPop = () => close(true);
+    const onKey = (e) => { if (e.key === "Escape") close(); };
+    window.addEventListener("popstate", onPop); document.addEventListener("keydown", onKey);
+    $(".sheet-scrim", wrap).addEventListener("click", () => close());
+    panel.addEventListener("click", (e) => { if (e.target.closest("[data-close]")) close(); else if (o.onClick) o.onClick(e, close); });
+    let y0 = null, dy = 0;
+    panel.addEventListener("touchstart", (e) => { if (panel.scrollTop > 0) return; y0 = e.touches[0].clientY; dy = 0; panel.style.transition = "none"; }, { passive: true });
+    panel.addEventListener("touchmove", (e) => { if (y0 == null) return; dy = Math.max(0, e.touches[0].clientY - y0); panel.style.transform = `translateY(${dy}px)`; }, { passive: true });
+    panel.addEventListener("touchend", () => { if (y0 == null) return; panel.style.transition = ""; panel.style.transform = ""; y0 = null; if (dy > 90) close(); });
+    setTimeout(() => { const f = $("button, [href], input", panel); f && f.focus({ preventScroll: true }); }, 80);
+    return { close, panel };
   }
 
   /* ── Toast ─────────────────────────────────────────────────────────── */
@@ -448,6 +490,22 @@
   /* ═════════════════════════ VIEWS ═════════════════════════ */
   const VIEWS = {};
 
+  /* ── Install (PWA) ─────────────────────────────────────────────────── */
+  function installCard() {
+    const P = window.SutaeruPWA, st = P && P.state();
+    if (!st) return "";
+    return `<div class="install card"><span class="install-ico">${GLYPH("glyph")}</span><span class="tx"><b>${st === "ios" ? "Add Sutaeru to your Home Screen" : "Install Sutaeru"}</b><small>Full screen, opens instantly, works offline.</small></span>
+      <span class="install-acts"><button class="btn ink" data-install="go">${st === "ios" ? "Show me" : "Install"}</button><button class="btn ghost" data-install="dismiss">Not now</button></span></div>`;
+  }
+  function iosGuide() {
+    const share = '<svg viewBox="0 0 96 96" class="ico" aria-hidden="true"><path d="M48 14v46M32 30l16-16 16 16M30 42H22v40h52V42h-8"/></svg>';
+    const add = '<svg viewBox="0 0 96 96" class="ico" aria-hidden="true"><rect x="18" y="18" width="60" height="60" rx="14"/><path d="M48 34v28M34 48h28"/></svg>';
+    openSheet({ label: "Add to Home Screen", html: `<p class="mono sheet-title">Add to Home Screen</p>
+      <div class="ios-phone" aria-hidden="true"><div class="ios-grid">${Array.from({ length: 11 }, () => "<i></i>").join("")}<span class="ios-app">${GLYPH("glyph")}<small>Sutaeru</small></span></div></div>
+      <ol class="ios-steps"><li><span class="n">1</span><span class="step-ico">${share}</span><span>Tap <b>Share</b> in Safari's toolbar</span></li><li><span class="n">2</span><span class="step-ico">${add}</span><span>Choose <b>Add to Home Screen</b></span></li><li><span class="n">3</span><span class="step-ico">${icon("check")}</span><span>Tap <b>Add</b>. Sutaeru opens full screen from now on.</span></li></ol>
+      <button class="btn ink big sheet-done" data-close>Got it</button>` });
+  }
+
   /* ── Home ──────────────────────────────────────────────────────────── */
   const RAMP = [1.2, 1.8, 2.4, 3, 3.6, 4.2, 4.8, 5.4, 5.4, 4.8, 4.2, 3.6, 3, 2.4, 1.8, 1.2];
   VIEWS.home = {
@@ -472,7 +530,7 @@
             <form class="composer dock" id="composer" autocomplete="off">
               <div class="attachments" id="atts"></div>
               <label class="sr" for="q">Ask Sutaeru</label>
-              <textarea id="q" rows="1" placeholder="Ask anything…" enterkeyhint="send"></textarea>
+              <textarea id="q" rows="1" placeholder="${state.offline ? "Ask now. It sends when you reconnect." : "Ask anything…"}" enterkeyhint="send"></textarea>
               <div class="ctrls">
                 <button type="button" class="icon-btn flat" id="attachBtn" aria-label="Add photos or files" aria-expanded="false">${icon("plus")}</button>
                 <button type="button" class="pill mode-pill" id="thinkBtn" aria-pressed="${ch.thinking}">${icon("make")}Thinking</button>
@@ -487,6 +545,7 @@
         <div class="home-lists">
           <div class="sec-label" style="margin-top:6px"><span class="mono">Recently updated</span></div>
           <div class="recent">
+            ${state.queue ? `<div class="recent-row queued"><span class="st">${icon("send")}</span><span class="tx"><b>${esc(state.queue)}</b><span class="sub"><span class="mono">Waiting to send</span><i class="dotline"></i></span></span></div>` : ""}
             ${runRow}
             <button class="recent-row" data-act="open-answer"><span class="st">${icon("check")}</span><span class="tx"><b>${esc(SAMPLE_Q)}</b></span><span class="when">Yesterday</span></button>
             <button class="recent-row" data-act="open-file" data-i="3"><span class="st thumb-ph" style="position:relative">${SP.comp({ light: "window", shot: "close" }, { size: "t", w: 40 })}</span><span class="tx"><b>Ceramic mug, morning light</b></span><span class="when">2 days ago</span></button>
@@ -497,6 +556,7 @@
             <span class="cols art-deco" aria-hidden="true">${[1.6, 2.8, 4].map((d) => `<span>${Array.from({ length: 5 }, () => `<i style="width:${d}px;height:${d}px"></i>`).join("")}</span>`).join("")}</span>
             <span class="go">${icon("upright")}</span>
           </button>
+          ${installCard()}
         </div>
       </section>`;
     },
@@ -524,6 +584,11 @@
         e.preventDefault();
         const text = q.value.trim();
         if (!text && !ch.atts.length) { startListening(); return; }
+        tick();
+        if (state.offline) {
+          state.queue = text || "Summarise the attached file"; q.value = ""; grow(); syncSend();
+          toast("Saved. It sends when you reconnect.", "send"); renderView(); return;
+        }
         state.q = text || "Summarise the attached file";
         state.answerPlayed = false; state.thread = [];
         go("answer");
@@ -540,13 +605,32 @@
       }
       $("#thinkBtn", m).addEventListener("click", (e) => { ch.thinking = !ch.thinking; e.currentTarget.setAttribute("aria-pressed", ch.thinking); toast(ch.thinking ? "Thinking on: slower, more careful answers" : "Thinking off", ch.thinking ? "make" : "check"); });
       $("#privBtn", m).addEventListener("click", (e) => { ch.priv = !ch.priv; e.currentTarget.setAttribute("aria-pressed", ch.priv); $("#view-home").classList.toggle("private-on", ch.priv); });
-      $("#attachBtn", m).addEventListener("click", (e) => popover(e.currentTarget, "attach"));
-      $("#srcBtn", m).addEventListener("click", (e) => popover(e.currentTarget, "sources"));
+      $("#attachBtn", m).addEventListener("click", (e) => (isPhone() ? sheet("attach") : popover(e.currentTarget, "attach")));
+      $("#srcBtn", m).addEventListener("click", (e) => (isPhone() ? sheet("sources") : popover(e.currentTarget, "sources")));
+      $$("[data-install]", m).forEach((b) => b.addEventListener("click", () => {
+        const P = window.SutaeruPWA; if (!P) return;
+        if (b.dataset.install === "dismiss") { P.dismiss(); renderView(); return; }
+        P.state() === "ios" ? iosGuide() : P.install().then(() => renderView());
+      }));
       renderAtts();
       syncSend();
       const hb = $("#homeBar", m);
       if (hb) loop((t) => { drawBar(hb, state.session.p, { mode: "converge", t }); const pc = $("#homePct", m); if (pc) pc.textContent = Math.round(state.session.p * 100) + "%"; });
 
+      function sheetHTML(kind) {
+        if (kind === "attach") return `<p class="mono sheet-title">Add to this chat</p>
+            <button class="pop-item" data-add="file"><span class="pi">${icon("files")}</span><span><b>Photos and files</b><small>PDF, images, sheets up to 50 MB</small></span></button>
+            <button class="pop-item" data-add="camera"><span class="pi">${icon("camera")}</span><span><b>Take a photo</b><small>Snap a page, a receipt, a whiteboard</small></span></button>
+            <button class="pop-item" data-add="drive"><span class="pi"><span style="font:700 13px/1 var(--disp)">G</span></span><span><b>From Google Drive</b><small>Connected as remy@sutaeru.com</small></span></button>`;
+        return `<p class="mono sheet-title">Search in</p><div class="pop-toggles">${[["web", "Web", "News, papers and public sites"], ["files", "My files", "Everything in Files"], ["memory", "Memory", "What Sutaeru knows about you"]].map(([key, lb, sub]) => `<div class="toggle-row"><div class="tx"><b>${lb}</b><small>${sub}</small></div><button class="toggle" role="switch" aria-checked="${ch.srcs[key]}" aria-label="${lb}" data-src="${key}"></button></div>`).join("")}</div><button class="btn ink big sheet-done" data-close>Done</button>`;
+      }
+      function sheet(kind) {
+        openSheet({ label: kind === "attach" ? "Add to this chat" : "Sources", html: sheetHTML(kind), onClick: (e, close) => {
+          const add = e.target.closest("[data-add]"), sw = e.target.closest("[data-src]");
+          if (add) { addAtt(add.dataset.add); close(); }
+          if (sw) { tick(); const key = sw.dataset.src; ch.srcs[key] = !ch.srcs[key]; sw.setAttribute("aria-checked", ch.srcs[key]); const n = Object.values(ch.srcs).filter(Boolean).length; $("#srcLabel", m).textContent = ch.srcs.web ? (n > 1 ? `Web +${n - 1}` : "Web") : n ? `${n} sources` : "No sources"; }
+        } });
+      }
       function popover(anchor, kind) {
         const wrap = $("#cw", m);
         const open = $(".popover", wrap);
@@ -615,6 +699,7 @@
       return `<section class="view view-enter" id="view-answer">
         <div class="answer-grid">
           <div class="answer-main">
+            <button class="btn ghost backlink" data-go="home">${icon("back")}Chat</button>
             <p class="mono">Chat · ${state.chat.thinking ? "Thinking" : "Example answer"}</p>
             <h1 class="title q-title">${esc(state.q)}</h1>
             <div class="search-line" id="searchLine">${played ? `${stepped(4, 4, -1, 8, 4)}<span class="mono">Searched 14 sources · 6 s</span>` : `${orb("run")}<span class="mono" id="searchTxt">Searching the web · 0 of 14</span>`}</div>
@@ -746,7 +831,7 @@
       m.addEventListener("click", (e) => {
         const o = e.target.closest("[data-out]");
         if (o) {
-          const before = a.out; a.out = o.dataset.out;
+          const before = a.out; a.out = o.dataset.out; tick();
           $$("[data-out]", m).forEach((b) => { const on = b === o; b.classList.toggle("is-on", on); b.setAttribute("aria-checked", on); });
           const br = $("#brief", m);
           if (before !== "image" && (br.value === KINDS[before]?.brief || !br.value.trim())) br.value = a.out === "image" ? state.studio.prompt : KINDS[a.out].brief;
@@ -809,7 +894,7 @@
       const st = state.studio;
       const [sug, why] = suggestEngine(), eng = engineOf();
       return `<section class="view view-enter" id="view-studio">
-        <div class="studio-head">${stepsHTML(1)}<h1 class="title">Set up the shot.</h1><p class="lede" style="margin-top:10px">Each tile is your picture with that one choice changed. Pick what you see, and Sutaeru draws it.</p></div>
+        <div class="studio-head"><button class="btn ghost backlink" data-go="agent">${icon("back")}Agent</button>${stepsHTML(1)}<h1 class="title">Set up the shot.</h1><p class="lede" style="margin-top:10px">Each tile is your picture with that one choice changed. Pick what you see, and Sutaeru draws it.</p></div>
         <div class="studio-grid">
           <div class="vf-col">
             <div class="vf" id="vf">
@@ -851,6 +936,13 @@
         const w = Math.min(W, H * r); fr.style.width = w + "px"; fr.style.height = w / r + "px"; fr.style.marginTop = "18px"; st.frameW = w;
       };
       onRedraw(sizeFrame);
+      /* On phones the viewfinder shrinks as the options scroll, like a camera app */
+      if (window.innerWidth < 1100) {
+        const vf = $("#vf", m), col = vf.parentElement, H0 = vf.clientHeight, H1 = Math.round(H0 * 0.62); let rq = 0;
+        const top0 = col.getBoundingClientRect().top + window.scrollY - ($(".top").offsetHeight || 60);
+        const onScroll = () => { if (rq) return; rq = requestAnimationFrame(() => { rq = 0; const y = Math.max(0, window.scrollY - top0); const h = Math.round(Math.max(H1, H0 - y * 0.6)); if (vf.style.height !== h + "px") { vf.style.height = h + "px"; sizeFrame(); } }); };
+        window.addEventListener("scroll", onScroll, { passive: true }); onLeave(() => window.removeEventListener("scroll", onScroll));
+      }
       const readout = () => {
         $("#readout", m).innerHTML = GROUPS.map(([g]) => { const o = SC.byId(g, st.p[g]); return `<span class="mono">${g === "ratio" ? "" : (g === "angle" ? "Angle" : g[0].toUpperCase() + g.slice(1)) + " "}<b>${g === "ratio" ? o.id : o.label}</b></span>`; }).join("");
       };
@@ -891,12 +983,12 @@
       m.addEventListener("click", (e) => {
         const o = e.target.closest(".opt");
         if (o) {
-          const g = o.dataset.g; st.p[g] = o.dataset.v;
+          const g = o.dataset.g; st.p[g] = o.dataset.v; tick();
           $$(`.opt[data-g="${g}"]`, m).forEach((b) => b.setAttribute("aria-checked", b === o));
           const sel = SC.byId(g, st.p[g]); $(`[data-why="${g}"]`, m).textContent = `${sel.label} · ${sel.sub}`;
           all(g); return;
         }
-        const en = e.target.closest("[data-engine]"); if (en) { st.engine = en.dataset.engine; engines(); goBar(); return; }
+        const en = e.target.closest("[data-engine]"); if (en) { tick(); st.engine = en.dataset.engine; engines(); goBar(); return; }
         const q = e.target.closest("[data-q]"); if (q) { st.quality = q.dataset.q; $$("[data-q]", m).forEach((b) => b.setAttribute("aria-pressed", b === q)); placeSegs(); goBar(); return; }
         const c = e.target.closest("[data-count]"); if (c) { st.count = +c.dataset.count; $$("[data-count]", m).forEach((b) => b.setAttribute("aria-checked", b === c)); goBar(); return; }
       });
@@ -924,7 +1016,7 @@
       const lede = done ? `Took ${im.took} s. Saved to My Files.` : stopped ? "Your prompt and every setting are saved. Try again or hand it to another engine." : "You can leave this screen. Sutaeru keeps drawing and saves it to Files.";
       const others = SC.ENGINES.filter((x) => x.id !== im.engine);
       return `<section class="view view-enter" id="view-image">
-        <div class="studio-head">${stepsHTML(done ? 3 : 2)}<h1 class="title">${title}</h1><p class="lede" style="margin-top:10px">${lede}</p></div>
+        <div class="studio-head"><button class="btn ghost backlink" data-go="studio">${icon("back")}Studio</button>${stepsHTML(done ? 3 : 2)}<h1 class="title">${title}</h1><p class="lede" style="margin-top:10px">${lede}</p></div>
         <div class="run-grid">
           <div>
             <div class="run-stage"><div class="run-frame" id="rf" style="view-transition-name:shot"><div class="scene">${SP.comp(v.p, { size: "l", w: 560, name: v.name })}</div><canvas id="rc" aria-hidden="true"></canvas><span class="tag chip-on" id="rchip">${done ? `Done · took ${im.took} s` : stopped ? "Stopped" : `${e.name} · ${im.quality === "high" ? "High" : "Standard"}`}</span></div></div>
@@ -1001,7 +1093,7 @@
       return `<section class="view view-enter" id="view-session">
         <div class="sess-head">
           <div class="tx">
-            <button class="btn ghost" data-go="home" style="margin-left:-16px">${icon("back")}Chats</button>
+            <button class="btn ghost backlink" data-go="home">${icon("back")}Home</button>
             <h1 class="title" style="margin-top:6px">${esc(k.title)}</h1>
             <div class="sess-meta" id="sessMeta"></div>
           </div>
@@ -1070,6 +1162,11 @@
       m.addEventListener("click", (e) => {
         const a = e.target.closest("[data-act]"); if (!a) return;
         const act = a.dataset.act;
+        if (act === "ask-stop" && isPhone()) {
+          openSheet({ label: "Stop this session", html: `<p class="mono sheet-title">Stop this session?</p><p class="sheet-p">Sutaeru keeps what it found so far. You can resume it later from Home.</p><div class="sheet-acts"><button class="btn alert big" data-sheet="stop">${icon("stop")}Stop session</button><button class="btn big" data-close>Keep working</button></div>`,
+            onClick: (ev, close) => { if (ev.target.closest('[data-sheet="stop"]')) { close(); s.confirm = false; s.status = "stopped"; s.stoppedAt = Date.now(); lastSig = ""; updateTop(); toast("Stopped. What it found is kept.", "pause"); } } });
+          return;
+        }
         if (act === "ask-stop") { s.confirm = true; lastSig = ""; }
         if (act === "keep") { s.confirm = false; lastSig = ""; }
         if (act === "stop") { s.confirm = false; s.status = "stopped"; s.stoppedAt = Date.now(); lastSig = ""; updateTop(); toast("Stopped. What it found is kept.", "pause"); }
@@ -1084,7 +1181,7 @@
     html() {
       const s = state.session, k = KINDS[s.type], r = k.result;
       return `<section class="view view-enter" id="view-done">
-        <button class="btn ghost" data-go="session" style="margin-left:-16px">${icon("back")}${esc(k.title)}</button>
+        <button class="btn ghost backlink" data-go="session">${icon("back")}${esc(k.title)}</button>
         <div class="hero-card result" style="margin-top:12px">
           <span class="done-stamp${state.stamped ? "" : " pressing"}">${SB.stamp()}</span>
           <div class="result-doc">${SD.html(s.type, { title: r.title })}<span class="doc-stamp${state.stamped ? "" : " pressing"}">${SB.stamp()}</span></div>
@@ -1214,7 +1311,7 @@
         const t = e.target.closest("[data-theme-opt]");
         if (t) { state.theme = t.dataset.themeOpt; store.set("theme", state.theme); applyPrefs(); $$("[data-theme-opt]", m).forEach((b) => b.setAttribute("aria-checked", b === t)); redraws.forEach((f) => f()); }
       });
-      const bindT = (id, fn) => $(id, m).addEventListener("click", (e) => { const on = e.currentTarget.getAttribute("aria-checked") !== "true"; e.currentTarget.setAttribute("aria-checked", on); fn(on); });
+      const bindT = (id, fn) => $(id, m).addEventListener("click", (e) => { tick(); const on = e.currentTarget.getAttribute("aria-checked") !== "true"; e.currentTarget.setAttribute("aria-checked", on); fn(on); });
       bindT("#artT", (on) => { state.art = on; store.set("art", on); applyPrefs(); });
       bindT("#rmT", (on) => { state.reduce = on; store.set("reduce", on); applyPrefs(); });
       bindT("#tgT", () => {}); bindT("#monT", () => {}); bindT("#digT", () => {});
@@ -1263,6 +1360,19 @@
     go("session");
   }
 
+  /* ── Offline ───────────────────────────────────────────────────────── */
+  function setOffline(off) {
+    if (state.offline === off) return;
+    state.offline = off;
+    document.documentElement.toggleAttribute("data-offline", off);
+    const ob = $(".offline-bar"); if (off && ob) document.documentElement.style.setProperty("--ob-h", ob.offsetHeight + "px");
+    if (!off && state.queue) {
+      const q = state.queue; state.queue = null;
+      toast("Back online. Sending your question.", "send");
+      setTimeout(() => { state.q = q; state.answerPlayed = false; state.thread = []; go("answer"); }, 700);
+    } else if (cur === "home") renderView();
+  }
+
   /* ── Prefs, theme, boot ────────────────────────────────────────────── */
   function applyPrefs() {
     const r = document.documentElement;
@@ -1279,6 +1389,15 @@
     $("#avatarBtn").addEventListener("click", () => go("settings"));
     $("#logoBtn").addEventListener("click", () => (state.navOpen ? closeNav() : openNav()));
     $("#scrim").addEventListener("click", () => closeNav());
+    window.addEventListener("popstate", () => { if (state.navOpen && !(history.state && history.state.nav)) closeNav(true, true); });
+    { /* swipe the menu closed */
+      const nav = $("#nav"); let x0 = null, dx = 0;
+      nav.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; dx = 0; nav.style.transition = "none"; }, { passive: true });
+      nav.addEventListener("touchmove", (e) => { if (x0 == null) return; dx = Math.min(0, e.touches[0].clientX - x0); nav.style.transform = `translateX(${dx}px)`; }, { passive: true });
+      nav.addEventListener("touchend", () => { if (x0 == null) return; nav.style.transition = ""; nav.style.transform = ""; x0 = null; if (dx < -70) closeNav(); });
+    }
+    state.offline = false;
+    if (navigator.onLine === false) setOffline(true);
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (state.navOpen) closeNav(); const pop = $(".popover"); if (pop) pop.remove(); } });
     $("#nav").setAttribute("inert", ""); $("#nav").setAttribute("aria-hidden", "true");
     let hyd = 0;
@@ -1289,5 +1408,6 @@
     state.booted = true;
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeSegs(); redraws.forEach((f) => f()); });
   }
+  window.SutaeruApp = { setOffline, toast, go, renderView: () => renderView(), state, cur: () => cur, openSheet };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 })();

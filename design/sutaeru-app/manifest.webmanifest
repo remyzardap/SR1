@@ -9,13 +9,94 @@
   "background_color": "#F7F6F2",
   "theme_color": "#F7F6F2",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "shortcuts": [
-    { "name": "New chat", "url": "./index.html#home" },
-    { "name": "Hand off a task", "url": "./index.html#agent" },
-    { "name": "Make an image", "url": "./index.html#studio" }
+    {
+      "name": "New chat",
+      "url": "./index.html#home",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Hand off a task",
+      "url": "./index.html#agent",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Make an image",
+      "url": "./index.html#studio",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "id": "./?app=sutaeru",
+  "lang": "en",
+  "dir": "ltr",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "categories": [
+    "productivity",
+    "business",
+    "utilities"
+  ],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "screenshots": [
+    {
+      "src": "screens/home.jpg",
+      "sizes": "1170x2532",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Ask once. Sutaeru does the rest."
+    },
+    {
+      "src": "screens/studio.jpg",
+      "sizes": "1170x2532",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Set up the shot and see it before it is drawn"
+    },
+    {
+      "src": "screens/done.jpg",
+      "sizes": "1170x2532",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Finished files, stamped and sent"
+    }
   ]
 }
