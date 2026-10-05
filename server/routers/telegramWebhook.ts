@@ -8,7 +8,7 @@ import {
   type ChatImageCommand,
   type ChatImageSuccess,
 } from "../lib/chatImage";
-import { s1Blend, buildS1SystemPrompt, resolveBearer } from "./s1Router";
+import { kemmaExecute } from "../kemma/engine";
 
 /** Telegram chat actions expire after 5 s, so a long job refreshes the one it set. */
 const CHAT_ACTION_MS = 4_000;
@@ -91,68 +91,24 @@ export function registerTelegramWebhookRoute(app: Express) {
       // Send typing indicator
       await sendTelegramAction(chatId, "typing", TELEGRAM_TOKEN);
 
-      let s1Response: string;
+      const kemmaResult = await kemmaExecute({
+        userId: Number(telegramUserId),
+        userName: username,
+        channel: "telegram",
+        messages: [{ role: "user", content: messageText }],
+        tier: "max",
+        isThinking: false,
+        isVoice: false,
+        toolBudget: 20,
+      });
 
-      if (OPENCLAW_WEBHOOK) {
-        // Route through OpenClaw on VPS
-        console.log(`[Telegram] Forwarding to OpenClaw: ${OPENCLAW_WEBHOOK}`);
-        const openclawResponse = await globalThis.fetch(OPENCLAW_WEBHOOK, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: telegramUserId,
-            username,
-            message: messageText,
-            source: "telegram",
-            chatId,
-          }),
-        });
-
-        if (!openclawResponse.ok) {
-          console.error(`[Telegram] OpenClaw error: ${openclawResponse.status}`);
-          await sendTelegramMessage(chatId, "OpenClaw is thinking. Try again.", TELEGRAM_TOKEN);
-          return res.json({ ok: true });
-        }
-
-        const openclawData = await openclawResponse.json();
-        s1Response = openclawData.response || openclawData.message || "No response from OpenClaw.";
-      } else {
-        // Direct S1 routing (fallback)
-        console.log("[Telegram] No OpenClaw configured. Using direct S1 routing.");
-        const systemPrompt = buildS1SystemPrompt({ agent: "s1", label: "Kemma", reason: "chat", emoji: "🧠", color: "#E8442A" });
-
-        const { config: agentConfig, messages: fullMessages } = await s1Blend(
-          messageText,
-          [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: messageText },
-          ],
-          { draftMaxTokens: 500 },
-        );
-
-        const llmResponse = await globalThis.fetch(`${agentConfig.baseUrl}/chat/completions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${await resolveBearer(agentConfig)}`,
-          },
-          body: JSON.stringify({
-            model: agentConfig.model,
-            messages: fullMessages,
-            max_tokens: 500,
-          }),
-        });
-
-        if (!llmResponse.ok) {
-          const errText = await llmResponse.text();
-          console.error(`[Telegram] LLM error: ${llmResponse.status} ${errText}`);
-          await sendTelegramMessage(chatId, "S1 is thinking. Try again.", TELEGRAM_TOKEN);
-          return res.json({ ok: true });
-        }
-
-        const llmData = await llmResponse.json();
-        s1Response = llmData.choices?.[0]?.message?.content || "No response.";
+      if (kemmaResult.isError) {
+        console.error(`[Telegram] Kemma error: ${kemmaResult.response}`);
+        await sendTelegramMessage(chatId, "Kemma is thinking. Try again.", TELEGRAM_TOKEN);
+        return res.json({ ok: true });
       }
+
+      const s1Response = kemmaResult.response || "No response from Kemma.";
 
       // Send response back to Telegram
       await sendTelegramMessage(chatId, s1Response, TELEGRAM_TOKEN);

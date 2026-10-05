@@ -100,6 +100,16 @@ export default function Landing() {
           <span className="sk-label"><i /> All systems live</span>
         </div>
       </section>
+
+      <footer className="sk-land-foot">
+        <span className="sk-land-foot-brand"><LandingMark className="sk-land-glyph" /><span>Sutaeru</span></span>
+        <nav className="sk-land-foot-links" aria-label="Legal">
+          <Link href="/privacy">Privacy Policy</Link>
+          <Link href="/terms">Terms of Service</Link>
+          <Link href="/login">Sign in</Link>
+        </nav>
+        <span className="sk-land-foot-note">&copy; 2026 Sutaeru</span>
+      </footer>
     </div>
   );
 }

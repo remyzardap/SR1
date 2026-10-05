@@ -61,6 +61,7 @@ export interface ToolExecution {
 
 export interface EngineInput {
   userId: number; userName?: string; messages: KemmaMessage[];
+  channel?: "telegram" | "web" | "api";
   tier: Tier; isThinking: boolean; isVoice?: boolean; hasByos?: boolean; sessionId?: string;
   reportId?: string;
   polish?: boolean;
@@ -102,8 +103,31 @@ import { buildSkillIndex, type FileSkill } from "./fileSkills";
 import { getEnabledSkills } from "./skillReviews";
 import { getMcpRegistry } from "./mcp/client";
 
+function shouldSwitchToRoleplay(currentMessages: KemmaMessage[]): boolean {
+  const text = currentMessages.filter((m) => m.role === "user").map((m) => m.content ?? "").join("\n");
+  // Explicit opt-in trigger: "hey chels" switches immediately for the current conversation turn.
+  if (/\bhey\s+chels\b/i.test(text)) return true;
+  // Route explicit sexual/NSFW turns to the configured roleplay model. This is routing only;
+  // normal safety and age checks remain unchanged.
+  return false;
+}
+
 function selectRoute(input: EngineInput, currentMessages: KemmaMessage[], step: number, maxSteps: number): RouteConfig {
   const { isThinking, modelOverride } = input;
+
+  if (!input.isSubAgent && input.channel === "telegram") {
+    const model = shouldSwitchToRoleplay(currentMessages)
+      ? (process.env.KEMMA_MODEL_OPENROUTER_ROLEPLAY || "openrouter/sao10k/l3.3-euryale-70b")
+      : (process.env.KEMMA_MODEL_TELEGRAM || "venice/venice-uncensored-role-play");
+    const route = routeFor(model);
+    if (routeHasAuth(route)) return route;
+
+    // Chels trigger is Telegram-only. If Euryale is unavailable, stay on the Telegram roleplay lane.
+    if (shouldSwitchToRoleplay(currentMessages)) {
+      const telegramFallback = routeFor(process.env.KEMMA_MODEL_TELEGRAM || "venice/venice-uncensored-role-play");
+      if (routeHasAuth(telegramFallback)) return telegramFallback;
+    }
+  }
 
   if (modelOverride) {
     try {

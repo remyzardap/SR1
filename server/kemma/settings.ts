@@ -98,6 +98,11 @@ function hasProviderKey(provider: string): boolean {
     case "gemini": return !!process.env.GEMINI_API_KEY;
     case "litellm": return !!(process.env.LITELLM_API_KEY || process.env.KOBOILLM_API_KEY);
     case "venice": return !!process.env.VENICE_API_KEY;
+    case "nvidia": return !!process.env.NVIDIA_API_KEY;
+    case "deepseek": return !!process.env.DEEPSEEK_API_KEY;
+    case "kimi": return !!(process.env.KIMI_API_KEY || process.env.MOONSHOT_API_KEY);
+    case "glm": return !!(process.env.GLM_API_KEY || process.env.ZHIPU_API_KEY);
+    case "openrouter": return !!process.env.OPENROUTER_API_KEY;
     default: return false;
   }
 }

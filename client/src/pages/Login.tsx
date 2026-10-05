@@ -211,6 +211,7 @@ export default function Login() {
       </div>
 
       <p className="sk-auth-foot">Search <i>&middot;</i> Research <i>&middot;</i> Do</p>
+      <p className="sk-auth-legal">By signing in you agree to our <a href="/terms">Terms of Service</a> and acknowledge our <a href="/privacy">Privacy Policy</a>.</p>
     </div>
   );
 }

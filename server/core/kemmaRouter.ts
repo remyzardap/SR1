@@ -45,7 +45,7 @@ import {
 
 export type Tier = "free" | "trial" | "pro" | "max";
 export type TaskComplexity = "simple" | "medium" | "complex";
-export type ModelProvider = "qwen" | "perplexity" | "gemini" | "litellm" | "venice";
+export type ModelProvider = "qwen" | "perplexity" | "gemini" | "litellm" | "venice" | "nvidia" | "deepseek" | "kimi" | "glm" | "openrouter";
 
 export interface RouteInput {
   tier: Tier;
@@ -88,18 +88,34 @@ const DEFAULTS = {
   KEMMA_MODEL_VERIFY: "gemini-3.8-flash",
   KEMMA_MODEL_PRO: "gemini-3.1-pro-preview",
   KEMMA_MODEL_PRO_FALLBACK: "gemini-2.5-pro",
+  KEMMA_MODEL_NVIDIA: "nvidia/nemotron-3-super-120b-a12b",
+  KEMMA_MODEL_DEEPSEEK: "deepseek-v4-pro",
+  KEMMA_MODEL_KIMI: "kimi-k2.6",
+  KEMMA_MODEL_GLM: "glm-5.3",
+  KEMMA_MODEL_OPENROUTER_ROLEPLAY: "openrouter/sao10k/l3.3-euryale-70b",
+  KEMMA_MODEL_TELEGRAM: "venice/venice-uncensored-role-play",
   KEMMA_SEARCH_RPM: "40",
   QWEN_BASE_URL: "https://token-plan.maas.qwencloudapi.com/compatible-mode/v1",
   LITELLM_BASE_URL: "https://api.koboillm.com/v1",
   VENICE_BASE_URL: "https://api.venice.ai/api/v1",
+  NVIDIA_BASE_URL: "https://integrate.api.nvidia.com/v1",
+  DEEPSEEK_BASE_URL: "https://api.deepseek.com",
+  KIMI_BASE_URL: "https://api.moonshot.ai/v1",
+  GLM_BASE_URL: "https://open.bigmodel.cn/api/paas/v4",
+  OPENROUTER_BASE_URL: "https://openrouter.ai/api/v1",
 };
 
 // Endpoint per provider. Static ones are constants; the two configurable gateways are read at
 // call time so a value that lands in process.env after this module was imported (Secret Manager
 // fills it later: see _core/index.ts and the note in _core/env.ts) still takes effect.
-const STATIC_ENDPOINTS: Record<"perplexity" | "gemini", string> = {
+const STATIC_ENDPOINTS: Record<"perplexity" | "gemini" | "nvidia" | "deepseek" | "kimi" | "glm" | "openrouter", string> = {
   perplexity: "https://api.perplexity.ai",
   gemini: "https://generativelanguage.googleapis.com/v1beta/openai",
+  nvidia: "https://integrate.api.nvidia.com/v1",
+  deepseek: "https://api.deepseek.com",
+  kimi: "https://api.moonshot.ai/v1",
+  glm: "https://open.bigmodel.cn/api/paas/v4",
+  openrouter: "https://openrouter.ai/api/v1",
 };
 
 /** Configurable OpenAI-compatible base for the Qwen provider. Trailing slashes trimmed. */
@@ -143,6 +159,11 @@ export const ROUGH_PRICES_USD_PER_1M: Record<string, { input: number; output: nu
 
 const LITELLM_PREFIX = "litellm/";
 const VENICE_PREFIX = "venice/";
+const NVIDIA_PREFIX = "nvidia/";
+const DEEPSEEK_PREFIX = "deepseek/";
+const KIMI_PREFIX = "kimi/";
+const GLM_PREFIX = "glm/";
+const OPENROUTER_PREFIX = "openrouter/";
 
 /** Strips the litellm/ or venice/ routing prefix (case-insensitive); other ids are returned unchanged. */
 export function stripProviderPrefix(model: string): string {
@@ -161,9 +182,14 @@ export function detectProvider(model: string): ModelProvider {
   const lower = model.toLowerCase();
   if (lower.startsWith(LITELLM_PREFIX)) return "litellm";
   if (lower.startsWith(VENICE_PREFIX)) return "venice";
+  if (lower.startsWith(NVIDIA_PREFIX)) return "nvidia";
+  if (lower.startsWith(DEEPSEEK_PREFIX) || lower.includes("deepseek")) return "deepseek";
+  if (lower.startsWith(KIMI_PREFIX) || lower.includes("kimi-k")) return "kimi";
+  if (lower.startsWith(GLM_PREFIX) || lower.includes("glm-")) return "glm";
   if (lower.includes("qwen") || lower.includes("qwq")) return "qwen";
   if (lower.includes("sonar")) return "perplexity";
   if (lower.includes("gemini") || lower.includes("embedding")) return "gemini";
+  if (lower.includes("nemotron") || lower.startsWith("nvidia/")) return "nvidia";
   // Default is qwen, but say so once per id: silently misrouting e.g. an OpenAI id to
   // the Qwen endpoint fails later with a confusing provider 4xx and no local trace.
   if (lower && !warnedUnknownProviders.has(lower)) {
@@ -181,6 +207,11 @@ export function apiKeyFor(provider: ModelProvider): string {
     case "gemini": return process.env.GEMINI_API_KEY || "";
     case "litellm": return process.env.LITELLM_API_KEY || process.env.KOBOILLM_API_KEY || "";
     case "venice": return process.env.VENICE_API_KEY || "";
+    case "nvidia": return process.env.NVIDIA_API_KEY || "";
+    case "deepseek": return process.env.DEEPSEEK_API_KEY || "";
+    case "kimi": return process.env.KIMI_API_KEY || process.env.MOONSHOT_API_KEY || "";
+    case "glm": return process.env.GLM_API_KEY || process.env.ZHIPU_API_KEY || "";
+    case "openrouter": return process.env.OPENROUTER_API_KEY || "";
   }
 }
 
@@ -249,7 +280,13 @@ export type SlotName =
   | "KEMMA_MODEL_PLANNER"
   | "KEMMA_MODEL_VERIFY"
   | "KEMMA_MODEL_PRO"
-  | "KEMMA_MODEL_PRO_FALLBACK";
+  | "KEMMA_MODEL_PRO_FALLBACK"
+  | "KEMMA_MODEL_NVIDIA"
+  | "KEMMA_MODEL_DEEPSEEK"
+  | "KEMMA_MODEL_KIMI"
+  | "KEMMA_MODEL_GLM"
+  | "KEMMA_MODEL_OPENROUTER_ROLEPLAY"
+  | "KEMMA_MODEL_TELEGRAM";
 
 /**
  * The configured id for a slot exactly as env has it, provider prefix included. Slot builders
@@ -267,7 +304,7 @@ export function slotModelId(name: SlotName): string {
 export interface SelectableModel { id: string; label: string; tier: ModelProvider; hasKey: boolean }
 
 export function listSelectableModels(isAdmin = false): SelectableModel[] {
-  const slots = ["KEMMA_MODEL_CHAT", "KEMMA_MODEL_REPORT", "KEMMA_MODEL_LONG_DOC", "KEMMA_MODEL_VISION", "KEMMA_MODEL_PRO"] as const;
+  const slots = ["KEMMA_MODEL_CHAT", "KEMMA_MODEL_REPORT", "KEMMA_MODEL_LONG_DOC", "KEMMA_MODEL_VISION", "KEMMA_MODEL_PRO", "KEMMA_MODEL_NVIDIA", "KEMMA_MODEL_DEEPSEEK", "KEMMA_MODEL_KIMI", "KEMMA_MODEL_GLM", "KEMMA_MODEL_OPENROUTER_ROLEPLAY"] as const;
   const seen = new Set<string>();
   const out: SelectableModel[] = [];
   for (const slot of slots) {

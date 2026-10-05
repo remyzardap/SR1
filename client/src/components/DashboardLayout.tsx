@@ -29,7 +29,7 @@ import {
   LayoutGrid, GitBranch
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { CommandPalette } from './CommandPalette';
 import { FloatingVideoPlayer } from './FloatingVideoPlayer';
@@ -46,11 +46,11 @@ const menuItems: Array<{ icon: SutaeruIconName; label: string; path: string; gro
   { icon: "make", label: "Atelier", path: "/atelier", group: "workspace" },
   { icon: "image", label: "Images", path: "/images", group: "workspace" },
   { icon: "files", label: "Files", path: "/files", group: "workspace" },
-  { icon: "memory", label: "Memories", path: "/memories", group: "workspace" },
-  { icon: "models", label: "Skills", path: "/skills", group: "workspace" },
-  { icon: "schedule", label: "Monitors", path: "/monitors", group: "workspace" },
-  { icon: "connections", label: "Connections", path: "/connections", group: "workspace" },
-  { icon: "agent", label: "Identity", path: "/identity", group: "workspace" },
+  { icon: "memory", label: "Memories", path: "/memories", group: "intelligence" },
+  { icon: "models", label: "Skills", path: "/skills", group: "intelligence" },
+  { icon: "schedule", label: "Monitors", path: "/monitors", group: "intelligence" },
+  { icon: "connections", label: "Connections", path: "/connections", group: "account" },
+  { icon: "agent", label: "Identity", path: "/identity", group: "account" },
   { icon: "settings", label: "Settings", path: "/settings", group: "settings" },
 ];
 
@@ -352,26 +352,37 @@ function DashboardLayoutContent({
                 <PanelLeft className="h-4 w-4" />
               </button>
             ) : (
-              <div className="sk-shell-kicker">Workspace</div>
+              <>
+                <button type="button" className="sk-shell-new-chat" onClick={() => setLocation("/chat")}>
+                  <span aria-hidden="true">+</span>
+                  <span>New chat</span>
+                </button>
+                <div className="sk-shell-kicker">Workspace</div>
+              </>
             )}
-            <SidebarMenu className="sk-shell-menu">
-              {menuItems.filter((item) => item.group === "workspace").map((item) => {
-                const isActive = location === item.path || (item.path === "/atelier" && location === "/generate");
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      onClick={() => setLocation(item.path)}
-                      tooltip={item.label}
-                      className="sutaeru-nav-item sk-shell-item"
-                    >
-                      <SutaeruIcon name={item.icon} className="sk-shell-icon" />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
+            {(["workspace", "intelligence", "account"] as const).map((group) => (
+              <div key={group} className="sk-shell-nav-group">
+                {!isCollapsed && <div className="sk-shell-kicker">{group === "intelligence" ? "Intelligence" : group === "account" ? "Account" : "Workspace"}</div>}
+                <SidebarMenu className="sk-shell-menu">
+                  {menuItems.filter((item) => item.group === group).map((item) => {
+                    const isActive = location === item.path || (item.path === "/atelier" && location === "/generate");
+                    return (
+                      <SidebarMenuItem key={item.path}>
+                        <SidebarMenuButton
+                          isActive={isActive}
+                          onClick={() => setLocation(item.path)}
+                          tooltip={item.label}
+                          className="sutaeru-nav-item sk-shell-item"
+                        >
+                          <SutaeruIcon name={item.icon} className="sk-shell-icon" />
+                          <span>{item.label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </div>
+            ))}
 
             <SidebarMenu className="sk-shell-menu sk-shell-menu-bottom">
               {menuItems.filter((item) => item.group === "settings").map((item) => {
@@ -440,6 +451,11 @@ function DashboardLayoutContent({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <div className="sk-shell-legal">
+              <Link href="/privacy">Privacy</Link>
+              <span aria-hidden="true">&middot;</span>
+              <Link href="/terms">Terms</Link>
+            </div>
           </SidebarFooter>
         </Sidebar>
         <div

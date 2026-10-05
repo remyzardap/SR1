@@ -1,0 +1,173 @@
+/* Legal documents (/privacy, /terms) — long-form reading surfaces built on the
+   paper/ink tokens and the + corner motif shared by the auth and 404 screens. */
+
+.sk-legal {
+  position: relative;
+  min-height: 100dvh;
+  background: var(--art-paper);
+  color: var(--art-ink);
+  font-family: var(--font-b);
+  padding: 0 20px 64px;
+}
+
+.sk-legal-nav {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 0 0;
+}
+.sk-legal-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--art-ink);
+  text-decoration: none;
+  font: 600 18px var(--font-d);
+  letter-spacing: -0.02em;
+}
+.sk-legal-glyph { width: 44px; height: 24px; }
+.sk-legal-nav-links { display: flex; gap: 24px; }
+.sk-legal-nav-links a {
+  color: var(--art-quiet);
+  text-decoration: none;
+  font-size: 15.5px;
+}
+.sk-legal-nav-links a:hover,
+.sk-legal-nav-links a[aria-current="page"] { color: var(--art-ink); }
+
+.sk-legal-card {
+  position: relative;
+  width: 100%;
+  max-width: 820px;
+  margin: 28px auto 0;
+  background: #fff;
+  border-radius: 40px;
+  padding: 56px 56px 40px;
+  box-shadow: 0 30px 60px -28px rgb(36 35 32 / .28), 0 2px 0 rgb(36 35 32 / .03);
+  box-sizing: border-box;
+}
+
+.sk-legal-kicker { margin-bottom: 16px; }
+.sk-legal-title {
+  font: 700 40px/1.05 var(--font-d);
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+.sk-legal-updated {
+  color: var(--art-quiet);
+  font-size: 15px;
+  margin: 12px 0 0;
+}
+.sk-legal-summary {
+  margin: 28px 0 0;
+  padding: 18px 22px;
+  background: var(--sk-soft);
+  border-radius: 22px;
+  font-size: 15.5px;
+  line-height: 1.65;
+}
+.sk-legal-rule { border: 0; border-top: 1px solid var(--sk-track); margin: 36px 0 8px; }
+
+.sk-legal-section { margin-top: 34px; }
+.sk-legal-h2 {
+  font: 700 23px/1.25 var(--font-d);
+  letter-spacing: -0.02em;
+  margin: 0 0 14px;
+}
+.sk-legal-section p {
+  font-size: 16px;
+  line-height: 1.75;
+  margin: 0 0 14px;
+}
+.sk-legal-list { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.sk-legal-list li {
+  position: relative;
+  padding-left: 24px;
+  font-size: 16px;
+  line-height: 1.7;
+  margin: 0;
+}
+.sk-legal-list li::before {
+  content: '+';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  font: 500 14px/1.5 var(--sk-mono);
+  color: var(--neon-orange);
+}
+.sk-legal-list strong { font-weight: 600; }
+
+.sk-legal a {
+  color: var(--art-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--sk-track);
+  text-underline-offset: 3px;
+}
+.sk-legal a:hover { text-decoration-color: var(--neon-orange); }
+
+.sk-legal-foot {
+  margin-top: 40px;
+  padding-top: 22px;
+  border-top: 1px solid var(--sk-soft);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  align-items: center;
+  justify-content: space-between;
+}
+.sk-legal-foot-links { display: flex; flex-wrap: wrap; gap: 20px; }
+.sk-legal-foot-links a {
+  font: 500 11px var(--sk-mono);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--art-quiet);
+  text-decoration: none;
+}
+.sk-legal-foot-links a:hover { color: var(--art-ink); }
+
+.sk-legal-caption {
+  max-width: 820px;
+  margin: 26px auto 0;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .sk-legal-card { padding: 32px 22px 26px; border-radius: 32px; }
+  .sk-legal-title { font-size: 30px; }
+  .sk-legal-nav-links { display: none; }
+}
+
+/* ── Legal links elsewhere on the signed-out surfaces ───────────────────────
+   Loaded with the app stylesheet bundle, so the sign-in note and the landing
+   footer can point at /privacy and /terms without importing this file twice. */
+
+.sk-auth-legal { max-width: 480px; margin: 0; text-align: center; font-size: 13px; line-height: 1.6; color: var(--art-quiet); }.sk-auth-legal a { color: var(--art-ink); text-decoration: underline; text-decoration-color: var(--sk-track); text-underline-offset: 3px; }
+.sk-auth-legal a:hover { text-decoration-color: var(--neon-orange); }
+
+.sk-land-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 34px max(28px, calc((100vw - 1280px) / 2 + 28px)) 44px;
+  background: var(--art-paper);
+  color: var(--art-quiet);
+}
+.sk-land-foot-brand { display: inline-flex; align-items: center; gap: 12px; color: var(--art-ink); font: 600 16px var(--font-d); }
+.sk-land-foot-brand .sk-land-glyph { width: 34px; height: 19px; }
+.sk-land-foot-links { display: flex; gap: 26px; }
+.sk-land-foot-links a { color: var(--art-quiet); text-decoration: none; font-size: 15px; }
+.sk-land-foot-links a:hover { color: var(--art-ink); }
+.sk-land-foot-note { font: 500 11px var(--sk-mono); letter-spacing: .16em; text-transform: uppercase; }
+@media (max-width: 860px) { .sk-land-foot { padding: 28px 24px 36px; } .sk-land-foot-links { order: -1; width: 100%; gap: 18px; } }
+
+/* In-app links, under the account card in the workspace sidebar. */
+.sk-shell-legal { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 2px 0 0; font: 500 10px var(--sk-mono); letter-spacing: .14em; text-transform: uppercase; }
+.sk-shell-legal a { color: var(--art-quiet); text-decoration: none; }
+.sk-shell-legal a:hover { color: var(--art-ink); text-decoration: underline; text-underline-offset: 3px; }
+.sk-shell-legal span { color: var(--sk-track); }

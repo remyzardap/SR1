@@ -267,6 +267,22 @@ there). OpenAI images go to `{LITELLM_BASE_URL}/images/generations`.
 `KEMMA_MODEL_IMAGE` names a text model for the Kemma router (see the table above); the
 image function reads the same variable and expects a Gemini image model id.
 
+### Batch GPU image generation (Jarvis Labs)
+
+Offline batches, not the request path: `scripts/gpu-image/run.sh prompts.jsonl [out-dir]`
+creates a Jarvis Labs GPU, renders every prompt with diffusers (FLUX.1-schnell by
+default), downloads the PNGs and destroys the instance on exit. Needs the `jl` CLI
+(`pip install jarvislabs`). Prompt lines: `{"id","prompt","aspect"}`.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JL_API_KEY` | none | Jarvis Labs API token (or run `jl setup`) |
+| `JL_GPU` | `L4` | GPU type, see `jl gpus` |
+| `JL_STORAGE` | `60` | Instance storage in GB |
+| `IMG_MODEL` | `black-forest-labs/FLUX.1-schnell` | Hugging Face diffusers model |
+| `IMG_STEPS` | `4` | Inference steps (4 for schnell) |
+| `HF_TOKEN` | none | Only for gated models |
+
 ---
 
 ## Chat image commands

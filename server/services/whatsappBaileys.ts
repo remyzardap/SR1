@@ -40,6 +40,7 @@ let sock: WASocket | null = null;
 let stopping = false;
 let failures = 0;
 let resets: number[] = [];
+let unpaired = 0;
 
 export const waStatus: { state: "off" | "waiting" | "connecting" | "open"; pairingCode?: string; number?: string; note?: string } = { state: "off" };
 
@@ -152,6 +153,7 @@ async function connect() {
     }
     if (u.connection === "open") {
       failures = 0;
+      unpaired = 0;
       waStatus.state = "open";
       waStatus.pairingCode = undefined;
       waStatus.number = digits(s.user?.id);
@@ -177,6 +179,21 @@ async function connect() {
         await rm(authDir, { recursive: true, force: true }).catch(() => {});
         waStatus.number = undefined;
         return void setTimeout(() => connect().catch((e) => console.error("[WhatsApp] Reconnect failed:", e)), 30_000);
+      }
+      if (!s.authState.creds.registered) {
+        // Pairing never finished: those creds are half-made and WhatsApp rejects them (401) on reuse.
+        dead = true;
+        s.ev.removeAllListeners("creds.update");
+        unpaired += 1;
+        if (unpaired > 6) {
+          waStatus.state = "off";
+          waStatus.note = "No link completed after several codes. Restart the server to try again.";
+          console.warn("[WhatsApp] Pairing not completed after several codes; stopping");
+          return;
+        }
+        await rm(authDir, { recursive: true, force: true }).catch(() => {});
+        console.log("[WhatsApp] Code expired unused; starting a fresh attempt");
+        return void setTimeout(() => connect().catch((e) => console.error("[WhatsApp] Reconnect failed:", e)), 3000);
       }
       failures += 1;
       const delay = Math.min(5000 * 2 ** (failures - 1), 5 * 60_000);
