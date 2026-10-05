@@ -13,6 +13,7 @@ import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
 import AuditLogs from "./pages/AuditLogs";
 import Chat from "./pages/Chat";
+import Design from "./pages/Design";
 import CodeSessions from "./pages/CodeSessions";
 import Onboarding from "./pages/Onboarding";
 import Identity from "./pages/Identity";
@@ -130,6 +131,15 @@ function AppRoutes() {
           </DashboardLayout>
         ) : (
           <ProtectedRoute component={Chat} />
+        )}
+      </Route>
+      <Route path="/design">
+        {isAuthenticated ? (
+          <DashboardLayout noPadding>
+            <Design />
+          </DashboardLayout>
+        ) : (
+          <ProtectedRoute component={Design} />
         )}
       </Route>
       <Route path="/identity">
