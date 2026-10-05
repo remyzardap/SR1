@@ -68,9 +68,24 @@ Components live in `client/src/components/art/` (`art.css` holds the styles).
 
 Mobile chrome (`client/src/styles/chrome.css`): 94px sticky header with logo, mono label and 44px ink avatar; floating collapsible tab bar with safe-area clearance. Desktop keeps the sidebar.
 
+## Brand marks
+
+- `SutaeruGlyph` (`client/src/components/SutaeruGlyph.tsx`): the twin-lens loop with a Myōjin torii in the right lens and the sun rising through the gate. `detail="compact"` (default) for 48px and below; `detail="full"` adds the shimaki, plaque, sea line and the sun's reflection, for sign-in, splash and other large uses (`LandingMark` defaults to full). The left lens stays empty on purpose.
+- `SutaeruSeal` (`client/src/components/brand/SutaeruSeal.tsx`): name seal reading スタエル, right column first, cut out of a vermilion square. Beside the wordmark in the nav drawer and the landing nav.
+- `SutaeruStamp` (same file): 済 in a double ring, pressed onto finished work only (a finished image).
+- Kana are SVG paths (`brand/kana.ts`, Shippori Mincho, OFL), so no Japanese font is needed.
+- Share image: `client/public/og-image.png` (1200×630).
+
+## Image studio
+
+- On the Images "Your picture" step, a live viewfinder composes real photographs (Unsplash, `client/public/studio/`) to preview Shot, Camera angle, Lens, Light, Look and Shape. Every tile is the current picture with that one choice changed.
+- The viewfinder sticks under the header and shrinks as the options scroll; a sticky bar holds the engine summary and Create image.
+- The choices reach the engine as one sentence appended to the prompt (`direction()` in `client/src/lib/studio.ts`). It is off until the person taps a tile or the switch, and the exact words are shown above the options.
+- Sticky positioning depends on nothing between the page and the window being a scroll container: `html, body` use `overflow-x: clip`, and padded dashboard pages use `.sk-inset-flow`.
+
 ## PWA
 
-- Manifest (`client/public/manifest.webmanifest`): name "Sutaeru", standalone, portrait, scope `/`, background and theme colour `#242320`; icons 192, 512 and maskable 512; shortcuts for Chat and Files.
+- Manifest (`client/public/manifest.webmanifest`): name "Sutaeru", standalone, portrait, scope `/`, background and theme colour `#F7F6F2` (the light paper, matching `index.html`); icons 192, 512 and maskable 512; shortcuts for Chat and Files.
 - `client/index.html`: `viewport-fit=cover`, apple-mobile-web-app-capable, black-translucent status bar, `theme-color` `#F7F6F2` swapped at runtime by an inline script.
 - Service worker (`client/public/sw.js`, v2): network-first with cache fallback; skips `/api` and `/trpc`; handles push and notification clicks. There is no offline app shell.
 - Safe areas: header, tab bar and bottom clearance use `env(safe-area-inset-*)`.
@@ -86,8 +101,8 @@ Design source: Moda canvas "Sutaeru Mobile" (page names match the screens below)
 
 ## Open issues and decisions
 
-1. `client/public/logo.svg` is still the old tree-canopy drawing; the app icons, favicon and header use the torii-gate twin-lens mark. Replace it or remove it.
-2. Manifest `theme_color` is `#242320` while `index.html` uses `#F7F6F2`. Decide one rule (light value, dark value, or per-theme) and apply it to both.
+1. Resolved: `logo.svg` (light, for dark grounds) and `logo-dark.svg` (ink, for light grounds) now hold the new mark, the icons and favicon were redrawn from it, and the unused off-brand `logo-mark.png` was removed.
+2. Resolved: the manifest uses the light paper `#F7F6F2` for both colours, as `index.html` does; the page still swaps `theme-color` per theme at runtime.
 3. Dark values in `reskin-tokens.css` are still proposals. Finalize them.
 4. `EngineMark` in `Images.tsx` draws the Gemini badge as two overlapping circles, close to the twin-lens shape. The Moda Images screen shows the same badge, so decide whether the rule "twin-lens is logo only" applies here.
 5. `client/src/lib/design.ts` still holds the older Opera Neon palette and grey constants (`AMBER = #8B8B8B`); `PLAN.md` still lists the older mocha/amber palette and DM Serif fonts. Retire or update them so there is one palette.

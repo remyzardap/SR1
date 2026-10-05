@@ -187,7 +187,11 @@ html, body {
   font-feature-settings: 'cv01', 'cv02', 'cv03', 'cv04';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* clip, not hidden: hidden makes body a scroll container that never scrolls, which stops
+     position: sticky (the mobile header, the Images viewfinder) from sticking. hidden stays as
+     the fallback for browsers without clip. */
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* ── Mocha cream background with animated gradient ── */
@@ -575,7 +579,7 @@ input, textarea, select { font-size: 16px; }
 /* Faster tap response on touch devices */
 button, a { touch-action: manipulation; }
 
-/* Prevent pull-to-refresh on mobile browsers. Keep this on html: on body it traps the mouse wheel, because html and body are both overflow:auto (from overflow-x:hidden). */
+/* Prevent pull-to-refresh on mobile browsers. Keep this on html, which is the element that scrolls. */
 html { overscroll-behavior-y: none; }
 /* ── Opera Neon Design Language ───────────────────────────────────────────────
    Cream and black panels, pill buttons, monospace caps labels, flat pastel
