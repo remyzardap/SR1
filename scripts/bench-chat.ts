@@ -3,15 +3,20 @@
  * kemmaExecute (no HTTP), so work packages can show before and after numbers.
  *
  * Usage:
- *   npm run bench -- [--runs N] [--filter <terms>] [--user <id>] [--cache]
+ *   npm run bench -- [--runs N] [--filter <terms>] [--user <id>] [--mode <fast|deep>] [--cache]
  *
  *   --runs N        runs per prompt (default 1). Tables show the median of the successful runs.
  *   --filter terms  comma-separated; keeps prompts whose id or category contains a term
  *                   (e.g. "multi-search", "chat-1,read").
  *   --user id       user the prompts run as (default EVAL_USER_ID). Put the same id in
  *                   KEMMA_UNLIMITED_USER_IDS so daily quotas don't cut the run short.
+ *   --mode m        run every prompt in chat mode m instead of the mode in bench-prompts.json.
  *   --cache         keep the in-process web_search cache. By default the bench turns it off
  *                   (KEMMA_SEARCH_CACHE_TTL_SEC=0 for this process) so repeated runs measure real searches.
+ *
+ * Tools: each prompt gets the tool set production gives its chat mode, defaultToolSet(mode) from
+ * server/kemma/settings.ts, as /api/kemma/stream does through resolveSettings ("fast" offers
+ * web_search only; "deep" adds browse and run_code).
  *
  * Env: the app's .env (provider keys and DATABASE_URL), EVAL_USER_ID, and EVAL_DB_HOST, which
  * replaces the DATABASE_URL host when the bench runs on the VPS host outside docker.
@@ -29,6 +34,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { ChatMode } from "../server/kemma/settings";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROMPTS_FILE = join(HERE, "bench-prompts.json");
@@ -37,9 +43,15 @@ const RESULTS_DIR = join(HERE, "..", "evals", "results");
 // finishes in the background; its late usage rows are not counted.
 const PROMPT_TIMEOUT_MS = 10 * 60_000;
 
+/** The chat modes the bench prompts use; tools come from defaultToolSet(mode). */
+const BENCH_MODES = ["fast", "deep"] as const satisfies readonly ChatMode[];
+type BenchMode = (typeof BENCH_MODES)[number];
+const isBenchMode = (v: unknown): v is BenchMode => typeof v === "string" && (BENCH_MODES as readonly string[]).includes(v);
+
 interface BenchPrompt {
   id: string;
   category: string;
+  mode: BenchMode;
   prompt: string;
   isThinking?: boolean;
 }
@@ -105,10 +117,23 @@ function loadPrompts(): BenchPrompt[] {
   return raw.map((p, i) => {
     const ok = p && typeof p.id === "string" && typeof p.category === "string" && typeof p.prompt === "string";
     if (!ok) throw new BenchSetupError(`Prompt #${i + 1} in bench-prompts.json needs string id, category and prompt.`);
+    if (!isBenchMode(p.mode)) {
+      throw new BenchSetupError(`Prompt "${p.id}" in bench-prompts.json has mode ${JSON.stringify(p.mode)}; use one of: ${BENCH_MODES.join(", ")}.`);
+    }
     if (seen.has(p.id)) throw new BenchSetupError(`Duplicate prompt id "${p.id}" in bench-prompts.json.`);
     seen.add(p.id);
-    return { id: p.id, category: p.category, prompt: p.prompt, isThinking: p.isThinking === true };
+    return { id: p.id, category: p.category, mode: p.mode, prompt: p.prompt, isThinking: p.isThinking === true };
   });
+}
+
+/** --mode overrides every prompt's mode; absent means each prompt keeps its own. */
+function parseModeOverride(): BenchMode | null {
+  if (!hasFlag("mode")) return null;
+  const raw = arg("mode");
+  if (!isBenchMode(raw)) {
+    throw new BenchSetupError(`--mode must be one of: ${BENCH_MODES.join(", ")} (got ${raw === undefined ? "nothing" : `"${raw}"`}).`);
+  }
+  return raw;
 }
 
 function selectPrompts(all: BenchPrompt[], filter: string | undefined): BenchPrompt[] {
@@ -159,8 +184,16 @@ const fmtCost = (v: number | null) => (v === null ? "–" : v.toFixed(4));
 async function main() {
   // ─── Setup: everything that can be checked before spending money ──────────────
   const runs = parseRuns();
-  const prompts = selectPrompts(loadPrompts(), arg("filter"));
+  const modeOverride = parseModeOverride();
+  const selected = selectPrompts(loadPrompts(), arg("filter"));
   const userId = parseUserId();
+
+  // The production tool set for each prompt's chat mode (see the header).
+  const { defaultToolSet } = await import("../server/kemma/settings");
+  const prompts = selected.map((p) => {
+    const mode = modeOverride ?? p.mode;
+    return { ...p, mode, allowedTools: [...defaultToolSet(mode)] };
+  });
 
   const problems: string[] = [];
   if (!process.env.DATABASE_URL) {
@@ -213,7 +246,9 @@ async function main() {
   // ─── Runs: pass by pass, every prompt once per pass ───────────────────────────
   const startedAt = new Date();
   const results = new Map<string, RunResult[]>(prompts.map((p) => [p.id, []]));
-  console.error(`Bench: ${prompts.length} prompts x ${runs} runs as user ${userId} (tier ${tier}), search cache ${searchCache}.`);
+  console.error(
+    `Bench: ${prompts.length} prompts x ${runs} runs as user ${userId} (tier ${tier}), search cache ${searchCache}, mode ${modeOverride ? `${modeOverride} for every prompt` : "per prompt"}.`,
+  );
 
   for (let run = 1; run <= runs; run++) {
     for (const p of prompts) {
@@ -241,6 +276,7 @@ async function main() {
             tier,
             isThinking: p.isThinking === true,
             sessionId,
+            allowedTools: p.allowedTools,
             onStream: (chunk) => {
               if (!chunk) return;
               if (ttftMs === null) ttftMs = since();
@@ -306,7 +342,17 @@ async function main() {
   // ─── Summaries ────────────────────────────────────────────────────────────────
   const perPrompt = prompts.map((p) => {
     const rs = results.get(p.id)!;
-    return { id: p.id, category: p.category, prompt: p.prompt, ok: rs.filter((r) => r.ok).length, runs: rs.length, median: mediansOf(rs), results: rs };
+    return {
+      id: p.id,
+      category: p.category,
+      mode: p.mode,
+      allowedTools: p.allowedTools,
+      prompt: p.prompt,
+      ok: rs.filter((r) => r.ok).length,
+      runs: rs.length,
+      median: mediansOf(rs),
+      results: rs,
+    };
   });
 
   const categories = [...new Set(prompts.map((p) => p.category))].map((category) => {
@@ -326,15 +372,15 @@ async function main() {
   md.push(`### Chat bench ${date}: ${runs} run${runs === 1 ? "" : "s"} per prompt, medians of successful runs`);
   md.push("");
   md.push(
-    `User ${userId} (tier ${tier}) · chat model ${chat.label} · search model ${search.label} · search cache ${searchCache} · flags on: ${onFlags.join(", ") || "none"}`,
+    `User ${userId} (tier ${tier}) · chat model ${chat.label} · search model ${search.label} · search cache ${searchCache} · mode ${modeOverride ? `${modeOverride} for every prompt (--mode)` : "per prompt"} · flags on: ${onFlags.join(", ") || "none"}`,
   );
   md.push("");
-  md.push("| Prompt | Category | OK | TTFT ms | First activity ms | Total ms | Tools | LLM calls | Input tok | Output tok | Cost USD | Answer chars |");
-  md.push("|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+  md.push("| Prompt | Category | Mode | OK | TTFT ms | First activity ms | Total ms | Tools | LLM calls | Input tok | Output tok | Cost USD | Answer chars |");
+  md.push("|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
   for (const p of perPrompt) {
     const m = p.median;
     md.push(
-      `| ${p.id} | ${p.category} | ${p.ok}/${p.runs} | ${fmtInt(m.ttftMs)} | ${fmtInt(m.firstActivityMs)} | ${fmtInt(m.totalMs)} | ${fmtInt(m.toolCount)} | ${fmtInt(m.llmCalls)} | ${fmtInt(m.inputTokens)} | ${fmtInt(m.outputTokens)} | ${fmtCost(m.costUsd)} | ${fmtInt(m.answerChars)} |`,
+      `| ${p.id} | ${p.category} | ${p.mode} | ${p.ok}/${p.runs} | ${fmtInt(m.ttftMs)} | ${fmtInt(m.firstActivityMs)} | ${fmtInt(m.totalMs)} | ${fmtInt(m.toolCount)} | ${fmtInt(m.llmCalls)} | ${fmtInt(m.inputTokens)} | ${fmtInt(m.outputTokens)} | ${fmtCost(m.costUsd)} | ${fmtInt(m.answerChars)} |`,
     );
   }
   md.push("");
@@ -367,6 +413,7 @@ async function main() {
         chatModel: chat.label,
         searchModel: search.label,
         searchCache,
+        modeOverride,
         flags,
         prompts: perPrompt,
         categories,

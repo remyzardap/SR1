@@ -83,22 +83,24 @@ Run it once from `develop` with P1-01 merged and all flags at their defaults:
 
 Each cell is the median of the successful runs. TTFT is the first streamed token; first activity
 is the first step start, tool start, notice or token. Tokens and cost come from the
-`usage_logs` rows the run wrote.
+`usage_logs` rows the run wrote. Each prompt runs with the tools production offers its chat
+mode (`defaultToolSet(mode)` in `server/kemma/settings.ts`, which `/api/kemma/stream` applies
+through `resolveSettings`): `fast` offers `web_search` only, `deep` adds `browse` and `run_code`.
 
-| Prompt | Category | OK | TTFT ms | First activity ms | Total ms | Tools | LLM calls | Input tok | Output tok | Cost USD | Answer chars |
-|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| chat-1 | chit-chat | pending | | | | | | | | | |
-| chat-2 | chit-chat | pending | | | | | | | | | |
-| chat-3 | chit-chat | pending | | | | | | | | | |
-| lookup-1 | single-lookup | pending | | | | | | | | | |
-| lookup-2 | single-lookup | pending | | | | | | | | | |
-| lookup-3 | single-lookup | pending | | | | | | | | | |
-| research-1 | multi-search | pending | | | | | | | | | |
-| research-2 | multi-search | pending | | | | | | | | | |
-| research-3 | multi-search | pending | | | | | | | | | |
-| read-1 | read-url | pending | | | | | | | | | |
-| read-2 | read-url | pending | | | | | | | | | |
-| report-1 | long-report | pending | | | | | | | | | |
+| Prompt | Category | Mode | OK | TTFT ms | First activity ms | Total ms | Tools | LLM calls | Input tok | Output tok | Cost USD | Answer chars |
+|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| chat-1 | chit-chat | fast | pending | | | | | | | | | |
+| chat-2 | chit-chat | fast | pending | | | | | | | | | |
+| chat-3 | chit-chat | fast | pending | | | | | | | | | |
+| lookup-1 | single-lookup | fast | pending | | | | | | | | | |
+| lookup-2 | single-lookup | fast | pending | | | | | | | | | |
+| lookup-3 | single-lookup | fast | pending | | | | | | | | | |
+| research-1 | multi-search | fast | pending | | | | | | | | | |
+| research-2 | multi-search | fast | pending | | | | | | | | | |
+| research-3 | multi-search | fast | pending | | | | | | | | | |
+| read-1 | read-url | deep | pending | | | | | | | | | |
+| read-2 | read-url | deep | pending | | | | | | | | | |
+| report-1 | long-report | deep | pending | | | | | | | | | |
 
 The bench also prints a per-category table (the medians later acceptance criteria use, such as
 TTFT on research prompts and total time on the multi-search prompts) and a per-tool latency table
