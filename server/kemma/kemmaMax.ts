@@ -607,9 +607,23 @@ export async function executeToolCall(userId: number, toolName: string, args: un
       }
 
       case "web_search": {
-        const { query } = safeArgs;
+        const { query, recency, include_domains, exclude_domains, vertical, depth } = safeArgs;
         if (typeof query !== "string") return createErrorResult('Missing or invalid "query" parameter', "INVALID_PARAMS");
-        return createSuccessResult(await webSearch(query));
+        const RECENCIES = new Set(["day", "week", "month", "year"]);
+        const VERTICALS = new Set(["web", "news"]);
+        const DEPTHS = new Set(["standard", "deep"]);
+        const asStringArray = (v: unknown): string[] | undefined =>
+          Array.isArray(v) && v.every((d) => typeof d === "string") ? (v as string[]) : undefined;
+        return createSuccessResult(
+          await webSearch(query, {
+            recency: typeof recency === "string" && RECENCIES.has(recency) ? (recency as "day" | "week" | "month" | "year") : undefined,
+            includeDomains: asStringArray(include_domains),
+            excludeDomains: asStringArray(exclude_domains),
+            vertical: typeof vertical === "string" && VERTICALS.has(vertical) ? (vertical as "web" | "news") : undefined,
+            depth: typeof depth === "string" && DEPTHS.has(depth) ? (depth as "standard" | "deep") : undefined,
+            userId,
+          })
+        );
       }
 
       case "browse": {

@@ -151,7 +151,12 @@ async function sleep(ms: number): Promise<void> {
 
 type SearchHit = { title: string; url: string; snippet: string; date?: string };
 
-async function searchUpstream(
+/**
+ * The exact upstream Sonar call, unchanged. Exported so the P1-08 `sonar` provider
+ * (server/kemma/search/providers/sonar.ts) can reuse it as the search layer's last-resort
+ * fallback, rather than duplicating the key resolution, throttling and retry logic here.
+ */
+export async function searchUpstream(
   query: string
 ): Promise<SearchHit[]> {
   if (!query || query.trim() === '') {
@@ -292,7 +297,7 @@ export function clearSearchCache(): void {
   searchInflight.clear();
 }
 
-export async function webSearch(
+async function webSearchLegacy(
   query: string
 ): Promise<SearchHit[]> {
   const ttl = typeof query === 'string' ? searchCacheTtlMs(query) : 0;
@@ -332,6 +337,45 @@ export async function webSearch(
     .finally(() => { searchInflight.delete(key); });
   searchInflight.set(key, request);
   return cloneHits(await request);
+}
+
+// ─── SEARCH_V2 (P1-08): the new multi-provider layer, behind a flag ──────────────────────────────
+// Importing the search layer here (rather than from kemmaMax.ts) keeps the switch inside this
+// executor's function body, so P1-08 only ever adds one call site in this file and the tool-call
+// plumbing in kemmaMax.ts/tools.ts only gains optional pass-through fields. See
+// server/kemma/search/index.ts for the provider layer itself.
+
+import { flag } from "../../core/flags";
+import { searchV2, type SearchV2Options } from "../search";
+
+export interface WebSearchCallOptions {
+  recency?: "day" | "week" | "month" | "year";
+  includeDomains?: string[];
+  excludeDomains?: string[];
+  vertical?: "web" | "news";
+  depth?: "standard" | "deep";
+  /** Needed only for SEARCH_V2 usage logging; the legacy (flag off) path ignores it, same as before. */
+  userId?: number;
+  sessionId?: string;
+}
+
+/**
+ * query, plus an optional trailing options object — kept optional so every existing call site
+ * (`webSearch(query)`) is unaffected. With `flag("SEARCH_V2")` off, behavior is byte-identical to
+ * before: `opts` is read nowhere in `webSearchLegacy`.
+ */
+export async function webSearch(query: string, opts: WebSearchCallOptions = {}): Promise<SearchHit[]> {
+  if (flag("SEARCH_V2")) {
+    const options: SearchV2Options = {
+      recency: opts.recency,
+      includeDomains: opts.includeDomains,
+      excludeDomains: opts.excludeDomains,
+      vertical: opts.vertical,
+      depth: opts.depth,
+    };
+    return searchV2(query, options, { userId: opts.userId ?? 0, sessionId: opts.sessionId });
+  }
+  return webSearchLegacy(query);
 }
 
 export { PerplexityAPIError, PerplexityConfigError };

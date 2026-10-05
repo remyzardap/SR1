@@ -94,6 +94,31 @@ const webSearchTool: ToolDefinition = {
       recencyDays: {
         type: "number",
         description: "Limit results to content published within this many days (optional)"
+      },
+      recency: {
+        type: "string",
+        description: "Limit results to this recent (P1-08 search provider layer; ignored unless SEARCH_V2 is on)",
+        enum: ["day", "week", "month", "year"]
+      },
+      include_domains: {
+        type: "array",
+        description: "Only return results from these domains (P1-08 search provider layer; ignored unless SEARCH_V2 is on)",
+        items: { type: "string" }
+      },
+      exclude_domains: {
+        type: "array",
+        description: "Never return results from these domains (P1-08 search provider layer; ignored unless SEARCH_V2 is on)",
+        items: { type: "string" }
+      },
+      vertical: {
+        type: "string",
+        description: "Search vertical (P1-08 search provider layer; ignored unless SEARCH_V2 is on)",
+        enum: ["web", "news"]
+      },
+      depth: {
+        type: "string",
+        description: "\"deep\" fans the query out to two providers in parallel and fuses the results (P1-08 search provider layer; ignored unless SEARCH_V2 is on)",
+        enum: ["standard", "deep"]
       }
     },
     required: ["query"]
