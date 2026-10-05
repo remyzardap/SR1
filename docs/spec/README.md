@@ -5,6 +5,7 @@ Coding agents implement it **one work package (WP) at a time**. Claude reviews e
 
 | File | Contents |
 |---|---|
+| **`HANDOVER.md`** | **Start here if you are a coding agent picking this up fresh:** current state, the exact steps to follow, the order of work, the traps in this codebase |
 | `README.md` (this file) | Roles, workflow, rules for agents, the agent prompt template, the review rubric, decisions needed, the dependency map |
 | `PHASE-1.md` | Fix the fundamentals: streaming, parallel tools, cancellation, context, search, reader, approvals, new tools |
 | `PHASE-2.md` | Memory, files, options: pgvector, hybrid retrieval, memory v2, document parsing, file RAG, model registry, modes, multimodal, sandbox, one engine |
