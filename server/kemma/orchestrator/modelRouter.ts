@@ -3,7 +3,8 @@
  * Model routing for the Kemma Orchestrator.
  *
  * Mandate: NEVER use Claude models.
- * Supported: Qwen, Gemini (AI Studio or Vertex), Perplexity, Venice, LiteLLM gateway.
+ * Supported: Qwen, Gemini (AI Studio or Vertex), Perplexity, and LiteLLM gateway.
+ * Telegram-only Venice routing remains isolated in the Telegram lane.
  *
  * Maps task kinds and priorities to optimal routes:
  * - plan: plannerRoute() -> gemini-3.8-flash (or qwen3.8-max)
