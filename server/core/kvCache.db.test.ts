@@ -10,20 +10,19 @@ import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { kvCache } from "../../drizzle/schema";
 
-const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
-
-describe.skipIf(!TEST_DATABASE_URL)("kvCache (Postgres)", () => {
-  const savedDatabaseUrl = process.env.DATABASE_URL;
+describe.skipIf(!process.env.TEST_DATABASE_URL)("kvCache (Postgres)", () => {
   const run = randomUUID().slice(0, 8);
   const NS = `test-${run}`;
   const OTHER_NS = `test2-${run}`;
 
+  let savedDatabaseUrl: string | undefined;
   let kv: typeof import("./kvCache");
   let db: NonNullable<Awaited<ReturnType<typeof import("../db").getDb>>>;
 
   beforeAll(async () => {
     // getDb() reads DATABASE_URL on first use; point it at the scratch database only.
-    process.env.DATABASE_URL = TEST_DATABASE_URL;
+    savedDatabaseUrl = process.env.DATABASE_URL;
+    process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
     kv = await import("./kvCache");
     const got = await (await import("../db")).getDb();
     if (!got) throw new Error("TEST_DATABASE_URL is set but no database connection was made");

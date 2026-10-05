@@ -11,7 +11,6 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MIGRATION = path.join(ROOT, "drizzle", "migrations", "0025_phase1_core.sql");
 
@@ -31,11 +30,11 @@ interface ColumnInfo {
   character_maximum_length: number | null;
 }
 
-describe.skipIf(!TEST_DATABASE_URL)("0025_phase1_core migration (Postgres)", () => {
+describe.skipIf(!process.env.TEST_DATABASE_URL)("0025_phase1_core migration (Postgres)", () => {
   let pool: pg.Pool;
 
   beforeAll(() => {
-    pool = new pg.Pool({ connectionString: TEST_DATABASE_URL, max: 2 });
+    pool = new pg.Pool({ connectionString: process.env.TEST_DATABASE_URL, max: 2 });
   });
 
   afterAll(async () => {
