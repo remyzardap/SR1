@@ -1,13 +1,37 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import type { ToolDefinition } from "../tools";
+import { flag } from "../../core/flags";
 import { FORBIDDEN_MCP_WORDS, loadMcpConfig, type McpConfig, type McpToolMode } from "./config";
+
+/** Wire-format tool definition. Kept local (not imported from the toolkit) so this module has no
+ * dependency on server/kemma/toolkit, which itself depends on this module for MCP dispatch. */
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  parameters: {
+    type: "object";
+    properties: Record<string, { type: string; description: string; enum?: string[]; items?: { type: string; description?: string } }>;
+    required: string[];
+  };
+}
 
 export const MCP_TOOL_PREFIX = "mcp__";
 const CALL_TIMEOUT_MS = 30_000;
 const CONNECT_TIMEOUT_MS = 15_000;
 const MAX_RESULT_CHARS = 20_000;
+
+/**
+ * Maps a server-declared tool mode onto the toolkit's risk model (P1-02 spec): `read` stays a
+ * read; `draft` is a write that needs no approval (it only stages a draft, nothing is sent);
+ * `confirm` is a write that needs approval once P1-11 wires the approval gate. Informational only
+ * today — `tools()` below is what actually keeps a confirm tool off the model.
+ */
+export function riskForMcpMode(mode: McpToolMode): { risk: "read" | "write"; requiresApproval: boolean } {
+  if (mode === "read") return { risk: "read", requiresApproval: false };
+  if (mode === "draft") return { risk: "write", requiresApproval: false };
+  return { risk: "write", requiresApproval: true };
+}
 
 /** Reject if `p` has not settled within `ms`; used so one wedged MCP server can never hang a chat run. */
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
@@ -87,12 +111,13 @@ export class McpRegistry {
   }
 
   /**
-   * Tools offered to the model. "confirm" tools are held back until a user-confirmation flow exists,
-   * so a confirm-mode tool can never run unattended.
+   * Tools offered to the model. "confirm" tools are held back until the approval flow is switched
+   * on (`flag("APPROVALS")`, P1-11), so a confirm-mode tool can never run unattended before then.
    */
   async tools(): Promise<ToolDefinition[]> {
     await this.start();
-    return [...this.conns.values()].flatMap((c) => c.tools.filter((t) => t.mode !== "confirm").map((t) => t.def));
+    const approvalsOn = flag("APPROVALS");
+    return [...this.conns.values()].flatMap((c) => c.tools.filter((t) => t.mode !== "confirm" || approvalsOn).map((t) => t.def));
   }
 
   async call(fullName: string, args: Record<string, unknown>): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
