@@ -28,6 +28,36 @@ It is a design reference for the React app in `client/`, not production code. Ev
 
 Navigation is the logo at top left, which opens a sheet. There is no bottom bar.
 
+## Brand mark (brand.js)
+
+- **Loop unchanged.** The twin-lens loop keeps its path and 9-unit stroke.
+- **The right lens now holds a Myōjin torii** with a curved, upswept kasagi, the shimaki under it, a gakuzuka plaque strut, a nuki that runs past the posts, and posts that lean slightly inward.
+- **The sun rises through the gate,** below the nuki.
+  - It is a plain hinomaru disc.
+  - It has no rays, so it stays clear of the Rising Sun flag.
+- **Large sizes add a sea horizon** (the floating torii at Itsukushima). The sun's reflection breaks the horizon in orange.
+- **The left lens stays empty on purpose (*ma*).**
+- **Two levels of detail.** `glyph({ detail: "full" })` is for the hero, the splash and the app icon. `glyph({ detail: "compact" })` is for 48 px and below.
+- **Name seal (rakkan).** It reads スタエル in Shippori Mincho, set right column first, with the characters cut out of a vermilion square. It sits beside the wordmark and in the nav.
+- **済 settled stamp.** It is pressed onto finished work: the result card, the session "ready" banner and a finished image.
+- **Kana as paths.** The kana are converted to SVG paths (opentype.js), so the marks never depend on a Japanese font being installed.
+- **Intro on first visit.** The loop draws, the gate settles, the sun rises out of the sea and the seal is pressed. Reduced motion skips it.
+- **Regenerated icons.** `icons/` holds new app icons and a favicon made from the new mark.
+
+## Photography (photo.js)
+
+- **Studio previews use real photographs from Unsplash.** They are free under the Unsplash License, and Unsplash+ photos were excluded. Files are in `img/t` (480 px) and `img/l` (1280 px), WebP.
+- **Camera angle picks the photograph.** Overhead, high and low each have their own. Eye level uses the light's photograph, and tilted rotates it.
+- **Light picks the photograph at eye level, and grades the angle photographs.** The grades are warm golden, dark with a lamp pool for night, lifted studio, glow for backlit, and cool window.
+- **Shot and lens zoom toward the cup.** Each photograph carries a measured focal point, plus a rim point for Detail. Long lenses blur the edges like shallow depth of field.
+- **Shape crops, and film adds real grain, fade and vignette.**
+- **Ink and dots prints the framed photograph as a halftone** (canvas, auto levels, S curve). Illustration and Clay use the drawn renderer.
+- **Every option tile is the current picture with that one choice changed.**
+- **A Photo / Sketch switch** on the viewfinder keeps the exact composition drawing available.
+- **Credits.** The photographer shows under the viewfinder, and the full list is in "Sample photos · Unsplash" at the end of the studio.
+
+Photographers: Thomas Park, Barney Goodman, Giorgio Trovato, René Porter, Olena Bohovyk, Debby Hudson, Erik Witsoe, Zach Lezniewicz, Thabet Studio, engin akyurt, Charmil Gandhi, tabitha turner, Jei Lee, Daniel Dan, Monaz Nazary, Tim Foster, Jocelyn Morales, Luca Massimilian, Martyn Yakub, John Forson, Brett Jordan, pariwat pannium, Danielle-Claude Bélanger. Photo ids are in `photo.js`.
+
 ## Design decisions
 
 - **Orange only means live**: running dots, the progress dial, the next stepped bar, the live-preview tag. Buttons are ink.
@@ -38,8 +68,8 @@ Navigation is the logo at top left, which opens a sheet. There is no bottom bar.
   - Ink sphere: a background job filling up.
   - Dither: something being drawn or written.
   - Crosshairs: registration marks only.
-- **The studio's preview is a parametric sketch** (`scene.js`), not a photo. It shows framing, perspective, depth of field, light direction and style before any credits are spent. The real engine still draws the final image; the page says so.
-- **Engine previews come from the same renderer**, set to what each engine is best at (Gemini clean type, OpenAI cinematic light, Wan close natural detail).
+- **The studio's preview is real photography, composed live** (`photo.js`), with the parametric sketch (`scene.js`) one tap away. The real engine still draws the final image; the page says so.
+- **Engine cards use character photographs** (Gemini graphic lettering, OpenAI cinematic steam, Wan glaze detail) with a small mark for each engine. None of the marks use the twin-lens shape, which belongs to the logo.
 - **Mode switch is Chat | Agent**, as in spec v3 and commit `debb6c9`. The Moda page shows "Search | Agent"; pick one.
 
 ## Dark theme values used

@@ -65,7 +65,13 @@
     const s = o.signal && SIG[name] ? `<circle class="sig" cx="${SIG[name][0]}" cy="${SIG[name][1]}" r="5"/>` : "";
     return `<svg class="ico ${o.cls || ""}" viewBox="0 0 96 96" aria-hidden="true">${P[name] || ""}${s}</svg>`;
   }
-  const GLYPH = (cls = "glyph", sun = true) => `<svg class="${cls}" viewBox="0 0 144 76" fill="none" aria-hidden="true"><path d="M72 38C64 18 52 8 36 8C19 8 8 20 8 38s11 30 28 30c16 0 28-10 36-30C80 18 92 8 108 8c17 0 28 12 28 30s-11 30-28 30c-16 0-28-10-36-30Z" stroke-width="9" stroke-linejoin="round"/><g stroke-linecap="round" stroke-linejoin="round"><path d="M93 28h30" stroke-width="5"/><path d="M96 32v25M120 32v25" stroke-width="5"/><path d="M91 35h34" stroke-width="4"/><path d="M101 38v19M115 38v19" stroke-width="3.5"/></g>${sun ? '<circle cx="108" cy="46" r="7" class="sun"/>' : ""}</svg>`;
+  const SB = window.SutaeruBrand, SP = window.SutaeruPhoto;
+  const GLYPH = (cls = "glyph", detail = "compact") => SB.glyph({ cls, detail });
+  const ENGINE_MARK = {
+    gemini: '<svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 14c2 18 12 30 30 34-18 4-28 16-30 34-2-18-12-30-30-34 18-4 28-16 30-34Z" fill="currentColor"/></svg>',
+    openai: '<svg viewBox="0 0 96 96" aria-hidden="true"><path d="M48 16 76 32v32L48 80 20 64V32Z" fill="none" stroke="currentColor" stroke-width="8" stroke-linejoin="round"/></svg>',
+    wan: '<svg viewBox="0 0 96 96" aria-hidden="true"><path d="M20 66a28 28 0 0 1 56 0M34 66a14 14 0 0 1 28 0" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"/></svg>',
+  };
   const BRK = (cls = "") => `<span class="brk ${cls}" aria-hidden="true"><i></i><i></i><i></i><i></i></span>`;
 
   /* ── Content ───────────────────────────────────────────────────────── */
@@ -176,7 +182,7 @@
     { t: "image", name: "Ceramic mug, morning light", meta: "Gemini · 1:1", p: { shot: "close", light: "window", look: "photo" } },
     { t: "report", name: "Clay thermal storage review", meta: "Last week · 22 sources" },
     { t: "deck", name: "Kopdes PLTS proposal", meta: "2 weeks ago · 12 slides" },
-    { t: "image", name: "Studio product shot", meta: "OpenAI · 4:5", p: { angle: "high", light: "night", look: "film", ratio: "4:5" } },
+    { t: "image", name: "Night lamp, film look", meta: "OpenAI · 4:5", p: { light: "night", look: "film", ratio: "4:5", shot: "close" } },
     { t: "report", name: "Weekly market brief", meta: "Step 3 of 5", live: true },
   ];
 
@@ -326,7 +332,7 @@
 
   /* ── Small drawings that follow the theme ──────────────────────────── */
   function outPreview(id) {
-    if (id === "image") return SC.render(Object.assign({}, state.studio.p, { shot: "medium" }), { ratio: 1.9, thumb: true });
+    if (id === "image") return SP.comp(Object.assign({}, state.studio.p, { shot: "medium" }), { size: "t", w: 200, ratio: 1.9 });
     const v = 'viewBox="0 0 200 104" preserveAspectRatio="xMidYMid meet"';
     if (id === "report") return `<svg ${v}><rect x="74" y="8" width="70" height="88" rx="6" class="f-card s-stroke" opacity=".7"/><rect x="62" y="14" width="74" height="86" rx="6" class="f-card"/><rect x="72" y="26" width="36" height="6" rx="3" class="f-ink"/><rect x="72" y="38" width="54" height="3" rx="1.5" class="f-seg"/><rect x="72" y="45" width="48" height="3" rx="1.5" class="f-seg"/>${[10, 15, 19, 24].map((hh, i) => `<rect x="${74 + i * 12}" y="${88 - hh}" width="8" height="${hh}" rx="2" class="${i === 3 ? "f-ink" : "f-rule"}"/>`).join("")}</svg>`;
     if (id === "deck") return `<svg ${v}><rect x="62" y="12" width="92" height="52" rx="6" class="f-card" opacity=".55"/><rect x="54" y="22" width="92" height="52" rx="6" class="f-card" opacity=".8"/><rect x="46" y="32" width="92" height="56" rx="6" class="f-card"/><rect x="56" y="44" width="42" height="7" rx="3.5" class="f-ink"/><rect x="56" y="56" width="30" height="3" rx="1.5" class="f-seg"/>${[0, 1, 2, 3, 4].map((i) => `<circle cx="${112 + (i % 3) * 7}" cy="${58 + Math.floor(i / 3) * 7 + (i % 2) * 2}" r="${1.6 + i * 0.5}" class="f-ink"/>`).join("")}<rect x="56" y="70" width="70" height="3" rx="1.5" class="f-seg"/></svg>`;
@@ -336,7 +342,7 @@
     return "";
   }
   function filePreview(f) {
-    if (f.t === "image") return SC.render(Object.assign({}, SC.DEFAULT, f.p || {}), { ratio: 2.1, thumb: true });
+    if (f.t === "image") return SP.comp(Object.assign({}, SC.DEFAULT, f.p || {}), { size: "t", w: 300, name: f.photo, ratio: 2.1 });
     return outPreview(f.t);
   }
 
@@ -395,7 +401,7 @@
       : s.status === "done" ? `<button class="nav-run" data-go="done"><b>${esc(k.title)}</b><span class="tag">Done</span></button>`
       : `<button class="nav-run" data-go="session"><b>${esc(k.title)}</b><span class="tag alert">Stopped</span></button>`;
     $("#nav").innerHTML = `
-      <div class="nav-head"><div class="nav-brand">${GLYPH()}<span>Sutaeru</span></div><button class="icon-btn flat" data-act="nav-close" aria-label="Close menu">${icon("close")}</button></div>
+      <div class="nav-head"><div class="nav-brand">${GLYPH()}<span>Sutaeru</span>${SB.seal({ cls: "seal", rough: false })}</div><button class="icon-btn flat" data-act="nav-close" aria-label="Close menu">${icon("close")}</button></div>
       <div class="nav-new"><button class="btn ink" data-act="new-chat">${icon("ask")}New chat</button><button class="btn" data-go="agent">${icon("agent")}New task</button></div>
       <div class="nav-sec"><span class="mono">Workspace</span>${item("home", "ask", "Chat")}${item("agent", "agent", "Agent")}${item("studio", "image", "Images")}${item("files", "files", "Files")}</div>
       <div class="nav-sec"><span class="mono">Working for you</span>${runRow}
@@ -455,9 +461,9 @@
         ? `<button class="recent-row" data-go="session"><span class="st">${orb("run")}</span><span class="tx"><b>${esc(k.title)}</b><span class="sub"><canvas class="bar" id="homeBar"></canvas><span class="mono ink tnum" id="homePct">${Math.round(s.p * 100)}%</span></span></span><span class="when">Now</span></button>`
         : `<button class="recent-row" data-go="${s.status === "done" ? "done" : "session"}"><span class="st">${s.status === "done" ? icon("check") : icon("pause")}</span><span class="tx"><b>${esc(s.status === "done" ? k.result.title : k.title)}</b><span class="sub"><span class="tag ${s.status === "done" ? "" : "alert"}">${s.status === "done" ? "Done" : "Stopped"}</span></span></span><span class="when">${s.status === "done" ? "Just now" : "Today"}</span></button>`;
       return `<section class="view home view-enter ${ch.priv ? "private-on" : ""}" id="view-home">
-        <div class="home-hero">
-          ${GLYPH("mark glyph")}
-          <h1 class="word">Sutaeru</h1>
+        <div class="home-hero lockup ${state.introDone || RM() ? "no-intro" : "intro"}">
+          ${GLYPH("mark glyph", "full")}
+          <div class="word-row"><h1 class="word">Sutaeru</h1>${SB.seal({ cls: "seal hero-seal" })}</div>
           <p class="mono tagline">Ask once. We do the rest.</p>
           <div class="ramp art-deco" id="ramp" aria-hidden="true">${RAMP.map((d) => `<i style="--d:${d}px"></i>`).join("")}</div>
         </div>
@@ -485,7 +491,7 @@
           <div class="recent">
             ${runRow}
             <button class="recent-row" data-act="open-answer"><span class="st">${icon("check")}</span><span class="tx"><b>${esc(SAMPLE_Q)}</b></span><span class="when">Yesterday</span></button>
-            <button class="recent-row" data-act="open-file" data-i="3"><span class="st">${icon("image")}</span><span class="tx"><b>Ceramic mug, morning light</b></span><span class="when">2 days ago</span></button>
+            <button class="recent-row" data-act="open-file" data-i="3"><span class="st thumb-ph" style="position:relative">${SP.comp({ light: "window", shot: "close" }, { size: "t", w: 40 })}</span><span class="tx"><b>Ceramic mug, morning light</b></span><span class="when">2 days ago</span></button>
           </div>
           <button class="handoff" data-go="agent">
             <span class="hi">${icon("make")}</span>
@@ -498,6 +504,7 @@
     },
     mount(m) {
       const ch = state.chat, q = $("#q", m), send = $("#sendBtn", m), form = $("#composer", m);
+      state.introDone = true;
       const ramp = $$("#ramp i", m);
       let energy = 0, phase = 0;
       const syncSend = () => {
@@ -782,39 +789,47 @@
     return { e, credits, secs };
   }
   function labelFromPrompt(s) { const m = s.match(/["“”'‘’]([^"“”'‘’]{1,14})["“”'‘’]/); return m ? m[1].toUpperCase() : ""; }
+  /* Every tile is your picture with that one choice changed. */
   function optThumb(g, o) {
     const p = Object.assign({}, state.studio.p, { [g]: o.id });
     if (g === "ratio") {
       const W = 92, H = 70; let w = o.r >= W / H ? W : H * o.r, h = w / o.r;
-      return `<span class="sh" style="width:${w.toFixed(1)}px;height:${h.toFixed(1)}px">${SC.render(p, { thumb: true })}</span>`;
+      return `<span class="sh" style="width:${w.toFixed(1)}px;height:${h.toFixed(1)}px">${SP.comp(p, { size: "auto", w, ratio: o.r })}</span>`;
     }
-    return SC.render(p, { ratio: 4 / 3, thumb: true });
+    return SP.comp(p, { size: "auto", w: 128, ratio: 4 / 3 });
+  }
+  const vfInner = (w) => state.studio.vf === "sketch" ? SC.render(state.studio.p) : SP.comp(state.studio.p, { size: "l", w: w || 460 });
+  function vfCredit() {
+    const p = state.studio.p;
+    if (state.studio.vf === "sketch" || p.look === "illustration" || p.look === "clay") return p.look === "illustration" || p.look === "clay" ? "Drawn preview" : "Composition sketch";
+    const b = SP.base(p); return `Photo · ${SP.PHOTOS[b.name].by} · Unsplash`;
   }
   VIEWS.studio = {
     html() {
       const st = state.studio;
       const [sug, why] = suggestEngine(), eng = engineOf();
       return `<section class="view view-enter" id="view-studio">
-        <div class="studio-head">${stepsHTML(1)}<h1 class="title">Set up the shot.</h1><p class="lede" style="margin-top:10px">Every choice redraws the preview, so you see the picture before Sutaeru draws it.</p></div>
+        <div class="studio-head">${stepsHTML(1)}<h1 class="title">Set up the shot.</h1><p class="lede" style="margin-top:10px">Each tile is your picture with that one choice changed. Pick what you see, and Sutaeru draws it.</p></div>
         <div class="studio-grid">
           <div class="vf-col">
             <div class="vf" id="vf">
               <span class="tag vf-tag"><span class="live-dot"></span>Live preview</span>
-              <div class="vf-tools"><button class="icon-btn" id="gridBtn" aria-pressed="${st.grid}" aria-label="Thirds grid">${icon("grid")}</button></div>
-              <div class="vf-frame" id="vff"><div class="scene">${SC.render(st.p)}</div><div class="thirds" style="opacity:${st.grid ? 0.5 : 0}"><i></i><i></i><i></i><i></i></div><div class="af"><i></i><i></i><i></i><i></i></div></div>
+              <div class="vf-tools"><div class="seg small vf-mode" role="group" aria-label="Preview style"><span class="thumb"></span><button type="button" data-vf="photo" aria-pressed="${st.vf !== "sketch"}">Photo</button><button type="button" data-vf="sketch" aria-pressed="${st.vf === "sketch"}">Sketch</button></div><button class="icon-btn" id="gridBtn" aria-pressed="${st.grid}" aria-label="Thirds grid">${icon("grid")}</button></div>
+              <div class="vf-frame" id="vff"><div class="scene">${vfInner()}</div><div class="thirds" style="opacity:${st.grid ? 0.5 : 0}"><i></i><i></i><i></i><i></i></div><div class="af"><i></i><i></i><i></i><i></i></div></div>
+              <span class="mono ph-credit" id="vfCredit">${vfCredit()}</span>
             </div>
             <div class="readout" id="readout"></div>
-            <p class="vf-note">The preview shows framing, light and style. The engine draws the final picture.</p>
+            <p class="vf-note">Sample photos show framing, light and look. The engine draws your final picture.</p>
           </div>
           <div class="opt-col">
             <div class="card prompt-card">
               <label class="mono" for="prompt">Your prompt</label>
               <textarea id="prompt" rows="2">${esc(st.prompt)}</textarea>
-              <div class="row"><button class="pill" id="refBtn" aria-pressed="${st.ref}">${st.ref ? `<span class="ref-thumb" style="width:24px;height:24px;border-radius:7px">${SC.render({ shot: "close", light: "golden" }, { ratio: 1, thumb: true })}</span>Reference added` : `${icon("plus")}Reference photo`}</button><span class="mono" style="margin-left:auto">Put words in quotes to print them</span></div>
+              <div class="row"><button class="pill" id="refBtn" aria-pressed="${st.ref}">${st.ref ? `<span class="ref-thumb" style="width:26px;height:26px;border-radius:8px"><img src="img/t/ref.webp" alt="" style="width:100%;height:100%;object-fit:cover"></span>Reference added` : `${icon("plus")}Reference photo`}</button><span class="mono" style="margin-left:auto">Put words in quotes to print them</span></div>
             </div>
             ${GROUPS.map(([g, title]) => { const sel = SC.byId(g, st.p[g]); return `<div class="opt-group" data-group="${g}"><div class="between"><span class="mono ink">${title}</span><span class="why" data-why="${g}">${sel.label} · ${sel.sub}</span></div><div class="opts" role="radiogroup" aria-label="${title}" style="--n:${SC.OPTIONS[g].length}">${SC.OPTIONS[g].map((o) => `<button class="opt${g === "ratio" ? " shape" : ""}" role="radio" aria-checked="${st.p[g] === o.id}" data-g="${g}" data-v="${o.id}"><span class="ot">${optThumb(g, o)}<span class="tick">${icon("check")}</span></span><span class="cap"><b>${o.label}</b><small>${o.sub}</small></span></button>`).join("")}</div></div>`; }).join("")}
             <div class="opt-group"><div class="between"><span class="mono ink">Engine</span><span class="why" id="engWhy">${why}</span></div>
-              <div class="engines" role="radiogroup" aria-label="Engine">${SC.ENGINES.map((e) => `<button class="engine${eng === e.id ? " is-on" : ""}" role="radio" aria-checked="${eng === e.id}" data-engine="${e.id}">${BRK()}<span class="ep">${SC.render(e.preview, { ratio: 1.5, thumb: true })}<span class="sugg" ${sug === e.id ? "" : "hidden"}>Suggested</span><span class="check-badge">${icon("check")}</span></span><span class="en-body"><span class="en-name"><b>${e.name}</b><span class="mono">${e.time}</span></span><p>${e.line}</p><span class="meters">${Object.entries(e.meters).map(([k, v]) => `<span>${meter(v)}<span class="mono">${k}</span></span>`).join("")}</span><span class="mono">${e.cost} credits each</span></span></button>`).join("")}</div>
+              <div class="engines" role="radiogroup" aria-label="Engine">${SC.ENGINES.map((e) => `<button class="engine${eng === e.id ? " is-on" : ""}" role="radio" aria-checked="${eng === e.id}" data-engine="${e.id}">${BRK()}<span class="ep"><img src="img/t/eng-${e.id}.webp" alt="" loading="lazy" decoding="async"><span class="badge">${ENGINE_MARK[e.id]}</span><span class="sugg" ${sug === e.id ? "" : "hidden"}>Suggested</span><span class="check-badge">${icon("check")}</span></span><span class="en-body"><span class="en-name"><b>${e.name}</b><span class="mono">${e.time}</span></span><p>${e.line}</p><span class="meters">${Object.entries(e.meters).map(([k, v]) => `<span>${meter(v)}<span class="mono">${k}</span></span>`).join("")}</span><span class="mono">${e.cost} credits each</span></span></button>`).join("")}</div>
             </div>
             <div class="opt-group"><div class="between"><span class="mono ink">Quality and count</span><span class="why">High takes longer and costs double</span></div>
               <div class="qty">
@@ -822,6 +837,7 @@
                 <div class="row" role="radiogroup" aria-label="How many pictures">${[1, 2, 3, 4].map((n) => `<button class="count-opt" role="radio" aria-checked="${st.count === n}" data-count="${n}" aria-label="${n} picture${n > 1 ? "s" : ""}"><span class="stackf">${Array.from({ length: n }, (_, i) => `<i style="left:${i * 3}px;top:${6 - i * 3}px"></i>`).join("")}</span><span>${n}</span></button>`).join("")}</div>
               </div>
             </div>
+            <details class="credits-line"><summary class="mono">Sample photos · Unsplash</summary><p>${SP.credits().join(", ")}. Free to use under the Unsplash License.</p></details>
           </div>
         </div>
         <div class="go-bar" id="studioGo"></div>
@@ -832,7 +848,7 @@
       const sizeFrame = () => {
         const vf = $("#vf", m), fr = $("#vff", m); if (!vf || !fr) return;
         const r = SC.byId("ratio", st.p.ratio).r, W = vf.clientWidth - 48, H = vf.clientHeight - 72;
-        const w = Math.min(W, H * r); fr.style.width = w + "px"; fr.style.height = w / r + "px"; fr.style.marginTop = "18px";
+        const w = Math.min(W, H * r); fr.style.width = w + "px"; fr.style.height = w / r + "px"; fr.style.marginTop = "18px"; st.frameW = w;
       };
       onRedraw(sizeFrame);
       const readout = () => {
@@ -849,11 +865,15 @@
       };
       const updateVF = () => {
         const fr = $("#vff", m), n = document.createElement("div");
-        n.className = "scene"; n.innerHTML = SC.render(st.p);
+        sizeFrame();
+        n.className = "scene"; n.innerHTML = vfInner(st.frameW);
+        $("#vfCredit", m).textContent = vfCredit();
         const olds = $$(".scene", fr);
         if (RM()) { olds.forEach((o) => o.remove()); fr.prepend(n); }
         else { n.style.opacity = "0"; olds[olds.length - 1].after(n); requestAnimationFrame(() => requestAnimationFrame(() => { n.style.opacity = "1"; })); setTimeout(() => olds.forEach((o) => o.remove()), 300); }
-        const af = $(".af", fr); af.classList.remove("lock"); void af.offsetWidth; af.classList.add("lock");
+        const af = $(".af", fr), f = st.vf === "sketch" || st.p.look === "illustration" || st.p.look === "clay" ? [50, 54] : SP.focus(st.p);
+        af.style.left = f[0] + "%"; af.style.top = f[1] + "%";
+        af.classList.remove("lock"); void af.offsetWidth; af.classList.add("lock");
         sizeFrame();
       };
       const refreshThumbs = (skip) => {
@@ -867,6 +887,7 @@
       };
       const all = (skip) => { readout(); updateVF(); refreshThumbs(skip); engines(); goBar(); };
       readout(); engines(); goBar(); placeSegs();
+      { const f = SP.focus(st.p), af = $("#vff .af", m); if (st.vf !== "sketch" && af) { af.style.left = f[0] + "%"; af.style.top = f[1] + "%"; } }
       m.addEventListener("click", (e) => {
         const o = e.target.closest(".opt");
         if (o) {
@@ -879,10 +900,11 @@
         const q = e.target.closest("[data-q]"); if (q) { st.quality = q.dataset.q; $$("[data-q]", m).forEach((b) => b.setAttribute("aria-pressed", b === q)); placeSegs(); goBar(); return; }
         const c = e.target.closest("[data-count]"); if (c) { st.count = +c.dataset.count; $$("[data-count]", m).forEach((b) => b.setAttribute("aria-checked", b === c)); goBar(); return; }
       });
+      $$("[data-vf]", m).forEach((b) => b.addEventListener("click", () => { st.vf = b.dataset.vf; $$("[data-vf]", m).forEach((x) => x.setAttribute("aria-pressed", x === b)); placeSegs(); updateVF(); }));
       $("#gridBtn", m).addEventListener("click", (e) => { st.grid = !st.grid; e.currentTarget.setAttribute("aria-pressed", st.grid); $("#vff .thirds", m).style.opacity = st.grid ? 0.5 : 0; });
       $("#refBtn", m).addEventListener("click", (e) => {
         st.ref = !st.ref; const b = e.currentTarget; b.setAttribute("aria-pressed", st.ref);
-        b.innerHTML = st.ref ? `<span class="ref-thumb" style="width:24px;height:24px;border-radius:7px">${SC.render({ shot: "close", light: "golden" }, { ratio: 1, thumb: true })}</span>Reference added` : `${icon("plus")}Reference photo`;
+        b.innerHTML = st.ref ? `<span class="ref-thumb" style="width:26px;height:26px;border-radius:8px"><img src="img/t/ref.webp" alt="" style="width:100%;height:100%;object-fit:cover"></span>Reference added` : `${icon("plus")}Reference photo`;
         if (st.ref) toast("Reference added. The engine will match its light and colour.", "image");
       });
       let pt = 0;
@@ -894,18 +916,9 @@
   };
 
   /* ── Image run: queued, drawing, saving, done or stopped ───────────── */
-  function variantParams(p, i) {
-    const shots = ["detail", "close", "medium", "wide"], lenses = ["35", "50", "85", "100"];
-    if (i === 0) return p;
-    const n = Object.assign({}, p);
-    if (i === 1) n.lens = lenses[(lenses.indexOf(p.lens) + 1) % lenses.length] || "85";
-    if (i === 2) n.shot = shots[(shots.indexOf(p.shot) + 1) % shots.length];
-    if (i === 3) n.angle = p.angle === "high" ? "eye" : "high";
-    return n;
-  }
   VIEWS.image = {
     html() {
-      const im = state.img, e = SC.ENGINES.find((x) => x.id === im.engine), p = variantParams(im.p, im.pick);
+      const im = state.img, e = SC.ENGINES.find((x) => x.id === im.engine), vs = SP.variants(im.p), v = vs[im.pick] || vs[0];
       const done = im.status === "done", stopped = im.status === "stopped";
       const title = done ? "Your picture is ready." : stopped ? "Stopped before it finished." : `${e.name} is drawing your picture.`;
       const lede = done ? `Took ${im.took} s. Saved to My Files.` : stopped ? "Your prompt and every setting are saved. Try again or hand it to another engine." : "You can leave this screen. Sutaeru keeps drawing and saves it to Files.";
@@ -914,18 +927,18 @@
         <div class="studio-head">${stepsHTML(done ? 3 : 2)}<h1 class="title">${title}</h1><p class="lede" style="margin-top:10px">${lede}</p></div>
         <div class="run-grid">
           <div>
-            <div class="run-stage"><div class="run-frame" id="rf"><div class="scene">${SC.render(p)}</div><canvas id="rc" aria-hidden="true"></canvas><span class="tag chip-on" id="rchip">${done ? `Done · took ${im.took} s` : stopped ? "Stopped" : `${e.name} · ${im.quality === "high" ? "High" : "Standard"}`}</span></div></div>
-            ${done && im.count > 1 ? `<div class="variants" role="radiogroup" aria-label="Pictures" style="grid-template-columns:repeat(${im.count}, minmax(0, 120px))">${Array.from({ length: im.count }, (_, i) => `<button class="variant" role="radio" aria-checked="${im.pick === i}" data-pick="${i}" aria-label="Picture ${i + 1}">${SC.render(variantParams(im.p, i), { ratio: 1, thumb: true })}</button>`).join("")}</div>` : ""}
+            <div class="run-stage"><div class="run-frame" id="rf"><div class="scene">${SP.comp(v.p, { size: "l", w: 560, name: v.name })}</div><canvas id="rc" aria-hidden="true"></canvas><span class="tag chip-on" id="rchip">${done ? `Done · took ${im.took} s` : stopped ? "Stopped" : `${e.name} · ${im.quality === "high" ? "High" : "Standard"}`}</span></div></div>
+            ${done && im.count > 1 ? `<div class="variants" role="radiogroup" aria-label="Pictures" style="grid-template-columns:repeat(${im.count}, minmax(0, 120px))">${Array.from({ length: im.count }, (_, i) => `<button class="variant" role="radio" aria-checked="${im.pick === i}" data-pick="${i}" aria-label="Picture ${i + 1}">${SP.comp(vs[i].p, { size: "t", w: 120, name: vs[i].name })}</button>`).join("")}</div>` : ""}
           </div>
           <div class="stack">
             <div class="card status-card${stopped ? " stop-confirm" : ""}">
               <div class="between"><span class="mono${stopped ? "" : " ink"}" id="rstate" ${stopped ? 'style="color:var(--alert)"' : ""}>${done ? "Done" : stopped ? "Stopped" : "Estimating"}</span><span class="mono tnum" id="reta">${done ? `Took ${im.took} s` : stopped ? `At ${Math.round(im.p0 * 100)}%` : ""}</span></div>
-              <div class="row" style="margin-top:12px;align-items:flex-end;justify-content:space-between"><span class="big-pct tnum" id="rpct">${done ? "100%" : stopped ? Math.round(im.p0 * 100) + "%" : "0%"}</span>${done || stopped ? "" : orb("run")}</div>
+              <div class="row" style="margin-top:12px;align-items:flex-end;justify-content:space-between"><span class="big-pct tnum" id="rpct">${done ? "100%" : stopped ? Math.round(im.p0 * 100) + "%" : "0%"}</span>${done ? SB.stamp({ cls: "stamp mini-stamp" }) : stopped ? "" : orb("run")}</div>
               <canvas class="bar thick" id="rbar" style="margin-top:16px"></canvas>
               <div class="phase-row"><span class="mono" data-ph="0">Queued</span><span class="mono" data-ph="1">Drawing</span><span class="mono" data-ph="2">Saving</span></div>
             </div>
             <div class="card" style="padding:18px 20px"><span class="mono">Prompt</span><p style="margin:8px 0 12px;font-size:16px;line-height:1.5">${esc(im.prompt)}</p><div class="row" style="flex-wrap:wrap;gap:6px">${GROUPS.map(([g]) => `<span class="tag quiet">${SC.byId(g, im.p[g]).label}</span>`).join("")}</div></div>
-            ${done ? `<div class="row" style="flex-wrap:wrap"><button class="btn ink big" data-act="toast" data-msg="Downloaded ceramic-mug.png">${icon("download")}Download</button><button class="btn big" data-act="img-variations">${icon("refresh")}Variations</button><button class="btn big" data-act="toast" data-msg="Opening in Documents" >${icon("edit")}Edit</button></div>`
+            ${done ? `<div class="act-grid"><button class="btn ink big" data-act="toast" data-msg="Downloaded ceramic-mug.png">${icon("download")}Download</button><button class="btn big" data-act="img-variations">${icon("refresh")}Variations</button><button class="btn big" data-act="toast" data-msg="Opening in Documents">${icon("edit")}Edit</button></div>`
               : stopped ? `<div class="row" style="flex-wrap:wrap"><button class="btn ink big" data-act="img-retry">${icon("refresh")}Try again</button><button class="btn big" data-go="studio">${icon("back")}Change settings</button></div>`
               : `<div class="row"><button class="btn alert" data-act="img-cancel">${icon("stop")}Cancel</button><button class="btn ghost" data-go="studio">Back to settings</button></div>`}
             ${done || stopped ? `<div><p class="mono" style="margin:8px 0 10px">${stopped ? "Or try with" : "Try another engine"}</p><div class="row" style="flex-wrap:wrap">${others.map((o) => `<button class="pill" data-act="img-engine" data-engine="${o.id}">${o.name} · ${o.cost} cr</button>`).join("")}</div></div>` : ""}
@@ -943,7 +956,7 @@
       else if (im.status === "stopped") { onRedraw(() => { size(); drawBar(bar, im.p0, { mode: "converge", live: false }); drawResolve(rc, im.p0, 0); }); }
       else {
         onRedraw(size);
-        const dur = (RM() ? 2600 : 9000) * (im.quality === "high" ? 1.4 : 1) + (im.count - 1) * 1200, est = 900;
+        const dur = RM() ? 2600 : Math.max(9000, (im.secs || 15) * 1000), est = 900;
         loop((t) => {
           const el = performance.now() - im.t0;
           const p = clamp((el - est) / dur);
@@ -956,7 +969,7 @@
           phases(el < est ? 0 : p < 0.92 ? 1 : 2);
           if (p >= 1 && im.status === "running") {
             im.status = "done"; im.took = Math.max(1, Math.round(el / 1000)); im.pick = 0;
-            FILES.unshift({ t: "image", name: im.prompt.replace(/\.$/, "").slice(0, 40), meta: `${SC.ENGINES.find((x) => x.id === im.engine).name} · ${im.p.ratio} · just now`, p: Object.assign({}, im.p), fresh: true });
+            FILES.unshift({ t: "image", name: im.prompt.replace(/\.$/, "").slice(0, 40), meta: `${SC.ENGINES.find((x) => x.id === im.engine).name} · ${im.p.ratio} · just now`, p: Object.assign({}, im.p), photo: SP.variants(im.p)[0].name, fresh: true });
             toast("Saved to My Files", "check");
             after(0, () => renderView());
           }
@@ -967,7 +980,9 @@
   };
   function startImage(engine) {
     const st = state.studio;
-    Object.assign(state.img, { status: "running", p: Object.assign({}, st.p), prompt: st.prompt, engine: engine || engineOf(), quality: st.quality, count: st.count, t0: performance.now(), p0: 0, pick: 0 });
+    const eng = engine || engineOf(), base = { gemini: 13, openai: 16, wan: 18 }[eng];
+    const secs = Math.round(base * (st.quality === "high" ? 1.6 : 1) + (st.count - 1) * 4);
+    Object.assign(state.img, { status: "running", p: Object.assign({}, st.p), prompt: st.prompt, engine: eng, quality: st.quality, count: st.count, secs, t0: performance.now(), p0: 0, pick: 0 });
     go("image");
   }
 
@@ -1033,7 +1048,7 @@
             return `<div class="fl ${st === "stop" ? "cur" : st}"><span class="nd">${nd}</span><b>${esc(x.name)}</b><span class="mono side" ${st === "stop" ? 'style="color:var(--alert)"' : st === "cur" ? 'style="color:var(--ink)"' : ""}>${side}</span>${detail}</div>`;
           }).join("");
           $("#draft", m).innerHTML = `<span class="mono">${k.draft.eyebrow}</span><h3>${esc(k.draft.title)}</h3><p>${esc(k.draft.lede)}</p>${k.draft.rows.map(([a, b], i) => `<div class="sup" data-row="${i}"><b>${esc(a)}</b><span class="mono">${esc(b)}</span></div>`).join("")}${done ? `<button class="btn ink big" style="width:100%;margin-top:16px" data-go="done">Open the ${k.result.kind.toLowerCase()} ${icon("arrow")}</button>` : ""}`;
-          $("#stopArea", m).innerHTML = done ? `<div class="card banner"><span class="orb done still"><i></i><i></i></span><div class="tx"><b>${k.result.kind} ready.</b><span class="mono">Telegram notified · saved to Files</span></div><button class="btn ink" data-go="done">Open ${icon("arrow")}</button></div>`
+          $("#stopArea", m).innerHTML = done ? `<div class="card banner">${SB.stamp({ cls: "stamp mini-stamp" })}<div class="tx"><b>${k.result.kind} ready.</b><span class="mono">Telegram notified · saved to Files</span></div><button class="btn ink" data-go="done">Open ${icon("arrow")}</button></div>`
             : stopped ? `<div class="card banner stop-confirm"><div class="tx"><b>Stopped at ${Math.round(p * 100)}%.</b><span class="mono">What Sutaeru found so far is kept</span></div><button class="btn ink" data-act="resume">${icon("refresh")}Resume</button></div>`
             : s.confirm ? `<div class="card banner stop-confirm"><div class="tx"><b>Stop this session?</b><span class="mono">Sutaeru keeps what it found so far</span></div><button class="btn" data-act="keep">Keep working</button><button class="btn alert" data-act="stop">${icon("stop")}Stop</button></div>`
             : `<div class="row" style="margin-top:14px"><button class="btn" data-act="ask-stop">${icon("stop")}Stop</button><span class="mono">You can close the app. It keeps going.</span></div>`;
@@ -1070,6 +1085,7 @@
       return `<section class="view view-enter" id="view-done">
         <button class="btn ghost" data-go="session" style="margin-left:-16px">${icon("back")}${esc(k.title)}</button>
         <div class="hero-card result" style="margin-top:12px">
+          <span class="done-stamp${state.stamped ? "" : " pressing"}">${SB.stamp()}</span>
           <canvas class="edge art-deco" id="edge" aria-hidden="true"></canvas>
           <span class="mono" style="position:relative">Result · ${r.kind}</span>
           <h1 class="title">${esc(r.title)}</h1>
@@ -1084,6 +1100,7 @@
       </section>`;
     },
     mount(m) {
+      state.stamped = true;
       onRedraw(() => drawDither($("#edge", m), "edge", { color: cv("hero-ink"), seed: 4, k: state.intensity / 100 }));
       $("#doneFollow", m).addEventListener("submit", (e) => { e.preventDefault(); const i = $("#df", m); if (!i.value.trim()) return; state.q = i.value.trim(); state.answerPlayed = false; go("answer"); });
     },
@@ -1262,6 +1279,8 @@
     $("#scrim").addEventListener("click", () => closeNav());
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if (state.navOpen) closeNav(); const pop = $(".popover"); if (pop) pop.remove(); } });
     $("#nav").setAttribute("inert", ""); $("#nav").setAttribute("aria-hidden", "true");
+    let hyd = 0;
+    new MutationObserver(() => { if (!hyd) hyd = requestAnimationFrame(() => { hyd = 0; SP.hydrate(document); }); }).observe(document.body, { childList: true, subtree: true });
     window.addEventListener("hashchange", route);
     route();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { placeSegs(); redraws.forEach((f) => f()); });
