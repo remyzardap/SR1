@@ -312,6 +312,8 @@ Adopt a **single event protocol** for all streams (`token`, `thinking`, `tool_st
 
 ## 17. Phased roadmap
 
+> The detailed, agent-ready build spec for these phases (46 work packages with files, interfaces, schemas, tests, acceptance criteria, review rubric and phase gates) is in [`docs/spec/`](docs/spec/README.md).
+
 ### Phase 1: fix the fundamentals (1–2 weeks)
 - [ ] Stream tool turns and accumulate tool-call deltas (§1.1)
 - [ ] Parallel tool execution (§1.2)
