@@ -45,6 +45,7 @@ import {
 
 export type Tier = "free" | "trial" | "pro" | "max";
 export type TaskComplexity = "simple" | "medium" | "complex";
+export type TaskKind = "chat" | "research" | "reasoning" | "coding" | "document" | "agentic";
 export type ModelProvider = "qwen" | "perplexity" | "gemini" | "litellm" | "venice" | "nvidia" | "deepseek" | "kimi" | "glm" | "openrouter";
 
 export interface RouteInput {
@@ -373,13 +374,93 @@ export function proFallbackRoute(): RouteConfig | null {
   const model = (process.env.KEMMA_MODEL_PRO_FALLBACK ?? DEFAULTS.KEMMA_MODEL_PRO_FALLBACK).trim();
   return model ? routeFor(model) : null;
 }
-// Polish and Nemotron are no longer supported.
+// Legacy polish slot retained for compatibility. Nemotron is the active deep-reasoning lane.
 export function polishRoute(): RouteConfig | null {
   return null;
 }
 
 export function nemotronRoute(): RouteConfig | null {
-  return null;
+  const model = getEnvModel("KEMMA_MODEL_NVIDIA");
+  const route = routeFor(model);
+  return routeHasAuth(route) ? route : null;
+}
+
+function availableRoutes(models: string[]): RouteConfig[] {
+  const seen = new Set<string>();
+  return models
+    .map((model) => routeFor(model))
+    .filter((route) => {
+      if (!routeHasAuth(route) || seen.has(route.model)) return false;
+      seen.add(route.model);
+      return true;
+    });
+}
+
+/**
+ * Task-aware reasoning pool. There is deliberately no universal "best" model: Kemma
+ * chooses a specialist first, then exposes the remaining specialists to callChainFor()
+ * as fallbacks. This keeps routing adaptive as providers and benchmarks change.
+ */
+export function taskRoutes(kind: TaskKind): RouteConfig[] {
+  switch (kind) {
+    case "research":
+      return availableRoutes([
+        getEnvModel("KEMMA_MODEL_REPORT"),
+        getEnvModel("KEMMA_MODEL_DEEPSEEK"),
+        getEnvModel("KEMMA_MODEL_KIMI"),
+        getEnvModel("KEMMA_MODEL_NVIDIA"),
+        getEnvModel("KEMMA_MODEL_PRO"),
+      ]);
+    case "coding":
+      return availableRoutes([
+        getEnvModel("KEMMA_MODEL_KIMI"),
+        getEnvModel("KEMMA_MODEL_DEEPSEEK"),
+        getEnvModel("KEMMA_MODEL_NVIDIA"),
+        getEnvModel("KEMMA_MODEL_CHAT"),
+      ]);
+    case "reasoning":
+      return availableRoutes([
+        getEnvModel("KEMMA_MODEL_DEEPSEEK"),
+        getEnvModel("KEMMA_MODEL_KIMI"),
+        getEnvModel("KEMMA_MODEL_NVIDIA"),
+        getEnvModel("KEMMA_MODEL_PRO"),
+        getEnvModel("KEMMA_MODEL_REPORT"),
+      ]);
+    case "document":
+      return availableRoutes([
+        getEnvModel("KEMMA_MODEL_REPORT"),
+        getEnvModel("KEMMA_MODEL_DEEPSEEK"),
+        getEnvModel("KEMMA_MODEL_KIMI"),
+        getEnvModel("KEMMA_MODEL_NVIDIA"),
+      ]);
+    case "agentic":
+      return availableRoutes([
+        getEnvModel("KEMMA_MODEL_NVIDIA"),
+        getEnvModel("KEMMA_MODEL_DEEPSEEK"),
+        getEnvModel("KEMMA_MODEL_KIMI"),
+        getEnvModel("KEMMA_MODEL_CHAT"),
+      ]);
+    default:
+      return availableRoutes([getEnvModel("KEMMA_MODEL_CHAT")]);
+  }
+}
+
+export function detectTaskKind(messages: { role: string; content: string }[]): TaskKind {
+  const lastUser = [...messages].reverse().find((m) => m.role === "user");
+  if (!lastUser) return "chat";
+  const text = lastUser.content.toLowerCase();
+  if (/(write|draft|report|memo|document|proposal|presentation|spreadsheet|brief)/.test(text)) return "document";
+  if (/(code|coding|debug|bug|typescript|javascript|python|sql|api|repository|repo|implement)/.test(text)) return "coding";
+  if (/(research|sources?|citations?|investigate|market analysis|compare|benchmark|due diligence)/.test(text)) return "research";
+  if (/(why|reason|prove|calculate|architecture|strategy|optimi[sz]e|evaluate|deeply|in depth|trade.?offs?)/.test(text)) return "reasoning";
+  if (/(agent|autonom|execute|build|do this|take care of|complete this|workflow)/.test(text)) return "agentic";
+  return "chat";
+}
+
+/** Primary route for a task. Availability is checked here so missing provider keys never become dead routes. */
+export function taskAwareRoute(kind: TaskKind): RouteConfig {
+  const routes = taskRoutes(kind);
+  return routes[0] || chatRoute();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -401,17 +482,19 @@ export function fallbackRoutes(): RouteConfig[] {
  * KEMMA_MODEL_PRO_FALLBACK when the primary is the pro slot, then the generic fallback
  * chain, deduplicated by model.
  */
-export function callChainFor(route: RouteConfig): RouteConfig[] {
+export function callChainFor(route: RouteConfig, kind: TaskKind = "chat"): RouteConfig[] {
   const proExtra: RouteConfig[] = [];
   if (route.model === proRoute().model) {
     const proFallback = proFallbackRoute();
     if (proFallback && proFallback.model !== route.model) proExtra.push(proFallback);
   }
-  return [
-    route,
-    ...proExtra,
-    ...fallbackRoutes().filter((r) => r.model !== route.model && !proExtra.some((e) => e.model === r.model)),
-  ];
+  const specialist = taskRoutes(kind).filter((r) => r.model !== route.model && !proExtra.some((e) => e.model === r.model));
+  const generic = fallbackRoutes().filter((r) =>
+    r.model !== route.model &&
+    !proExtra.some((e) => e.model === r.model) &&
+    !specialist.some((e) => e.model === r.model)
+  );
+  return [route, ...proExtra, ...specialist, ...generic];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

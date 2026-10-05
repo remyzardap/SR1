@@ -11,6 +11,8 @@ import {
   plannerRoute,
   callChainFor,
   routeFor,
+  taskAwareRoute,
+  detectTaskKind,
   isAdminOnlyModel,
   detectComplexity,
   MAX_STEPS,
@@ -137,14 +139,18 @@ function selectRoute(input: EngineInput, currentMessages: KemmaMessage[], step: 
     }
   }
 
-  const complexity = detectComplexity(currentMessages.map((m) => ({ role: m.role, content: m.content ?? "" })));
+  const normalizedMessages = currentMessages.map((m) => ({ role: m.role, content: m.content ?? "" }));
+  const complexity = detectComplexity(normalizedMessages);
+  const taskKind = detectTaskKind(normalizedMessages);
 
   if (isThinking && step === 1) {
-    return longDocRoute(); // planning slot
+    return plannerRoute();
   }
 
-  if (complexity === "complex") {
-    return reportRoute();
+  // Do not equate "complex" with one provider. Kemma selects a task specialist
+  // and callLLM() gets the remaining specialists as an ordered fallback pool.
+  if (complexity !== "simple") {
+    return taskAwareRoute(taskKind);
   }
 
   return chatRoute();
@@ -699,8 +705,10 @@ async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
   }
 
   const errors: string[] = [];
-  // The chain includes KEMMA_MODEL_PRO_FALLBACK right after the pro slot (see callChainFor).
-  const routesToTry = callChainFor(route);
+  const taskKind = detectTaskKind(messages.map((m) => ({ role: m.role, content: m.content ?? "" })));
+  // The chain starts with the selected specialist, then tries the other specialists for this task,
+  // then the generic chat/vision fallback chain.
+  const routesToTry = callChainFor(route, taskKind);
 
   for (let i = 0; i < routesToTry.length; i++) {
     const tryRoute = routesToTry[i];
