@@ -1,3 +1,3 @@
 export { AppHeader, LogoMark, type AppHeaderProps } from "./AppHeader";
 export { PageTitle, type PageTitleProps } from "./PageTitle";
-export { TabBar, getTabItems, type TabBarProps, type TabBarItem } from "./TabBar";
+export { NavLogoMenu, NAV_DESTINATIONS, type NavLogoMenuProps, type NavDestination } from "./NavLogoMenu";

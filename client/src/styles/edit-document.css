@@ -15,7 +15,7 @@
 }
 @media (max-width: 1023px) {
   .sk-edit-doc {
-    padding-bottom: calc(68px + 18px + env(safe-area-inset-bottom, 0px) + 28px);
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
   }
 }
 

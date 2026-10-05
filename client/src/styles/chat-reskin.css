@@ -151,6 +151,7 @@
 .sk-chat-mobileonly { display: none; }
 @media (max-width: 1023px) {
   .sk-chat-mobileonly { display: inline-flex; }
+  .sutaeru-chat { height: 100dvh !important; }
   .sutaeru-chat .sutaeru-chat-header,
   .sutaeru-chat .sutaeru-chat-mobile-modes,
   .sutaeru-chat .sutaeru-run-status { display: none !important; }

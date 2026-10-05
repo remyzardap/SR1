@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { SutaeruGlyph } from "@/components/SutaeruGlyph";
+import { NavLogoMenu } from "./NavLogoMenu";
 
 export interface AppHeaderProps {
   /** Mono word at x76 (WORKSPACE, MORE, OFFLINE...). */
@@ -25,7 +26,7 @@ export function LogoMark({ className }: { className?: string }) {
 
 /**
  * Mobile app header: crosshairs at (12,12) and (364,12), the header row at y 50..94
- * with logo, mono label and a 44px ink avatar. Desktop keeps the sidebar instead.
+ * with interactive logo menu trigger, mono label and a 44px ink avatar. Desktop keeps the sidebar instead.
  */
 export function AppHeader({ label, userInitial = "?", className }: AppHeaderProps) {
   const initial = userInitial.charAt(0).toUpperCase();
@@ -34,7 +35,7 @@ export function AppHeader({ label, userInitial = "?", className }: AppHeaderProp
       <Crosshair className="skx-crosshair-tl" />
       <Crosshair className="skx-crosshair-tr" />
       <div className="skx-header-row">
-        <LogoMark />
+        <NavLogoMenu variant="header" />
         <span className="skx-header-label">{label}</span>
         <span className="skx-avatar" aria-hidden="true">{initial}</span>
       </div>

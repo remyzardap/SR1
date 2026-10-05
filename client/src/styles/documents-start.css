@@ -1,9 +1,4 @@
 /* Documents start screen: illustrated option cards, same family as the image engine cards. */
-/* The route renders in the noPadding shell, so on phones the page needs clearance
-   above the floating tab bar (the body scrolls the content). */
-@media (max-width: 1023px) {
-  .sk-page.sk-documents { padding-bottom: calc(68px + 18px + env(safe-area-inset-bottom, 0px) + 20px); }
-}
 .sk-doc-grid { display: grid; gap: 12px; grid-template-columns: 1fr; margin-bottom: 24px; }
 @media (min-width: 720px) { .sk-doc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; } }
 .sk-doc-card {

@@ -39,7 +39,7 @@ import { SutaeruGlyph } from "@/components/SutaeruGlyph";
 import { trpc } from "@/lib/trpc";
 import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
 import { AppHeader } from "@/components/chrome/AppHeader";
-import { TabBar } from "@/components/chrome/TabBar";
+import { NavLogoMenu } from "@/components/chrome/NavLogoMenu";
 
 const menuItems: Array<{ icon: SutaeruIconName; label: string; path: string; group: string }> = [
   { icon: "ask", label: "Chat", path: "/chat", group: "workspace" },
@@ -461,10 +461,14 @@ function DashboardLayoutContent({
       </div>
 
       <SidebarInset>
-        <div ref={contentRef} className="flex flex-col flex-1 min-h-0">
-          {isMobile && location !== "/chat" && <AppHeader label={mobileHeaderLabel(location)} userInitial={user?.name || user?.email || "?"} />}
-          <main className={noPadding ? "flex-1 min-w-0 flex flex-col overflow-hidden bg-sutaeru" : `flex-1 min-w-0 p-3 sm:p-6 overflow-y-auto bg-sutaeru${isMobile ? " skx-main-tabspace" : ""}`}>{children}</main>
-          {isMobile && <TabBar />}
+        <div ref={contentRef} className="flex flex-col flex-1 min-h-0 relative">
+          {isMobile && (location === "/chat" || location.startsWith("/sessions")) && (
+            <NavLogoMenu variant="floating" />
+          )}
+          {isMobile && location !== "/chat" && !location.startsWith("/sessions") && (
+            <AppHeader label={mobileHeaderLabel(location)} userInitial={user?.name || user?.email || "?"} />
+          )}
+          <main className={noPadding ? "flex-1 min-w-0 flex flex-col overflow-hidden bg-sutaeru" : "flex-1 min-w-0 p-3 sm:p-6 overflow-y-auto bg-sutaeru"}>{children}</main>
         </div>
       </SidebarInset>
     </>

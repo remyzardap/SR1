@@ -1,9 +1,8 @@
 /*
- * Shared mobile chrome (reskin wave 1): AppHeader, PageTitle, TabBar and the content
- * clearance the floating tab bar needs. Colours and type come from reskin-tokens.css.
+ * Shared mobile chrome (reskin wave 1): AppHeader, PageTitle, NavLogoMenu.
+ * Colours and type come from reskin-tokens.css.
  * Desktop keeps the existing sidebar; everything here only shows at the mobile
- * breakpoint (DashboardLayout gates it), except the tab-bar clearance which also
- * applies to the noPadding chat page.
+ * breakpoint (DashboardLayout gates it).
  */
 
 /* ── AppHeader ─────────────────────────────────────────────────────────────── */
@@ -77,101 +76,259 @@
 /* Inside a padded .sk-page the title should not add its own gutters or top gap. */
 .skx-page-title.skx-title-flush { margin: 0 0 8px; white-space: normal; }
 
-/* ── TabBar: floating ink pill ─────────────────────────────────────────────── */
-.skx-tabbar {
-  position: fixed;
-  left: 16px;
-  right: 16px;
-  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
-  z-index: 45;
-}
-.skx-tablist {
-  display: flex;
-  align-items: stretch;
-  gap: 0;
-  margin: 0;
-  padding: 6px;
-  height: 68px;
-  list-style: none;
-  background: var(--r-ink);
-  border-radius: var(--r-radius-pill);
-}
-.skx-tablist > li {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-}
-.skx-tab {
-  width: 100%;
-  min-width: 0;
+/* ── NavLogoMenu: Perplexity-style navigation drawer & triggers ────────────── */
+.skx-nav-header-btn {
   border: 0;
-  background: none;
+  background: transparent;
   padding: 0;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
+  align-items: center;
+  color: var(--r-ink);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+.skx-nav-header-btn:hover {
+  opacity: 0.85;
+}
+.skx-nav-header-btn:active {
+  transform: scale(0.96);
+}
+.skx-nav-header-btn:focus-visible {
+  outline: 2px solid var(--r-accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Floating button on Chat mobile: fixed in top-left with no header around it */
+.skx-nav-floating-btn {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top, 0px));
+  left: max(16px, env(safe-area-inset-left, 0px));
+  z-index: 50;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  height: 40px;
+  min-width: 56px;
+  padding: 0 10px;
+  border-radius: var(--r-radius-pill);
+  background: var(--r-card);
+  border: 1px solid var(--r-stroke);
+  box-shadow: 0 4px 16px var(--r-shadow);
+  color: var(--r-ink);
+  cursor: pointer;
+  transition: transform 150ms var(--r-ease-out), background 150ms var(--r-ease-out), box-shadow 150ms var(--r-ease-out);
 }
-.skx-tab-inner {
+.skx-nav-floating-btn:hover {
+  background: var(--r-panel);
+  box-shadow: 0 6px 20px var(--r-shadow);
+}
+.skx-nav-floating-btn:active {
+  transform: scale(0.96);
+}
+.skx-nav-floating-btn:focus-visible {
+  outline: 2px solid var(--r-accent);
+  outline-offset: 3px;
+}
+.skx-nav-floating-glyph {
+  width: 38px;
+  height: 20px;
+  color: var(--r-ink);
+}
+
+/* Drawer overlay */
+.skx-nav-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+.skx-nav-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: skxFadeIn var(--r-motion) var(--r-ease-out) forwards;
+}
+.skx-nav-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 61;
+  width: min(320px, calc(100vw - 44px));
+  max-width: 340px;
+  background: var(--r-card);
+  color: var(--r-ink);
+  border-right: 1px solid var(--r-stroke);
+  box-shadow: 10px 0 36px var(--r-shadow);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  padding-top: max(16px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: 16px;
+  animation: skxSlideIn var(--r-motion) var(--r-ease-out) forwards;
+}
+.skx-nav-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px 16px;
+  border-bottom: 1px solid var(--r-stroke);
+  margin-bottom: 8px;
+}
+.skx-nav-drawer-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--r-ink);
+}
+.skx-nav-drawer-glyph {
+  width: 44px;
+  height: 23px;
+  color: var(--r-ink);
+}
+.skx-nav-drawer-title {
+  font: 700 17px/1 var(--r-font-title);
+  letter-spacing: -0.3px;
+  color: var(--r-ink);
+}
+.skx-nav-drawer-close {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  width: 100%;
-  max-width: 92px;
-  min-height: 56px;
-  border-radius: 22px;
-  color: var(--r-paper);
-  transition: background var(--r-motion) var(--r-ease-out), color var(--r-motion) var(--r-ease-out);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--r-panel);
+  border: 1px solid var(--r-stroke);
+  color: var(--r-quiet);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, transform 150ms ease;
 }
-.skx-tab-label {
-  font: 600 12px/1 var(--r-font-body);
-  color: var(--r-rule);
-  transition: color var(--r-motion) var(--r-ease-out);
-}
-.skx-tab[data-active="true"] .skx-tab-inner {
-  background: var(--r-paper);
+.skx-nav-drawer-close:hover {
+  background: var(--r-stroke);
   color: var(--r-ink);
 }
-.skx-tab[data-active="true"] .skx-tab-label {
-  color: var(--r-ink);
+.skx-nav-drawer-close:active {
+  transform: scale(0.94);
 }
-.skx-tab:focus-visible {
+.skx-nav-drawer-close:focus-visible {
   outline: 2px solid var(--r-accent);
   outline-offset: 2px;
-  border-radius: var(--r-radius-pill);
+}
+.skx-nav-drawer-close-icon {
+  width: 18px;
+  height: 18px;
 }
 
-/* ── Content clearance: leave 20px+ of space above the floating bar ───────── */
-.skx-main-tabspace {
-  padding-bottom: calc(68px + 18px + env(safe-area-inset-bottom, 0px) + 20px);
+.skx-nav-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0;
+  -webkit-overflow-scrolling: touch;
+}
+.skx-nav-group-label {
+  font: 600 11px/1 var(--r-font-mono);
+  letter-spacing: var(--r-track-mono);
+  text-transform: uppercase;
+  color: var(--r-quiet);
+  padding: 12px 12px 6px;
+}
+.skx-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.skx-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--r-ink);
+  font: 500 15px/1.3 var(--r-font-body);
+  cursor: pointer;
+  text-align: left;
+  transition: background 150ms ease, color 150ms ease;
+}
+.skx-nav-row:hover {
+  background: var(--r-panel);
+}
+.skx-nav-row[data-active="true"] {
+  background: var(--r-panel);
+  font-weight: 600;
+}
+.skx-nav-row:focus-visible {
+  outline: 2px solid var(--r-accent);
+  outline-offset: 2px;
+}
+.skx-nav-row-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  color: var(--r-ink);
+}
+.skx-nav-row-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.skx-nav-row-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--r-accent);
+  flex: none;
+}
+.skx-nav-divider {
+  height: 1px;
+  background: var(--r-stroke);
+  margin: 10px 12px;
 }
 
-/* The chat page (noPadding) keeps its own column layout; lift the composer strip
-   above the tab bar on mobile. The header grew from 64px to 94px (AppHeader). */
-@media (max-width: 1023px) {
-  .sutaeru-chat { height: calc(100dvh - 94px) !important; }
-  .sutaeru-chat .sutaeru-run-controls {
-    margin-bottom: calc(68px + 18px + env(safe-area-inset-bottom, 0px) + 8px);
+@keyframes skxSlideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes skxFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
-/* Collapsible bar: a small handle above it, and one pill when it is tucked away. */
-.skx-tabhandle {
-  position: absolute; left: 50%; top: -22px; transform: translateX(-50%);
-  width: 56px; height: 26px; display: flex; align-items: center; justify-content: center;
-  border: 0; border-radius: 14px 14px 0 0; background: var(--r-ink); color: var(--r-paper); cursor: pointer; padding: 0;
+@media (prefers-reduced-motion: reduce) {
+  .skx-nav-backdrop,
+  .skx-nav-drawer {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
-.skx-tabhandle::after { content: ""; position: absolute; inset: -9px -6px 0; }
-.skx-tabpeek {
-  position: fixed; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 45;
-  height: 48px; min-width: 76px; padding: 0 14px; gap: 6px; display: flex; align-items: center; justify-content: center;
-  border: 0; border-radius: var(--r-radius-pill); background: var(--r-ink); color: var(--r-paper); cursor: pointer;
-  box-shadow: 0 10px 24px -12px rgb(0 0 0 / .5);
-}
-.skx-tabpeek .skx-tab-icon { width: 24px; height: 24px; }
-html[data-tabbar="collapsed"] .skx-main-tabspace { padding-bottom: calc(48px + 18px + env(safe-area-inset-bottom, 0px) + 20px); }
-@media (max-width: 1023px) {
-  html[data-tabbar="collapsed"] .sutaeru-chat .sutaeru-run-controls { margin-bottom: calc(48px + 18px + env(safe-area-inset-bottom, 0px) + 8px); }
+[data-reduce-motion="true"] .skx-nav-backdrop,
+[data-reduce-motion="true"] .skx-nav-drawer {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
 }
