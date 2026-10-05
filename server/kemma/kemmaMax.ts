@@ -295,6 +295,7 @@ export interface BrowseOptions {
 }
 
 export interface BrowseResult {
+  url?: string;
   title: string;
   content: string;
   links?: string[];
@@ -396,6 +397,7 @@ export async function browse(url: string, options: BrowseOptions = {}): Promise<
     }
 
     return {
+      url: normalizedUrl,
       title: parsed.title || "Untitled",
       content: truncateChars(parsed.content || "", maxLength),
       ...(extractLinks ? { links: parsed.links ?? [] } : {}),

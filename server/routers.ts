@@ -67,7 +67,6 @@ import { generateFile, STYLE_DEFINITIONS } from "./fileGenerator";
 import { TRPCError } from "@trpc/server";
 import { sdk } from "./_core/sdk";
 import { tasksRouter } from "./routers/tasks";
-import { agentRouter } from "./routers/agent";
 import { businessesRouter } from "./routers/businesses";
 import { betaInvitesRouter } from "./routers/betaInvites";
 import { blocksRouter } from "./routers/blocks";

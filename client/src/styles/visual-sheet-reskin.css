@@ -150,14 +150,6 @@ main.bg-sutaeru, main.sutaeru-bg { background: var(--vs-paper) !important; }
   max-width: 900px !important;
   margin: 0 auto !important;
 }
-.sutaeru-chat .sutaeru-user-content {
-  background: var(--vs-soft) !important;
-  color: var(--vs-ink) !important;
-  border: 1px solid var(--vs-line) !important;
-  border-radius: 16px 16px 5px 16px !important;
-  box-shadow: none !important;
-}
-.sutaeru-chat .sutaeru-user-content * { color: var(--vs-ink) !important; }
 .sutaeru-chat .neon-card, .sutaeru-chat .neon-panel {
   background: var(--vs-white) !important;
   border: 1px solid var(--vs-line) !important;
@@ -175,12 +167,6 @@ main.bg-sutaeru, main.sutaeru-bg { background: var(--vs-paper) !important; }
   border-radius: 18px !important;
   box-shadow: 0 8px 28px rgba(36,35,32,.08) !important;
   min-height: 60px !important;
-}
-.sutaeru-chat .sutaeru-composer-send {
-  background: var(--vs-orange) !important;
-  color: #fff !important;
-  width: 42px !important;
-  height: 42px !important;
 }
 .sutaeru-chat .sutaeru-attach-button:hover { background: var(--vs-soft) !important; }
 .sutaeru-chat .sutaeru-stop-run {

@@ -15,7 +15,6 @@ import { trpc } from "@/lib/trpc";
 import { Search, LayoutDashboard, MessageSquare, Zap, FolderOpen, Layers, Rss, LayoutGrid, Receipt, CheckSquare, ShoppingCart, BarChart3, TrendingUp, Image, Phone, Plug, Plus, ArrowRight, FileText, BookOpen, Mic, StickyNote, X } from "lucide-react";
 import { Brain, Sparkles } from "@/components/brandIcons";
 import { F, FM, MOCHA, AMBER, TEXT_PRIMARY, TEXT_MUTED, TEXT_SOFT } from "@/lib/design";
-import type { BlockData } from "@/components/Block";
 
 // ─── Navigation Items ─────────────────────────────────────────────────────────
 

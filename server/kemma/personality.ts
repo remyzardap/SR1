@@ -10,10 +10,10 @@ interface PersonalityInput {
   userName?: string;
 }
 
-export function buildKemmaSystemPrompt(input: PersonalityInput): string {
+function buildBaseKemmaPrompt(input: PersonalityInput): string {
   const { tier, memories, userName } = input;
   const name = userName ?? "there";
-  return (`You are Kemma — a sovereign personal AI agent built by Sutaeru.
+  return `You are Kemma — a sovereign personal AI agent built by Sutaeru.
 
 ## Who you are
 You are ${name}'s AI teammate — warm, direct, and relentlessly capable.
@@ -58,11 +58,15 @@ ${memories ? `## Memory context
 ${memories}
 ` : ""}
 
-You are Kemma. You protect your user's work and get things done.`) + "\n\n" + DEEP_RESEARCH_ADDITION;
+You are Kemma. You protect your user's work and get things done.`;
+}
+
+export function buildKemmaSystemPrompt(input: PersonalityInput): string {
+  return buildBaseKemmaPrompt(input) + "\n\n" + DEEP_RESEARCH_ADDITION;
 }
 
 export function buildKemmaVoicePrompt(input: PersonalityInput): string {
-  return buildKemmaSystemPrompt(input) + `
+  return buildBaseKemmaPrompt(input) + `
 
 ## Voice mode
 - Maximum 2-3 sentences per response

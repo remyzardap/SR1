@@ -20,14 +20,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/useMobile";
 import { useSwipeToClose } from "@/hooks/useSwipeToClose";
-import {
-  LogOut, PanelLeft,
-  LayoutDashboard, Receipt, ClipboardCheck, CheckSquare, ShoppingCart,
-  BarChart3, MessageCircle, CreditCard, Shield,
-  MessageSquare, Layers, CloudLightning, Plug, Compass, Rss, Heart,
-  Building2, ChevronDown, Image, TrendingUp, Activity, Phone,
-  LayoutGrid, GitBranch
-} from "lucide-react";
+import { LogOut, PanelLeft } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -59,113 +52,6 @@ const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 264;
 const MIN_WIDTH = 220;
 const MAX_WIDTH = 480;
-
-// ─── Shared UI primitives (used by KemmaCalls, AgentHub, etc.) ─────────────
-const glassColors = {
-  blue: 'var(--foreground)',
-  purple: 'var(--foreground)',
-  textWhite: 'var(--primary-foreground)',
-  glassBg: 'var(--card)',
-  glassBorder: 'var(--border)',
-};
-
-export const GlassCard = ({
-  children,
-  style = {},
-  onClick,
-}: {
-  children: React.ReactNode;
-  style?: React.CSSProperties;
-  onClick?: () => void;
-}) => (
-  <div
-    onClick={onClick}
-    style={{
-      background: glassColors.glassBg,
-      backdropFilter: 'blur(20px)',
-      borderRadius: '16px',
-      border: `1px solid ${glassColors.glassBorder}`,
-      padding: '20px',
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
-
-export const GradientText = ({
-  children,
-  style = {},
-}: {
-  children: React.ReactNode;
-  style?: React.CSSProperties;
-}) => (
-  <span
-    style={{
-       color: glassColors.blue,
-      fontWeight: 700,
-      ...style,
-    }}
-  >
-    {children}
-  </span>
-);
-
-export const PrimaryButton = ({
-  children,
-  onClick,
-  style = {},
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  style?: React.CSSProperties;
-}) => (
-  <button
-    onClick={onClick}
-    style={{
-       background: glassColors.blue,
-      color: glassColors.textWhite,
-      border: 'none',
-      borderRadius: '12px',
-      padding: '12px 24px',
-      fontSize: '14px',
-      fontWeight: 600,
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      ...style,
-    }}
-  >
-    {children}
-  </button>
-);
-
-export const SecondaryButton = ({
-  children,
-  onClick,
-  style = {},
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  style?: React.CSSProperties;
-}) => (
-  <button
-    onClick={onClick}
-    style={{
-      background: 'transparent',
-       color: glassColors.blue,
-      border: `1px solid ${glassColors.glassBorder}`,
-      borderRadius: '12px',
-      padding: '12px 24px',
-      fontSize: '14px',
-      fontWeight: 500,
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      ...style,
-    }}
-  >
-    {children}
-  </button>
-);
 
 export default function DashboardLayout({
   children,

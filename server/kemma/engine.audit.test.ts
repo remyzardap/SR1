@@ -473,6 +473,7 @@ describe("tool budget exhaustion", () => {
 // ── (m) quota increments, engine side ────────────────────────────────────────
 describe("quota increments", () => {
   it("increments think quota when isThinking and message quota always", async () => {
+    process.env.KEMMA_MODEL_PLANNER = "qwen-long";
     process.env.KEMMA_MODEL_LONG_DOC = "qwen-long";
     const net = stubFetch(() => jsonRes(completion("Think answer.")));
     await kemmaExecute(baseInput({ isThinking: true, messages: [{ role: "user", content: "hi" }] }));
@@ -494,6 +495,7 @@ describe("quota increments", () => {
 describe("thinking and voice flags", () => {
   it("routes step 1 of a thinking run to the long-doc slot", async () => {
     process.env.KEMMA_MODEL_CHAT = "qwen-chat";
+    process.env.KEMMA_MODEL_PLANNER = "qwen-long";
     process.env.KEMMA_MODEL_LONG_DOC = "qwen-long";
     const net = stubFetch(() => jsonRes(completion("Deep answer.")));
     const output = await kemmaExecute(baseInput({ isThinking: true }));

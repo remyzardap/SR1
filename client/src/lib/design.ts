@@ -48,86 +48,7 @@ export const NEON = {
   panelText:   "#F7F6F2",
 };
 
-export const NEON_TAGS = [
-  { bg: "#f4e7e7", text: "#8a3a3a" },
-  { bg: "#e7f0e7", text: "#2f5a2f" },
-  { bg: "#e7edf4", text: "#2f4a6a" },
-  { bg: "#f0edf4", text: "#5a2f6a" },
-  { bg: "#f4f0e7", text: "#6a542f" },
-  { bg: "#e7f4f2", text: "#2f6a5e" },
-];
-
-// ── Base card ──────────────────────────────────────────────────────────────
-export const card: CSSProperties = {
-  background: "#fff",
-  borderRadius: 22,
-  boxShadow: "0 1px 2px rgba(0,0,0,0.03), 0 4px 16px rgba(0,0,0,0.05)",
-  border: "1px solid rgba(0,0,0,0.04)",
-  transition: "transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow 0.3s ease",
-  position: "relative",
-  overflow: "hidden",
-};
-
-export const cardHover: CSSProperties = {
-  transform: "translateY(-4px)",
-  boxShadow: "0 2px 4px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.08)",
-};
-
-export const glassCard: CSSProperties = {
-  background: "rgba(255,255,255,0.65)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-  borderRadius: 22,
-  boxShadow: "0 1px 2px rgba(0,0,0,0.03), 0 8px 32px rgba(0,0,0,0.06)",
-  border: "1px solid rgba(255,255,255,0.6)",
-  transition: "transform 0.3s ease, box-shadow 0.3s ease",
-  position: "relative",
-  overflow: "hidden",
-};
-
-// ── Tier 1: White card shine (shineLight + innerGlowLight + edgeHighlight) ─
-export const shineLight: CSSProperties = {
-  position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-  borderRadius: "inherit", pointerEvents: "none",
-  background: "linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.15) 25%, transparent 50%, rgba(255,255,255,0.05) 80%, rgba(255,255,255,0.3) 100%)",
-};
-
-export const innerGlowLight: CSSProperties = {
-  position: "absolute", top: 0, left: 0, right: 0, height: "45%",
-  borderRadius: "inherit", pointerEvents: "none",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.5) 0%, transparent 100%)",
-};
-
-// ── Tier 2: Colored/dark card shine (shineStrong + innerGlowStrong) ────────
-export const shineStrong: CSSProperties = {
-  position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-  borderRadius: "inherit", pointerEvents: "none",
-  background: "linear-gradient(135deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.08) 25%, transparent 45%, rgba(255,255,255,0.04) 75%, rgba(255,255,255,0.18) 100%)",
-};
-
-export const innerGlowStrong: CSSProperties = {
-  position: "absolute", top: 0, left: 0, right: 0, height: "50%",
-  borderRadius: "inherit", pointerEvents: "none",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 100%)",
-};
-
-// ── Edge highlight (used on ALL cards) ────────────────────────────────────
-export const edgeHighlight: CSSProperties = {
-  position: "absolute", top: 0, left: 0, right: 0, height: 1,
-  borderRadius: "inherit", pointerEvents: "none",
-  background: "linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.8) 50%, transparent 90%)",
-};
-
-// ── Page background ────────────────────────────────────────────────────────
-export const PAGE_BG: CSSProperties = {
-  minHeight: "100vh",
-  background: "linear-gradient(165deg, #f5efe7, #ecdfc9, #e2d4c0, #d9cbb8, #e4d8c6, #f0e8dc)",
-  backgroundSize: "300% 300%",
-  animation: "bgShift 20s ease-in-out infinite",
-  fontFamily: F,
-  position: "relative",
-};
-
+// ── Page background & overlays ─────────────────────────────────────────────
 export const NEON_PAGE_BG: CSSProperties = {
   minHeight: "100vh",
   background: NEON.cream,
@@ -142,24 +63,3 @@ export const NOISE_OVERLAY: CSSProperties = {
   backgroundRepeat: "repeat",
   backgroundSize: "256px 256px",
 };
-
-// ── Animations ────────────────────────────────────────────────────────────
-export const CSS_ANIM = `
-@keyframes bgShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-@keyframes logoPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(232,145,58,0); }
-  50% { box-shadow: 0 0 16px 4px rgba(232,145,58,0.35); }
-}
-@keyframes fadeSlideIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-`;
