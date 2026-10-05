@@ -459,6 +459,59 @@ describe("renderCitations and finalizeCitations", () => {
     expect(render("Fact [2].", "ieee")).toBe("Fact [2].");
   });
 
+  describe("two sources that would print the same label", () => {
+    const dup: Note[] = [
+      { claim: "a", sourceTitle: "Battery costs", url: "https://x.example/batteries", author: "Anna Li", year: "2021" },
+      { claim: "b", sourceTitle: "Grid storage", url: "https://y.example/grid", author: "Anna Li", year: "2021" },
+      { claim: "c", sourceTitle: "Solar farms", url: "https://z.example/solar", author: "Anna Li", year: "2021" },
+      { claim: "d", sourceTitle: "Unique work", url: "https://u.example/one", author: "Ben Ou", year: "2020" },
+    ];
+    const undated: Note[] = [
+      { claim: "a", sourceTitle: "First undated", url: "https://a.example/1", author: "Anna Li" },
+      { claim: "b", sourceTitle: "Second undated", url: "https://b.example/2", author: "Anna Li" },
+    ];
+
+    it("APA puts the letter after the year, in the text and in the list, and leaves unique labels alone", () => {
+      const r = assignRefs(dup, "apa");
+      const apa = (t: string) => renderCitations({ text: t, notes: r, style: "apa" });
+      expect(apa("A [1], B [2], C [3].")).toBe("A (Li, 2021a), B (Li, 2021b), C (Li, 2021c).");
+      expect(apa("Fact [4].")).toBe("Fact (Ou, 2020).");
+      // One marker citing two of them: both letters, in list order.
+      expect(apa("Both [1, 3].")).toBe("Both (Li, 2021a; Li, 2021c).");
+      const list = referencesFrom(dup, "apa");
+      expect(list[0]).toContain("(2021a)");
+      expect(list[2]).toContain("(2021c)");
+      expect(list[3]).toContain("(2020)");
+    });
+
+    it("APA uses n.d.-a when the year is unknown", () => {
+      const r = assignRefs(undated, "apa");
+      expect(renderCitations({ text: "A [1] and B [2].", notes: r, style: "apa" })).toBe("A (Li, n.d.-a) and B (Li, n.d.-b).");
+      expect(referencesFrom(undated, "apa")[0]).toContain("(n.d.-a)");
+    });
+
+    it("Harvard puts the letter after the year, with no comma", () => {
+      const r = assignRefs(dup, "harvard");
+      expect(renderCitations({ text: "A [1] and B [2].", notes: r, style: "harvard" })).toBe("A (Li 2021a) and B (Li 2021b).");
+      expect(referencesFrom(dup, "harvard")[1]).toContain("(2021b)");
+    });
+
+    it("MLA has no year to tell them apart, so it uses the short title", () => {
+      const r = assignRefs(dup, "mla");
+      expect(renderCitations({ text: "A [1] and B [2].", notes: r, style: "mla" })).toBe("A (Li, \u201CBattery costs\u201D) and B (Li, \u201CGrid storage\u201D).");
+      expect(renderCitations({ text: "Fact [4].", notes: r, style: "mla" })).toBe("Fact (Ou).");
+    });
+
+    it("finalizeCitations renders the text and the list with the same letters", () => {
+      const r = assignRefs(dup, "apa");
+      const out = finalizeCitations({ sections: [{ id: "a", content: "One [1]." }, { id: "b", content: "Two [2]." }], notes: r, style: "apa" });
+      expect(out.sections.map((s) => s.content)).toEqual(["One (Li, 2021a).", "Two (Li, 2021b)."]);
+      expect(out.references).toEqual(referencesFrom(dup, "apa"));
+      expect(out.references[0]).toContain("(2021a)");
+      expect(out.references[1]).toContain("(2021b)");
+    });
+  });
+
   it("finalizeCitations (APA) renders every section and returns the alphabetical list", () => {
     const out = finalizeCitations({ sections: [{ id: "a", content: "One [3]." }, { id: "b", content: "Two [2, 5]." }], notes: refd, style: "apa" });
     expect(out.sections.map((s) => s.content)).toEqual(["One (International Energy Agency, 2024).", "Two (Garcia & Smith, 2022; Rao, 2021)."]);

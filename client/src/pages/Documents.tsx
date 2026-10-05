@@ -1,7 +1,6 @@
-import { useCallback, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
-import AtelierGuided from "./AtelierGuided";
-import QuickCreate from "./QuickCreate";
+import NewDocument from "./NewDocument";
 import EditDocument from "./EditDocument";
 import { PageTitle } from "@/components/chrome/PageTitle";
 import { FocusBrackets } from "@/components/art";
@@ -38,30 +37,12 @@ const art: Record<string, ReactNode> = {
       <path d="M176 38l22 22-48 48-26 4 4-26z" className="a-pen" />
     </svg>
   ),
-  describe: (
-    <svg viewBox="0 0 240 150" aria-hidden="true">
-      <rect x="22" y="28" width="92" height="56" rx="16" className="a-paper" />
-      <path d="M40 48h56M40 62h38" className="a-line" />
-      <path d="M118 56h26" className="a-line" />
-      <path d="M138 48l8 8-8 8" className="a-line" />
-      <rect x="152" y="22" width="68" height="94" rx="9" className="a-paper" />
-      <path d="M164 46h44M164 60h44M164 74h28" className="a-line" />
-    </svg>
-  ),
-  interview: (
-    <svg viewBox="0 0 240 150" aria-hidden="true">
-      <rect x="22" y="24" width="112" height="42" rx="16" className="a-paper" />
-      <path d="M40 45h72" className="a-line" />
-      <rect x="106" y="78" width="112" height="42" rx="16" className="a-spot" />
-      <path d="M124 99h76" className="a-line a-line-light" />
-    </svg>
-  ),
 };
 
-function OptionCard({ id, title, text, label, active, onClick, compact }: { id: string; title: string; text: string; label: string; active?: boolean; onClick: () => void; compact?: boolean }) {
+function OptionCard({ id, title, text, label, active, onClick }: { id: string; title: string; text: string; label: string; active?: boolean; onClick: () => void }) {
   return (
     <span className="sk-doc-cell">
-      <button type="button" role="radio" aria-checked={!!active} className={`sk-doc-card${compact ? " is-compact" : ""}`} onClick={onClick}>
+      <button type="button" role="radio" aria-checked={!!active} className="sk-doc-card" onClick={onClick}>
         <span className="sk-doc-art">{art[id]}</span>
         <span className="sk-doc-body">
           <span className="sk-doc-label">{label}</span>
@@ -82,19 +63,16 @@ function OptionCard({ id, title, text, label, active, onClick, compact }: { id: 
 export default function Documents() {
   useSeoMeta({ title: "Documents", path: "/documents" });
   const initial = readParams();
-  const [start, setStartState] = useState<Start>(initial.start);
-  const [mode, setModeState] = useState<Mode>(initial.mode);
+  const [start, setStart] = useState<Start>(initial.start);
 
-  const sync = useCallback((nextStart: Start, nextMode: Mode) => {
+  const sync = (next: Start) => {
     const url = new URL(window.location.href);
     url.search = "";
-    if (nextStart) url.searchParams.set("start", nextStart);
-    if (nextStart === "new") url.searchParams.set("mode", nextMode);
+    if (next) url.searchParams.set("start", next);
     window.history.replaceState(null, "", url.pathname + url.search);
-  }, []);
+  };
 
-  const setStart = (next: Start) => { setStartState(next); sync(next, mode); };
-  const setMode = (next: Mode) => { setModeState(next); sync("new", next); };
+  const setStartBoth = (next: Start) => { setStart(next); sync(next); };
 
   if (!start) {
     return (
@@ -106,8 +84,8 @@ export default function Documents() {
           </div>
         </div>
         <div className="sk-doc-grid" role="radiogroup" aria-label="Start a document">
-          <OptionCard id="new" label="New document" title="Start from an idea" text="Describe what you need, or let Kemma interview you. You get a finished file." onClick={() => setStart("new")} />
-          <OptionCard id="edit" label="Edit document" title="Start from a file" text="Upload a PDF, Word file or notes, then rewrite it or reformat it." onClick={() => setStart("edit")} />
+          <OptionCard id="new" label="New document" title="Start from an idea" text="Describe what you need, or let Kemma interview you. You get a finished file." onClick={() => setStartBoth("new")} />
+          <OptionCard id="edit" label="Edit document" title="Start from a file" text="Upload a PDF, Word file or notes, then rewrite it or reformat it." onClick={() => setStartBoth("edit")} />
         </div>
       </div>
     );
@@ -117,21 +95,15 @@ export default function Documents() {
     <div className="sk-page sk-documents">
       <div className="sk-header">
         <div>
-          <button type="button" className="sk-doc-back" onClick={() => setStart(null)}>← All documents</button>
+          <button type="button" className="sk-doc-back" onClick={() => setStartBoth(null)}>← All documents</button>
           <PageTitle className="skx-title-flush">{start === "new" ? "New document" : "Edit document"}</PageTitle>
-          <p className="sk-sub">{start === "new" ? "How do you want to start?" : "Upload the file you want to change."}</p>
+          <p className="sk-sub">{start === "new" ? "Describe it, pick a kind, add what it should read." : "Upload the file you want to change."}</p>
         </div>
       </div>
       {start === "new" ? (
-        <>
-          <div className="sk-doc-grid is-compact" role="radiogroup" aria-label="How do you want to start?">
-            <OptionCard compact id="describe" label="Quick" title="Describe it" text="Say what you want. Pick a format and style." active={mode === "describe"} onClick={() => setMode("describe")} />
-            <OptionCard compact id="interview" label="Guided" title="Interview me" text="Kemma asks the questions, then builds it." active={mode === "interview"} onClick={() => setMode("interview")} />
-          </div>
-          {mode === "describe" ? <QuickCreate embedded /> : <AtelierGuided embedded entry="new" />}
-        </>
+        <NewDocument startInInterview={initial.mode === "interview"} />
       ) : (
-        <EditDocument embedded onBack={() => setStart(null)} />
+        <EditDocument embedded onBack={() => setStartBoth(null)} />
       )}
     </div>
   );

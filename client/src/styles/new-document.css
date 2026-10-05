@@ -1,0 +1,422 @@
+/*
+ * New document flow (client/src/pages/NewDocument.tsx): one column, in the order the
+ * person works in. Everything is scoped under .sk-nd and takes colour, type, radius and
+ * motion from the token layer (styles/reskin-tokens.css) and the shared art vocabulary.
+ */
+
+.sk-nd {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 760px;
+  min-width: 0;
+  margin-inline: auto;
+  padding-bottom: 8px;
+}
+
+/* The route renders in the noPadding shell, so on phones the page needs clearance
+   above the floating tab bar. */
+@media (max-width: 1023px) {
+  .sk-nd { padding-bottom: calc(68px + 18px + env(safe-area-inset-bottom, 0px) + 20px); }
+}
+
+/* ── Cards and headings ─────────────────────────────────────────────────────── */
+.sk-nd-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  background: var(--r-card);
+  border-radius: var(--r-radius-card-lg);
+  padding: var(--r-pad-card);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--r-ink) 4%, transparent);
+}
+.sk-nd-card > .sk-label { margin: 0; }
+.sk-nd .sk-section { margin: 0 0 12px; }
+
+/* ── 1. The brief ───────────────────────────────────────────────────────────── */
+.sk-nd-brief {
+  min-height: 168px;
+  font: 400 16px/1.6 var(--r-font-body);
+  padding: 16px 18px;
+  background: var(--r-paper);
+}
+@media (min-width: 720px) {
+  .sk-nd-brief { min-height: 200px; }
+}
+.sk-nd-hint { margin: 0 !important; }
+.sk-nd-brief-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Small secondary actions: an icon and words, no box around them. */
+.sk-nd-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  padding: 6px 2px;
+  color: var(--r-quiet);
+  font: 600 13.5px var(--r-font-body);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--r-quiet) 45%, transparent);
+}
+.sk-nd-link:hover { color: var(--r-ink); }
+.sk-nd-link svg { width: 16px; height: 16px; }
+
+/* ── 2. The kind cards ──────────────────────────────────────────────────────── */
+.sk-nd-kinds {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+@media (min-width: 720px) {
+  .sk-nd-kinds { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+}
+/* The cell is the positioning parent for the FocusBrackets on the active card. */
+.sk-nd-cell { position: relative; display: flex; min-width: 0; }
+.sk-nd-cell > .sk-nd-kind { flex: 1; }
+.sk-nd-kind {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 0 0 18px;
+  border: 1px solid transparent;
+  border-radius: var(--r-radius-card-lg);
+  background: var(--r-card);
+  color: var(--r-ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.sk-nd-kind:hover { box-shadow: 0 18px 36px -22px color-mix(in srgb, var(--r-ink) 40%, transparent); }
+.sk-nd-kind:focus-visible { outline: 2px solid var(--r-accent); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .sk-nd-kind:hover { box-shadow: 0 1px 0 color-mix(in srgb, var(--r-ink) 4%, transparent); }
+}
+.sk-nd-kind-art { display: block; background: var(--r-panel); padding: 14px 14px 4px; border-radius: var(--r-radius-card-lg) var(--r-radius-card-lg) 0 0; }
+.sk-nd-kind-art svg { display: block; width: 100%; height: auto; max-height: 116px; }
+.sk-nd-kind-art .a-paper { fill: var(--r-card); stroke: var(--r-ink); stroke-width: 2; }
+.sk-nd-kind-art .a-line { fill: none; stroke: var(--r-ink); stroke-width: 3; stroke-linecap: round; opacity: .75; }
+.sk-nd-kind-art .a-spot { fill: var(--r-ink); }
+.sk-nd-kind-art .a-plus { fill: none; stroke: var(--r-paper); stroke-width: 3.4; stroke-linecap: round; }
+.sk-nd-kind-art .a-mark { fill: var(--r-ink); opacity: .14; }
+.sk-nd-kind-body { display: flex; flex-direction: column; gap: 6px; padding: 14px 18px 0; min-width: 0; }
+.sk-nd-kind-pages {
+  font: 500 var(--r-size-mono)/1.5 var(--r-font-mono);
+  letter-spacing: var(--r-track-mono);
+  text-transform: uppercase;
+  color: var(--r-quiet);
+}
+.sk-nd-kind-title { font: 800 22px/1.1 var(--r-font-title); letter-spacing: -0.6px; }
+.sk-nd-kind-text { font: 400 14px/1.5 var(--r-font-body); color: var(--r-quiet); }
+.sk-nd-kind-meta { font: 400 12.5px/1.4 var(--r-font-body); color: var(--r-rule); }
+.sk-nd-kind-eta {
+  margin-top: 2px;
+  font: 500 var(--r-size-mono)/1.5 var(--r-font-mono);
+  letter-spacing: var(--r-track-mono);
+  text-transform: uppercase;
+  color: var(--r-ink);
+}
+.sk-nd-kind-check {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--r-ink);
+  color: var(--r-paper);
+}
+.sk-nd-kind-check svg { width: 14px; height: 14px; }
+
+.sk-nd-styles { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; min-width: 0; }
+.sk-nd-styles .sk-label { margin: 0; }
+
+/* ── 3. Sources ─────────────────────────────────────────────────────────────── */
+.sk-nd-url { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; }
+.sk-nd-url .sk-input { flex: 1 1 220px; min-width: 0; }
+
+.sk-nd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+.sk-nd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-height: 40px;
+  padding: 5px 6px 5px 5px;
+  border: 1px solid var(--r-stroke);
+  border-radius: var(--r-radius-pill);
+  background: var(--r-paper);
+  color: var(--r-ink);
+  font: 500 13px var(--r-font-body);
+}
+.sk-nd-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--r-panel);
+  color: var(--r-ink);
+}
+.sk-nd-chip-icon svg { width: 15px; height: 15px; }
+.sk-nd-chip-name { min-width: 0; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sk-nd-chip-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--r-quiet);
+  cursor: pointer;
+}
+.sk-nd-chip-x:hover { background: var(--r-panel); color: var(--r-ink); }
+.sk-nd-chip-x svg { width: 12px; height: 12px; }
+
+.sk-nd-html { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
+.sk-nd-html-box { display: flex; flex-direction: column; gap: 10px; width: 100%; min-width: 0; }
+.sk-nd-html-area { min-height: 120px; font: 400 12.5px/1.55 var(--r-font-mono); }
+
+.sk-nd-formerror {
+  margin: 0 !important;
+  font: 500 13px/1.5 var(--r-font-body);
+  color: var(--r-alert);
+  overflow-wrap: anywhere;
+}
+
+/* ── 4. Generate ────────────────────────────────────────────────────────────── */
+.sk-nd-cta { width: 100%; min-height: 56px; font-size: 15.5px; }
+
+/* ── The folded request ─────────────────────────────────────────────────────── */
+.sk-nd-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  background: var(--r-panel);
+  border-radius: var(--r-radius-card-lg);
+  padding: 20px var(--r-pad-card);
+}
+.sk-nd-summary-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.sk-nd-summary-brief {
+  margin: 0;
+  font: 500 15px/1.55 var(--r-font-body);
+  color: var(--r-ink);
+  overflow-wrap: anywhere;
+}
+
+/* ── 5. Progress ────────────────────────────────────────────────────────────── */
+.sk-nd-progress { gap: 18px; scroll-margin-top: 16px; }
+.sk-nd-run-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.sk-nd-cancel-row { display: flex; justify-content: flex-end; }
+.sk-nd-cancel {
+  min-height: 38px;
+  padding: 0 20px;
+  border: 1px solid var(--r-ink);
+  border-radius: var(--r-radius-pill);
+  background: transparent;
+  color: var(--r-ink);
+  font: 600 13.5px var(--r-font-body);
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+.sk-nd-cancel:hover { background: var(--r-ink); color: var(--r-paper); }
+
+.sk-nd-outline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+  counter-reset: nd-outline;
+}
+.sk-nd-outline li {
+  counter-increment: nd-outline;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font: 400 13.5px/1.5 var(--r-font-body);
+  color: var(--r-quiet);
+  overflow-wrap: anywhere;
+}
+.sk-nd-outline li::before {
+  content: counter(nd-outline, decimal-leading-zero);
+  flex: none;
+  font: 500 var(--r-size-mono)/1.5 var(--r-font-mono);
+  letter-spacing: var(--r-track-mono);
+  color: var(--r-rule);
+}
+
+/* ── 6. The draft ───────────────────────────────────────────────────────────── */
+.sk-nd-drafts { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.sk-nd-draft {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  background: var(--r-card);
+  border-radius: var(--r-radius-card);
+  padding: 20px var(--r-pad-card);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--r-ink) 4%, transparent);
+}
+.sk-nd-draft-title { margin: 0; font: 700 18px/1.3 var(--r-font-title); letter-spacing: -0.4px; color: var(--r-ink); }
+.sk-nd-draft-text {
+  margin: 0;
+  font: 400 14.5px/1.65 var(--r-font-body);
+  color: var(--r-ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Sources used: one row that opens. */
+.sk-nd-sourcesused { min-width: 0; }
+.sk-nd-sourcesbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--r-stroke);
+  border-radius: var(--r-radius-pill);
+  background: var(--r-card);
+  color: var(--r-ink);
+  font: 500 var(--r-size-mono)/1.5 var(--r-font-mono);
+  letter-spacing: var(--r-track-mono);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.sk-nd-sourcesbtn:hover { border-color: var(--r-rule); }
+.sk-nd-sourcesbtn svg { width: 16px; height: 16px; flex: none; }
+.sk-nd-caret { margin-left: auto; font: 600 15px/1 var(--r-font-body); letter-spacing: 0; text-transform: none; color: var(--r-quiet); }
+.sk-nd-sourceslist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0 18px;
+  list-style: none;
+  min-width: 0;
+  font: 400 13.5px/1.55 var(--r-font-body);
+  color: var(--r-quiet);
+}
+.sk-nd-sourceslist a { color: var(--r-ink); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+
+.sk-nd-notices {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+  font: 400 13px/1.5 var(--r-font-body);
+  color: var(--r-quiet);
+}
+
+/* ── 7. Failed ──────────────────────────────────────────────────────────────── */
+.sk-nd-failed { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.sk-nd-failed-box { position: relative; width: 84px; height: 84px; background: var(--r-panel); border-radius: var(--r-radius-card); overflow: hidden; }
+/* The ramp is the gray halftone of the Images failure, in ink on the panel fill. */
+.sk-nd-failed-ramp { position: absolute; inset: 0; width: 100%; height: 100%; color: color-mix(in srgb, var(--r-ink) 28%, transparent); }
+.sk-nd-failed-mark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--r-alert);
+}
+.sk-nd-failed-mark svg { width: 26px; height: 26px; }
+.sk-nd-failed-text {
+  margin: 0;
+  font: 400 14.5px/1.6 var(--r-font-body);
+  color: var(--r-quiet);
+  overflow-wrap: anywhere;
+}
+
+/* ── 8. The result ──────────────────────────────────────────────────────────── */
+.sk-nd-result { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.sk-nd-stats {
+  margin: 0;
+  font: 500 var(--r-size-mono)/1.6 var(--r-font-mono);
+  letter-spacing: var(--r-track-mono);
+  text-transform: uppercase;
+  color: var(--r-quiet);
+}
+.sk-nd-tool {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  background: var(--r-card);
+  border-radius: var(--r-radius-card-lg);
+  padding: 20px var(--r-pad-card);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--r-ink) 4%, transparent);
+}
+.sk-nd-tool-head { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sk-nd-result-title {
+  margin: 0;
+  font: 800 26px/1.15 var(--r-font-title);
+  letter-spacing: -0.8px;
+  color: var(--r-ink);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+  .sk-nd-card { padding: 18px 16px; }
+  .sk-nd-summary { padding: 18px 16px; }
+  .sk-nd-tool { padding: 18px 16px; }
+  .sk-nd-result-title { font-size: 22px; }
+  .sk-nd-url { flex-direction: column; align-items: stretch; }
+  /* In the column the flex-basis would become a height, so release it here. */
+  .sk-nd-url .sk-input { flex: none; }
+  .sk-nd-url .sk-btn { width: 100%; justify-content: center; }
+}
