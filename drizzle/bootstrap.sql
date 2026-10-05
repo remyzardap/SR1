@@ -223,7 +223,8 @@ CREATE TABLE IF NOT EXISTS "chat_messages" (
 	"model" varchar(128),
 	"settings" json DEFAULT '{}'::json,
 	"embedding" json,
-	"created_at" timestamp NOT NULL
+	"created_at" timestamp NOT NULL,
+	"metadata" jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "chat_sessions" (
@@ -234,7 +235,8 @@ CREATE TABLE IF NOT EXISTS "chat_sessions" (
 	"settings" json DEFAULT '{}'::json,
 	"createdAt" timestamp DEFAULT now() NOT NULL,
 	"updatedAt" timestamp DEFAULT now() NOT NULL,
-	"lastMessageAt" bigint
+	"lastMessageAt" bigint,
+	"context_cache" jsonb
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "connections" (
