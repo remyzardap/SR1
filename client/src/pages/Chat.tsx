@@ -5,6 +5,7 @@ import { useSeoMeta } from "@/hooks/useSeoMeta";
 import { toast } from "sonner";
 import { ChatSessionList } from "@/components/ChatSessionList";
 import { ChatHeader } from "@/components/ChatHeader";
+import { ChatAgentView } from "@/components/ChatAgentView";
 import { ChatMessages } from "@/components/ChatMessages";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatErrorBanner } from "@/components/ChatErrorBanner";
@@ -117,6 +118,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isAgentMode, setIsAgentMode] = useState(false);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
@@ -629,8 +631,8 @@ export default function Chat() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="sutaeru-chat" data-chat-width={chatWidth} style={{ ...NEON_PAGE_BG, display: "flex", minHeight: "100vh" }}>
-      <div style={NOISE_OVERLAY} />
+    <div className="sutaeru-chat bg-sutaeru-paper font-body" data-chat-width={chatWidth} style={{ display: "flex", minHeight: "100vh", backgroundColor: "var(--bg-paper)", color: "var(--color-ink)" }}>
+      {/* NOISE OVERLAY REMOVED */}
 
       {/* Session sidebar */}
       <div
@@ -639,7 +641,7 @@ export default function Chat() {
           sidebarOpen ? "sutaeru-history-open" : "sutaeru-history-closed"
         )}
         style={{
-          background: NEON.black,
+          background: "var(--bg-panel)",
           zIndex: 10,
         }}
       >
@@ -656,8 +658,7 @@ export default function Chat() {
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden" style={{ position: "relative", zIndex: 1 }}>
-        <ChatHeader
-          isStreaming={isStreaming}
+        <ChatHeader isStreaming={isStreaming}
           sidebarOpen={sidebarOpen}
           mode={mode}
           max={mode === "deep"}
@@ -667,10 +668,7 @@ export default function Chat() {
           onToggleMax={() => handleSetMode(mode === "deep" ? "fast" : "deep")}
           onExport={(format) => void exportThreadFromServer(format)}
           exportPending={exportPending}
-          onInsights={() => setInsightsOpen(true)}
-          chatWidth={chatWidth}
-          onCycleWidth={cycleChatWidth}
-        />
+          onInsights={() => setInsightsOpen(true)} chatWidth={chatWidth} onCycleWidth={cycleChatWidth} isAgentMode={isAgentMode} onSetAgentMode={setIsAgentMode} />
         <ChatInsightsDialog
           open={insightsOpen}
           onOpenChange={setInsightsOpen}
@@ -694,6 +692,25 @@ export default function Chat() {
               activity={activity}
               onSelectPlan={handleSelectPlan}
             />
+
+
+            {messages.length === 0 && historyState === "ready" && !isAgentMode && (
+              <div className="flex-1 flex flex-col items-center justify-center p-6 fade-in mb-8">
+                <div className="w-full max-w-[var(--hero-width)] flex flex-col gap-4 mb-7">
+                  <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-sutaeru-quiet">SUTAERU — WORKSPACE INTEL</div>
+                  <h1 className="text-[48px] leading-[1.05] tracking-[-0.02em] font-title font-extrabold text-sutaeru-ink">Start drawing<br/>your research.</h1>
+                </div>
+              </div>
+            )}
+
+            {messages.length === 0 && historyState === "ready" && isAgentMode && (
+              <div className="flex-1 flex flex-col items-center justify-center p-6 fade-in mb-8">
+                <div className="w-full max-w-[var(--hero-width)] flex flex-col gap-4 mb-7">
+                  <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-sutaeru-accent">AGENT MODE</div>
+                  <h1 className="text-[48px] leading-[1.05] tracking-[-0.02em] font-title font-extrabold text-sutaeru-ink">Select an engine<br/>to begin working.</h1>
+                </div>
+              </div>
+            )}
 
             {historyState === "loading" && messages.length === 0 && (
               <div role="status" className="flex-none mx-3 sm:mx-6 mb-3 text-center text-xs text-muted-foreground">Loading conversation…</div>

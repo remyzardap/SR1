@@ -56,7 +56,11 @@ export function ChatInput({ value, isStreaming, onChange, onKeyDown, onSend, onS
   };
 
   return (
-    <div className="sutaeru-chat-input w-full">
+    <div className="sutaeru-chat-input w-full focus-bracket-target max-w-[var(--composer-width)] mx-auto relative shadow-[var(--shadow-floating)] rounded-[var(--radius-input)] bg-sutaeru-card border border-sutaeru-stroke-card p-[var(--pad-composer)]">
+      <span className="focus-bracket-tl"></span>
+      <span className="focus-bracket-tr"></span>
+      <span className="focus-bracket-bl"></span>
+      <span className="focus-bracket-br"></span>
       <PromptInput
         className="sutaeru-input-box"
         accept="application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -73,7 +77,7 @@ export function ChatInput({ value, isStreaming, onChange, onKeyDown, onSend, onS
           onKeyDown={onKeyDown}
           placeholder="Ask Kemma anything…"
           aria-label="Message Kemma"
-          className="sutaeru-composer-textarea"
+          className="composer-textarea text-sutaeru-ink bg-transparent focus:outline-none w-full"
         />
         <PromptInputFooter className="sutaeru-composer-footer justify-end">
           <AttachButton enabled={allowAttachments} />
