@@ -27,7 +27,7 @@
 **Why:** nothing gates `main` today except gitleaks. Every later review needs a green or red signal, a performance baseline and one owner for the Phase 1 schema.
 
 **Files**
-- create `.github/workflows/ci.yml`
+- create `.github/workflows/ci.yml`; edit `.github/workflows/deploy.yml` (`secret-scan` permissions only)
 - create `server/core/flags.ts`, `server/core/flags.test.ts`
 - create `scripts/bench-chat.ts`, `scripts/bench-prompts.json`
 - create `docs/spec/BASELINE.md`
@@ -35,6 +35,12 @@
 - edit `drizzle/schema.ts`, `package.json` (scripts only)
 
 **Spec**
+0. **Fix the existing secret scan on PRs** (`deploy.yml`, the one allowed edit to that file): `gitleaks-action` lists the PR's commits through the API and fails with `403 Resource not accessible by integration` because the job token lacks `pull-requests: read`. Every PR is red until this is fixed. Add to the `secret-scan` job:
+   ```yaml
+   permissions:
+     contents: read
+     pull-requests: read
+   ```
 1. **CI** (`ci.yml`), on `pull_request` and push to `develop`: Node 20, `npm ci`, `npm run check`, `npm test`. Add a second job, `db-tests`, with a service container `pgvector/pgvector:pg16` and `TEST_DATABASE_URL` set. It runs `npm run test:db`, a vitest project for files matching `*.db.test.ts`, which skip when `TEST_DATABASE_URL` is unset. The job doesn't need to pass until P2, but it must exist. Cache npm.
 2. **Baseline**: run check and test on the current `develop`, and record failing tests by name in `BASELINE.md`. Don't fix them unless the fix is one line and obviously right; list them for the owner instead.
 3. **Flags** (`flags.ts`): `flag(name: FlagName): boolean`, read at call time from `FF_<NAME>` env (`1/true/on` are true). Keep a typed registry with defaults and a description per flag. Phase 1 flags, all **off** by default unless noted:
@@ -61,10 +67,15 @@ CREATE TABLE IF NOT EXISTS approvals (
   tool varchar(160) NOT NULL,
   risk varchar(16) NOT NULL,
   args jsonb NOT NULL,
+  args_hash char(64) NOT NULL,                     -- sha256 of canonical JSON of the args that will run
+  target_ref text,                                 -- e.g. drive:<fileId>, for edits of existing resources
+  target_revision text,                            -- revision/etag/modifiedTime captured at request time
   preview jsonb,
-  status varchar(16) NOT NULL DEFAULT 'pending',   -- pending|approved|rejected|expired
+  status varchar(16) NOT NULL DEFAULT 'pending',   -- pending|approved|rejected|expired|cancelled|executing|executed|failed
   decided_args jsonb,
   decided_at timestamp,
+  executed_at timestamp,
+  result jsonb,                                    -- compact outcome (ids, status), never full content
   expires_at timestamp NOT NULL,
   created_at timestamp NOT NULL DEFAULT now()
 );
@@ -335,9 +346,20 @@ export interface SearchProvider { id: string; configured(): boolean; costPerRequ
 - `runTool` calls the gate when `requiresApproval` is true and `flag("APPROVALS")` is on. A rejection returns `{ ok:false, code:"REJECTED", error:"The user declined this action." }` to the model. With the flag off, tools that need approval are **not offered at all**.
 - Each tool supplies a `preview(args)` with a human-readable summary: email to, subject and the first 500 characters of the body; event title, time and attendees.
 - Only one approval waits at a time per run. Parallel approval-requiring calls are serialized.
+- **State machine.** Every transition is a compare-and-set (`UPDATE … SET status=$new WHERE id=$id AND status=$expected RETURNING *`), so two racing decisions or a replay can't both win:
+  - `pending → approved | rejected | expired | cancelled` (cancelled = run aborted)
+  - `approved → executing → executed | failed`
+- **Binding:** what runs is exactly what the user saw. The approval is bound to the user, run, tool and `args_hash`.
+  - Edited args are re-validated and re-previewed. The hash is recomputed, and the stored preview is what the audit refers to.
+  - For edits of an existing resource (`drive_edit`, MCP updates), `target_ref` and `target_revision` are captured at request time.
+- **Re-checks at execution time:**
+  - The user still has access: the connection is active, the tool is still in `toolsFor`, and the flag is on.
+  - The target revision is unchanged. Otherwise return `{ ok:false, code:"CONFLICT" }` to the model, which may re-read and request a new approval.
+- **Idempotency:** the approval id is the idempotency key. Execution happens only on the `approved → executing` transition, and its outcome is stored in `result`. A retry, resume or second request with the same id returns the stored result and never runs the side effect twice. Pass the id to providers that support idempotency keys.
+- **Audit order:** a decision row first, then an execution row with the outcome. Both reference the approval id, and neither stores raw content.
 - Single instance for now. Note in code that P3-01 makes approvals durable and resumable across restarts.
 
-**Tests:** approve runs the tool with the edited args; reject returns REJECTED to the model; expiry; wrong user gets 403; double decision gets 409; abort while waiting; audit row written; with the flag off the tool isn't offered.
+**Tests:** approve runs the tool with the edited args; reject returns REJECTED to the model; expiry; wrong user gets 403; double decision gets 409; two concurrent approves execute once (db test); target revision changed means CONFLICT and no write; access revoked between request and approve means NOT_ALLOWED; a replay of an executed approval returns the stored result without a second side effect; abort while waiting becomes cancelled; audit rows written in order; with the flag off the tool isn't offered.
 
 **Acceptance criteria:** AC1: the tests above pass. AC2: a manual test documented with screenshots in the PR (approval card appears, approve and reject both work).
 

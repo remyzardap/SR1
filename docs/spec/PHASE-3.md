@@ -131,6 +131,8 @@ ALTER TABLE agents ADD COLUMN IF NOT EXISTS version integer NOT NULL DEFAULT 1;
 - `POST /api/runs/:id/cancel`, `GET /api/runs?status=&limit=`, `GET /api/runs/:id`.
 - **Checkpoint:** after each completed engine step, store `{ messages (post-compaction), step, toolCount, sources, usage }` in `agent_runs.checkpoint`. On worker start, runs left in `running` with `heartbeat_at` older than 2 minutes are resumed from the checkpoint (at most 2 resume attempts; then `error`). Heartbeat every 20 s.
 - **Approvals become durable:** while waiting, the status is `waiting_approval` and the worker **releases** the job (it doesn't hold a process). The approval decision endpoint re-enqueues `agent-run` with `{ runId, resume: true }`.
+  - On resume, the engine reads the approval row (P1-11 state machine): `executed` reuses the stored `result`; `approved` executes through the compare-and-set; anything else returns its decision to the model.
+  - A crash between `executing` and `executed` marks the approval `failed` with "outcome unknown". The model must verify (for example re-read the resource) before asking again. It never re-sends blindly.
 - `/api/kemma/stream` keeps its request contract: it creates a foreground run and streams its events (the `meta` event now carries the `runId`), so the client can reconnect through `/api/runs/:id/events`.
 - Per-tier concurrency limits on active runs (free 1, pro 3, max 6).
 
