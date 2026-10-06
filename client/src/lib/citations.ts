@@ -190,15 +190,28 @@ function walk(parent: HastParent, options: CitationOptions, verbatim: boolean): 
 }
 
 /**
- * Rehype plugin factory: turn `[n]` markers into `<citationchip>` nodes linking to the cards.
+ * Turn `[n]` markers in a hast tree into `<citationchip>` nodes linking to the cards.
  *
  * With no sources it is a no-op, which is what keeps a streaming answer's numbers as plain text
  * until the `sources` event arrives, so nothing reflows.
  */
+export function applyCitations(tree: HastRoot, options: CitationOptions): void {
+  if (!options.sources || options.sources.length === 0) return;
+  walk(tree, options, false);
+}
+
+/**
+ * Rehype plugin for the `[n]` markers, ready for `Streamdown`'s `rehypePlugins`.
+ *
+ * Unified calls a plugin as an *attacher* before the transformers run, so this returns the
+ * transformer instead of being one: `use(citationRehypePlugin)` freezes into
+ * `citationRehypePlugin() -> (tree) => applyCitations(tree, options)`.
+ */
 export function createCitationPlugin(options: CitationOptions) {
-  return function citations(tree: HastRoot): void {
-    if (!options.sources || options.sources.length === 0) return;
-    walk(tree, options, false);
+  return function citationRehypePlugin() {
+    return function citations(tree: HastRoot): void {
+      applyCitations(tree, options);
+    };
   };
 }
 
@@ -280,18 +293,18 @@ function activityKindForTool(tool: string): ActivityItem["kind"] {
  * Messages saved before P1-07 have no metadata and are returned untouched — same object, so the
  * caller can tell nothing changed.
  */
-export function applyHistoryMetadata<T extends HistoryMessage>(
+export function applyHistoryMetadata<T extends object>(
   message: T,
   metadata: HistoryMetadata | null | undefined
-): T {
-  if (!metadata) return message;
+): T & HistoryMessage {
+  if (!metadata) return message as T & HistoryMessage;
   const sources = decodedSources(metadata.sources);
   const activity = decodedActivity(metadata.activity);
-  if (!sources && !activity) return message;
+  if (!sources && !activity) return message as T & HistoryMessage;
 
   return {
     ...message,
     ...(sources ? { sources } : {}),
     ...(activity ? { activity } : {}),
-  };
+  } as T & HistoryMessage;
 }

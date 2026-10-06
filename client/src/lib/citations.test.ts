@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ActivityItem } from "@/components/ActivityFeed";
 import {
+  applyCitations,
   applyHistoryMetadata,
   citationAnchorId,
   citationChipProps,
@@ -60,7 +61,7 @@ function remainingText(root: HastRoot): string {
 }
 
 function render(root: HastRoot, sources: Source[], messageId = "m1"): HastRoot {
-  createCitationPlugin({ sources, messageId })(root);
+  applyCitations(root, { sources, messageId });
   return root;
 }
 
@@ -116,6 +117,16 @@ describe("citation numbering", () => {
 });
 
 describe("createCitationPlugin", () => {
+  it("hands unified an attacher, not a transformer", () => {
+    // `use()` calls every plugin value as an attacher before a tree exists, so the value must
+    // return the transformer; being one itself would run with `tree === undefined` and throw.
+    const transform = createCitationPlugin({ sources: SOURCES, messageId: "m1" })();
+    const root = answer(text("as shown [2] here"));
+    transform(root);
+    expect(chips(root)).toHaveLength(1);
+    expect(cite(root, 1).properties).toMatchObject({ number: 2, anchor: "src-m1-2" });
+  });
+
   it("turns [3] into a chip linking to card 3", () => {
     const root = render(answer(text("as shown [2] here")), SOURCES);
     expect(chips(root)).toHaveLength(1);
@@ -128,6 +139,19 @@ describe("createCitationPlugin", () => {
       host: "rdap.org",
     });
     expect(chip.children).toEqual([text("2")]);
+  });
+
+  it("links a chip to the card that shows the same number (AC2)", () => {
+    // The card list is numbered by the same ids the chips use, so the anchor
+    // a chip points at is the id the matching card carries.
+    const root = render(answer(text("per [2][5] today")), SOURCES);
+    const cardIds = numberedSources(SOURCES).map((entry) => citationAnchorId("m1", entry.number));
+    expect(cardIds).toEqual(["src-m1-2", "src-m1-5", "src-m1-9"]);
+    expect(chips(root).map((chip) => chip.properties?.anchor)).toEqual(["src-m1-2", "src-m1-5"]);
+    expect(chips(root).map((chip) => chip.properties?.href)).toEqual(["#src-m1-2", "#src-m1-5"]);
+    for (const chip of chips(root)) {
+      expect(cardIds).toContain(chip.properties?.anchor);
+    }
   });
 
   it("turns adjacent [2][5] into two chips and keeps the sentence text", () => {
