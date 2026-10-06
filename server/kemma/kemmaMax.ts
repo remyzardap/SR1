@@ -87,35 +87,14 @@
 
 import { Sandbox, type SandboxOpts } from "@e2b/code-interpreter";
 
-import {
-  createFile,
-  readFile,
-  editFile,
-  listFiles,
-  listFileVersions,
-} from "./executors/safeFiles";
-import { webSearch } from "./executors/webSearch";
-import { generateAndSaveFile as generateFile } from "./executors/generateFile";
-import { phoneScan, type ScanAction, type ScanOptions } from "./executors/phoneScan";
-import { STYLE_DEFINITIONS, type StructuredContent, type StyleOption } from "../fileGenerator";
 import { BrowserUse } from "browser-use-sdk";
 import fsp from "fs/promises";
 import nodePath from "path";
 import { flag } from "../core/flags";
 import { readPage } from "./reader";
-import { runVpsFiles, VpsFilesError } from "./executors/vpsFiles";
-import { getEnabledSkills } from "./skillReviews";
-import { getMcpRegistry, MCP_TOOL_PREFIX } from "./mcp/client";
-import { toLoadedSkill, readSkillFileContent, type FileSkill } from "./fileSkills";
-import {
-  listDriveFiles,
-  readDriveFile,
-  createDriveFolder,
-  uploadDriveFile,
-  moveDriveFile,
-  updateDriveFile,
-  getConnectionStatus,
-} from "../services/google";
+import { type FileSkill } from "./fileSkills";
+import { runTool } from "./toolkit/registry";
+import type { ToolContext } from "./toolkit/types";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 1. SANDBOXED CODE EXECUTION (E2B) — replaces executors/runCode.ts
@@ -151,7 +130,11 @@ function truncateBytes(text: string, maxBytes: number): string {
   return Buffer.byteLength(text, "utf-8") <= maxBytes ? text : text.slice(0, maxBytes) + "\n... [truncated]";
 }
 
-export async function runCode(language: "python" | "nodejs", code: string): Promise<RunCodeResult> {
+export async function runCode(language: "python" | "nodejs", code: string, signal?: AbortSignal): Promise<RunCodeResult> {
+  if (signal?.aborted) {
+    return { stdout: "", stderr: "Execution was aborted", exitCode: 130, engine: "e2b", timedOut: false };
+  }
+
   if (!code.trim()) {
     return { stdout: "", stderr: "No code provided", exitCode: 1, engine: "e2b", timedOut: false };
   }
@@ -172,6 +155,19 @@ export async function runCode(language: "python" | "nodejs", code: string): Prom
   }
 
   let sbx: Sandbox | undefined;
+  const onAbort = () => {
+    if (sbx) {
+      try {
+        sbx.kill().catch(() => {});
+      } catch {
+        /* best-effort cleanup */
+      }
+    }
+  };
+  if (signal) {
+    signal.addEventListener("abort", onAbort, { once: true });
+  }
+
   try {
     // Build opts conditionally so `template: undefined` is never sent
     // explicitly when E2B_SANDBOX_TEMPLATE is unset.
@@ -181,6 +177,11 @@ export async function runCode(language: "python" | "nodejs", code: string): Prom
     };
     if (SANDBOX_TEMPLATE) sandboxOpts.template = SANDBOX_TEMPLATE;
     sbx = await Sandbox.create(sandboxOpts);
+
+    if (signal?.aborted) {
+      await sbx.kill().catch(() => {});
+      return { stdout: "", stderr: "Execution was aborted", exitCode: 130, engine: "e2b", timedOut: false };
+    }
 
     const execution =
       language === "python"
@@ -199,6 +200,9 @@ export async function runCode(language: "python" | "nodejs", code: string): Prom
       timedOut: false,
     };
   } catch (err) {
+    if (signal?.aborted) {
+      return { stdout: "", stderr: "Execution was aborted", exitCode: 130, engine: "e2b", timedOut: false };
+    }
     const message = (err as Error).message ?? "Unknown sandbox error";
     const timedOut = /timeout/i.test(message);
     return {
@@ -209,6 +213,9 @@ export async function runCode(language: "python" | "nodejs", code: string): Prom
       timedOut,
     };
   } finally {
+    if (signal) {
+      signal.removeEventListener("abort", onAbort);
+    }
     if (sbx) {
       try {
         await sbx.kill();
@@ -244,47 +251,8 @@ function browserUseApiKey(): string | undefined {
 const BROWSE_TIMEOUT_MS = 60_000; // real browser navigation needs more headroom than a plain fetch
 const DEFAULT_MAX_LENGTH = 10_000;
 
-const driveFolderCache = new Map<string, string>();
-
-async function getDriveRootFolder(userId: number): Promise<string | undefined> {
-  const cacheKey = `root:${userId}`;
-  if (driveFolderCache.has(cacheKey)) return driveFolderCache.get(cacheKey);
-  const envRoot = process.env.DRIVE_ROOT_FOLDER_ID?.trim();
-  if (envRoot) {
-    driveFolderCache.set(cacheKey, envRoot);
-    return envRoot;
-  }
-  try {
-    const folder = await createDriveFolder(userId, "Sutaeru");
-    if (folder.id) driveFolderCache.set(cacheKey, folder.id);
-    return folder.id ?? undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-async function ensureDriveFolderPath(userId: number, folderPath: string): Promise<string | undefined> {
-  const rootId = await getDriveRootFolder(userId);
-  if (!rootId) return undefined;
-  const segments = folderPath.split("/").filter(Boolean);
-  let parentId = rootId;
-  for (const segment of segments) {
-    const cacheKey = `${userId}:${parentId}/${segment}`;
-    if (driveFolderCache.has(cacheKey)) {
-      parentId = driveFolderCache.get(cacheKey)!;
-      continue;
-    }
-    try {
-      const folder = await createDriveFolder(userId, segment, parentId);
-      const id = folder.id || parentId;
-      driveFolderCache.set(cacheKey, id);
-      parentId = id;
-    } catch {
-      // Keep parentId unchanged on error
-    }
-  }
-  return parentId;
-}
+// Drive root/folder resolution moved to server/kemma/toolkit/builtin/drive.ts with the
+// drive_create/drive_move tools that used it; nothing else in this file needs it.
 
 let browserUseClient: BrowserUse | null = null;
 function getBrowserUseClient(): BrowserUse {
@@ -298,6 +266,7 @@ export interface BrowseOptions {
   extractImages?: boolean;
   maxLength?: number;
   waitForSelector?: string;
+  signal?: AbortSignal;
   /** P1-09 (behind flag("READER_V2")): what the caller is looking for on the page. */
   query?: string;
   /** P1-09: use the browser agent even when the tiered reader would otherwise handle it. */
@@ -352,33 +321,45 @@ function truncateChars(text: string, maxLength: number): string {
 }
 
 /**
- * Asks the task to emit a single JSON object as its final answer, then
- * parses it ourselves. This sidesteps depending on the exact structured-
- * output parameter name in the current SDK version (which varies between
- * REST's snake_case and the JS SDK's camelCase) — the instruction-level
- * contract is simpler and won't break silently on an SDK version bump.
+ * P1-09: with `FF_READER_V2` on, a URL goes through the tiered reader (tier 1 plain
+ * SSRF-guarded fetch + local extraction, tier 2 hosted reader, tier 3 this same browser
+ * agent) instead of straight to browser-use. Flag off, this is exactly what it was before.
  */
 export async function browse(url: string, options: BrowseOptions = {}): Promise<BrowseResult> {
-  // P1-09: the tiered reader (fetch + Readability/unpdf, escalating to Jina/Firecrawl, then this
-  // same browser agent as a last resort) replaces sending every URL straight to browser-use.
-  // Flag off, this function is byte-for-byte what it was before P1-09.
   if (flag("READER_V2")) {
+    // validateUrl() only normalises (adds the missing https://); readPage() then re-checks the
+    // result against the SSRF guard before any tier runs, including the interactive/tier-3 hop,
+    // so a private/loopback address still fails without ever reaching the browser agent.
     const normalized = validateUrl(url);
     const page = await readPage(normalized, {
       query: options.query,
       maxChars: options.maxLength,
       interactive: options.interactive,
       userId: options.userId,
+      signal: options.signal,
     });
-    return { title: page.title || "Untitled", content: page.markdown, tier: page.tier, truncated: page.truncated, url: page.finalUrl, publishedAt: page.publishedAt };
+    return {
+      title: page.title || "Untitled",
+      content: page.markdown,
+      tier: page.tier,
+      truncated: page.truncated,
+      url: page.finalUrl,
+      publishedAt: page.publishedAt,
+    };
   }
 
   return browseWithAgent(url, options);
 }
 
 /**
- * Executes the browser-use agent directly without checking flag("READER_V2").
- * Used when READER_V2 is off, or as Tier 3 fallback by the tiered reader.
+ * Executes the browser-use agent directly, without checking flag("READER_V2") — this is
+ * Tier 3 for the tiered reader, and the whole path when the flag is off.
+ *
+ * Asks the task to emit a single JSON object as its final answer, then
+ * parses it ourselves. This sidesteps depending on the exact structured-
+ * output parameter name in the current SDK version (which varies between
+ * REST's snake_case and the JS SDK's camelCase) — the instruction-level
+ * contract is simpler and won't break silently on an SDK version bump.
  */
 export async function browseWithAgent(url: string, options: BrowseOptions = {}): Promise<BrowseResult> {
   const normalizedUrl = validateUrl(url);
@@ -396,7 +377,12 @@ export async function browseWithAgent(url: string, options: BrowseOptions = {}):
     extractImages = false,
     maxLength = DEFAULT_MAX_LENGTH,
     waitForSelector,
+    signal,
   } = options;
+
+  if (signal?.aborted) {
+    throw createBrowseError("Request was aborted", "ABORTED");
+  }
 
   const instructions = [
     `Go to ${normalizedUrl}.`,
@@ -421,25 +407,61 @@ export async function browseWithAgent(url: string, options: BrowseOptions = {}):
     // until the task is terminal and resolves to a TaskResult whose
     // `output` field holds the final answer. The SDK's native `timeout`
     // option (milliseconds) enforces BROWSE_TIMEOUT_MS.
-    const result = await client.run(instructions, { timeout: BROWSE_TIMEOUT_MS });
+    const taskRun = client.run(instructions, { timeout: BROWSE_TIMEOUT_MS });
 
-    const raw = (result as any)?.output ?? "";
-    let parsed: { title?: string; content?: string; links?: string[]; images?: string[] } = {};
-    try {
-      // Model may wrap the JSON in prose or a code fence despite instructions — extract the object.
-      const match = String(raw).match(/\{[\s\S]*\}/);
-      parsed = match ? JSON.parse(match[0]) : {};
-    } catch {
-      // Fall back to treating the raw output as page content if it isn't valid JSON.
-      parsed = { title: normalizedUrl, content: String(raw) };
+    const stopBrowserTask = () => {
+      try {
+        if (typeof (taskRun as any).stop === "function") {
+          (taskRun as any).stop();
+        } else if (typeof (taskRun as any).cancel === "function") {
+          (taskRun as any).cancel();
+        } else if (taskRun.taskId && typeof client.tasks?.stop === "function") {
+          client.tasks.stop(taskRun.taskId).catch(() => {});
+        }
+      } catch {
+        /* best effort */
+      }
+    };
+
+    let abortHandler: (() => void) | undefined;
+    let abortPromise: Promise<never> | undefined;
+    if (signal) {
+      abortPromise = new Promise<never>((_, reject) => {
+        abortHandler = () => {
+          stopBrowserTask();
+          reject(createBrowseError("Request was aborted", "ABORTED"));
+        };
+        signal.addEventListener("abort", abortHandler, { once: true });
+      });
     }
 
-    return {
-      title: parsed.title || "Untitled",
-      content: truncateChars(parsed.content || "", maxLength),
-      ...(extractLinks ? { links: parsed.links ?? [] } : {}),
-      ...(extractImages ? { images: parsed.images ?? [] } : {}),
-    };
+    try {
+      const result = abortPromise
+        ? await Promise.race([taskRun, abortPromise])
+        : await taskRun;
+
+      const raw = (result as any)?.output ?? "";
+      let parsed: { title?: string; content?: string; links?: string[]; images?: string[] } = {};
+      try {
+        // Model may wrap the JSON in prose or a code fence despite instructions — extract the object.
+        const match = String(raw).match(/\{[\s\S]*\}/);
+        parsed = match ? JSON.parse(match[0]) : {};
+      } catch {
+        // Fall back to treating the raw output as page content if it isn't valid JSON.
+        parsed = { title: normalizedUrl, content: String(raw) };
+      }
+
+      return {
+        title: parsed.title || "Untitled",
+        content: truncateChars(parsed.content || "", maxLength),
+        ...(extractLinks ? { links: parsed.links ?? [] } : {}),
+        ...(extractImages ? { images: parsed.images ?? [] } : {}),
+      };
+    } finally {
+      if (signal && abortHandler) {
+        signal.removeEventListener("abort", abortHandler);
+      }
+    }
   } catch (err) {
     if (err instanceof Error && (err as BrowseError).code) throw err;
     const message = err instanceof Error ? err.message : "Unknown error";
@@ -521,299 +543,53 @@ export async function runSkillScript(skill: FileSkill, script: string, args: str
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 3. TOOL DISPATCHER — replaces executor.ts, with 3 bugs fixed
+// 3. TOOL DISPATCHER — compatibility wrapper over the toolkit registry (P1-02)
 // ═══════════════════════════════════════════════════════════════════════════
+// The per-tool dispatch logic that used to live in a big switch here now lives in
+// server/kemma/toolkit/builtin/*.ts, one ToolSpec per tool, registered once at import time.
+// The engine calls toolsFor()/runTool() directly and no longer calls this function; it stays
+// only so any other caller of the old (userId, toolName, args) -> ToolResult shape keeps working,
+// with no dispatch logic duplicated between here and the toolkit.
 
-type ToolName = "vps_files" | "load_skill" | "read_skill_file" | "run_skill_script" | "safe_files" | "web_search" | "browse" | "run_code" | "generate_file" | "phone_scan" | "drive_search" | "drive_read" | "drive_create" | "drive_edit" | "drive_move";
-
-type SafeFilesAction = "create" | "read" | "edit" | "list" | "versions";
-
-interface SuccessResult<T = unknown> {
+export interface SuccessResult<T = unknown> {
   success: true;
   data: T;
 }
-interface ErrorResult {
+export interface ErrorResult {
   success: false;
   error: string;
   code: string;
 }
-type ToolResult<T = unknown> = SuccessResult<T> | ErrorResult;
+export type ToolResult<T = unknown> = SuccessResult<T> | ErrorResult;
 
-function createSuccessResult<T>(data: T): SuccessResult<T> {
-  return { success: true, data };
-}
-function createErrorResult(error: string, code: string): ErrorResult {
-  return { success: false, error, code };
-}
-
-function isValidToolName(value: unknown): value is ToolName {
-  const valid: ToolName[] = ["vps_files", "load_skill", "read_skill_file", "run_skill_script", "safe_files", "web_search", "browse", "run_code", "generate_file", "phone_scan", "drive_search", "drive_read", "drive_create", "drive_edit", "drive_move"];
-  return typeof value === "string" && valid.includes(value as ToolName);
-}
-
-function isValidSafeFilesAction(value: unknown): value is SafeFilesAction {
-  const valid: SafeFilesAction[] = ["create", "read", "edit", "list", "versions"];
-  return typeof value === "string" && valid.includes(value as SafeFilesAction);
-}
-
-function coerceFileId(value: unknown): number | null {
-  if (typeof value === "number" && Number.isInteger(value)) return value;
-  if (typeof value === "string" && value.trim() !== "" && Number.isInteger(Number(value))) return Number(value);
-  return null;
-}
-
-async function routeSafeFilesAction(
-  userId: number,
-  action: SafeFilesAction,
-  args: Record<string, unknown>
-): Promise<ToolResult> {
-  switch (action) {
-    case "create": {
-      const { path, content, mimeType } = args;
-      if (typeof path !== "string") return createErrorResult('Missing or invalid "path" parameter', "INVALID_PARAMS");
-      if (typeof content !== "string")
-        return createErrorResult('Missing or invalid "content" parameter', "INVALID_PARAMS");
-      return createSuccessResult(
-        await createFile(userId, path, Buffer.from(content), typeof mimeType === "string" ? mimeType : "application/octet-stream")
-      );
-    }
-    case "read": {
-      const fileId = coerceFileId(args.fileId);
-      if (fileId === null) return createErrorResult('Missing or invalid "fileId" parameter', "INVALID_PARAMS");
-      return createSuccessResult(await readFile(userId, fileId));
-    }
-    case "edit": {
-      const fileId = coerceFileId(args.fileId);
-      if (fileId === null) return createErrorResult('Missing or invalid "fileId" parameter', "INVALID_PARAMS");
-      if (typeof args.newContent !== "string")
-        return createErrorResult('Missing or invalid "newContent" parameter', "INVALID_PARAMS");
-      return createSuccessResult(await editFile(userId, fileId, Buffer.from(args.newContent)));
-    }
-    case "list":
-      return createSuccessResult(await listFiles(userId));
-    case "versions": {
-      const fileId = coerceFileId(args.fileId);
-      if (fileId === null) return createErrorResult('Missing or invalid "fileId" parameter', "INVALID_PARAMS");
-      return createSuccessResult(await listFileVersions(userId, fileId));
-    }
-    default:
-      return createErrorResult(`Unknown safe_files action: ${action}`, "UNKNOWN_ACTION");
-  }
+/**
+ * This compatibility shim has no run (session, tier, cancellation) to inherit, since the old
+ * (userId, toolName, args) signature never carried one. "max" and a fresh run id are reasonable,
+ * harmless defaults for a wrapper nothing in this codebase calls at runtime any more (every real
+ * call site now goes through toolsFor()/runTool() with the run's own context).
+ */
+function legacyContext(userId: number): ToolContext {
+  return {
+    userId,
+    runId: `legacy-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    tier: "max",
+    signal: new AbortController().signal,
+    emit: () => {},
+  };
 }
 
 export async function executeToolCall(userId: number, toolName: string, args: unknown): Promise<ToolResult> {
-  try {
-    if (toolName.startsWith(MCP_TOOL_PREFIX)) {
-      const r = await getMcpRegistry().call(toolName, typeof args === "object" && args !== null ? (args as Record<string, unknown>) : {});
-      return r.ok ? createSuccessResult({ output: r.text }) : createErrorResult(r.error, "MCP_ERROR");
-    }
-    if (!isValidToolName(toolName)) return createErrorResult(`Unknown tool: ${toolName}`, "UNKNOWN_TOOL");
-    const safeArgs = typeof args === "object" && args !== null ? (args as Record<string, unknown>) : {};
-
-    switch (toolName) {
-      case "vps_files": {
-        try {
-          return createSuccessResult(await runVpsFiles(userId, safeArgs.action, safeArgs));
-        } catch (err) {
-          if (err instanceof VpsFilesError) return createErrorResult(err.message, err.code);
-          throw err;
-        }
-      }
-
-      case "load_skill":
-      case "read_skill_file":
-      case "run_skill_script": {
-        const name = safeArgs.name;
-        if (typeof name !== "string") return createErrorResult('Missing or invalid "name" parameter', "INVALID_PARAMS");
-        const skill = (await getEnabledSkills()).find((s) => s.slug === name);
-        if (!skill) return createErrorResult(`Skill "${name}" is not enabled.`, "SKILL_NOT_ENABLED");
-        if (toolName === "load_skill") return createSuccessResult(toLoadedSkill(skill));
-        if (toolName === "read_skill_file") {
-          const r = await readSkillFileContent(skill, String(safeArgs.path ?? ""));
-          return "error" in r ? createErrorResult(r.error, "INVALID_PARAMS") : createSuccessResult(r);
-        }
-        if (typeof safeArgs.script !== "string") return createErrorResult('Missing or invalid "script" parameter', "INVALID_PARAMS");
-        const args = Array.isArray(safeArgs.args) ? safeArgs.args.filter((a): a is string => typeof a === "string") : [];
-        return createSuccessResult(await runSkillScript(skill, safeArgs.script, args));
-      }
-
-      case "safe_files": {
-        const { action } = safeArgs;
-        if (!isValidSafeFilesAction(action)) {
-          return createErrorResult('Missing or invalid "action" parameter for safe_files tool', "INVALID_PARAMS");
-        }
-        return await routeSafeFilesAction(userId, action, safeArgs);
-      }
-
-      case "web_search": {
-        const { query } = safeArgs;
-        if (typeof query !== "string") return createErrorResult('Missing or invalid "query" parameter', "INVALID_PARAMS");
-        return createSuccessResult(await webSearch(query));
-      }
-
-      case "browse": {
-        // FIX: previously only `url` was forwarded — extractLinks,
-        // extractImages, maxLength, waitForSelector were silently dropped.
-        // P1-09 adds query/interactive/max_chars (old fields keep working unchanged).
-        const { url, extractText, extractLinks, extractImages, maxLength, waitForSelector, query, interactive, max_chars } = safeArgs;
-        if (typeof url !== "string") return createErrorResult('Missing or invalid "url" parameter', "INVALID_PARAMS");
-        return createSuccessResult(
-          await browse(url, {
-            extractText: typeof extractText === "boolean" ? extractText : undefined,
-            extractLinks: typeof extractLinks === "boolean" ? extractLinks : undefined,
-            extractImages: typeof extractImages === "boolean" ? extractImages : undefined,
-            maxLength: typeof max_chars === "number" ? max_chars : typeof maxLength === "number" ? maxLength : undefined,
-            waitForSelector: typeof waitForSelector === "string" ? waitForSelector : undefined,
-            query: typeof query === "string" ? query : undefined,
-            interactive: typeof interactive === "boolean" ? interactive : undefined,
-            userId,
-          })
-        );
-      }
-
-      case "run_code": {
-        // FIX: runCode is (language, code) — the original call passed
-        // (code, language), swapped. Default language to "python" since
-        // the tool schema allows omitting it.
-        const { code, language } = safeArgs;
-        if (typeof code !== "string") return createErrorResult('Missing or invalid "code" parameter', "INVALID_PARAMS");
-        const resolvedLanguage: "python" | "nodejs" = language === "nodejs" ? "nodejs" : "python";
-        return createSuccessResult(await runCode(resolvedLanguage, code));
-      }
-
-      case "generate_file": {
-        // FIX: generateAndSaveFile needs (userId, name, content, format,
-        // style) — the original call passed (description, outputPath,
-        // options), missing userId entirely. Bridged from the tool schema's
-        // real fields below, using the CONFIRMED real types from
-        // fileGenerator.ts (StructuredContent / StyleOption) — not
-        // DocumentContent/StyleDef, which executors/generateFile.ts
-        // imports but which don't actually exist in fileGenerator.ts (a
-        // 4th bug — see the one-line fix noted in the file header).
-        const { format, content, filename, styling } = safeArgs;
-        if (typeof format !== "string") return createErrorResult('Missing or invalid "format" parameter', "INVALID_PARAMS");
-        if (typeof content !== "string")
-          return createErrorResult('Missing or invalid "content" parameter', "INVALID_PARAMS");
-        const name = typeof filename === "string" ? filename : `document-${Date.now()}`;
-
-        // Build a real StructuredContent. If the model passed pre-structured
-        // JSON (title + sections[]), use it as-is; otherwise wrap plain text
-        // into a single section so the tool still works with a bare string.
-        let structuredContent: StructuredContent;
-        try {
-          const parsed = JSON.parse(content);
-          structuredContent =
-            parsed && typeof parsed === "object" && Array.isArray(parsed.sections)
-              ? (parsed as StructuredContent)
-              : { title: name, sections: [{ heading: "Content", body: content }] };
-        } catch {
-          structuredContent = { title: name, sections: [{ heading: "Content", body: content }] };
-        }
-
-        // Resolve style: accept a style id (e.g. "corporate") matching
-        // STYLE_DEFINITIONS, a full StyleOption JSON object, or fall back
-        // to the first defined style.
-        let resolvedStyle: StyleOption = STYLE_DEFINITIONS[0];
-        if (typeof styling === "string") {
-          const byId = STYLE_DEFINITIONS.find((s) => s.id === styling);
-          if (byId) {
-            resolvedStyle = byId;
-          } else {
-            try {
-              const parsedStyle = JSON.parse(styling);
-              if (parsedStyle && typeof parsedStyle === "object") {
-                resolvedStyle = { ...STYLE_DEFINITIONS[0], ...parsedStyle };
-              }
-            } catch {
-              /* fall back to default style */
-            }
-          }
-        }
-
-        return createSuccessResult(
-          await generateFile(userId, name, structuredContent, format, resolvedStyle)
-        );
-      }
-
-      case "phone_scan": {
-        // SR1's phoneScan(action: ScanAction, options?: { path?, categories? })
-        // generates platform-specific scan instructions. Map the tool schema's
-        // target/scanType onto it: target -> options.path, scanType -> action
-        // when it names a valid ScanAction.
-        const { target, scanType } = safeArgs;
-        const validActions: ScanAction[] = ["scan", "categorize", "duplicates", "suggest_cleanup"];
-        const action: ScanAction =
-          typeof scanType === "string" && (validActions as string[]).includes(scanType)
-            ? (scanType as ScanAction)
-            : "scan";
-        const options: ScanOptions | undefined = typeof target === "string" ? { path: target } : undefined;
-        return createSuccessResult(await phoneScan(action, options));
-      }
-
-      case "drive_search": {
-        const { query, maxResults } = safeArgs;
-        if (typeof query !== "string") return createErrorResult('Missing or invalid "query" parameter', "INVALID_PARAMS");
-        const results = await listDriveFiles(userId, typeof maxResults === "number" ? maxResults : 10, query);
-        return createSuccessResult(results);
-      }
-
-      case "drive_read": {
-        const { fileId } = safeArgs;
-        if (typeof fileId !== "string") return createErrorResult('Missing or invalid "fileId" parameter', "INVALID_PARAMS");
-        const content = await readDriveFile(userId, fileId);
-        return createSuccessResult(content);
-      }
-
-      case "drive_create": {
-        const { name, content, mimeType, folderPath } = safeArgs;
-        if (typeof name !== "string") return createErrorResult('Missing or invalid "name" parameter', "INVALID_PARAMS");
-        if (typeof content !== "string") return createErrorResult('Missing or invalid "content" parameter', "INVALID_PARAMS");
-        const parentId = typeof folderPath === "string" && folderPath.trim()
-          ? await ensureDriveFolderPath(userId, folderPath.trim())
-          : (await getDriveRootFolder(userId));
-        const uploaded = await uploadDriveFile(userId, name, typeof mimeType === "string" ? mimeType : "text/plain", Buffer.from(content), parentId);
-        return createSuccessResult(uploaded);
-      }
-
-      case "drive_edit": {
-        const { fileId, newContent, reason } = safeArgs;
-        if (typeof fileId !== "string") return createErrorResult('Missing or invalid "fileId" parameter', "INVALID_PARAMS");
-        if (typeof newContent !== "string") return createErrorResult('Missing or invalid "newContent" parameter', "INVALID_PARAMS");
-        if (typeof reason !== "string") return createErrorResult('Missing or invalid "reason" parameter', "INVALID_PARAMS");
-        const current = await readDriveFile(userId, fileId);
-        // Stage E: edits require UI confirmation. We stage the change and do not apply it.
-        return createSuccessResult({
-          pending: true,
-          fileId,
-          currentPreview: current.text.slice(0, 500),
-          proposedPreview: newContent.slice(0, 500),
-          reason,
-          message: "Edit is staged and waiting for your confirmation in the UI. It has not been applied yet.",
-        });
-      }
-
-      case "drive_move": {
-        const { fileId, folderPath } = safeArgs;
-        if (typeof fileId !== "string") return createErrorResult('Missing or invalid "fileId" parameter', "INVALID_PARAMS");
-        if (typeof folderPath !== "string") return createErrorResult('Missing or invalid "folderPath" parameter', "INVALID_PARAMS");
-        const newParentId = await ensureDriveFolderPath(userId, folderPath.trim());
-        if (!newParentId) return createErrorResult("Could not resolve Drive folder", "DRIVE_FOLDER_ERROR");
-        await moveDriveFile(userId, fileId, newParentId);
-        return createSuccessResult({ success: true, folderPath });
-      }
-
-      default:
-        return createErrorResult(`Unhandled tool: ${toolName}`, "INTERNAL_ERROR");
-    }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    const errorCode =
-      error instanceof Error && "code" in error ? String((error as Error & { code: unknown }).code) : "EXECUTION_ERROR";
-    return createErrorResult(errorMessage, errorCode);
-  }
+  const outcome = await runTool(toolName, args, legacyContext(userId));
+  if (!outcome.ok) return { success: false, error: outcome.error, code: outcome.code };
+  // Builtin tools resolve with the legacy { success, data } / { success, error, code } shape
+  // already, so unwrapping outcome.data here reproduces the exact old return value. An MCP tool
+  // or a future tool that resolves with something else is wrapped as a successful result instead
+  // of silently reshaping it.
+  const data = outcome.data;
+  if (data && typeof data === "object" && "success" in data) return data as ToolResult;
+  return { success: true, data };
 }
 
-export type { ToolResult, SuccessResult, ErrorResult, ToolName, SafeFilesAction };
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 4. PERSONAL-USE BUDGET — no other tenant to rate-limit against

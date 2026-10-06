@@ -6,10 +6,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // ── hoisted mock surface ─────────────────────────────────────────────────────
 const kmax = vi.hoisted(() => ({
-  executeToolCall: vi.fn(),
   MAX_TOOL_CALLS: { free: 2, trial: 20, pro: 20, max: 100 } as Record<string, number>,
   DEEP_RESEARCH_ADDITION: "[deep-research-addition]",
 }));
+// The engine dispatches tools through toolkit/registry's runTool (P1-02). toolsFor/registerTool/
+// toOpenAiTools stay real — they only touch already-mocked collaborators below (Drive, admin,
+// MCP, skills) — and only runTool itself is replaced so each test controls what a tool "returns".
+const registryMock = vi.hoisted(() => ({ runTool: vi.fn() }));
 const quota = vi.hoisted(() => ({
   checkQuota: vi.fn(),
   incrementQuota: vi.fn(),
@@ -26,6 +29,10 @@ const mcp = vi.hoisted(() => ({ getMcpRegistry: vi.fn() }));
 const google = vi.hoisted(() => ({ getConnectionStatus: vi.fn() }));
 
 vi.mock("./kemmaMax", () => kmax);
+vi.mock("./toolkit/registry", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./toolkit/registry")>();
+  return { ...actual, runTool: registryMock.runTool };
+});
 vi.mock("../core/quotaCheck", () => quota);
 vi.mock("../core/usage", () => usage);
 vi.mock("./memory", () => mem);
@@ -35,6 +42,7 @@ vi.mock("./mcp/client", () => mcp);
 vi.mock("../services/google", () => google);
 
 import { kemmaExecute, type EngineInput, type EngineOutput } from "./engine";
+import { unwrapUntrustedContent } from "./untrusted";
 
 // ── env handling ─────────────────────────────────────────────────────────────
 const ENV_NAMES = [
@@ -72,7 +80,7 @@ beforeEach(() => {
   skillReviews.getEnabledSkills.mockResolvedValue([]);
   mcp.getMcpRegistry.mockReturnValue({ tools: async () => [] });
   google.getConnectionStatus.mockResolvedValue({ connected: false });
-  kmax.executeToolCall.mockResolvedValue({ success: true, data: [] });
+  registryMock.runTool.mockResolvedValue({ ok: true, data: { success: true, data: [] } });
   kmax.MAX_TOOL_CALLS.free = 2;
   kmax.MAX_TOOL_CALLS.trial = 20;
   kmax.MAX_TOOL_CALLS.pro = 20;
@@ -258,7 +266,7 @@ describe("tool_calls in a streamed response", () => {
     ];
     stubFetch(() => sseRes(chunks));
     const output = await kemmaExecute(baseInput({ onStream, toolBudget: 0 }));
-    expect(kmax.executeToolCall).not.toHaveBeenCalled();
+    expect(registryMock.runTool).not.toHaveBeenCalled();
     expect(output.toolCalls).toEqual([]);
     // Consequence: the client sees a truncated pseudo-answer as the final response and the
     // requested tool silently never runs. Only reachable when a provider streams tool calls
@@ -378,7 +386,7 @@ describe("tool-call loop with web_search", () => {
   };
 
   it("executes the tool, formats the tool message, streams the final text once and cites sources", async () => {
-    kmax.executeToolCall.mockResolvedValue(searchResults);
+    registryMock.runTool.mockResolvedValue({ ok: true, data: searchResults });
     const onStream = vi.fn();
     const onToolStart = vi.fn();
     const onToolEnd = vi.fn();
@@ -389,7 +397,7 @@ describe("tool-call loop with web_search", () => {
     const output = await kemmaExecute(baseInput({ onStream, onToolStart, onToolEnd }));
 
     expect(onToolStart).toHaveBeenCalledWith("web_search", { query: "best routers" });
-    expect(kmax.executeToolCall).toHaveBeenCalledWith(7, "web_search", { query: "best routers" });
+    expect(registryMock.runTool).toHaveBeenCalledWith("web_search", { query: "best routers" }, expect.objectContaining({ userId: 7 }));
     expect(onToolEnd).toHaveBeenCalledTimes(1);
     expect(onToolEnd.mock.calls[0][0]).toBe("web_search");
     expect(typeof onToolEnd.mock.calls[0][2]).toBe("number");
@@ -397,17 +405,62 @@ describe("tool-call loop with web_search", () => {
     expect(output.toolCalls).toHaveLength(1);
     expect(output.toolCalls[0]).toMatchObject({ tool: "web_search", step: 1, input: { query: "best routers" } });
 
-    // Only the cited source survives, renumbered, and a Sources section is appended.
+    // Only the cited source survives (stable id); in streaming mode the Sources card is not appended (P1-07).
     expect(output.sources).toHaveLength(1);
     expect(output.sources[0]).toMatchObject({ id: 1, url: "https://a.example", title: "Alpha" });
-    expect(output.response).toBe("Sunny day [1].\n\nSources:\n[1] Alpha: https://a.example");
+    expect(output.response).toBe("Sunny day [1].");
     // The streamed text is the pre-citation content (the Sources card is not re-streamed).
     expect(onStream).toHaveBeenCalledTimes(1);
     expect(onStream).toHaveBeenCalledWith("Sunny day [1].");
   });
 
+  it("non-streamed callers get the appended Sources list", async () => {
+    registryMock.runTool.mockResolvedValue({ ok: true, data: searchResults });
+    stubFetch((i) =>
+      i === 0
+        ? jsonRes(completion(null, { toolCalls: [toolCall] }))
+        : jsonRes(completion("Sunny day [1].")));
+    const output = await kemmaExecute(baseInput()); // no onStream
+
+    expect(output.sources).toHaveLength(1);
+    expect(output.sources[0]).toMatchObject({ id: 1, url: "https://a.example", title: "Alpha" });
+    expect(output.response).toBe("Sunny day [1].\n\nSources:\n[1] Alpha: https://a.example");
+  });
+
+  it("preserves all sources in final output when answer contains no citation markers", async () => {
+    registryMock.runTool.mockResolvedValue({ ok: true, data: searchResults });
+    stubFetch((i) =>
+      i === 0
+        ? jsonRes(completion(null, { toolCalls: [toolCall] }))
+        : jsonRes(completion("Sunny day without any markers.")));
+    const output = await kemmaExecute(baseInput()); // no onStream
+
+    // When the model produces no [n] markers, all sources are kept
+    expect(output.sources).toHaveLength(2);
+    expect(output.sources.map((s) => s.id)).toEqual([1, 2]);
+    expect(output.sources[0]).toMatchObject({ id: 1, url: "https://a.example", title: "Alpha" });
+    expect(output.sources[1]).toMatchObject({ id: 2, url: "https://b.example", title: "Beta" });
+    expect(output.response).toBe(
+      "Sunny day without any markers.\n\nSources:\n[1] Alpha: https://a.example\n[2] Beta: https://b.example"
+    );
+  });
+
+  it("preserves all sources in final output for uncited streamed answer without appending Sources", async () => {
+    registryMock.runTool.mockResolvedValue({ ok: true, data: searchResults });
+    const onStream = vi.fn();
+    stubFetch((i) =>
+      i === 0
+        ? jsonRes(completion(null, { toolCalls: [toolCall] }))
+        : jsonRes(completion("Sunny day without any markers.")));
+    const output = await kemmaExecute(baseInput({ onStream }));
+
+    expect(output.sources).toHaveLength(2);
+    expect(output.sources.map((s) => s.id)).toEqual([1, 2]);
+    expect(output.response).toBe("Sunny day without any markers.");
+  });
+
   it("annotates the web_search tool message with global source ids for the model", async () => {
-    kmax.executeToolCall.mockResolvedValue(searchResults);
+    registryMock.runTool.mockResolvedValue({ ok: true, data: searchResults });
     const net = stubFetch((i) =>
       i === 0
         ? jsonRes(completion(null, { toolCalls: [toolCall] }))
@@ -416,7 +469,11 @@ describe("tool-call loop with web_search", () => {
     const toolMsg = net.calls[1].body.messages.find((m: any) => m.role === "tool");
     expect(toolMsg.tool_call_id).toBe("tc1");
     expect(toolMsg.name).toBe("web_search");
-    const parsed = JSON.parse(toolMsg.content);
+    expect(toolMsg.content).toMatch(/^<untrusted_content/);
+    const unwrapped = unwrapUntrustedContent(toolMsg.content);
+    expect(unwrapped.isFenced).toBe(true);
+    expect(unwrapped.tool).toBe("web_search");
+    const parsed = JSON.parse(unwrapped.content);
     expect(parsed.success).toBe(true);
     expect(parsed.data.map((d: any) => d.id)).toEqual([1, 2]);
     const assistantMsg = net.calls[1].body.messages.find((m: any) => m.role === "assistant" && m.tool_calls);
@@ -427,7 +484,7 @@ describe("tool-call loop with web_search", () => {
 
   it("runs the citation-verify pass only for agentic runs (2+ tool executions)", async () => {
     // One tool call -> not agentic -> no verify route call; the two fetches are the only ones.
-    kmax.executeToolCall.mockResolvedValue(searchResults);
+    registryMock.runTool.mockResolvedValue({ ok: true, data: searchResults });
     const net = stubFetch((i) =>
       i === 0
         ? jsonRes(completion(null, { toolCalls: [toolCall] }))
@@ -445,10 +502,10 @@ describe("tool budget exhaustion", () => {
     const onStream = vi.fn();
     const onQuotaWarn = vi.fn();
     const tc = (id: string, name: string) => ({ id, type: "function", function: { name, arguments: "{}" } });
-    kmax.executeToolCall.mockImplementation(async (_id: number, name: string) =>
+    registryMock.runTool.mockImplementation(async (name: string) =>
       name === "browse"
-        ? { success: true, data: { url: "https://x.example", title: "X", content: "page text" } }
-        : { success: true, data: [] });
+        ? { ok: true, data: { success: true, data: { url: "https://x.example", title: "X", content: "page text" } } }
+        : { ok: true, data: { success: true, data: [] } });
     const net = stubFetch((i) => {
       if (i === 0) return jsonRes(completion(null, { toolCalls: [tc("t1", "web_search")] }));
       if (i === 1) return jsonRes(completion(null, { toolCalls: [tc("t2", "browse")] }));

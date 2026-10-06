@@ -1,11 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   apiKeyFor,
+  chatOutputCap,
   detectProvider,
   estimateCostUsd,
   fallbackRoutes,
+  getModelLimits,
   listSelectableModels,
   litellmBaseUrl,
+  MODEL_LIMITS,
+  modelLimitsFor,
+  PURPOSE_CAPS,
+  purposeCapFor,
+  resolveMaxTokens,
   routeFor,
   stripProviderPrefix,
 } from "./kemmaRouter";
@@ -13,7 +20,7 @@ import {
 const TOUCHED_ENV = [
   "LITELLM_BASE_URL", "LITELLM_API_KEY", "KOBOILLM_API_KEY",
   "KEMMA_MODEL_FALLBACK", "KEMMA_MODEL_CHAT", "KEMMA_MODEL_VISION",
-  "KEMMA_MODEL_REPORT", "KEMMA_MODEL_LONG_DOC",
+  "KEMMA_MODEL_REPORT", "KEMMA_MODEL_LONG_DOC", "KEMMA_MAX_OUTPUT_TOKENS",
   "QWEN_API_KEY", "GEMINI_API_KEY", "SONAR_API_KEY", "PERPLEXITY_API_KEY",
 ];
 
@@ -170,5 +177,92 @@ describe("estimateCostUsd", () => {
     expect(estimateCostUsd("qwen3.8-max", 1_000_000, 0)).toBeCloseTo(2);
     expect(estimateCostUsd("gemini-3.8-flash", 1_000_000, 1_000_000)).toBeCloseTo(4.5);
     expect(estimateCostUsd("mystery-model", 1_000_000, 0)).toBeCloseTo(2);
+  });
+});
+
+describe("P1-06 MODEL_LIMITS and modelLimitsFor", () => {
+  it("provides conservative defaults for unknown models", () => {
+    const limits = modelLimitsFor("unknown-custom-model");
+    expect(limits).toEqual({ contextWindow: 128000, maxOutput: 8192 });
+    expect(getModelLimits("another-unknown")).toEqual({ contextWindow: 128000, maxOutput: 8192 });
+  });
+
+  it("returns known limits for configured models", () => {
+    expect(modelLimitsFor("qwen3.8-max")).toEqual(MODEL_LIMITS["qwen3.8-max"]);
+    expect(modelLimitsFor("gemini-3.8-flash")).toEqual(MODEL_LIMITS["gemini-3.8-flash"]);
+    expect(modelLimitsFor("gemini-2.5-pro").maxOutput).toBe(65536);
+  });
+
+  it("strips provider prefixes when looking up model limits", () => {
+    expect(modelLimitsFor("litellm/qwen3.8-max")).toEqual(MODEL_LIMITS["qwen3.8-max"]);
+    expect(modelLimitsFor("LiteLLM/deepseek-ai/deepseek-v3.2-maas")).toEqual(MODEL_LIMITS["deepseek-ai/deepseek-v3.2-maas"]);
+    expect(modelLimitsFor("google/gemini-3.8-flash")).toEqual(MODEL_LIMITS["gemini-3.8-flash"]);
+    expect(modelLimitsFor("litellm/google/gemini-2.5-pro").maxOutput).toBe(65536);
+  });
+});
+
+describe("P1-06 purpose caps and resolveMaxTokens", () => {
+  it("returns 8192 for chat by default", () => {
+    expect(chatOutputCap()).toBe(8192);
+    expect(purposeCapFor("chat")).toBe(8192);
+    expect(purposeCapFor()).toBe(8192);
+    expect(purposeCapFor("initial")).toBe(8192);
+    expect(purposeCapFor("follow-up")).toBe(8192);
+  });
+
+  it("allows KEMMA_MAX_OUTPUT_TOKENS to override the chat cap", () => {
+    process.env.KEMMA_MAX_OUTPUT_TOKENS = "4096";
+    expect(chatOutputCap()).toBe(4096);
+    expect(purposeCapFor("chat")).toBe(4096);
+    expect(purposeCapFor("initial")).toBe(4096);
+
+    // Report and planner caps are unaffected by chat cap override
+    expect(purposeCapFor("report")).toBe(32768);
+    expect(purposeCapFor("planner")).toBe(2048);
+  });
+
+  it("ignores non-positive or invalid KEMMA_MAX_OUTPUT_TOKENS", () => {
+    process.env.KEMMA_MAX_OUTPUT_TOKENS = "invalid";
+    expect(chatOutputCap()).toBe(8192);
+    process.env.KEMMA_MAX_OUTPUT_TOKENS = "-100";
+    expect(chatOutputCap()).toBe(8192);
+  });
+
+  it("returns 32768 for report and long-doc purposes", () => {
+    expect(purposeCapFor("report")).toBe(32768);
+    expect(purposeCapFor("long-doc")).toBe(32768);
+    expect(purposeCapFor("long_doc")).toBe(32768);
+    expect(purposeCapFor("synthesis")).toBe(32768);
+  });
+
+  it("returns 2048 for planner and verify purposes", () => {
+    expect(purposeCapFor("planner")).toBe(2048);
+    expect(purposeCapFor("verify")).toBe(2048);
+  });
+
+  it("resolves max_tokens as min(model.maxOutput, purposeCap)", () => {
+    // Model with 8192 maxOutput:
+    // chat: min(8192, 8192) = 8192
+    expect(resolveMaxTokens("qwen3.8-max", "chat")).toBe(8192);
+    // report: min(8192, 32768) = 8192 (capped by model)
+    expect(resolveMaxTokens("qwen3.8-max", "report")).toBe(8192);
+    // planner: min(8192, 2048) = 2048 (capped by purpose)
+    expect(resolveMaxTokens("qwen3.8-max", "planner")).toBe(2048);
+    // verify: min(8192, 2048) = 2048
+    expect(resolveMaxTokens("qwen3.8-max", "verify")).toBe(2048);
+
+    // Model with 65536 maxOutput:
+    // chat: min(65536, 8192) = 8192 (capped by purpose)
+    expect(resolveMaxTokens("gemini-2.5-pro", "chat")).toBe(8192);
+    // report: min(65536, 32768) = 32768 (capped by purpose)
+    expect(resolveMaxTokens("gemini-2.5-pro", "report")).toBe(32768);
+    // planner: min(65536, 2048) = 2048
+    expect(resolveMaxTokens("gemini-2.5-pro", "planner")).toBe(2048);
+
+    // When chat cap is overridden:
+    process.env.KEMMA_MAX_OUTPUT_TOKENS = "1024";
+    expect(resolveMaxTokens("qwen3.8-max", "chat")).toBe(1024);
+    expect(resolveMaxTokens("gemini-2.5-pro", "chat")).toBe(1024);
+    expect(resolveMaxTokens("gemini-2.5-pro", "report")).toBe(32768);
   });
 });

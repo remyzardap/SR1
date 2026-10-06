@@ -76,9 +76,25 @@ describe("browse() with READER_V2 on", () => {
       maxChars: 5000,
       interactive: undefined,
       userId: undefined,
+      signal: undefined,
     });
     expect(result).toMatchObject({ title: "Reader Title", content: "reader markdown", tier: 1, truncated: false });
     expect(browserUseRun).not.toHaveBeenCalled();
+  });
+
+  it("forwards the caller's AbortSignal so the tool loop can cancel a reader call", async () => {
+    const controller = new AbortController();
+    readerMock.readPage.mockResolvedValue({ url: "u", finalUrl: "u", title: "T", markdown: "m", tier: 1, truncated: false });
+
+    await browse("https://example.com/page", { signal: controller.signal });
+
+    expect(readerMock.readPage).toHaveBeenCalledWith("https://example.com/page", {
+      query: undefined,
+      maxChars: undefined,
+      interactive: undefined,
+      userId: undefined,
+      signal: controller.signal,
+    });
   });
 
   it("never calls the browser-use agent directly from this path when tier 1/2 succeed", async () => {

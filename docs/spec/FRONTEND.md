@@ -108,3 +108,133 @@ another branch. F-02 to F-04 need the stream as plain, testable state instead.
 - AC4: Diff limited to the five files listed under Files.
 
 **Size:** M. **Lane:** F. **Builder:** agy.
+
+---
+
+## F-02 Live steps: per-tool status, durations, and run details that stay on each answer
+
+**Why:** P1-03 (merged, behind `STREAM_TOOL_TURNS`) now sends `tool_end { id, tool, ok, durationMs }` and an `id` on
+`tool_start`. The UI ignores both. In `MessageBubble.tsx` every tool step is drawn as "Running" until the whole
+answer ends, because `ToolHeader`'s `state` comes from one global `isRunning`. A failed tool never shows as failed.
+`Chat.tsx` also clears `agentSteps` and `activity` when the next message is sent, and `ChatMessages.tsx` passes them
+only to the last assistant message, so an earlier answer loses its run details. P1-03 already shipped the collapsed
+thinking block (`ThinkingBlock.tsx`) and muted narration, so they're out of scope here.
+
+**Depends on:** F-01 and P1-03 (both merged). Everything here also works with the flag off: without `tool_end`,
+steps finish when the run ends, exactly like today.
+
+**Files**
+- edit `client/src/lib/streamReducer.ts`, `client/src/lib/streamReducer.test.ts`
+- edit `client/src/types/chat.ts`, `client/src/pages/Chat.tsx`, `client/src/components/ChatMessages.tsx`,
+  `client/src/components/MessageBubble.tsx`
+- nothing else (no server changes, no new dependencies)
+
+**Spec**
+
+1. **Reducer** (`streamReducer.ts`). `AgentStep` gains `status: "running" | "done" | "error"` and `durationMs?: number`.
+   Keep `active` for compatibility: `active` is `status === "running"`.
+   - `tool_start`: push the step with `status: "running"`.
+   - `notice`: its step is informational: `status: "done"`.
+   - `tool_end`: match exactly as today (by `id`, else the last *running* step with that `tool`). Set
+     `status: ok === false ? "error" : "done"` and `durationMs` when it's a number. No match, or already finished:
+     return the same state.
+   - `done`: every step still `running` becomes `done` (servers without `tool_end`).
+   - `error`: every step still `running` becomes `error`.
+   - Unchanged events still return the same object. Never mutate.
+2. **Message type** (`types/chat.ts`). `ChatMessageData` gains `steps?: AgentStep[]` and `activity?: ActivityItem[]`
+   (import the types; don't redefine them).
+3. **Chat.tsx**. When the stream ends, successfully or with an error, write `streamState.steps` and
+   `streamState.activity` onto the assistant message in the same `setMessages` call that sets `streaming: false`
+   (omit them when empty). The live `agentSteps` and `activity` state and their setters stay as they are: they still
+   drive the side panel, the status line and the mobile "Run details" sheet. In the mobile sheet, prefix each step
+   with its state ("✓", "✕" or "…") in text, not colour alone.
+4. **ChatMessages.tsx**. Each assistant message shows its own run details: `tools` = `message.steps` (filtered to steps
+   with `detail`, as today) and `activity` = `message.activity`. Fall back to the live `steps`/`activity` props
+   only for the message that is currently streaming. `ChatRunCard` is unchanged.
+5. **MessageBubble.tsx**. In the tools list, `ToolHeader`'s `state` comes from each step: `running` gives
+   `"input-available"`, `done` gives `"output-available"`, `error` gives `"output-error"`. Fall back to today's
+   `isRunning` rule only for a step with no `status` (old data). Show the duration next to the title when
+   present (`"0.8 s"` under 10 s, else `"12 s"`), muted, inside the existing header.
+   Keep the markup and classes. No new colours or styles beyond what `ToolHeader` already does for each state.
+
+**Tests** (vitest)
+- Reducer: `tool_start` sets running; `tool_end` by id with `ok: true` sets done plus duration; `ok: false` sets error;
+  match by tool name picks the last *running* one; an unknown id leaves the same object; `done` finishes running steps
+  and leaves error ones; `error` marks running steps as error; `notice` steps are done; inputs stay frozen.
+- A small pure helper, if you extract one (for example `toolState(step, isRunning)` and `formatDuration(ms)`), gets
+  tests too. Don't add React rendering tests (no DOM test setup exists for this).
+
+**Acceptance criteria**
+- AC1: `npm run check` and `npm test` pass, and the new tests cover every reducer rule above.
+- AC2: With `tool_end` events, each tool shows its own Running → Completed / Error and a duration. Without them, the
+  behaviour matches today's at the end of the run. Evidence: reducer tests replaying both event sequences.
+  Visual checks are marked NOT RUN unless a person or browser did them.
+- AC3: After a second question, the first answer still shows its tools and activity (state-level evidence: the
+  assistant message object carries `steps`/`activity` after the stream ends).
+- AC4: Diff limited to the six files listed.
+
+**Size:** M. **Lane:** F. **Builder:** agy.
+
+---
+
+## F-03 Numbered citations that match their sources, and sources that survive a reload
+
+**Why:** answers cite sources as `[n]`, but on screen that's plain text. The source cards under an answer
+(`MessageBubble.tsx`, "Sources / N") number themselves by **position** (`index + 1`). After P1-07, source ids are
+stable and only the *cited* ones are sent, so the list can be `[2], [5], [9]`. Position numbering would label them
+1, 2, 3 and contradict the text. Sources also vanish on reload, because history doesn't carry them. P1-07 fixes the
+server side: stable ids, a cited subset, and `metadata` with sources and activity saved per message and returned in
+session history.
+
+**Depends on:** P1-07 merged. **Before building, read the merged P1-07 code** (`server/kemma/sources.ts`,
+`server/routes/kemmaStream.ts`, the session-history procedure in `server/routers.ts`) and use its real field names
+for the source id and the history `metadata`. Where this spec guesses a name, the code wins. Note any difference
+under "Deviations".
+
+**Files**
+- edit `client/src/lib/sse.ts` + `sse.test.ts` (sources keep their `id`, and any short quote/snippet field P1-07 sends)
+- edit `client/src/types/chat.ts` (`ChatSource.id?: number`, plus the snippet field if one exists)
+- create `client/src/lib/citations.ts` + `citations.test.ts` (a rehype plugin and pure helpers)
+- create `client/src/components/chat/CitationChip.tsx`
+- edit `client/src/components/MessageBubble.tsx`, `client/src/pages/Chat.tsx` (the history mapping only)
+- nothing else
+
+**Spec**
+
+1. **Decoder.** The `sources` event keeps each item's numeric `id` (and the snippet, if P1-07 sends one). Items
+   without a numeric id keep today's behaviour: their number is their position, `index + 1`.
+2. **Source cards** (`MessageBubble.tsx`): label each card with `source.id ?? index + 1`, sort by that number, and
+   give each card a DOM id `src-<messageId>-<n>`, so a citation can jump to it. Keep the existing markup and classes.
+3. **Citation chips.** In assistant **answer** text (not user messages, not narration parts, not inside code blocks
+   or inline code), turn `[n]`, and runs such as `[2][5]` or `[2, 5]`, into small superscript chips. Each chip is a
+   link to `#src-<messageId>-<n>`.
+   - Hover or keyboard focus shows a tooltip with the source title and host (and the snippet, if there is one). Tap on
+     mobile scrolls to the card. Use the existing tooltip component from `components/ui` if there is one, and no new
+     dependency.
+   - Accessible name: `Source n: <title>`.
+   - A number with no matching source stays plain text, exactly as written. While the answer is still streaming and
+     sources haven't arrived, numbers stay plain text, so the layout doesn't jump.
+   - Implement it as a **rehype plugin** in `citations.ts`, passed to `MessageResponse` (Streamdown 1.6 accepts
+     `rehypePlugins`) **in addition to** Streamdown's `defaultRehypePlugins`, never instead of them: they include the
+     HTML hardening. The plugin works on hast text nodes and skips `code` and `pre`. Don't regex the raw markdown.
+4. **Reload** (`Chat.tsx`, where persisted history is mapped into messages): when a history item has P1-07's metadata,
+   set `sources` (with ids) and `activity` on the message. Old messages without metadata are unchanged.
+5. **No visual noise:** chips use the existing muted text and accent tokens. No new colours. Downloads (the PDF and
+   Markdown reports) keep working: they get the same sources, with ids, from the message.
+
+**Tests** (vitest, no DOM rendering)
+- `citations.test.ts`: on small hast trees, the plugin turns `[3]`, `[2][5]` and `[2, 5]` into chip nodes; leaves
+  `[7]` with no source untouched; leaves text in `code`/`pre` untouched; doesn't touch `[link](url)` markdown links;
+  produces nothing when there are no sources. Pure helpers (parse markers, map id to source) are tested directly.
+- `sse.test.ts`: sources keep numeric ids; an item without an id still decodes.
+- The history mapping is a pure helper with a test: metadata becomes sources and activity, and a message without
+  metadata comes back unchanged.
+
+**Acceptance criteria**
+- AC1: `npm run check` and `npm test` pass, and the new tests cover every rule above.
+- AC2: For a sources list with ids `[2, 5]`, the cards read 2 and 5 and the chips `[2]` and `[5]` link to them
+  (helper-level evidence). Visual checks are NOT RUN unless a person or browser did them.
+- AC3: Reloading a session restores sources (evidence: the history-mapping helper test, run against the P1-07 response shape).
+- AC4: Diff limited to the files listed.
+
+**Size:** M. **Lane:** F. **Builder:** agy or qwen.

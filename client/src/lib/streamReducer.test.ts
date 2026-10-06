@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   initialStreamState,
   reduceStream,
+  toolState,
+  formatDuration,
+  stepStatusPrefix,
+  type AgentStep,
   type StreamState,
 } from "./streamReducer";
 
@@ -74,19 +78,19 @@ describe("streamReducer", () => {
     const s1 = deepFreeze(reduceStream(s0, { type: "tool_start", tool: "web_search" }));
     expect(s1.currentStep).toBe("Run web_search");
     expect(s1.steps).toEqual([
-      { id: "step-1", label: "Run web_search", detail: "web_search" },
+      { id: "step-1", label: "Run web_search", detail: "web_search", status: "running", active: true },
     ]);
 
     const s2 = deepFreeze(reduceStream(s1, { type: "tool_start", tool: "browse" }));
     expect(s2.currentStep).toBe("Run browse");
     expect(s2.steps).toEqual([
-      { id: "step-1", label: "Run web_search", detail: "web_search" },
-      { id: "step-2", label: "Run browse", detail: "browse" },
+      { id: "step-1", label: "Run web_search", detail: "web_search", status: "running", active: true },
+      { id: "step-2", label: "Run browse", detail: "browse", status: "running", active: true },
     ]);
 
     // tool_start with custom id
     const s3 = deepFreeze(reduceStream(s2, { type: "tool_start", tool: "custom_tool", id: "call_abc" }));
-    expect(s3.steps[2]).toEqual({ id: "call_abc", label: "Run custom_tool", detail: "custom_tool" });
+    expect(s3.steps[2]).toEqual({ id: "call_abc", label: "Run custom_tool", detail: "custom_tool", status: "running", active: true });
   });
 
   it("handles activity by upserting by id and updating currentStep when running", () => {
@@ -147,7 +151,7 @@ describe("streamReducer", () => {
   it("handles notice by pushing a step with its label", () => {
     const s0 = deepFreeze(initialStreamState());
     const s1 = deepFreeze(reduceStream(s0, { type: "notice", message: "Notice message" }));
-    expect(s1.steps).toEqual([{ id: "step-1", label: "Notice message" }]);
+    expect(s1.steps).toEqual([{ id: "step-1", label: "Notice message", status: "done", active: false }]);
 
     // Notice without message is a no-op
     const s2 = reduceStream(s1, { type: "notice" });
@@ -270,11 +274,14 @@ describe("streamReducer", () => {
     // Match by id
     state = deepFreeze(reduceStream(state, { type: "tool_end", id: "search_1" }));
     expect(state.steps[0].active).toBe(false);
+    expect(state.steps[0].status).toBe("done");
 
-    // Match by tool name matches the LAST step with that tool (index 2, not 1)
+    // Match by tool name matches the LAST running step with that tool (index 2, not 1)
     state = deepFreeze(reduceStream(state, { type: "tool_end", tool: "browse" }));
-    expect(state.steps[1].active).toBeUndefined();
+    expect(state.steps[1].active).toBe(true);
+    expect(state.steps[1].status).toBe("running");
     expect(state.steps[2].active).toBe(false);
+    expect(state.steps[2].status).toBe("done");
 
     // Redundant tool_end on already inactive step returns same object
     const unchanged = reduceStream(state, { type: "tool_end", id: "search_1" });
@@ -320,7 +327,9 @@ describe("streamReducer", () => {
 
     state = deepFreeze(reduceStream(state, { type: "tool_start", tool: "web_search" }));
     expect(state.currentStep).toBe("Run web_search");
-    expect(state.steps).toEqual([{ id: "step-1", label: "Run web_search", detail: "web_search" }]);
+    expect(state.steps).toEqual([
+      { id: "step-1", label: "Run web_search", detail: "web_search", status: "running", active: true },
+    ]);
 
     state = deepFreeze(
       reduceStream(state, {
@@ -362,6 +371,215 @@ describe("streamReducer", () => {
     state = deepFreeze(reduceStream(state, { type: "done" }));
     expect(state.done).toBe(true);
     expect(state.model).toBe("gpt-4o");
+    expect(state.steps).toEqual([
+      { id: "step-1", label: "Run web_search", detail: "web_search", status: "done", active: false },
+    ]);
     expect(state.error).toBeNull();
+  });
+
+  describe("F-02 reducer rules and helpers", () => {
+    it("tool_start sets running with status: 'running' and active: true", () => {
+      const s0 = deepFreeze(initialStreamState());
+      const s1 = deepFreeze(reduceStream(s0, { type: "tool_start", tool: "web_search", id: "t1" }));
+      expect(s1.steps[0]).toEqual({
+        id: "t1",
+        label: "Run web_search",
+        detail: "web_search",
+        status: "running",
+        active: true,
+      });
+    });
+
+    it("tool_end by id with ok: true sets done plus duration", () => {
+      let state = deepFreeze(initialStreamState());
+      state = deepFreeze(reduceStream(state, { type: "tool_start", tool: "web_search", id: "t1" }));
+      state = deepFreeze(
+        reduceStream(state, {
+          type: "tool_end",
+          id: "t1",
+          tool: "web_search",
+          ok: true,
+          durationMs: 820,
+        })
+      );
+      expect(state.steps[0]).toEqual({
+        id: "t1",
+        label: "Run web_search",
+        detail: "web_search",
+        status: "done",
+        active: false,
+        durationMs: 820,
+      });
+    });
+
+    it("tool_end with ok: false sets error plus duration", () => {
+      let state = deepFreeze(initialStreamState());
+      state = deepFreeze(reduceStream(state, { type: "tool_start", tool: "run_code", id: "t2" }));
+      state = deepFreeze(
+        reduceStream(state, {
+          type: "tool_end",
+          id: "t2",
+          tool: "run_code",
+          ok: false,
+          durationMs: 12400,
+        })
+      );
+      expect(state.steps[0]).toEqual({
+        id: "t2",
+        label: "Run run_code",
+        detail: "run_code",
+        status: "error",
+        active: false,
+        durationMs: 12400,
+      });
+    });
+
+    it("tool_end matching by tool name picks the last running one", () => {
+      let state = deepFreeze(initialStreamState());
+      state = deepFreeze(reduceStream(state, { type: "tool_start", tool: "browse", id: "b1" }));
+      state = deepFreeze(reduceStream(state, { type: "tool_start", tool: "browse", id: "b2" }));
+      // b2 is the last running one
+      state = deepFreeze(reduceStream(state, { type: "tool_end", tool: "browse", ok: true, durationMs: 400 }));
+      expect(state.steps[1].id).toBe("b2");
+      expect(state.steps[1].status).toBe("done");
+      expect(state.steps[1].active).toBe(false);
+      expect(state.steps[0].id).toBe("b1");
+      expect(state.steps[0].status).toBe("running");
+      expect(state.steps[0].active).toBe(true);
+
+      // Next tool_end by name picks b1 since b2 is already done
+      state = deepFreeze(reduceStream(state, { type: "tool_end", tool: "browse", ok: true, durationMs: 600 }));
+      expect(state.steps[0].status).toBe("done");
+      expect(state.steps[0].active).toBe(false);
+    });
+
+    it("an unknown id leaves the same object", () => {
+      let state = deepFreeze(initialStreamState());
+      state = deepFreeze(reduceStream(state, { type: "tool_start", tool: "browse", id: "b1" }));
+      const unchanged = reduceStream(state, { type: "tool_end", id: "unknown_id" });
+      expect(unchanged).toBe(state);
+    });
+
+    it("done finishes running steps and leaves error ones", () => {
+      let state = deepFreeze(initialStreamState());
+      state = deepFreeze(reduceStream(state, { type: "tool_start", tool: "step_err", id: "e1" }));
+      state = deepFreeze(reduceStream(state, { type: "tool_end", id: "e1", ok: false }));
+      state = deepFreeze(reduceStream(state, { type: "tool_start", tool: "step_run", id: "r1" }));
+      expect(state.steps[0].status).toBe("error");
+      expect(state.steps[1].status).toBe("running");
+
+      state = deepFreeze(reduceStream(state, { type: "done" }));
+      expect(state.steps[0].status).toBe("error");
+      expect(state.steps[0].active).toBe(false);
+      expect(state.steps[1].status).toBe("done");
+      expect(state.steps[1].active).toBe(false);
+    });
+
+    it("error marks running steps as error and preserves already done ones", () => {
+      let state = deepFreeze(initialStreamState());
+      state = deepFreeze(reduceStream(state, { type: "tool_start", tool: "step_ok", id: "ok1" }));
+      state = deepFreeze(reduceStream(state, { type: "tool_end", id: "ok1", ok: true }));
+      state = deepFreeze(reduceStream(state, { type: "tool_start", tool: "step_run", id: "r1" }));
+      expect(state.steps[0].status).toBe("done");
+      expect(state.steps[1].status).toBe("running");
+
+      state = deepFreeze(reduceStream(state, { type: "error", message: "Server connection failed" }));
+      expect(state.error).toBe("Server connection failed");
+      expect(state.steps[0].status).toBe("done");
+      expect(state.steps[0].active).toBe(false);
+      expect(state.steps[1].status).toBe("error");
+      expect(state.steps[1].active).toBe(false);
+    });
+
+    it("notice steps are done and active is false", () => {
+      const s0 = deepFreeze(initialStreamState());
+      const s1 = deepFreeze(reduceStream(s0, { type: "notice", message: "Search completed" }));
+      expect(s1.steps[0]).toEqual({
+        id: "step-1",
+        label: "Search completed",
+        status: "done",
+        active: false,
+      });
+    });
+
+    it("toolState helper maps status to tool header states with isRunning fallback", () => {
+      expect(toolState({ id: "1", label: "T", status: "running" })).toBe("input-available");
+      expect(toolState({ id: "1", label: "T", status: "done" })).toBe("output-available");
+      expect(toolState({ id: "1", label: "T", status: "error" })).toBe("output-error");
+
+      // Old data with no status
+      expect(toolState({ id: "1", label: "T" }, true)).toBe("input-available");
+      expect(toolState({ id: "1", label: "T" }, false)).toBe("output-available");
+    });
+
+    it("formatDuration helper formats under 10 s to 1 decimal place and >= 10 s rounded", () => {
+      expect(formatDuration(800)).toBe("0.8 s");
+      expect(formatDuration(9900)).toBe("9.9 s");
+      expect(formatDuration(10000)).toBe("10 s");
+      expect(formatDuration(12000)).toBe("12 s");
+      expect(formatDuration(12400)).toBe("12 s");
+      expect(formatDuration(12600)).toBe("13 s");
+      expect(formatDuration(0)).toBe("0.0 s");
+      expect(formatDuration(-10)).toBe("0.0 s");
+    });
+
+    it("stepStatusPrefix helper returns ✓ for done, ✕ for error, … for running", () => {
+      expect(stepStatusPrefix({ id: "1", label: "T", status: "done" })).toBe("✓");
+      expect(stepStatusPrefix({ id: "1", label: "T", status: "error" })).toBe("✕");
+      expect(stepStatusPrefix({ id: "1", label: "T", status: "running" })).toBe("…");
+
+      // Old data fallback
+      expect(stepStatusPrefix({ id: "1", label: "T", active: false })).toBe("✓");
+      expect(stepStatusPrefix({ id: "1", label: "T", active: true })).toBe("…");
+    });
+
+    it("AC2 evidence: replaying event sequence WITH tool_end events", () => {
+      let state = deepFreeze(initialStreamState());
+      // Tool 1 succeeds with duration
+      state = deepFreeze(reduceStream(state, { type: "tool_start", tool: "web_search", id: "t1" }));
+      expect(state.steps[0].status).toBe("running");
+      expect(toolState(state.steps[0])).toBe("input-available");
+
+      state = deepFreeze(reduceStream(state, { type: "tool_end", id: "t1", tool: "web_search", ok: true, durationMs: 820 }));
+      expect(state.steps[0].status).toBe("done");
+      expect(state.steps[0].durationMs).toBe(820);
+      expect(toolState(state.steps[0])).toBe("output-available");
+      expect(formatDuration(state.steps[0].durationMs!)).toBe("0.8 s");
+
+      // Tool 2 fails with duration
+      state = deepFreeze(reduceStream(state, { type: "tool_start", tool: "run_code", id: "t2" }));
+      expect(state.steps[1].status).toBe("running");
+      expect(toolState(state.steps[1])).toBe("input-available");
+
+      state = deepFreeze(reduceStream(state, { type: "tool_end", id: "t2", tool: "run_code", ok: false, durationMs: 12400 }));
+      expect(state.steps[1].status).toBe("error");
+      expect(state.steps[1].durationMs).toBe(12400);
+      expect(toolState(state.steps[1])).toBe("output-error");
+      expect(formatDuration(state.steps[1].durationMs!)).toBe("12 s");
+
+      // Done leaves statuses intact
+      state = deepFreeze(reduceStream(state, { type: "done" }));
+      expect(state.steps[0].status).toBe("done");
+      expect(state.steps[1].status).toBe("error");
+    });
+
+    it("AC2 evidence: replaying event sequence WITHOUT tool_end events (server without tool_end)", () => {
+      let state = deepFreeze(initialStreamState());
+      state = deepFreeze(reduceStream(state, { type: "tool_start", tool: "web_search", id: "t1" }));
+      state = deepFreeze(reduceStream(state, { type: "tool_start", tool: "browse", id: "t2" }));
+      expect(state.steps[0].status).toBe("running");
+      expect(state.steps[1].status).toBe("running");
+      expect(toolState(state.steps[0], true)).toBe("input-available");
+      expect(toolState(state.steps[1], true)).toBe("input-available");
+
+      // On done, all running steps finish and become done (matches today's behaviour)
+      state = deepFreeze(reduceStream(state, { type: "done" }));
+      expect(state.steps[0].status).toBe("done");
+      expect(state.steps[0].active).toBe(false);
+      expect(state.steps[1].status).toBe("done");
+      expect(state.steps[1].active).toBe(false);
+      expect(toolState(state.steps[0])).toBe("output-available");
+      expect(toolState(state.steps[1])).toBe("output-available");
+    });
   });
 });

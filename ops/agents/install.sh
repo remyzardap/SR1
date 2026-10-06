@@ -30,6 +30,7 @@ say "1/7 packages (git, gh, node)"
 need=()
 command -v git >/dev/null || need+=(git)
 command -v gh  >/dev/null || need+=(gh)
+command -v jq  >/dev/null || need+=(jq)
 command -v sudo >/dev/null || need+=(sudo)
 if ((${#need[@]})); then
   command -v apt-get >/dev/null || die "install these first: ${need[*]}"
@@ -125,7 +126,8 @@ if ! has_cli opencode; then
   as_agents "npm install -g --prefix \"\$HOME/.local\" --no-audit --no-fund '$OPENCODE_PKG'" || warn "opencode install failed (see above)"
 fi
 # opencode asks before edits/commands unless its config allows them; agents run unattended (the gate is the check)
-as_agents 'f=~/.config/opencode/opencode.json; [ -s "$f" ] || { mkdir -p ~/.config/opencode && printf "%s\n" "{\"\$schema\": \"https://opencode.ai/config.json\", \"permission\": {\"edit\": \"allow\", \"bash\": \"allow\", \"webfetch\": \"allow\"}}" > "$f"; }'
+as_agents 'f=~/.config/opencode/opencode.json; mkdir -p ~/.config/opencode; [ -s "$f" ] || echo "{}" > "$f"
+  jq ". + {\"\$schema\": \"https://opencode.ai/config.json\"} | .permission = ((.permission // {}) + {\"edit\": \"allow\", \"bash\": \"allow\", \"webfetch\": \"allow\", \"external_directory\": \"allow\"})" "$f" > "$f.tmp" && mv "$f.tmp" "$f"'
 AGENT_PATH=$(as_agents 'echo "$HOME/.local/bin:$HOME/bin:$PATH"')
 missing=()
 for cli in qwen agy kimi opencode; do

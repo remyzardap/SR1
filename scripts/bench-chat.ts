@@ -73,6 +73,7 @@ interface RunResult {
   answerChars: number;
   tools: Array<{ name: string; ms: number }>;
   models: string[];
+  citationMismatches?: number;
 }
 
 const METRICS = [
@@ -268,6 +269,7 @@ async function main() {
       let error: string | undefined;
       let answerChars = 0;
       let models: string[] = [];
+      let citationMismatches = 0;
       try {
         const out = await withTimeout(
           kemmaExecute({
@@ -300,6 +302,13 @@ async function main() {
         models = out.modelsUsed;
         ok = !out.isError && (out.response ?? "").trim().length > 0;
         answerChars = ok ? out.response.length : 0;
+        // Check citation mismatches (P1-07): any [n] marker must map to a source with id n
+        if (ok && out.response) {
+          const markers = [...out.response.matchAll(/\[(\d{1,3}(?:\s*[,;]\s*\d{1,3})*)\]/g)]
+            .flatMap((m) => m[1].split(/[,;]/).map((d) => Number(d.trim())));
+          const sourceIds = new Set((out.sources ?? []).map((s) => s.id));
+          citationMismatches = markers.filter((n) => !sourceIds.has(n)).length;
+        }
         // The engine's error text can carry a provider response body: keep it out of the results.
         if (!ok) error = out.isError ? "engine error (see the [kemma] log lines above)" : "empty answer";
       } catch (err) {
@@ -331,6 +340,7 @@ async function main() {
         answerChars,
         tools,
         models,
+        citationMismatches,
       };
       results.get(p.id)!.push(result);
       console.error(

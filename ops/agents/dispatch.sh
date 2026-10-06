@@ -8,6 +8,8 @@
 #   dispatch.sh ask <agent> <T-ID> <file> [ref]       investigate / diagnose / answer questions on a throwaway
 #                                                      checkout of [ref] (default develop); report goes to
 #                                                      $LOGDIR/<T-ID>.report.md, nothing is committed or pushed
+#   dispatch.sh push <agent> <WP-ID>                   re-gate a kept worktree (agent already done) and push it,
+#                                                      opening the PR if there is none; no agent run
 #   dispatch.sh task <agent> <T-ID> <slug> "<title>" <file>
 #                                                      free-form task: instructions in <file> instead of a spec
 #                                                      section; T-ID is T-<issue number>. fix/review take T-IDs too.
@@ -20,6 +22,7 @@ CLONE="${AGENTS_CLONE:-$HOME/sr1}"
 WT_ROOT="${AGENTS_WT:-$HOME/wt}"
 LOGDIR="${AGENTS_LOGS:-$HOME/agent-logs}"
 AGENT_TIMEOUT="${AGENT_TIMEOUT:-10800}"   # seconds per agent run
+STALL_SEC="${STALL_SEC:-2400}"           # stop a run with no output and no file changes for this long
 CAP_FILE="${AGENTS_CAP_FILE:-/opt/sutaeru-agents/max_agents}"   # root-owned; edit it to change the cap, no restart
 max_agents() {  # the cap is re-read every time, so changing the file takes effect on the next check
   local n=""
@@ -30,6 +33,7 @@ max_agents() {  # the cap is re-read every time, so changing the file takes effe
 FORBIDDEN_RE='(^|/)\.env($|\.)|^(secrets/|\.github/workflows/deploy\.yml$|ops/session-manager/)'
 ALLOWED_RE='(^|/)\.env\.example$'   # the documented list of env var names (no values); specs require new vars there
 AUTH_RE='api error: 40[13]|invalid access token|token expired|not (logged|signed) in|please (log|sign) in|authenticat(e|ion) (required|failed)|unauthori[sz]ed'
+TRANSIENT_RE='ECONNRESET|ETIMEDOUT|ECONNREFUSED|EAI_AGAIN|socket hang up|fetch failed|terminated \(cause|\b50[234]\b|bad gateway|service unavailable|gateway time-?out'
 LIMIT_RE='rate.?limit|usage limit|quota|insufficient|credit balance|too many requests|\b429\b|\b402\b'
 
 die() { echo "dispatch: $*" >&2; exit 1; }
@@ -39,7 +43,7 @@ log() { echo "[$(date +%H:%M:%S)] $*"; }
 mkdir -p "$WT_ROOT" "$LOGDIR/running"
 
 MODE=build
-case "${1:-}" in fix|review|task|ask) MODE=$1; shift ;; esac
+case "${1:-}" in fix|review|task|ask|push) MODE=$1; shift ;; esac
 AGENT="${1:-}"; WP="${2:-}"
 [[ $AGENT =~ ^(qwen|agy|kimi|opencode)$ ]] || die "agent must be qwen, agy, kimi or opencode"
 [[ $WP =~ ^(P[1-4]-[0-9]{2}|F-[0-9]{2}|T-[0-9]{1,6})$ ]] || die "WP id must look like P1-03, F-01 or T-12"
@@ -86,25 +90,81 @@ retry() {  # retry a network command with 2/4/8/16 s backoff
 }
 
 run_agent() {  # <workdir> <prompt> <logfile>
-  local dir=$1 prompt=$2 out=$3 rc=0
-  log "running $AGENT in $dir (log: $out)"
-  if [[ $AGENT == qwen ]]; then
+  local dir=$1 prompt=$2 out=$3 rc=0 t0=$SECONDS pid stalled="" idle=0 last_size=-1 orig_prompt=$2
+  local -a cmd
+  case $AGENT in
     # Qwen Code headless: -p runs one prompt and exits; --yolo auto-approves its tools
-    (cd "$dir" && timeout "$AGENT_TIMEOUT" qwen -p "$prompt" --yolo) >"$out" 2>&1 || rc=$?
-  elif [[ $AGENT == kimi ]]; then
+    qwen) cmd=(timeout "$AGENT_TIMEOUT" qwen -p "$prompt" --yolo --output-format stream-json) ;;
     # Kimi Code CLI: --print is headless and auto-approves (deny rules in its config still apply)
-    (cd "$dir" && timeout "$AGENT_TIMEOUT" kimi --print --output-format stream-json -p "$prompt") >"$out" 2>&1 || rc=$?
-  elif [[ $AGENT == opencode ]]; then
-    # opencode.ai (sst) has `run`; permissions come from ~/.config/opencode/opencode.json (install.sh sets allow).
-    # The older Go opencode (now Crush) has no `run` and auto-approves in -p mode.
-    if opencode run --help >/dev/null 2>&1; then
-      (cd "$dir" && timeout "$AGENT_TIMEOUT" opencode run "$prompt") >"$out" 2>&1 || rc=$?
+    kimi) cmd=(timeout "$AGENT_TIMEOUT" kimi --print --output-format stream-json -p "$prompt") ;;
+    opencode)
+      # opencode.ai (sst) has `run`; permissions come from ~/.config/opencode/opencode.json (install.sh sets allow).
+      # The older Go opencode (now Crush) has no `run` and auto-approves in -p mode.
+      if opencode run --help >/dev/null 2>&1; then cmd=(timeout "$AGENT_TIMEOUT" opencode run "$prompt")
+      else cmd=(timeout "$AGENT_TIMEOUT" opencode -p "$prompt" -q); fi ;;
+    *) cmd=(timeout "$((AGENT_TIMEOUT + 60))" agy -p "$prompt" --output-format stream-json
+            --dangerously-skip-permissions --print-timeout "${AGENT_TIMEOUT}s") ;;
+  esac
+  # Files the prompt names under $LOGDIR (task, feedback, the PR body/report to write) are mirrored into
+  # <worktree>/.agent/ and the prompt points there: some CLIs (opencode) refuse paths outside their working dir.
+  # .agent/ is git-excluded, so the gate never sees it; results are copied back after the run.
+  local -a xfer=() f
+  mkdir -p "$dir/.agent"
+  grep -qx '/.agent/' "$CLONE/.git/info/exclude" 2>/dev/null || echo '/.agent/' >> "$CLONE/.git/info/exclude"
+  while IFS= read -r f; do
+    f=${f%%[.,;:)\"\']}; [[ -n $f ]] && xfer+=("$f")
+  done < <(grep -oE "$LOGDIR/[^[:space:]]+" <<<"$prompt" | sort -u)
+  for f in "${xfer[@]}"; do [[ -f $f ]] && cp "$f" "$dir/.agent/${f##*/}"; done
+  prompt=${prompt//"$LOGDIR/"/"$dir/.agent/"}
+  log "running $AGENT in $dir (log: $out)"
+  # setsid puts the agent and everything it starts (tests, servers) in one process group we can stop as a whole
+  (cd "$dir" && exec setsid "${cmd[@]}") >"$out" 2>&1 &
+  pid=$!
+  # watchdog: no new output AND no file changed in the worktree for STALL_SEC means the agent is stuck
+  # (some CLIs print only at the end, so file activity counts too)
+  RUN_MARK=$(mktemp); trap 'rm -f "$RUN_MARK" "$PIDFILE"' EXIT
+  while kill -0 "$pid" 2>/dev/null; do
+    sleep 30
+    local size; size=$(wc -c <"$out" 2>/dev/null || echo 0)
+    if [[ $size != "$last_size" ]] || [[ -n $(find "$dir" -path "$dir/node_modules" -prune -o -path "$dir/.git" -prune \
+         -o -newer "$RUN_MARK" -type f -print -quit 2>/dev/null) ]]; then
+      idle=0; last_size=$size; touch "$RUN_MARK"
     else
-      (cd "$dir" && timeout "$AGENT_TIMEOUT" opencode -p "$prompt" -q) >"$out" 2>&1 || rc=$?
+      idle=$((idle + 30))
     fi
-  else
-    (cd "$dir" && timeout "$((AGENT_TIMEOUT + 60))" agy -p "$prompt" --output-format stream-json \
-      --dangerously-skip-permissions --print-timeout "${AGENT_TIMEOUT}s") >"$out" 2>&1 || rc=$?
+    if (( idle >= STALL_SEC )); then
+      stalled=1; log "no output or file changes for $((STALL_SEC / 60)) min; stopping $AGENT"
+      kill -TERM -- "-$pid" 2>/dev/null; sleep 20; kill -KILL -- "-$pid" 2>/dev/null
+      break
+    fi
+  done
+  wait "$pid" 2>/dev/null || rc=$?
+  for f in "${xfer[@]}"; do [[ -s $dir/.agent/${f##*/} ]] && cp "$dir/.agent/${f##*/}" "$f"; done
+  # a dropped connection mid-run (ECONNRESET, 502/503/504, timeouts) is not the agent's fault: retry once in the same
+  # worktree, telling it to continue from the files already there instead of starting over
+  if (( rc != 0 )) && [[ -z $stalled && -z ${TRANSIENT_RETRIED:-} ]] && (( SECONDS - t0 > 120 )) \
+     && tail -n 20 "$out" | grep -qiE "$TRANSIENT_RE"; then
+    TRANSIENT_RETRIED=1
+    log "$AGENT lost its connection ($(grep -oiE "$TRANSIENT_RE" "$out" | tail -n 1)); retrying once in the same worktree"
+    mv "$out" "$out.1"
+    run_agent "$dir" "A previous attempt at this exact job was cut off by a network error. The worktree already holds its work:
+start with git status, git diff and git log origin/develop..HEAD, keep what is right, and finish the job. Commit as you go.
+
+$orig_prompt" "$out"
+    return
+  fi
+  if [[ -n $stalled ]]; then
+    score stalled
+    die "$AGENT stalled (no output or file changes for $((STALL_SEC / 60)) min) and was stopped; nothing pushed. Last output: $(tail -n 2 "$out" | tr '\n' ' ' | cut -c1-300)"
+  fi
+  # a real run takes minutes; a CLI that isn't signed in or configured quits within seconds with a few lines
+  local wrote=""   # every mode deletes its output file before the run, so finding one means the agent did work
+  for f in "$LOGDIR/$WP.pr.md" "$LOGDIR/$WP.reply.md" "$LOGDIR/$WP.report.md" "$LOGDIR/$WP.review.$AGENT.md"; do
+    [[ -s $f ]] && wrote=1
+  done
+  if [[ -z $wrote ]] && (( SECONDS - t0 < 30 )) && (( $(wc -c <"$out") < 3000 )); then
+    score no-run
+    die "$AGENT stopped after $((SECONDS - t0))s without doing any work: probably not signed in or not configured. Owner: sudo -iu $(whoami) bash -c 'PATH=\$HOME/.local/bin:\$PATH $AGENT' and check it answers. Its output: $(tail -n 3 "$out" | tr '\n' ' ' | cut -c1-300)"
   fi
   # a CLI that lost its login often exits 0 after one error line, so check the end of the log either way
   # only a short log can be a logged-out CLI; a real run's output can quote "401" etc. in its own text
@@ -114,7 +174,9 @@ run_agent() {  # <workdir> <prompt> <logfile>
   fi
   if (( rc != 0 )); then
     if tail -n 20 "$out" | grep -qiE "$LIMIT_RE"; then
-      score limit; die "$AGENT hit a rate or credit limit; nothing pushed (see $out)"
+      score limit
+      # quote the provider's own words: they usually say when the limit resets
+      die "$AGENT hit a rate or credit limit; nothing pushed (see $out). Its message: $(grep -iE "$LIMIT_RE" "$out" | tail -n 2 | tr '\n' ' ' | cut -c1-400)"
     fi
     log "$AGENT exited with code $rc; gating anyway"
   fi
@@ -142,6 +204,16 @@ branch_for_wp() {
 pr_for_branch() {
   # REST, not `gh pr list`: GraphQL PR queries can touch fields the repo-scoped token can't read
   gh api "repos/$REPO_SLUG/pulls?head=${REPO_SLUG%%/*}:$1&state=open" --jq '.[0].number // empty'
+}
+
+clean_worktree() {  # <dir>: abort any half-finished merge/rebase/cherry-pick and drop uncommitted changes
+  local d=$1 g; g=$(git -C "$d" rev-parse --git-dir)
+  [[ -e $g/MERGE_HEAD ]] && { log "aborting an unfinished merge in $d"; git -C "$d" merge --abort 2>/dev/null; }
+  [[ -d $g/rebase-merge || -d $g/rebase-apply ]] && { log "aborting an unfinished rebase in $d"; git -C "$d" rebase --abort 2>/dev/null; }
+  [[ -e $g/CHERRY_PICK_HEAD ]] && { log "aborting an unfinished cherry-pick in $d"; git -C "$d" cherry-pick --abort 2>/dev/null; }
+  if [[ -n $(git -C "$d" status --porcelain --untracked-files=no) ]]; then
+    log "dropping uncommitted changes in $d"; git -C "$d" reset -q --hard
+  fi
 }
 
 pr_comment() {  # <file>: post a file as a comment on $PR (REST)
@@ -226,11 +298,11 @@ if [[ $MODE == build || $MODE == task ]]; then
   if [[ $MODE == task ]]; then
     WHAT="Read first, fully: docs/spec/HANDOVER.md, docs/spec/README.md, then $SPEC_REF.
 Do exactly what those instructions ask, no more, with tests for the new behaviour including failure paths.
-Read the existing code and tests you change before changing them. Commit in small commits."
+Read the existing code and tests you change before changing them. Commit after every milestone (each file or passing typecheck); never hold more than ~20 minutes of work uncommitted, because a dropped connection loses it."
   else
     WHAT="Read first, fully: docs/spec/HANDOVER.md, docs/spec/README.md, docs/spec/END_GOAL.md section 7,
 $SPEC_REF, and every file listed under \"Files\" in that section, plus their existing tests.
-Implement exactly that section, with the tests it names and failure-path tests. Commit in small commits."
+Implement exactly that section, with the tests it names and failure-path tests. Commit after every milestone (each file or passing typecheck); never hold more than ~20 minutes of work uncommitted, because a dropped connection loses it."
   fi
   PROMPT="You are implementing $WP ($TITLE) in the Sutaeru repository. Your working tree is already on
 branch $BRANCH from origin/develop and npm ci has run; npm run check and npm test pass right now.
@@ -252,11 +324,42 @@ write that explanation to the same file instead and stop."
   if [[ $(git -C "$WT" rev-list --count origin/develop..HEAD) == 0 ]]; then
     score no-commits; cat "$LOGDIR/$WP.pr.md"; die "no commits; the agent's note is above"
   fi
-  gate "$WT" || { score red; die "gate red; nothing pushed. Worktree kept at $WT"; }
+  gate "$WT" || { score red; die "gate red; nothing pushed. Worktree kept at $WT (once the cause is fixed, mode: push publishes it without rerunning the agent)"; }
   retry git -C "$WT" push -q -u origin "$BRANCH"
   retry gh api "repos/$REPO_SLUG/pulls" -f base=develop -f head="$BRANCH" \
     -f title="[$WP] $TITLE" -F body=@"$LOGDIR/$WP.pr.md" --jq '"PR #\(.number): \(.html_url)"'
   score green; log "done: PR opened for $BRANCH"
+  exit 0
+fi
+
+# ---- push: the agent finished but the gate stopped it; re-gate and push without running it again ----
+if [[ $MODE == push ]]; then
+  WT="$WT_ROOT/$WP"
+  [[ -d $WT ]] || die "no kept worktree at $WT; nothing to push"
+  clean_worktree "$WT"   # keeps commits; only clears an unfinished merge/rebase and uncommitted leftovers
+  BRANCH=$(git -C "$WT" symbolic-ref --short HEAD) || die "$WT is not on a branch"
+  [[ $BRANCH == wp/$WP-* ]] || die "$WT is on $BRANCH, expected wp/$WP-*"
+  (( $(git -C "$WT" rev-list --count origin/develop..HEAD) > 0 )) || die "no commits on $BRANCH beyond develop; nothing to push"
+  [[ -d $WT/node_modules ]] || (cd "$WT" && npm ci --no-audit --no-fund >"$LOGDIR/$WP.npm.log" 2>&1)
+  if git -C "$CLONE" ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
+    retry git -C "$WT" fetch --quiet origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"
+    git -C "$WT" merge-base --is-ancestor "origin/$BRANCH" HEAD \
+      || die "origin/$BRANCH has commits this worktree lacks; rerun 'fix' instead"
+  fi
+  log "re-running the gate on $WT"
+  gate "$WT" || { score red; die "gate still red; nothing pushed. Worktree kept at $WT"; }
+  retry git -C "$WT" push -q -u origin "$BRANCH"
+  PR=$(pr_for_branch "$BRANCH")
+  if [[ -n $PR ]]; then
+    [[ -s $LOGDIR/$WP.reply.md ]] && pr_comment "$LOGDIR/$WP.reply.md"
+    log "done: pushed to $BRANCH (PR #$PR)"
+  else
+    [[ -s $LOGDIR/$WP.pr.md ]] || die "pushed $BRANCH, but there is no PR body at $LOGDIR/$WP.pr.md to open a PR with"
+    retry gh api "repos/$REPO_SLUG/pulls" -f base=develop -f head="$BRANCH" \
+      -f title="[$WP] ${BRANCH#wp/$WP-}" -F body=@"$LOGDIR/$WP.pr.md" --jq '"PR #\(.number): \(.html_url)"'
+    log "done: PR opened for $BRANCH"
+  fi
+  score green
   exit 0
 fi
 
@@ -285,14 +388,20 @@ if [[ $MODE == fix ]]; then
   if [[ ! -e $WT ]]; then
     git -C "$CLONE" worktree add -q -B "$BRANCH" "$WT" "origin/$BRANCH"
   else
-    git -C "$WT" merge --ff-only -q "origin/$BRANCH" || die "$WT has diverged from origin/$BRANCH; sort it out by hand"
+    # a run that died mid-way (limit, crash, watchdog) can leave a merge/rebase in progress or unpushed work;
+    # GitHub's branch is the truth for a fix, so clear all of that and start from it
+    clean_worktree "$WT"
+    if ! git -C "$WT" merge --ff-only -q "origin/$BRANCH" 2>/dev/null; then
+      log "discarding unpushed commits from an earlier failed run: $(git -C "$WT" log --oneline "origin/$BRANCH"..HEAD | tr '\n' ';')"
+      git -C "$WT" reset -q --hard "origin/$BRANCH"
+    fi
   fi
   [[ -d $WT/node_modules ]] || (cd "$WT" && npm ci --no-audit --no-fund >"$LOGDIR/$WP.npm.log" 2>&1)
   PROMPT="You are fixing work package $WP in the Sutaeru repository, on branch $BRANCH (PR #$PR into develop).
 Read docs/spec/HANDOVER.md, docs/spec/README.md, $SPEC_REF, then the review feedback in $FEEDBACK.
 Address every must-fix item and every CI failure. If the feedback asks you to merge origin/develop, use
 git merge (never rebase, never force-push). For any item you disagree with, explain why instead of changing code.
-Commit with the trailer line:  Agent: $AGENT_NAME
+Commit after every milestone, with the trailer line:  Agent: $AGENT_NAME
 Run npm run check and npm test until both pass, and leave no uncommitted changes.
 Do NOT push, do NOT touch .env, secrets/, .github/workflows/deploy.yml, ops/session-manager/ or containers.
 Write a short reply for the PR (what you changed per item, and anything you declined, with reasons)
@@ -301,7 +410,7 @@ to $LOGDIR/$WP.reply.md."
   before=$(git -C "$WT" rev-parse HEAD)
   run_agent "$WT" "$PROMPT" "$LOGDIR/$WP.$AGENT.fix.jsonl"
   [[ $(git -C "$WT" rev-parse HEAD) != "$before" ]] || { score no-commits; die "no new commits; nothing pushed"; }
-  gate "$WT" || { score red; die "gate red; nothing pushed. Worktree kept at $WT"; }
+  gate "$WT" || { score red; die "gate red; nothing pushed. Worktree kept at $WT (once the cause is fixed, mode: push publishes it without rerunning the agent)"; }
   retry git -C "$WT" push -q origin "$BRANCH"
   [[ -s $LOGDIR/$WP.reply.md ]] && pr_comment "$LOGDIR/$WP.reply.md"
   score green; log "done: pushed fixes to $BRANCH"

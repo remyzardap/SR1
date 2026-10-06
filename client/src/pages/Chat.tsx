@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/select";
 
 import { createSseParser, decodeEvent, type RawSseEvent } from "@/lib/sse";
-import { initialStreamState, reduceStream, type AgentStep, type Source } from "@/lib/streamReducer";
+import { initialStreamState, reduceStream, stepStatusPrefix, type AgentStep, type Source } from "@/lib/streamReducer";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface StreamSettings {
@@ -461,6 +461,7 @@ export default function Chat() {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
+      let streamState = initialStreamState();
 
       try {
         const apiOrigin = import.meta.env.VITE_SR1_API_ORIGIN || "";
@@ -487,7 +488,6 @@ export default function Chat() {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         const parser = createSseParser();
-        let streamState = initialStreamState();
 
         const processRawEvents = (rawEvents: RawSseEvent[]) => {
           for (const raw of rawEvents) {
@@ -495,9 +495,22 @@ export default function Chat() {
             if (!ev) continue;
             const next = reduceStream(streamState, ev);
 
-            if (next.content !== streamState.content) {
+            if (
+              next.content !== streamState.content ||
+              next.thinking !== streamState.thinking ||
+              next.segments !== streamState.segments
+            ) {
               setMessages((prev) =>
-                prev.map((m) => (m.id === assistantId ? { ...m, content: next.content } : m))
+                prev.map((m) =>
+                  m.id === assistantId
+                    ? {
+                        ...m,
+                        content: next.content,
+                        thinking: next.thinking || undefined,
+                        segments: next.segments.length > 0 ? next.segments : undefined,
+                      }
+                    : m
+                )
               );
             }
             if (next.sources !== streamState.sources && next.sources !== null) {
@@ -550,7 +563,17 @@ export default function Chat() {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
-              ? { ...m, streaming: false, model: finalModel, skills: assistantSkills, question: mode === "deep" ? messageText : undefined }
+              ? {
+                  ...m,
+                  streaming: false,
+                  model: finalModel,
+                  skills: assistantSkills.length > 0 ? assistantSkills : undefined,
+                  question: mode === "deep" ? messageText : undefined,
+                  thinking: streamState.thinking || undefined,
+                  segments: streamState.segments.length > 0 ? streamState.segments : undefined,
+                  ...(streamState.steps.length > 0 ? { steps: streamState.steps } : {}),
+                  ...(streamState.activity.length > 0 ? { activity: streamState.activity } : {}),
+                }
               : m
           )
         );
@@ -576,7 +599,21 @@ export default function Chat() {
           }
         })();
       } catch (err) {
-        if ((err as Error).name === "AbortError") return;
+        if ((err as Error).name === "AbortError") {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId
+                ? {
+                    ...m,
+                    streaming: false,
+                    ...(streamState.steps.length > 0 ? { steps: streamState.steps } : {}),
+                    ...(streamState.activity.length > 0 ? { activity: streamState.activity } : {}),
+                  }
+                : m
+            )
+          );
+          return;
+        }
         const raw = (err as Error).message ?? "";
         // The connection dropped mid-run: the question stays on screen as waiting
         // and the offline banner explains it, so no second error message.
@@ -588,6 +625,7 @@ export default function Chat() {
         }
         const errMsg = err instanceof TypeError ? "Couldn't reach Sutaeru. Check your connection and retry." : raw || "Something went wrong. Please retry.";
         setError(errMsg);
+        // Unchanged on purpose: Retry re-sends the question as a new message, so the failed pair is removed.
         setMessages((prev) => prev.filter((m) => m.id !== assistantId && m.id !== userMsg.id));
       } finally {
         setIsStreaming(false);
@@ -882,7 +920,7 @@ export default function Chat() {
                 <Button size="icon" variant="outline" onClick={exportThread} disabled={messages.length === 0} aria-label="Export conversation" title="Export conversation"><SutaeruIcon name="download" className="h-5 w-5" /></Button>
                 {isStreaming && <Button variant="outline" className="sutaeru-stop-run" onClick={stopRun}>Stop run</Button>}
               </div>
-              {mobileDetailsOpen && <div className="sutaeru-mobile-details"><strong>Run details</strong><p>{isStreaming ? currentStep || "Thinking…" : error ? "Run failed" : "No active run"}</p>{agentSteps.map(step => <p key={step.id}>{step.label}</p>)}{sources.length > 0 && <div className="sutaeru-inline-sources"><strong>Sources</strong>{sources.map((source, index) => <a key={`${source.url}-${index}`} href={source.url} target="_blank" rel="noreferrer"><span>{index + 1}. {source.title}</span><ExternalLink size={14} /></a>)}</div>}</div>}
+              {mobileDetailsOpen && <div className="sutaeru-mobile-details"><strong>Run details</strong><p>{isStreaming ? currentStep || "Thinking…" : error ? "Run failed" : "No active run"}</p>{agentSteps.map(step => <p key={step.id}>{stepStatusPrefix(step)} {step.label}</p>)}{sources.length > 0 && <div className="sutaeru-inline-sources"><strong>Sources</strong>{sources.map((source, index) => <a key={`${source.url}-${index}`} href={source.url} target="_blank" rel="noreferrer"><span>{index + 1}. {source.title}</span><ExternalLink size={14} /></a>)}</div>}</div>}
               <div className="sutaeru-run-composer">
               <div className="sutaeru-composer-row mx-auto flex max-w-2xl items-center gap-2">
                 <div className="flex-1 min-w-0">

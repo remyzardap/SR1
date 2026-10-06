@@ -6,10 +6,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const kmax = vi.hoisted(() => ({
-  executeToolCall: vi.fn(),
   MAX_TOOL_CALLS: { free: 2, trial: 20, pro: 20, max: 100 } as Record<string, number>,
   DEEP_RESEARCH_ADDITION: "[deep-research-addition]",
 }));
+// The engine dispatches tools through toolkit/registry's runTool (P1-02); toolsFor and the rest
+// of the module stay real, since they only touch collaborators already mocked below.
+const registryMock = vi.hoisted(() => ({ runTool: vi.fn() }));
 const quota = vi.hoisted(() => ({
   checkQuota: vi.fn(),
   incrementQuota: vi.fn(),
@@ -29,6 +31,10 @@ const db = vi.hoisted(() => ({
 }));
 
 vi.mock("../kemma/kemmaMax", () => kmax);
+vi.mock("../kemma/toolkit/registry", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../kemma/toolkit/registry")>();
+  return { ...actual, runTool: registryMock.runTool };
+});
 vi.mock("../core/quotaCheck", () => quota);
 vi.mock("../core/usage", () => usageMock);
 vi.mock("../kemma/memory", () => mem);
@@ -72,7 +78,7 @@ beforeEach(() => {
   skillReviews.getEnabledSkills.mockResolvedValue([]);
   mcp.getMcpRegistry.mockReturnValue({ tools: async () => [] });
   google.getConnectionStatus.mockResolvedValue({ connected: false });
-  kmax.executeToolCall.mockResolvedValue({ success: true, data: [] });
+  registryMock.runTool.mockResolvedValue({ ok: true, data: { success: true, data: [] } });
   kmax.MAX_TOOL_CALLS.free = 2;
   kmax.MAX_TOOL_CALLS.trial = 20;
   kmax.MAX_TOOL_CALLS.pro = 20;
@@ -186,8 +192,20 @@ function liveSse() {
   const stream = new ReadableStream<Uint8Array>({ start(c) { ctrl = c; } });
   return {
     stream,
-    push: (s: string) => ctrl.enqueue(enc.encode(s)),
-    close: () => ctrl.close(),
+    push: (s: string) => {
+      try {
+        ctrl.enqueue(enc.encode(s));
+      } catch {
+        // Stream may be cancelled by consumer
+      }
+    },
+    close: () => {
+      try {
+        ctrl.close();
+      } catch {
+        // Stream may be cancelled by consumer
+      }
+    },
   };
 }
 
@@ -221,7 +239,19 @@ describe("stream route: direct answer end to end", () => {
     await kemmaStreamRoute(req, res);
     expect(db.addChatMessage).toHaveBeenCalledTimes(2);
     expect(db.addChatMessage.mock.calls[0]).toEqual(["sess-9", 1, "What is 2+2?", "user", undefined, { mode: "fast" }]);
-    expect(db.addChatMessage.mock.calls[1]).toEqual(["sess-9", 1, "It is 4.", "assistant", "qwen3.8-max (qwen)"]);
+    expect(db.addChatMessage.mock.calls[1]).toEqual([
+      "sess-9",
+      1,
+      "It is 4.",
+      "assistant",
+      "qwen3.8-max (qwen)",
+      undefined,
+      expect.objectContaining({
+        sources: [],
+        activity: [],
+        model: "qwen3.8-max (qwen)",
+      }),
+    ]);
   });
 
   it("without a sessionId nothing is persisted but tokens still stream", async () => {
@@ -247,7 +277,18 @@ describe("stream route: provider ignores stream=true and returns plain JSON", ()
     const token = frames.find((f) => f.event === "token");
     expect(token).toBeDefined();
     expect(token!.data).toBe("Plain JSON reply.");
-    expect(db.addChatMessage).toHaveBeenCalledWith("sess-9", 1, "Plain JSON reply.", "assistant", "qwen3.8-max (qwen)");
+    expect(db.addChatMessage).toHaveBeenCalledWith(
+      "sess-9",
+      1,
+      "Plain JSON reply.",
+      "assistant",
+      "qwen3.8-max (qwen)",
+      undefined,
+      expect.objectContaining({
+        sources: [],
+        model: "qwen3.8-max (qwen)",
+      })
+    );
   });
 });
 
@@ -261,7 +302,18 @@ describe("stream route: null content with finish_reason length", () => {
     const frames = parseFrames(res.frames);
     expect(frames.map((f) => f.event)).toEqual(["model", "token", "usage", "done"]);
     expect(frames[1].data).toBe("Done.");
-    expect(db.addChatMessage.mock.calls[1]).toEqual(["sess-9", 1, "Done.", "assistant", "qwen3.8-max (qwen)"]);
+    expect(db.addChatMessage.mock.calls[1]).toEqual([
+      "sess-9",
+      1,
+      "Done.",
+      "assistant",
+      "qwen3.8-max (qwen)",
+      undefined,
+      expect.objectContaining({
+        sources: [],
+        model: "qwen3.8-max (qwen)",
+      }),
+    ]);
   });
 });
 
@@ -393,9 +445,9 @@ describe("stream route: modelOverride wiring", () => {
 // ── (j) tool flow through the route ──────────────────────────────────────────
 describe("stream route: tool use frames", () => {
   it("emits tool_start/agent/tool_end, the final token, and a sources event", async () => {
-    kmax.executeToolCall.mockResolvedValue({
-      success: true,
-      data: [{ url: "https://a.example", title: "Alpha", snippet: "A site" }],
+    registryMock.runTool.mockResolvedValue({
+      ok: true,
+      data: { success: true, data: [{ url: "https://a.example", title: "Alpha", snippet: "A site" }] },
     });
     const toolCall = { id: "tc1", type: "function", function: { name: "web_search", arguments: '{"query":"routers"}' } };
     stubFetch((i) => (i === 0 ? jsonRes(completion(null, { toolCalls: [toolCall] })) : jsonRes(completion("Clear skies [1]."))));
@@ -443,9 +495,12 @@ describe("stream route: client abort", () => {
     const events = parseFrames(res.frames).map((f) => f.event);
     expect(events).not.toContain("usage");
     expect(events).not.toContain("done");
-    // the partially streamed assistant text is NOT persisted after abort
-    expect(db.addChatMessage).toHaveBeenCalledTimes(1);
+    // the partially streamed assistant text is persisted with cancelled: true after abort
+    expect(db.addChatMessage).toHaveBeenCalledTimes(2);
     expect(db.addChatMessage.mock.calls[0][3]).toBe("user");
+    expect(db.addChatMessage.mock.calls[1][3]).toBe("assistant");
+    expect(db.addChatMessage.mock.calls[1][2]).toBe("Hel");
+    expect(db.addChatMessage.mock.calls[1][6]).toEqual({ cancelled: true });
     // aborted responses are already gone; the route must not call end() on them
     expect(res.ended).toBe(false);
   });

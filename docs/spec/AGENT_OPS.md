@@ -156,7 +156,7 @@ slug: streaming
 title: Stream every turn, plus thinking and segment events
 ```
 
-`mode` is `build`, `fix`, `review` or `task`; `slug` and `title` are only needed for `build` and `task`.
+`mode` is `build`, `fix`, `review`, `push` or `task`; `slug` and `title` are only needed for `build` and `task`.
 
 **`task`: any coding job, not only spec work packages.** Put the instructions below a line that is exactly `---`.
 The task's id is `T-<issue number>`, so it builds on branch `wp/T-<n>-<slug>` and opens a PR into `develop`
@@ -179,6 +179,14 @@ At most 4 runs go at once by default; extra issues wait for the next free slot. 
 takes effect without a restart. Two runs of the same CLI at once are fine: each run has its own worktree and logs.
 Restarting the watcher (re-running `install.sh`) doesn't stop runs in progress. If a reboot does, the watcher marks
 those issues `agent-failed` with an "interrupted" comment when it starts.
+
+**`push`: publish a finished run the gate stopped.** If an agent finished but the gate refused it (for example
+because of a gate bug, since fixed), `mode: push` with the same `wp:` re-runs the gate on the kept worktree and pushes
+it. It opens the PR if there isn't one. The agent doesn't run again. It refuses if GitHub has commits the worktree
+lacks (use `fix`) or if the gate is still red.
+
+A run that ends within 30 seconds with almost no output and no result file fails as "stopped without doing any
+work". That usually means the CLI isn't signed in or configured for the `agents` user.
 
 ### 4.6 Asking the agents to investigate (`mode: ask`)
 

@@ -13,6 +13,8 @@ export interface AgentStep {
   label: string;
   detail?: string;
   active?: boolean;
+  status?: "running" | "done" | "error";
+  durationMs?: number;
 }
 
 export interface Source {
@@ -101,7 +103,13 @@ export function reduceStream(state: StreamState, event: StreamEvent): StreamStat
       const nextCounter = state.stepCounter + 1;
       const id = event.id ?? `step-${nextCounter}`;
       const label = `Run ${event.tool}`;
-      const newStep: AgentStep = { id, label, detail: event.tool };
+      const newStep: AgentStep = {
+        id,
+        label,
+        detail: event.tool,
+        status: "running",
+        active: true,
+      };
       return {
         ...state,
         stepCounter: nextCounter,
@@ -143,7 +151,12 @@ export function reduceStream(state: StreamState, event: StreamEvent): StreamStat
       if (!event.message) return state;
       const nextCounter = state.stepCounter + 1;
       const id = `step-${nextCounter}`;
-      const newStep: AgentStep = { id, label: event.message };
+      const newStep: AgentStep = {
+        id,
+        label: event.message,
+        status: "done",
+        active: false,
+      };
       return {
         ...state,
         stepCounter: nextCounter,
@@ -167,19 +180,49 @@ export function reduceStream(state: StreamState, event: StreamEvent): StreamStat
 
     case "done": {
       const nextModel = event.model ?? state.model;
-      if (state.done && state.model === nextModel) return state;
+      let stepsChanged = false;
+      const nextSteps = state.steps.map((s) => {
+        const isRunning = s.status ? s.status === "running" : s.active !== false;
+        if (isRunning) {
+          stepsChanged = true;
+          return {
+            ...s,
+            status: "done" as const,
+            active: false,
+          };
+        }
+        return s;
+      });
+
+      if (state.done && state.model === nextModel && !stepsChanged) return state;
       return {
         ...state,
         done: true,
+        steps: stepsChanged ? nextSteps : state.steps,
         ...(nextModel !== undefined ? { model: nextModel } : {}),
       };
     }
 
     case "error": {
-      if (state.error === event.message) return state;
+      let stepsChanged = false;
+      const nextSteps = state.steps.map((s) => {
+        const isRunning = s.status ? s.status === "running" : s.active !== false;
+        if (isRunning) {
+          stepsChanged = true;
+          return {
+            ...s,
+            status: "error" as const,
+            active: false,
+          };
+        }
+        return s;
+      });
+
+      if (state.error === event.message && !stepsChanged) return state;
       return {
         ...state,
         error: event.message,
+        steps: stepsChanged ? nextSteps : state.steps,
       };
     }
 
@@ -223,7 +266,9 @@ export function reduceStream(state: StreamState, event: StreamEvent): StreamStat
       }
       if (matchIndex === -1 && event.tool) {
         for (let i = state.steps.length - 1; i >= 0; i--) {
-          if (state.steps[i].detail === event.tool) {
+          const s = state.steps[i];
+          const isRunning = s.status ? s.status === "running" : s.active !== false;
+          if (s.detail === event.tool && isRunning) {
             matchIndex = i;
             break;
           }
@@ -232,10 +277,21 @@ export function reduceStream(state: StreamState, event: StreamEvent): StreamStat
       if (matchIndex === -1) return state;
 
       const targetStep = state.steps[matchIndex];
-      if (targetStep.active === false) return state;
+      const isRunning = targetStep.status ? targetStep.status === "running" : targetStep.active !== false;
+      if (!isRunning) return state;
+
+      const nextStatus = event.ok === false ? "error" : "done";
+      const nextDuration = typeof event.durationMs === "number" ? event.durationMs : undefined;
+
+      const newStep: AgentStep = {
+        ...targetStep,
+        status: nextStatus,
+        active: false,
+        ...(nextDuration !== undefined ? { durationMs: nextDuration } : {}),
+      };
 
       const newSteps = [...state.steps];
-      newSteps[matchIndex] = { ...targetStep, active: false };
+      newSteps[matchIndex] = newStep;
       return {
         ...state,
         steps: newSteps,
@@ -253,3 +309,28 @@ export function reduceStream(state: StreamState, event: StreamEvent): StreamStat
       return state;
   }
 }
+
+export type ToolHeaderState = "input-available" | "output-available" | "output-error";
+
+export function toolState(step: AgentStep, isRunning?: boolean): ToolHeaderState {
+  if (step.status === "running") return "input-available";
+  if (step.status === "done") return "output-available";
+  if (step.status === "error") return "output-error";
+  return isRunning ? "input-available" : "output-available";
+}
+
+export function formatDuration(durationMs: number): string {
+  const ms = Math.max(0, durationMs);
+  if (ms < 10000) {
+    return `${(ms / 1000).toFixed(1)} s`;
+  }
+  return `${Math.round(ms / 1000)} s`;
+}
+
+export function stepStatusPrefix(step: AgentStep): string {
+  if (step.status === "done") return "✓";
+  if (step.status === "error") return "✕";
+  if (step.status === "running") return "…";
+  return step.active === false ? "✓" : "…";
+}
+

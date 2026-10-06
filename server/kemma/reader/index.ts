@@ -290,9 +290,14 @@ async function readTier2(url: string, signal?: AbortSignal): Promise<RawPage> {
 // Dynamically imported, not statically: kemmaMax.ts calls into this module for its tier-1/2
 // path, so a static import here would be circular. The dynamic import below resolves once the
 // module graph has already settled, which breaks the cycle.
-async function readTier3(url: string, opts?: { interactive?: boolean }): Promise<RawPage> {
+async function readTier3(url: string, opts?: { interactive?: boolean; signal?: AbortSignal }): Promise<RawPage> {
   const { browseWithAgent } = (await import("../kemmaMax")) as { browseWithAgent: typeof BrowseWithAgentFn };
-  const result = await browseWithAgent(url, { extractText: true, maxLength: 50_000, interactive: opts?.interactive });
+  const result = await browseWithAgent(url, {
+    extractText: true,
+    maxLength: 50_000,
+    interactive: opts?.interactive,
+    signal: opts?.signal,
+  });
   return { finalUrl: url, title: result.title, markdown: htmlToMarkdown(result.content) || result.content, tier: 3 };
 }
 
@@ -377,7 +382,7 @@ export async function readPage(url: string, opts: ReadPageOptions = {}): Promise
   }
 
   if (opts.interactive) {
-    const page = await readTier3(url, { interactive: true });
+    const page = await readTier3(url, { interactive: true, signal: opts.signal });
     if (tier3Available()) await logReaderUsage(opts, 3, "browser-use");
     return finish(url, page, opts.query, maxChars);
   }
@@ -408,7 +413,7 @@ export async function readPage(url: string, opts: ReadPageOptions = {}): Promise
 
   if (!page) {
     if (tier3Available()) {
-      page = await readTier3(url);
+      page = await readTier3(url, { signal: opts.signal });
       await logReaderUsage(opts, 3, "browser-use");
     } else {
       throw lastError instanceof Error ? lastError : new Error("Could not read that page.");
