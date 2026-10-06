@@ -108,3 +108,69 @@ another branch. F-02 to F-04 need the stream as plain, testable state instead.
 - AC4: Diff limited to the five files listed under Files.
 
 **Size:** M. **Lane:** F. **Builder:** agy.
+
+---
+
+## F-02 Live steps: per-tool status, durations, and run details that stay on each answer
+
+**Why:** P1-03 (merged, behind `STREAM_TOOL_TURNS`) now sends `tool_end { id, tool, ok, durationMs }` and an `id` on
+`tool_start`. The UI ignores both. In `MessageBubble.tsx` every tool step is drawn as "Running" until the whole
+answer ends, because `ToolHeader`'s `state` comes from one global `isRunning`. A failed tool never shows as failed.
+`Chat.tsx` also clears `agentSteps` and `activity` when the next message is sent, and `ChatMessages.tsx` passes them
+only to the last assistant message, so an earlier answer loses its run details. P1-03 already shipped the collapsed
+thinking block (`ThinkingBlock.tsx`) and muted narration, so they're out of scope here.
+
+**Depends on:** F-01 and P1-03 (both merged). Everything here also works with the flag off: without `tool_end`,
+steps finish when the run ends, exactly like today.
+
+**Files**
+- edit `client/src/lib/streamReducer.ts`, `client/src/lib/streamReducer.test.ts`
+- edit `client/src/types/chat.ts`, `client/src/pages/Chat.tsx`, `client/src/components/ChatMessages.tsx`,
+  `client/src/components/MessageBubble.tsx`
+- nothing else (no server changes, no new dependencies)
+
+**Spec**
+
+1. **Reducer** (`streamReducer.ts`). `AgentStep` gains `status: "running" | "done" | "error"` and `durationMs?: number`.
+   Keep `active` for compatibility: `active` is `status === "running"`.
+   - `tool_start`: push the step with `status: "running"`.
+   - `notice`: its step is informational: `status: "done"`.
+   - `tool_end`: match exactly as today (by `id`, else the last *running* step with that `tool`). Set
+     `status: ok === false ? "error" : "done"` and `durationMs` when it's a number. No match, or already finished:
+     return the same state.
+   - `done`: every step still `running` becomes `done` (servers without `tool_end`).
+   - `error`: every step still `running` becomes `error`.
+   - Unchanged events still return the same object. Never mutate.
+2. **Message type** (`types/chat.ts`). `ChatMessageData` gains `steps?: AgentStep[]` and `activity?: ActivityItem[]`
+   (import the types; don't redefine them).
+3. **Chat.tsx**. When the stream ends, successfully or with an error, write `streamState.steps` and
+   `streamState.activity` onto the assistant message in the same `setMessages` call that sets `streaming: false`
+   (omit them when empty). The live `agentSteps` and `activity` state and their setters stay as they are: they still
+   drive the side panel, the status line and the mobile "Run details" sheet. In the mobile sheet, prefix each step
+   with its state ("✓", "✕" or "…") in text, not colour alone.
+4. **ChatMessages.tsx**. Each assistant message shows its own run details: `tools` = `message.steps` (filtered to steps
+   with `detail`, as today) and `activity` = `message.activity`. Fall back to the live `steps`/`activity` props
+   only for the message that is currently streaming. `ChatRunCard` is unchanged.
+5. **MessageBubble.tsx**. In the tools list, `ToolHeader`'s `state` comes from each step: `running` gives
+   `"input-available"`, `done` gives `"output-available"`, `error` gives `"output-error"`. Fall back to today's
+   `isRunning` rule only for a step with no `status` (old data). Show the duration next to the title when
+   present (`"0.8 s"` under 10 s, else `"12 s"`), muted, inside the existing header.
+   Keep the markup and classes. No new colours or styles beyond what `ToolHeader` already does for each state.
+
+**Tests** (vitest)
+- Reducer: `tool_start` sets running; `tool_end` by id with `ok: true` sets done plus duration; `ok: false` sets error;
+  match by tool name picks the last *running* one; an unknown id leaves the same object; `done` finishes running steps
+  and leaves error ones; `error` marks running steps as error; `notice` steps are done; inputs stay frozen.
+- A small pure helper, if you extract one (for example `toolState(step, isRunning)` and `formatDuration(ms)`), gets
+  tests too. Don't add React rendering tests (no DOM test setup exists for this).
+
+**Acceptance criteria**
+- AC1: `npm run check` and `npm test` pass, and the new tests cover every reducer rule above.
+- AC2: With `tool_end` events, each tool shows its own Running → Completed / Error and a duration. Without them, the
+  behaviour matches today's at the end of the run. Evidence: reducer tests replaying both event sequences.
+  Visual checks are marked NOT RUN unless a person or browser did them.
+- AC3: After a second question, the first answer still shows its tools and activity (state-level evidence: the
+  assistant message object carries `steps`/`activity` after the stream ends).
+- AC4: Diff limited to the six files listed.
+
+**Size:** M. **Lane:** F. **Builder:** agy.
