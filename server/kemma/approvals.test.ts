@@ -124,20 +124,23 @@ vi.mock("../db", () => {
 });
 
 // Mock MCP registry: one `confirm` tool (an action) and one `read` tool, recording every call so a
-// replay can be proven not to repeat the side effect.
+// replay can be proven not to repeat the side effect. `toolSchemas` is what a server would have
+// declared for `tools()`, so a test can drive the edited-args check with a realistic schema.
 const mcpMock = vi.hoisted(() => {
   const calls: { name: string; args: unknown }[] = [];
   const modes: Record<string, string> = { confirm_tool: "confirm", read_tool: "read" };
+  const toolSchemas: any[] = [];
   return {
     calls,
     modes,
+    toolSchemas,
     getMcpRegistry: () => ({
       modeOf: async (name: string) => modes[name.split("__").pop() ?? ""] ?? undefined,
       call: async (name: string, args: any) => {
         calls.push({ name, args });
         return { ok: true, text: "confirmed" };
       },
-      tools: async () => [],
+      tools: async () => toolSchemas,
     }),
   };
 });
@@ -229,6 +232,7 @@ describe("P1-11 Approvals: HTTP endpoints and gate lifecycle", () => {
   beforeEach(() => {
     mockApprovalsStore.clear();
     mockAuditStore.length = 0;
+    mcpMock.toolSchemas.length = 0;
     __resetWaitersForTests();
     currentAuthUser = { id: 42, name: "Alice" };
     vi.stubEnv("FF_APPROVALS", "1");
@@ -879,6 +883,67 @@ describe("P1-11 Approvals: HTTP endpoints and gate lifecycle", () => {
 
     expect((await runToolPromise(runPromise)).ok).toBe(true);
     expect(executedWith).toEqual({ fileId: "f1", content: "final copy" });
+  });
+
+  it("edited args for an MCP tool are checked against the schema that server declared", async () => {
+    // An MCP tool is not a registered spec, so there is no zod schema to re-validate against here.
+    // Without this the arguments on an approved card could be replaced with anything at all and the
+    // tool would be called with it (P1-11).
+    mcpMock.toolSchemas.push({
+      name: "mcp__srv__confirm_tool",
+      description: "Sends a file",
+      parameters: {
+        type: "object",
+        properties: {
+          fileId: { type: "string", description: "file to send" },
+          copies: { type: "integer", description: "how many copies" },
+        },
+        required: ["fileId", "copies"],
+      },
+    });
+
+    mcpMock.calls.length = 0;
+    const ctx: ToolContext = {
+      userId: 42,
+      runId: "run-mcp-edit",
+      tier: "trial",
+      signal: new AbortController().signal,
+      emit: () => {},
+    };
+    ctx.approvals = new KemmaApprovalGate(ctx);
+    const runPromise = runTool("mcp__srv__confirm_tool", { fileId: "f1", copies: 1 }, ctx);
+    await new Promise((r) => setTimeout(r, 20));
+    const approvalId = Array.from(mockApprovalsStore.keys()).pop()!;
+
+    const decide = (body: unknown) =>
+      fetch(`${baseUrl}/${approvalId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer test-token" },
+        body: JSON.stringify(body),
+      });
+
+    // A required field cannot be deleted by editing.
+    const dropped = await decide({ decision: "approve", args: { fileId: "f1" } });
+    expect(dropped.status).toBe(400);
+    expect((await dropped.json()).error).toMatch(/copies/);
+
+    // A field cannot change type either.
+    const mistyped = await decide({ decision: "approve", args: { fileId: 42, copies: "many" } });
+    expect(mistyped.status).toBe(400);
+    expect((await mistyped.json()).error).toMatch(/type/i);
+
+    // Both refusals leave the card answerable.
+    expect(mockApprovalsStore.get(approvalId)?.status).toBe("pending");
+    expect(mockAuditStore.map((a) => a.action)).toEqual([]);
+    expect(mcpMock.calls).toEqual([]);
+
+    // An edit that fits the schema is what actually runs, and the stored hash is the hash of that.
+    const accepted = await decide({ decision: "approve", args: { fileId: "f2", copies: 2 } });
+    expect(accepted.status).toBe(200);
+    const outcome = await runToolPromise(runPromise);
+    expect(outcome.ok).toBe(true);
+    expect(mcpMock.calls).toEqual([{ name: "mcp__srv__confirm_tool", args: { fileId: "f2", copies: 2 } }]);
+    expect(mockApprovalsStore.get(approvalId)?.argsHash).toBe(hashArgs({ fileId: "f2", copies: 2 }));
   });
 
   it("failure paths: 400 on invalid decision, 400 on invalid args, 404 on not found, 401 on unauthenticated", async () => {

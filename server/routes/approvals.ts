@@ -6,9 +6,75 @@ import {
   transitionApprovalStatus,
 } from "../kemma/approvals";
 import { getToolSpec } from "../kemma/toolkit/registry";
+import { getMcpRegistry, MCP_TOOL_PREFIX, type ToolDefinition } from "../kemma/mcp/client";
 import { logAuditEvent } from "../middleware/audit-logging";
 
 export const approvalsRouter = Router();
+
+/** Top-level JSON-Schema type check. Unknown/absent declared types pass: an MCP server is allowed to
+ * describe less than it accepts, and refusing a decision over a description we do not trust would
+ * block an action the human can still take by hand. */
+function matchesJsonType(value: unknown, type: string): boolean {
+  switch (type) {
+    case "string":
+      return typeof value === "string";
+    case "number":
+      return typeof value === "number" && Number.isFinite(value);
+    case "integer":
+      return typeof value === "number" && Number.isInteger(value);
+    case "boolean":
+      return typeof value === "boolean";
+    case "array":
+      return Array.isArray(value);
+    case "object":
+      return !!value && typeof value === "object" && !Array.isArray(value);
+    default:
+      return true;
+  }
+}
+
+/**
+ * Edits to an MCP tool's arguments are checked against the schema that server declared: an MCP tool
+ * is not a registered spec, so it has no zod schema here and would otherwise have its edited
+ * arguments accepted unexamined (P1-11). Deliberately shallow (required keys and top-level types) and
+ * deliberately fail-open when the registry cannot answer or no longer lists the tool — the alternative
+ * is a card that cannot be answered because of a lookup failure.
+ */
+async function checkMcpArgs(
+  tool: string,
+  args: unknown,
+): Promise<{ ok: true; value: Record<string, unknown> } | { ok: false; error: string }> {
+  if (typeof args !== "object" || args === null || Array.isArray(args)) {
+    return { ok: false, error: "Edited arguments must be an object" };
+  }
+  const value = args as Record<string, unknown>;
+
+  let defs: ToolDefinition[];
+  try {
+    defs = await getMcpRegistry().tools();
+  } catch {
+    return { ok: true, value };
+  }
+  const def = defs.find((d) => d.name === tool);
+  if (!def) return { ok: true, value };
+
+  const required = Array.isArray(def.parameters?.required) ? def.parameters.required : [];
+  const missing = required.filter((key) => value[key] === undefined || value[key] === null);
+  if (missing.length > 0) {
+    return { ok: false, error: `Invalid edited arguments: missing ${missing.join(", ")}` };
+  }
+
+  const properties = def.parameters?.properties ?? {};
+  const wrong = Object.keys(value).filter((key) => {
+    const declared = properties[key]?.type;
+    return declared ? !matchesJsonType(value[key], declared) : false;
+  });
+  if (wrong.length > 0) {
+    return { ok: false, error: `Invalid edited arguments: ${wrong.join(", ")} has the wrong type` };
+  }
+
+  return { ok: true, value };
+}
 
 /**
  * POST /api/kemma/approvals/:id
@@ -63,6 +129,12 @@ approvalsRouter.post("/:id", async (req, res) => {
           });
         }
         finalArgs = parsed.data;
+      } else if (row.tool.startsWith(MCP_TOOL_PREFIX)) {
+        const checked = await checkMcpArgs(row.tool, args);
+        if (!checked.ok) {
+          return res.status(400).json({ error: checked.error });
+        }
+        finalArgs = checked.value;
       } else {
         finalArgs = args;
       }
