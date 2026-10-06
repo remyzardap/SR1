@@ -68,7 +68,10 @@ export function ApprovalCard({ approval, onDecision, className }: ApprovalCardPr
 
     try {
       const token = getAuthToken();
-      const res = await fetch(`/api/kemma/approvals/${encodeURIComponent(approval.id)}`, {
+      // Same origin prefix the rest of the client uses: in dev the server runs on its own port, and a
+      // root-relative URL here would hit Vite instead of the API (P1-11).
+      const apiOrigin = import.meta.env.VITE_SR1_API_ORIGIN || "";
+      const res = await fetch(`${apiOrigin}/api/kemma/approvals/${encodeURIComponent(approval.id)}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

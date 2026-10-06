@@ -66,6 +66,22 @@ approvalsRouter.post("/:id", async (req, res) => {
       } else {
         finalArgs = args;
       }
+
+      // The card the human read names a target resource. Editing the arguments so they point
+      // somewhere else would approve a different action than the one displayed, so the target is not
+      // allowed to move (P1-11). Fail closed: a target that cannot be re-read cannot be written to.
+      if (spec?.targetRef) {
+        let moved: string | undefined;
+        try {
+          moved = (await spec.targetRef(finalArgs, { userId: user.id } as any)) ?? undefined;
+        } catch {
+          return res.status(400).json({ error: "Could not re-read the target of the edited action" });
+        }
+        if (moved !== (row.targetRef ?? undefined)) {
+          return res.status(400).json({ error: "Cannot change the target of an approved action" });
+        }
+      }
+
       finalArgsHash = hashArgs(finalArgs);
       if (spec?.preview) {
         try {
