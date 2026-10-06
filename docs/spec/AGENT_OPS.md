@@ -12,6 +12,7 @@ This file says **who does which work package, how it gets launched on the VPS, a
 |---|---|---|---|---|
 | **Kimi CLI** (`kimi`) | VPS, user `agents` | `kimi --print --output-format stream-json -p "<prompt>"` (`--print` implies auto-approve; deny rules in its config still apply) | long, spec-literal backend work across many files; cheap per token; you already used it (`kimi/*` branches) | **implementer, backend lanes** |
 | **Antigravity CLI** (`agy`) | VPS, user `agents` | `agy -p "<prompt>" --output-format stream-json --dangerously-skip-permissions --print-timeout <t>` | Gemini-native work (embeddings, vision, Vertex, Gmail/Calendar/Drive APIs), frontend and UI, browser checks | **implementer, Google + frontend lanes** |
+| **Qwen Code** (`qwen`) | VPS, user `agents` | `qwen -p "<prompt>" --yolo` (`--yolo` auto-approves its tools) | runs on the owner's Qwen monthly plan; Node 20 is enough | **implementer, any lane kimi would take** |
 | **Claude** (cloud sessions like this one) | claude.ai/code | n/a | spec writing, adversarial review, phase gates | **reviewer and gatekeeper**: never reviews its own code |
 | **Owner** (you) | phone + VPS | n/a | decisions, keys, container restarts, `develop` → `main` | **merges and deploys** |
 
@@ -144,7 +145,7 @@ The list is `OWNER_LOGIN` in the service (re-run `install.sh` with `OWNER_LOGIN=
 Issue body format (other text in the body is ignored, so Claude adds context above it):
 
 ```
-agent: kimi
+agent: kimi        (or agy, qwen)
 mode: build
 wp: P1-03
 slug: streaming

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Picks up agent tasks from GitHub issues and runs them with dispatch.sh, so Claude (or you) can command
-# kimi and agy by opening an issue. Playbook: docs/spec/AGENT_OPS.md §4.5. Run as the `agents` user.
+# kimi, agy and qwen by opening an issue. Playbook: docs/spec/AGENT_OPS.md §4.5. Run as the `agents` user.
 #
 # An issue is a task only if ALL of these hold:
 #   - it is open, labelled `agent-task`, and opened by one of OWNER_LOGIN, a comma-separated list
 #     (default remyzardap,claude[bot]); a name ending in [bot] only matches a GitHub App bot, never a person
 #   - its body has these lines (anything else in the body is ignored):
-#       agent: kimi | agy
+#       agent: kimi | agy | qwen
 #       mode:  build | fix | review | task
 #       wp:    P1-03                (not for task: a task's id is T-<issue number>; fix/review take T-ids)
 #       slug:  streaming            (build and task)
@@ -42,7 +42,7 @@ AUTHOR_OK="(.author // {}) as \$a | ((\$a.login // \"\") | sub(\"^app/\"; \"\") 
                          else ((\$a.is_bot // false) | not) and . == \$l end)"
 
 ensure_labels() {
-  gh label create agent-task    --repo "$REPO_SLUG" --color 1D76DB --description "Task for kimi/agy on the VPS" --force >/dev/null
+  gh label create agent-task    --repo "$REPO_SLUG" --color 1D76DB --description "Task for kimi/agy/qwen on the VPS" --force >/dev/null
   gh label create agent-running --repo "$REPO_SLUG" --color FBCA04 --description "An agent is working on it" --force >/dev/null
   gh label create agent-done    --repo "$REPO_SLUG" --color 0E8A16 --description "Agent finished; gate green" --force >/dev/null
   gh label create agent-failed  --repo "$REPO_SLUG" --color B60205 --description "Agent run failed; see comment" --force >/dev/null
@@ -104,7 +104,7 @@ tick() {
     body=$(gh issue view "$n" --repo "$REPO_SLUG" --json body --jq .body) || continue
     agent=$(field agent "$body"); mode=$(field mode "$body"); wp=$(field wp "$body")
     slug=$(field slug "$body");   title=$(field title "$body")
-    [[ $agent == kimi || $agent == agy ]] || { reject "$n" "agent must be kimi or agy"; continue; }
+    [[ $agent =~ ^(kimi|agy|qwen)$ ]] || { reject "$n" "agent must be kimi, agy or qwen"; continue; }
     [[ $mode =~ ^(build|fix|review|task)$ ]] || { reject "$n" "mode must be build, fix, review or task"; continue; }
     if [[ $mode == task ]]; then
       wp="T-$n"

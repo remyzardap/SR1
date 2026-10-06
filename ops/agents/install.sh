@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-command VPS setup so Claude can command kimi and agy through GitHub issues.
+# One-command VPS setup so Claude can command kimi, agy and qwen through GitHub issues.
 # Does everything in docs/spec/AGENT_OPS.md §3 and is safe to re-run (re-running also updates the scripts).
 #
 #   sudo bash ops/agents/install.sh          from a checkout that has this file, e.g. /root/sr1, or straight from git:
@@ -90,22 +90,22 @@ done
 ln -sfn "$BIN_DIR/dispatch.sh" "$HOME_DIR/dispatch.sh"   # so `sudo -iu agents ~/dispatch.sh ...` works by hand
 chown -h "$AGENTS_USER": "$HOME_DIR/dispatch.sh"
 
-say "6/7 kimi and agy for '$AGENTS_USER'"
+say "6/7 coding agents (kimi, agy, qwen) for '$AGENTS_USER'"
 AGENT_PATH=$(as_agents 'echo "$HOME/.local/bin:$HOME/bin:$PATH"')
 missing=()
-for cli in kimi agy; do
+for cli in kimi agy qwen; do
   if p=$(as_agents "command -v $cli"); then
     echo "$cli: $p"; AGENT_PATH="$(dirname "$p"):$AGENT_PATH"
   else
     missing+=("$cli")
   fi
 done
-((${#missing[@]} < 2)) || warn "neither kimi nor agy is installed for $AGENTS_USER; install them as that user, then re-run this"
+((${#missing[@]} < 3)) || warn "none of kimi, agy or qwen is installed for $AGENTS_USER; install them as that user, then re-run this"
 
 say "7/7 watcher service"
 cat >"$UNIT" <<UNIT_EOF
 [Unit]
-Description=Sutaeru agent watcher (GitHub issues -> kimi/agy)
+Description=Sutaeru agent watcher (GitHub issues -> kimi/agy/qwen)
 After=network-online.target
 Wants=network-online.target
 [Service]
@@ -133,9 +133,9 @@ cat <<EOF
 
 Still to do by hand (only once):
 EOF
-for cli in kimi agy; do
+for cli in kimi agy qwen; do
   if [[ " ${missing[*]} " == *" $cli "* ]]; then
-    echo "  - install $cli for $AGENTS_USER, then re-run this script"
+    echo "  - $cli: not installed (optional; you need at least one of kimi, agy, qwen)"
   else
     echo "  - sign $cli in:   sudo -iu $AGENTS_USER $cli     (finish the login, then exit)"
   fi
