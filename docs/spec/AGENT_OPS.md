@@ -12,6 +12,8 @@ This file says **who does which work package, how it gets launched on the VPS, a
 |---|---|---|---|---|
 | **Antigravity CLI** (`agy`) | VPS, user `agents` | `agy -p "<prompt>" --output-format stream-json --dangerously-skip-permissions --print-timeout <t>` | Gemini-native work (embeddings, vision, Vertex, Gmail/Calendar/Drive APIs), frontend and UI, browser checks | **implementer, Google + frontend lanes** |
 | **Qwen Code** (`qwen`) | VPS, user `agents` | `qwen -p "<prompt>" --yolo` (`--yolo` auto-approves its tools) | long, spec-literal backend work across many files; runs on the owner's Qwen monthly plan; Node 20 is enough | **implementer, backend lanes** |
+| **Kimi Code CLI** (`kimi`) | VPS, user `agents` | `kimi --print --output-format stream-json -p "<prompt>"` (`--print` implies auto-approve; deny rules in its config still apply) | long, spec-literal backend work | **implementer, backend lanes (with qwen)** |
+| **opencode** (`opencode`) | VPS, user `agents` | opencode.ai: `opencode run "<prompt>"`, with permissions allowed in `~/.config/opencode/opencode.json` (install.sh writes it); the older Go opencode: `opencode -p "<prompt>" -q` (detected automatically) | any provider you sign it in to | **overflow implementer** |
 | **Claude** (cloud sessions like this one) | claude.ai/code | n/a | spec writing, adversarial review, phase gates | **reviewer and gatekeeper**: never reviews its own code |
 | **Owner** (you) | phone + VPS | n/a | decisions, keys, container restarts, `develop` → `main` | **merges and deploys** |
 
@@ -147,7 +149,7 @@ The list is `OWNER_LOGIN` in the service (re-run `install.sh` with `OWNER_LOGIN=
 Issue body format (other text in the body is ignored, so Claude adds context above it):
 
 ```
-agent: qwen        (or agy)
+agent: qwen        (or agy, kimi, opencode)
 mode: build
 wp: P1-03
 slug: streaming

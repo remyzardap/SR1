@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Picks up agent tasks from GitHub issues and runs them with dispatch.sh, so Claude (or you) can command
-# qwen and agy by opening an issue. Playbook: docs/spec/AGENT_OPS.md §4.5. Run as the `agents` user.
+# qwen, agy, kimi and opencode by opening an issue. Playbook: docs/spec/AGENT_OPS.md §4.5. Run as the `agents` user.
 #
 # An issue is a task only if ALL of these hold:
 #   - it is open, labelled `agent-task`, and opened by one of OWNER_LOGIN, a comma-separated list
 #     (default remyzardap,claude[bot]); a name ending in [bot] only matches a GitHub App bot, never a person
 #   - its body has these lines (anything else in the body is ignored):
-#       agent: qwen | agy
+#       agent: qwen | agy | kimi | opencode
 #       mode:  build | fix | review | task
 #       wp:    P1-03                (not for task: a task's id is T-<issue number>; fix/review take T-ids)
 #       slug:  streaming            (build and task)
@@ -50,7 +50,7 @@ AUTHOR_OK="(.author // {}) as \$a | ((\$a.login // \"\") | sub(\"^app/\"; \"\") 
                          else ((\$a.is_bot // false) | not) and . == \$l end)"
 
 ensure_labels() {
-  gh label create agent-task    --repo "$REPO_SLUG" --color 1D76DB --description "Task for qwen/agy on the VPS" --force >/dev/null
+  gh label create agent-task    --repo "$REPO_SLUG" --color 1D76DB --description "Task for qwen/agy/kimi/opencode on the VPS" --force >/dev/null
   gh label create agent-running --repo "$REPO_SLUG" --color FBCA04 --description "An agent is working on it" --force >/dev/null
   gh label create agent-done    --repo "$REPO_SLUG" --color 0E8A16 --description "Agent finished; gate green" --force >/dev/null
   gh label create agent-failed  --repo "$REPO_SLUG" --color B60205 --description "Agent run failed; see comment" --force >/dev/null
@@ -123,7 +123,7 @@ tick() {
     body=$(gh issue view "$n" --repo "$REPO_SLUG" --json body --jq .body) || continue
     agent=$(field agent "$body"); mode=$(field mode "$body"); wp=$(field wp "$body")
     slug=$(field slug "$body");   title=$(field title "$body")
-    [[ $agent =~ ^(qwen|agy)$ ]] || { reject "$n" "agent must be qwen or agy"; continue; }
+    [[ $agent =~ ^(qwen|agy|kimi|opencode)$ ]] || { reject "$n" "agent must be qwen, agy, kimi or opencode"; continue; }
     [[ $mode =~ ^(build|fix|review|task|ask)$ ]] || { reject "$n" "mode must be build, fix, review, task or ask"; continue; }
     ref=$(field ref "$body"); ref=${ref:-develop}
     [[ $ref =~ ^[A-Za-z0-9._/-]{1,100}$ ]] || { reject "$n" "ref must be a branch name"; continue; }
