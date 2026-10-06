@@ -114,6 +114,20 @@ const INJECTION_PATTERNS: RegExp[] = [
   /\b(?:call|run|execute|use|invoke|trigger)\s+(?:the\s+|a\s+)?tool\b/i,
 ];
 
+const DEFAULT_TOOL_PATTERN = DEFAULT_KNOWN_TOOLS
+  .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+  .join("|");
+
+const DEFAULT_TOOL_REGEX = new RegExp(
+  `\\b(?:call|run|execute|invoke|trigger)\\s+(?:the\\s+)?(?:tool\\s+)?(${DEFAULT_TOOL_PATTERN}|mcp__\\w+)\\b`,
+  "i"
+);
+
+const DEFAULT_USE_TOOL_REGEX = new RegExp(
+  `\\buse\\s+(?:the\\s+)?tool\\s+(${DEFAULT_TOOL_PATTERN}|mcp__\\w+)\\b`,
+  "i"
+);
+
 export interface InjectionDetectionResult {
   injectionSuspected: boolean;
   match?: string;
@@ -142,23 +156,25 @@ export function detectInjection(
   }
 
   // 2. Check imperative verbs next to registered tools
-  const tools = options?.knownTools ?? DEFAULT_KNOWN_TOOLS;
-  const toolPattern = tools
-    .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-    .join("|");
-  const toolRegex = new RegExp(
-    `\\b(?:call|run|execute|invoke|trigger)\\s+(?:the\\s+)?(?:tool\\s+)?(${toolPattern}|mcp__\\w+)\\b`,
-    "i"
-  );
+  const toolRegex = options?.knownTools
+    ? new RegExp(
+        `\\b(?:call|run|execute|invoke|trigger)\\s+(?:the\\s+)?(?:tool\\s+)?(${options.knownTools.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")}|mcp__\\w+)\\b`,
+        "i"
+      )
+    : DEFAULT_TOOL_REGEX;
+
   const toolMatch = text.match(toolRegex);
   if (toolMatch) {
     return { injectionSuspected: true, match: toolMatch[0], reason: `Imperative verb next to tool: ${toolMatch[0]}` };
   }
 
-  const useToolRegex = new RegExp(
-    `\\buse\\s+(?:the\\s+)?tool\\s+(${toolPattern}|mcp__\\w+)\\b`,
-    "i"
-  );
+  const useToolRegex = options?.knownTools
+    ? new RegExp(
+        `\\buse\\s+(?:the\\s+)?tool\\s+(${options.knownTools.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")}|mcp__\\w+)\\b`,
+        "i"
+      )
+    : DEFAULT_USE_TOOL_REGEX;
+
   const useToolMatch = text.match(useToolRegex);
   if (useToolMatch) {
     return { injectionSuspected: true, match: useToolMatch[0], reason: `Imperative use of tool: ${useToolMatch[0]}` };
