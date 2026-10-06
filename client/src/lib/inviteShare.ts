@@ -66,16 +66,30 @@ export async function shareInviteLink(options: {
   return { status: "unavailable", message: INVITE_SHARE_UNAVAILABLE_COPY };
 }
 
+/** Copy the link with the browser's clipboard, when it has one. */
+function windowCopy(): CopyFn | undefined {
+  if (typeof window === "undefined") return undefined;
+  const clipboard = window.navigator.clipboard;
+  return clipboard && typeof clipboard.writeText === "function" ? (text) => clipboard.writeText(text) : undefined;
+}
+
+function unavailable(): ShareOutcome {
+  return { status: "unavailable", message: INVITE_SHARE_UNAVAILABLE_COPY };
+}
+
 /** The same decision using this browser's APIs; outside a browser, nothing is offered. */
 export function shareInviteLinkFromWindow(url: string): Promise<ShareOutcome> {
-  if (typeof window === "undefined") {
-    return Promise.resolve({ status: "unavailable", message: INVITE_SHARE_UNAVAILABLE_COPY });
-  }
+  if (typeof window === "undefined") return Promise.resolve(unavailable());
   const nav: Navigator = window.navigator;
-  const clipboard = nav.clipboard;
   return shareInviteLink({
     url,
     share: typeof nav.share === "function" ? (data) => nav.share(data) : undefined,
-    copy: clipboard && typeof clipboard.writeText === "function" ? (text) => clipboard.writeText(text) : undefined,
+    copy: windowCopy(),
   });
+}
+
+/** Copy only — for the button that says "Copy link", not the one that opens a share sheet. */
+export function copyInviteLinkFromWindow(url: string): Promise<ShareOutcome> {
+  if (typeof window === "undefined") return Promise.resolve(unavailable());
+  return shareInviteLink({ url, copy: windowCopy() });
 }

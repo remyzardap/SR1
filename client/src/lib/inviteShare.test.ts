@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   INVITE_SHARE_TITLE,
   INVITE_SHARE_UNAVAILABLE_COPY,
+  copyInviteLinkFromWindow,
   shareInviteLink,
   shareInviteLinkFromWindow,
 } from "./inviteShare";
@@ -104,10 +105,10 @@ describe("sharing an invite link", () => {
   });
 
   it("has nothing to offer outside a browser", async () => {
-    await expect(shareInviteLinkFromWindow(URL)).resolves.toEqual({
-      status: "unavailable",
-      message: INVITE_SHARE_UNAVAILABLE_COPY,
-    });
+    const nothing = { status: "unavailable", message: INVITE_SHARE_UNAVAILABLE_COPY };
+    await expect(shareInviteLinkFromWindow(URL)).resolves.toEqual(nothing);
+    // The Copy button takes the same path, so it cannot reach for a clipboard that is not there.
+    await expect(copyInviteLinkFromWindow(URL)).resolves.toEqual(nothing);
   });
 
   it("keeps the words free of model and vendor names", async () => {
