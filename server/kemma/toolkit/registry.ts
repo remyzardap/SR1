@@ -100,7 +100,7 @@ export async function toolsFor(ctx: ToolContext, allow?: string[]): Promise<Tool
 
   const driveCandidates = (allowSet ? DRIVE_TOOL_NAMES.filter((n) => allowSet.has(n)) : DRIVE_TOOL_NAMES)
     .map((n) => registry.get(n))
-    .filter((s): s is ToolSpec<z.ZodTypeAny, unknown> => !!s && (!s.requiresApproval || approvalsOn));
+    .filter((s): s is ToolSpec<z.ZodTypeAny, unknown> => !!s);
   result = [...result, ...(await filterAvailable(driveCandidates, ctx))];
 
   if (ctx.skillsEnabled) {

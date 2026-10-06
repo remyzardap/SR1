@@ -6,6 +6,7 @@
  */
 import crypto from "node:crypto";
 import { z } from "zod";
+import { flag } from "../../../core/flags";
 import { registerTool } from "../registry";
 import type { ToolContext } from "../types";
 import {
@@ -185,7 +186,7 @@ export function registerDriveTools(): void {
     description: "Propose an edit to an existing Google Drive file. The change is staged as a pending revision and must be confirmed in the UI before it is applied. Does not modify the file immediately.",
     args: DriveEditArgs,
     risk: "write",
-    requiresApproval: true,
+    requiresApproval: () => flag("APPROVALS"),
     targetRef: (args) => `drive:${args.fileId}`,
     targetRevision: async (args, ctx) => {
       try {
