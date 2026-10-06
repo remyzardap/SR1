@@ -39,8 +39,10 @@ import {
 } from "../core/llmHttp";
 import { checkQuota, incrementQuota } from "../core/quotaCheck";
 import { logUsage, checkSpendCap } from "../core/usage";
+import { flag } from "../core/flags";
 import { getMemoriesContext } from "./memory";
 import { type Source, extractSources, dedupeSources, annotateSearchResult, keepCitedSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
+import { isUntrustedTool, extractToolSource, detectInjection, wrapUntrustedContent } from "./untrusted";
 
 export interface KemmaMessage {
   role: "user" | "assistant" | "system" | "tool";
@@ -201,7 +203,7 @@ async function runParallelSubAgents(
         allowedTools: restrictedTools,
         isSubAgent: true,
         onStream: undefined,
-        onNotice: undefined,
+        onNotice,
       });
       return { query, output };
     })
@@ -449,7 +451,21 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         const newSources = extractSources(tc.function.name, toolResult);
         if (newSources.length > 0) collectedSources.push(...newSources);
         const forModel = tc.function.name === "web_search" ? annotateSearchResult(toolResult, dedupeSources(collectedSources)) : toolResult;
-        currentMessages.push({ role: "tool", content: JSON.stringify(forModel), tool_call_id: tc.id, name: tc.function.name });
+        let toolMessageContent = JSON.stringify(forModel);
+        if (flag("UNTRUSTED_FENCING") && isUntrustedTool(tc.function.name)) {
+          const source = extractToolSource(tc.function.name, parsedArgs, toolResult);
+          const detection = detectInjection(toolMessageContent);
+          if (detection.injectionSuspected) {
+            onNotice?.(`Suspected prompt injection detected in ${tc.function.name} output.`);
+          }
+          toolMessageContent = wrapUntrustedContent({
+            tool: tc.function.name,
+            source,
+            content: toolMessageContent,
+            injectionSuspected: detection.injectionSuspected,
+          });
+        }
+        currentMessages.push({ role: "tool", content: toolMessageContent, tool_call_id: tc.id, name: tc.function.name });
       }
 
       if (totalToolCallCount >= maxToolCalls) {
