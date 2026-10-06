@@ -249,6 +249,10 @@ async function runParallelSubAgents(
         toolBudget: perAgentBudget,
         allowedTools: restrictedTools,
         isSubAgent: true,
+        // A sub-agent run has nobody watching its stream, so it must not inherit the parent's
+        // approver (P1-11): it would block the whole research fan-out on a card no one can see.
+        // With no gate, `toolsFor` withholds approval tools and `runTool` refuses one outright.
+        approvals: undefined,
         onStream: undefined,
         onNotice,
       });
@@ -383,7 +387,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   const maxToolCalls = input.toolBudget ?? defaultBudget;
   // The per-run tool context. `toolsFor`/`runTool` use this for availability checks (Drive
   // connected, admin role) and for executing the tool itself. P1-05 gives `signal` a real,
-  // abortable value; P1-11 will populate `approvals`.
+  // abortable value; P1-11 populates `approvals` from the caller that owns the run.
   const runId = `${sessionId ?? "s"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const toolCtx: ToolContext = {
     userId,
