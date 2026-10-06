@@ -70,6 +70,7 @@ scrub() {  # best-effort: blank anything that looks like a credential before it 
 
 run_task() {  # <issue> <agent> <mode> <wp> <slug> <title> [ref]
   local n=$1 agent=$2 mode=$3 wp=$4 slug=$5 title=$6 out="$LOGDIR/tasks/issue-$1.log" rc=0
+  echo "$BASHPID" > "$LOGDIR/tasks/issue-$n.pid"
   if [[ $mode == build ]]; then
     "$DISPATCH" "$agent" "$wp" "$slug" "$title" >"$out" 2>&1 || rc=$?
   elif [[ $mode == task ]]; then
@@ -141,7 +142,19 @@ tick() {
   done
 }
 
+recover_orphans() {  # issues left "running" by a run that no longer exists (killed by a restart or reboot)
+  local n pidf
+  for n in $(gh issue list --repo "$REPO_SLUG" --state open --label agent-running --limit 50 --json number --jq '.[].number'); do
+    pidf="$LOGDIR/tasks/issue-$n.pid"
+    if [[ -f $pidf ]] && kill -0 "$(cat "$pidf")" 2>/dev/null; then continue; fi
+    gh issue comment "$n" --repo "$REPO_SLUG" --body "⚠️ This run was interrupted (watcher restart or reboot) before it finished. Nothing was pushed by the watcher. To retry: remove \`agent-failed\` and add \`agent-task\`." >/dev/null
+    gh issue edit "$n" --repo "$REPO_SLUG" --remove-label agent-running --add-label agent-failed >/dev/null
+    log "issue #$n: marked interrupted"
+  done
+}
+
 ensure_labels || log "could not create labels (check gh auth); continuing"
+recover_orphans || log "orphan check failed; continuing"
 log "watching $REPO_SLUG for agent-task issues by $OWNER_LOGIN every ${INTERVAL}s"
 if [[ ${1:-} == --once ]]; then tick; wait; exit 0; fi
 while true; do tick; sleep "$INTERVAL"; done

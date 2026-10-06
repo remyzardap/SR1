@@ -134,6 +134,8 @@ Environment=REPO_SLUG=$REPO_SLUG
 Environment=OWNER_LOGIN=$OWNER_LOGIN
 ExecStart=$BIN_DIR/watch.sh
 Restart=always
+# restarting the watcher (e.g. re-running this script) must not kill agent runs in progress
+KillMode=process
 RestartSec=30
 [Install]
 WantedBy=multi-user.target
