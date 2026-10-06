@@ -5,8 +5,14 @@
  */
 import { randomUUID } from "crypto";
 import { and, eq, sql } from "drizzle-orm";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { kvCache } from "../../../drizzle/schema";
+
+// readPage() resolves the host before it reads the cache (SSRF guard), so the throwaway host
+// below would never resolve in CI. Resolution itself is covered in index.test.ts; here it is
+// stubbed to a public address the same way, so this file tests only Postgres behaviour.
+const dns = vi.hoisted(() => ({ lookup: vi.fn() }));
+vi.mock("node:dns/promises", () => dns);
 
 describe.skipIf(!process.env.TEST_DATABASE_URL)("reader cache (Postgres)", () => {
   const run = randomUUID().slice(0, 8);
@@ -32,6 +38,10 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("reader cache (Postgres)", () =>
     }
     if (savedDatabaseUrl === undefined) delete process.env.DATABASE_URL;
     else process.env.DATABASE_URL = savedDatabaseUrl;
+  });
+
+  beforeEach(() => {
+    dns.lookup.mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
   });
 
   afterEach(() => {
