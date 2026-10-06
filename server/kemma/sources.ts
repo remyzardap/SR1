@@ -124,28 +124,87 @@ export function annotateSearchResult(toolResult: unknown, allSources: Source[]):
   return { ...r, data };
 }
 
+export interface CitedSubsetOptions {
+  /**
+   * If true, markers pointing to unknown source IDs are dropped from the text.
+   * If false (the streamed path, where text has already reached the client),
+   * unknown markers are preserved as-is.
+   * Defaults to false.
+   */
+  dropUnknown?: boolean;
+}
+
+export interface CitedSubsetResult {
+  text: string;
+  sources: Source[];
+  unknownIds: number[];
+}
+
+const MARKER_REGEX = /(\s?)\[(\d{1,3}(?:\s*[,;]\s*\d{1,3})*)\]/g;
+
 /**
- * Keep only sources the answer cites, renumbered by first appearance, and rewrite the [n] markers
- * to match. Markers that point at no known source are dropped. If nothing is cited, all sources are kept.
+ * Keep the sources the text cites, with their ids unchanged (P1-07).
+ *
+ * In the streamed path, text is already out, so unknown markers are left alone
+ * and their IDs returned in `unknownIds` so callers can log them.
+ * In the non-streamed path (`dropUnknown: true`), markers pointing to unknown
+ * IDs are dropped from the text.
+ */
+export function citedSubset(
+  text: string,
+  sources: Source[],
+  options: CitedSubsetOptions = {}
+): CitedSubsetResult {
+  const byId = new Map<number, Source>(sources.map((s) => [s.id, s]));
+  const citedIds = new Set<number>();
+  const unknownIds: number[] = [];
+  const seenUnknown = new Set<number>();
+
+  for (const match of text.matchAll(MARKER_REGEX)) {
+    const group = match[2];
+    const parts = group.split(/[,;]/).map((d) => Number(d.trim())).filter((n) => !isNaN(n));
+    for (const n of parts) {
+      if (byId.has(n)) {
+        citedIds.add(n);
+      } else {
+        if (!seenUnknown.has(n)) {
+          seenUnknown.add(n);
+          unknownIds.push(n);
+        }
+      }
+    }
+  }
+
+  let resultText = text;
+  if (options.dropUnknown) {
+    resultText = text.replace(MARKER_REGEX, (_m, lead: string, group: string) => {
+      const parts = group.split(/[,;]/).map((d) => Number(d.trim())).filter((n) => !isNaN(n));
+      const known = parts.filter((n) => byId.has(n));
+      if (known.length === 0) return "";
+      const uniqueKnown: number[] = [];
+      for (const k of known) {
+        if (!uniqueKnown.includes(k)) uniqueKnown.push(k);
+      }
+      return `${lead}[${uniqueKnown.join(", ")}]`;
+    });
+  }
+
+  // Keep the sources the text cites, with their ids unchanged
+  const keptSources = sources.filter((s) => citedIds.has(s.id));
+
+  return {
+    text: resultText,
+    sources: keptSources,
+    unknownIds,
+  };
+}
+
+/**
+ * Keep only sources the answer cites with stable ids.
+ * @deprecated Use citedSubset instead. Kept for backwards compatibility.
  */
 export function keepCitedSources(answer: string, sources: Source[]): { text: string; sources: Source[] } {
-  const byId = new Map(sources.map((s) => [s.id, s]));
-  const remap = new Map<number, number>();
-  const kept: Source[] = [];
-  const text = answer.replace(/(\s?)\[(\d{1,3}(?:\s*[,;]\s*\d{1,3})*)\]/g, (_m, lead: string, group: string) => {
-    const out: string[] = [];
-    for (const d of group.split(/[,;]/)) {
-      const src = byId.get(Number(d.trim()));
-      if (!src) continue;
-      let n = remap.get(src.id);
-      if (!n) {
-        n = kept.length + 1;
-        remap.set(src.id, n);
-        kept.push({ ...src, id: n });
-      }
-      if (!out.includes(`[${n}]`)) out.push(`[${n}]`);
-    }
-    return out.length ? lead + out.join("") : "";
-  });
-  return kept.length === 0 ? { text: answer, sources } : { text, sources: kept };
+  const res = citedSubset(answer, sources, { dropUnknown: true });
+  return { text: res.text, sources: res.sources };
 }
+
