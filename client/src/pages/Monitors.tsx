@@ -162,7 +162,7 @@ export default function Monitors() {
         <div className="lp-head-main">
           <PageTitle className="lp-title">Monitors</PageTitle>
           <p className="lp-lede">
-            Kemma re-investigates your topics on a schedule and files a fresh cited briefing each run.
+            Sutaeru re-investigates your topics on a schedule and files a fresh cited briefing each run.
           </p>
         </div>
       </header>
@@ -220,7 +220,7 @@ export default function Monitors() {
         <section className="lp-empty" style={{ marginTop: 20 }}>
           <span className="lp-empty-mark"><SutaeruIcon name="schedule" width={44} height={44} /></span>
           <h2 className="lp-empty-title">Nothing watched yet.</h2>
-          <p className="lp-empty-text">Add a topic above and Kemma will keep an eye on it.</p>
+          <p className="lp-empty-text">Add a topic above and Sutaeru will keep an eye on it.</p>
         </section>
       )}
 

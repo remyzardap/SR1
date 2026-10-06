@@ -67,7 +67,7 @@ export function ChatSessionList({ activeSessionId, onSelectSession, onNewSession
 
   return (
     <div className="sutaeru-history flex flex-col h-full" style={{ position: "relative" }}>
-      <div className="sutaeru-history-mark"><LandingMark className="sutaeru-nav-mark" /><span>SUTAERU</span>{onClose && <Button variant="ghost" size="icon" className="sutaeru-history-close" onClick={onClose} aria-label="Close history" title="Close history"><SutaeruIcon name="close" className="h-5 w-5" /></Button>}</div>
+      <div className="sutaeru-history-mark"><LandingMark className="sutaeru-nav-mark" detail="compact" /><span>SUTAERU</span>{onClose && <Button variant="ghost" size="icon" className="sutaeru-history-close" onClick={onClose} aria-label="Close history" title="Close history"><SutaeruIcon name="close" className="h-5 w-5" /></Button>}</div>
 
       {/* Header */}
       <div className="sutaeru-history-head">

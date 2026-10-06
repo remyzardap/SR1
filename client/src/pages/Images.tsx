@@ -11,6 +11,10 @@ import { getAuthToken } from "@/lib/authSession";
 import { type Attachment } from "@/lib/attachments";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
 import { toast } from "sonner";
+import { SutaeruStamp } from "@/components/brand/SutaeruSeal";
+import { StudioCredits, StudioDirection, StudioOptions, StudioViewfinder } from "@/components/studio/StudioPicker";
+import { StudioFrame } from "@/components/studio/StudioFrame";
+import { DEFAULT_SHOT, direction, type Shot, type StudioGroup } from "@/lib/studio";
 import "@/styles/engine-cards.css";
 
 export type EngineId = "gemini" | "qwen" | "openai" | "forge";
@@ -89,14 +93,6 @@ const DEFAULT_ENGINES: Engine[] = [
   { id: "qwen", label: "Wan", model: "", qualityModel: "", available: true, defaultEngine: false, supportsReference: true },
 ];
 
-const RATIOS: Array<{ value: AspectRatio; label: string; rx: number; ry: number }> = [
-  { value: "1:1", label: "1:1", rx: 20, ry: 20 },
-  { value: "4:3", label: "4:3", rx: 24, ry: 18 },
-  { value: "16:9", label: "16:9", rx: 26, ry: 15 },
-  { value: "3:4", label: "3:4", rx: 18, ry: 24 },
-  { value: "9:16", label: "9:16", rx: 15, ry: 26 },
-];
-
 function EngineMark({ id }: { id: string }) {
   const common = {
     viewBox: "0 0 96 96",
@@ -169,6 +165,13 @@ export default function Images() {
   const [engine, setEngine] = useState<EngineId>("gemini");
   const [quality, setQuality] = useState<Quality>("standard");
   const [ratio, setRatio] = useState<AspectRatio>("1:1");
+  const [camera, setCamera] = useState<Omit<Shot, "ratio">>(() => {
+    const { ratio: _r, ...rest } = DEFAULT_SHOT;
+    return rest;
+  });
+  /* Camera choices reach the engine as words. Off until the person picks a tile or turns it on. */
+  const [directionOn, setDirectionOn] = useState(false);
+  const directionTouched = useRef(false);
   const [prompt, setPrompt] = useState("");
   const [refs, setRefs] = useState<Attachment[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -275,6 +278,20 @@ export default function Images() {
 
   const selectedRender = renders.find((r) => r.id === selectedId) ?? renders[0];
 
+  const shot: Shot = useMemo(() => ({ ...camera, ratio }), [camera, ratio]);
+  const pick = useCallback(<G extends StudioGroup>(group: G, value: Shot[G]) => {
+    if (group === "ratio") {
+      setRatio(value as AspectRatio);
+      return;
+    }
+    setCamera((cur) => ({ ...cur, [group]: value }));
+    if (!directionTouched.current) setDirectionOn(true);
+  }, []);
+  const changeDirection = useCallback((next: boolean) => {
+    directionTouched.current = true;
+    setDirectionOn(next);
+  }, []);
+
   // Calculation for generation progress simulation / visualization
   const targetEta = quality === "high" ? 40 : 16;
   const progressRatio = Math.min(0.95, Math.max(0.08, elapsed / targetEta));
@@ -300,7 +317,7 @@ export default function Images() {
     try {
       const result = await callFunction<GenerateResult>("image", {
         action: "generate",
-        prompt: text,
+        prompt: directionOn ? `${text}\n\n${direction(shot)}` : text,
         engine: currentEngine.id,
         quality,
         aspectRatio: ratio,
@@ -356,10 +373,10 @@ export default function Images() {
   // ────────────────────────────────────────────────────────────────────────────
   if (step === "engine") {
     return (
-      <div className="sk-page h-full overflow-y-auto px-5 pt-6 pb-28">
+      <div className="sk-page min-h-full px-5 pt-6 pb-28">
         <div className="img-flow-container">
           <header className="mb-6">
-            <PageTitle>Images</PageTitle>
+            <PageTitle className="skx-title-flush">Images</PageTitle>
             <p className="mt-2 text-[14.5px] leading-relaxed text-[var(--r-quiet)]">
               Describe a picture and choose which engine draws it. Every image is saved to My Files.
             </p>
@@ -441,7 +458,7 @@ export default function Images() {
 
           {/* Footer sample notice */}
           <div className="mt-6 text-center">
-            <span className="art-mono text-[10.5px] font-medium tracking-[1.54px] uppercase text-[var(--r-rule)]">
+            <span className="art-mono text-[11px] font-medium tracking-[1.54px] uppercase text-[var(--r-rule)]">
               SAMPLE PHOTOS · UNSPLASH
             </span>
           </div>
@@ -454,40 +471,18 @@ export default function Images() {
   // (b) PROMPT SCREEN (02-images-prompt.png)
   // ────────────────────────────────────────────────────────────────────────────
   if (step === "prompt") {
+    const canCreate = !generating && (!!prompt.trim() || !!new URLSearchParams(window.location.search).get("demo"));
     return (
-      <div className="sk-page h-full overflow-y-auto px-5 pt-6 pb-28">
+      <div className="sk-page min-h-full px-5 pt-6 pb-2">
         <div className="img-flow-container">
           <header className="mb-4">
-            <PageTitle>Your picture</PageTitle>
+            <PageTitle className="skx-title-flush">Your picture</PageTitle>
+            <p className="mt-2 text-[14.5px] leading-relaxed text-[var(--r-quiet)]">
+              Describe it, then set up the shot. Each tile is your picture with that one choice changed.
+            </p>
           </header>
 
-          {/* Shape Section */}
-          <section aria-label="Shape selection">
-            <span className="img-section-label">SHAPE</span>
-            <div className="img-shape-grid" role="radiogroup" aria-label="Aspect ratio">
-              {RATIOS.map((r) => {
-                const active = ratio === r.value;
-                return (
-                  <button
-                    key={r.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    onClick={() => setRatio(r.value)}
-                    className={`img-shape-card${active ? " is-active" : ""}`}
-                  >
-                    <div className="img-shape-preview">
-                      <div
-                        className="img-shape-rect"
-                        style={{ width: `${r.rx}px`, height: `${r.ry}px` }}
-                      />
-                    </div>
-                    <span className="img-shape-label">{r.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+          <StudioViewfinder shot={shot} />
 
           {/* Prompt Section */}
           <section aria-label="Prompt input" className="mb-4">
@@ -515,9 +510,11 @@ export default function Images() {
             </div>
           </section>
 
+          <StudioDirection shot={shot} on={directionOn} onChange={changeDirection} />
+
           {/* Reference Photo Section */}
           {currentEngine.supportsReference && (
-            <section aria-label="Reference photo upload" className="mb-4">
+            <section aria-label="Reference photo upload" className="mt-5 mb-1">
               <span className="img-section-label">REFERENCE PHOTO</span>
               <input
                 type="file"
@@ -575,26 +572,22 @@ export default function Images() {
             </section>
           )}
 
-          {/* Primary Action Button */}
-          <div className="mt-5 mb-3">
-            <button
-              type="button"
-              onClick={() => void generate()}
-              disabled={generating || (!prompt.trim() && !new URLSearchParams(window.location.search).get("demo"))}
-              className="img-btn-primary"
-            >
-              {generating ? "Drawing..." : "Create image"}
-            </button>
-          </div>
+          <StudioOptions shot={shot} onPick={pick} />
+          <StudioCredits />
 
-          {/* Footer Info Indicator */}
-          <div className="text-center">
+          {/* Sticky action bar: what will run, and the one button */}
+          <div className="st-go">
             <button
               type="button"
               onClick={() => setStep("engine")}
-              className="art-mono text-[11px] font-medium tracking-[1.54px] uppercase text-[var(--r-quiet)] hover:text-[var(--r-ink)] transition-colors"
+              className="st-go-sum"
+              aria-label={`Engine ${currentMeta.displayTitle}, ${quality} quality. Change engine`}
             >
-              {currentMeta.displayTitle.toUpperCase()} · {quality.toUpperCase()} · ABOUT {quality === "high" ? "40" : "15"} S
+              <span>{currentMeta.displayTitle} · {quality === "high" ? "High" : "Standard"}</span>
+              <b>About {quality === "high" ? "40" : "15"} s</b>
+            </button>
+            <button type="button" onClick={() => void generate()} disabled={!canCreate} className="img-btn-primary st-go-btn">
+              {generating ? "Drawing..." : "Create image"}
             </button>
           </div>
         </div>
@@ -611,10 +604,10 @@ export default function Images() {
     const stage = currentProgress < 0.25 ? "QUEUED" : currentProgress > 0.85 ? "SAVING" : "DRAWING";
 
     return (
-      <div className="sk-page h-full overflow-y-auto px-5 pt-6 pb-28">
+      <div className="sk-page min-h-full px-5 pt-6 pb-28">
         <div className="img-flow-container">
           <header className="mb-6">
-            <PageTitle>Images</PageTitle>
+            <PageTitle className="skx-title-flush">Images</PageTitle>
             <p className="mt-2 text-[14.5px] leading-relaxed text-[var(--r-quiet)]">
               {currentMeta.displayTitle} is drawing your picture.
             </p>
@@ -627,6 +620,8 @@ export default function Images() {
               <div className="img-split-left">
                 {refs[0] && refs[0].source === "device" ? (
                   <img src={refs[0].dataUrl} alt="Source" />
+                ) : directionOn ? (
+                  <StudioFrame shot={shot} width={180} aspect={0.76} />
                 ) : (
                   <img src={currentMeta.img || "/engines/gemini.jpg"} alt="Preview reference" />
                 )}
@@ -708,10 +703,10 @@ export default function Images() {
     };
 
     return (
-      <div className="sk-page h-full overflow-y-auto px-5 pt-6 pb-28">
+      <div className="sk-page min-h-full px-5 pt-6 pb-28">
         <div className="img-flow-container">
           <header className="mb-6">
-            <PageTitle>Images</PageTitle>
+            <PageTitle className="skx-title-flush">Images</PageTitle>
             <p className="mt-2 text-[14.5px] leading-relaxed text-[var(--r-quiet)]">
               Ready, and saved to My Files.
             </p>
@@ -729,6 +724,7 @@ export default function Images() {
               <div className="img-preview-badge">
                 {currentMeta.displayTitle.toUpperCase()} · {render.quality.toUpperCase()}
               </div>
+              <SutaeruStamp className="st-stamp" />
             </div>
           </div>
 
@@ -798,10 +794,10 @@ export default function Images() {
   const errorElapsed = elapsed > 0 ? elapsed : 21;
 
   return (
-    <div className="sk-page h-full overflow-y-auto px-5 pt-6 pb-28">
+    <div className="sk-page min-h-full px-5 pt-6 pb-28">
       <div className="img-flow-container">
         <header className="mb-5">
-          <PageTitle>Images</PageTitle>
+          <PageTitle className="skx-title-flush">Images</PageTitle>
           <p className="mt-2 text-[14.5px] leading-relaxed text-[var(--r-quiet)]">
             {currentMeta.displayTitle} couldn't finish this one.
           </p>

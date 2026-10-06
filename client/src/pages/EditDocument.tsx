@@ -1004,7 +1004,7 @@ export default function EditDocument({ embedded = false, onBack }: EditDocumentP
             </h2>
             <p className="sk-edit-progress-body">
               {isRunning
-                ? "Kemma is analysing, revising, and assembling your finished report..."
+                ? "Sutaeru is analysing, revising, and assembling your finished report..."
                 : isCancelled
                 ? "Generation stopped by user."
                 : "Your document is ready to download."}

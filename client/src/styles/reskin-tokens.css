@@ -20,6 +20,7 @@
   --r-panel: #EFEDE7;
   --r-card: #FFFFFF;
   --r-stroke: #E3E1DB;
+  --r-card-stroke: var(--r-stroke); /* used by the Images flow; follows the theme with --r-stroke */
   --r-ink: #242320;
   --r-quiet: #66645F;
   --r-rule: #B6BBC3;
@@ -95,6 +96,7 @@
   --r-panel: #2A2926;
   --r-card: #2A2926;
   --r-stroke: #3A3935;
+  --r-card-stroke: var(--r-stroke);
   --r-ink: #F7F6F2;
   --r-quiet: #B6BBC3;
   --r-rule: #66645F;
@@ -118,6 +120,7 @@
   --r-panel: #EFEDE7;
   --r-card: #FFFFFF;
   --r-stroke: #E3E1DB;
+  --r-card-stroke: var(--r-stroke);
   --r-ink: #242320;
   --r-quiet: #66645F;
   --r-rule: #B6BBC3;

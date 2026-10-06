@@ -407,7 +407,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         purpose: step === 1 ? "initial" : "follow-up",
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Kemma hit an error";
+      const message = err instanceof Error ? err.message : "Sutaeru hit an error";
       return makeErrorResponse(message, startTime);
     }
 

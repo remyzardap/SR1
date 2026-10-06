@@ -63,12 +63,12 @@ describe("threadToStructuredContent edge shapes (audit)", () => {
     expect(content.sections[0].body).toBe("こんにちは - bonjour");
   });
 
-  it("labels every non-user role as Kemma and tolerates a missing model", () => {
+  it("labels every non-user role as Sutaeru and tolerates a missing model", () => {
     const messages = [
       { role: "tool", content: "result", model: null, createdAt: new Date("2026-01-01T00:00:00Z") },
     ];
     const content = threadToStructuredContent({ id: "abcdef12-3456", title: "T" }, messages as any);
-    expect(content.sections[0].heading).toContain("Kemma");
+    expect(content.sections[0].heading).toContain("Sutaeru");
     expect(content.sections[0].heading).not.toContain("· ·");
   });
 });
