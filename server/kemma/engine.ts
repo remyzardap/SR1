@@ -627,21 +627,6 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         }
       }
 
-      if (input.signal?.aborted) {
-        return {
-          response: "",
-          toolCalls: toolExecutions,
-          isAgentic: toolExecutions.length >= 2,
-          tokensUsed: totalTokens,
-          modelsUsed: Array.from(new Set(modelsUsed)),
-          stepsUsed: step,
-          durationMs: Date.now() - startTime,
-          sources: dedupeSources(collectedSources),
-          isError: false,
-          cancelled: true,
-        };
-      }
-
       for (const item of outcomes) {
         const { tc, parsedArgs, toolResult, toolDuration } = item;
         if (tc.function.name === "load_skill" && (toolResult as { success?: boolean })?.success) {
@@ -657,6 +642,21 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         if (newSources.length > 0) collectedSources.push(...newSources);
         const forModel = tc.function.name === "web_search" ? annotateSearchResult(toolResult, dedupeSources(collectedSources)) : toolResult;
         currentMessages.push({ role: "tool", content: JSON.stringify(forModel), tool_call_id: tc.id, name: tc.function.name });
+      }
+
+      if (input.signal?.aborted) {
+        return {
+          response: "",
+          toolCalls: toolExecutions,
+          isAgentic: toolExecutions.length >= 2,
+          tokensUsed: totalTokens,
+          modelsUsed: Array.from(new Set(modelsUsed)),
+          stepsUsed: step,
+          durationMs: Date.now() - startTime,
+          sources: dedupeSources(collectedSources),
+          isError: false,
+          cancelled: true,
+        };
       }
 
       if (totalToolCallCount >= maxToolCalls) {
