@@ -30,7 +30,7 @@ describe("threadToStructuredContent", () => {
     expect(result.sections).toHaveLength(2);
     expect(result.sections[0].heading).toContain("You");
     expect(result.sections[0].body).toBe("hi");
-    expect(result.sections[1].heading).toContain("Kemma");
+    expect(result.sections[1].heading).toContain("Sutaeru");
     expect(result.sections[1].heading).not.toContain("qwen3.8-max"); // the export never names the model
   });
 

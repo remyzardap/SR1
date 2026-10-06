@@ -100,7 +100,7 @@ export default function MessagingCard() {
             <div className="sk-col" style={{ gap: 2 }}>
               <h2 className="sk-tile-title">WhatsApp</h2>
               <p className="sk-muted" style={{ margin: 0 }}>
-                {wa?.state === "open" ? `Linked as +${wa.number ?? "your number"}` : "Chat with Kemma from WhatsApp"}
+                {wa?.state === "open" ? `Linked as +${wa.number ?? "your number"}` : "Chat with Sutaeru from WhatsApp"}
               </p>
             </div>
           </div>
@@ -116,7 +116,7 @@ export default function MessagingCard() {
 
         {wa?.state === "open" && (
           <p className="sk-muted" style={{ margin: 0 }}>
-            Open the chat with yourself in WhatsApp (Message yourself) and write to Kemma there. Other numbers are ignored unless they are on the allowed list.
+            Open the chat with yourself in WhatsApp (Message yourself) and write to Sutaeru there. Other numbers are ignored unless they are on the allowed list.
           </p>
         )}
 
@@ -186,7 +186,7 @@ export default function MessagingCard() {
             <span className="sk-icon-tile"><SutaeruIcon name="connections" /></span>
             <div className="sk-col" style={{ gap: 2 }}>
               <h2 className="sk-tile-title">Telegram</h2>
-              <p className="sk-muted" style={{ margin: 0 }}>Chat with Kemma from a Telegram bot</p>
+              <p className="sk-muted" style={{ margin: 0 }}>Chat with Sutaeru from a Telegram bot</p>
             </div>
           </div>
           {status?.telegram.connected ? (

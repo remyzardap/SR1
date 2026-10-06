@@ -286,8 +286,8 @@ function MemorySwitch() {
         <span className="lp-mono">Living memory</span>
         <p className="lp-dark-text">
           {enabled === false
-            ? "Off — Kemma stops noting new things from your chats. Existing memories stay."
-            : "On — after each chat, Kemma quietly notes anything worth remembering here."}
+            ? "Off. Sutaeru stops noting new things from your chats. Existing memories stay."
+            : "On. After each chat, Sutaeru quietly notes anything worth remembering here."}
         </p>
       </div>
       <Toggle

@@ -47,7 +47,7 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
     <Message from={message.role} className="sutaeru-editorial-message max-w-full">
       {!message.queued && (
         <div className="sutaeru-message-label">
-          <strong>{isUser ? "You" : "Kemma"}</strong>
+          <strong>{isUser ? "You" : "Sutaeru"}</strong>
           <span>{message.createdAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
         </div>
       )}

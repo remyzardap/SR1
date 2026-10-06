@@ -118,10 +118,10 @@ export async function runTelegramChat(text: string, style: "blend" | "solo" = "b
         .then((out) => {
           engineAnswer = out.isError ? "" : out.response?.trim() ?? "";
           if (out.isError) engineError = out.response?.trim() ?? "";
-          return engineAnswer ? [{ id: "gemini", label: "Kemma", text: engineAnswer }] : [];
+          return engineAnswer ? [{ id: "gemini", label: "Sutaeru", text: engineAnswer }] : [];
         })
         .catch(() => []);
-      const system = buildS1SystemPrompt({ agent: "s1", label: "Kemma", reason: "chat", emoji: "🧠", color: "#E8442A" });
+      const system = buildS1SystemPrompt({ agent: "s1", label: "Sutaeru", reason: "chat", emoji: "🧠", color: "#E8442A" });
       const chat: ChatMessage[] = [{ role: "system", content: system }, ...messages.map((m) => ({ role: m.role, content: String(m.content) }))];
       try {
         const plan = await s1Blend(text, chat, { draftMaxTokens: 800, skipDraft: ["gemini"], extraDrafts: engineDraft });

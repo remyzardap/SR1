@@ -332,3 +332,7 @@
   animation-duration: 0.01ms !important;
   transition-duration: 0.01ms !important;
 }
+
+/* Padded dashboard pages scroll with the document. Clip sideways overflow without becoming a
+   scroll container (overflow: hidden would), so position: sticky keeps working inside. */
+.sk-inset-flow { overflow: visible; overflow-x: clip; }

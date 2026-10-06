@@ -588,7 +588,7 @@ export default function AtelierGuided({ embedded = false, entry, initialPhase, o
         {!embedded && (
           <div>
             <h1 className="sk-h1">Documents</h1>
-            <p className="sk-sub">Professional report studio, powered by Kemma</p>
+            <p className="sk-sub">Professional report studio, powered by Sutaeru</p>
           </div>
         )}
 
@@ -600,10 +600,10 @@ export default function AtelierGuided({ embedded = false, entry, initialPhase, o
               <span className="sk-icon-tile">
                 <SutaeruIcon name="ask" />
               </span>
-              <h2 className="sk-tile-title">Chat with Kemma</h2>
+              <h2 className="sk-tile-title">Chat with Sutaeru</h2>
             </div>
             <p className="sk-empty-text">
-              Kemma interviews you with targeted questions to gather everything needed, then builds your report automatically.
+              Sutaeru interviews you with targeted questions to gather everything needed, then builds your report automatically.
             </p>
           </div>}
 
@@ -646,7 +646,7 @@ export default function AtelierGuided({ embedded = false, entry, initialPhase, o
               </>
             ) : (
               <p className="sk-empty-text">
-                PDF, DOCX, MD, TXT, CSV. Kemma reads it and rebuilds it.
+                PDF, DOCX, MD, TXT, CSV. Sutaeru reads it and rebuilds it.
               </p>
             )}
             <input ref={fileInputRef} type="file" className="hidden"
@@ -716,7 +716,7 @@ export default function AtelierGuided({ embedded = false, entry, initialPhase, o
             <span className="sk-at-status">
               <span className="sk-dot" aria-hidden="true" /> Documents · {reportType}
             </span>
-            <p className="sk-sub" style={{ margin: "6px 0 0" }}>Kemma is gathering information</p>
+            <p className="sk-sub" style={{ margin: "6px 0 0" }}>Sutaeru is gathering information</p>
           </div>
           <div className="sk-row">
             {readyToGenerate && (
@@ -744,7 +744,7 @@ export default function AtelierGuided({ embedded = false, entry, initialPhase, o
                   <div className="sk-at-bubble">{msg.content}</div>
                 ) : (
                   <div className="sk-at-answer">
-                    <span className="sk-at-msg-label">Kemma</span>
+                    <span className="sk-at-msg-label">Sutaeru</span>
                     <div className="sk-at-answer-text">
                       {msg.content || <span className="sk-at-typing">...</span>}
                     </div>
@@ -763,7 +763,7 @@ export default function AtelierGuided({ embedded = false, entry, initialPhase, o
               value={input}
               onChange={(e) => { setInput(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`; }}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendMessage(); } }}
-              placeholder="Answer Kemma's question..."
+              placeholder="Answer Sutaeru's question..."
               rows={1}
               disabled={streaming}
             />
@@ -798,7 +798,7 @@ export default function AtelierGuided({ embedded = false, entry, initialPhase, o
             <span className="sk-meta sk-num">STEP {approxStep + 1} OF {steps.length}</span>
           </div>
           <h2 className="sk-at-run-title" style={{ margin: 0 }}>Building your {reportType}</h2>
-          <p className="sk-at-run-body" style={{ margin: 0 }}>Kemma is writing your report now...</p>
+          <p className="sk-at-run-body" style={{ margin: 0 }}>Sutaeru is writing your report now...</p>
           <ConvergeBar progress={progress} etaSeconds={run.etaSeconds} dots={7} label="DRAFTING THE PAGE" ariaLabel={`Building your ${reportType}`} />
           <RunTimeline steps={steps} current={approxStep} />
           <div className="sk-at-now">

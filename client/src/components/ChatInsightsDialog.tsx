@@ -129,7 +129,7 @@ export function ChatInsightsDialog({ open, onOpenChange, initialConversation, in
       <DialogContent className="max-h-[92vh] w-[min(720px,calc(100vw-1.5rem))] max-w-none overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">{focus === "gaps" || focus === "followups" ? <HelpCircle className="h-5 w-5" /> : <ListChecks className="h-5 w-5" />} {FOCUS[focus].title}</DialogTitle>
-          <DialogDescription>{focus === "brief" ? "Use this chat or paste a research report. Kemma writes a short brief for your audience, using only the report." : <>Use this chat or paste any conversation. Kemma finds {FOCUS[focus].desc}.</>}</DialogDescription>
+          <DialogDescription>{focus === "brief" ? "Use this chat or paste a research report. Sutaeru writes a short brief for your audience, using only the report." : <>Use this chat or paste any conversation. Sutaeru finds {FOCUS[focus].desc}.</>}</DialogDescription>
         </DialogHeader>
 
         <div role="tablist" aria-label="Analysis type" className="grid grid-cols-2 gap-1 rounded-2xl border border-border p-1 sm:grid-cols-4 sm:rounded-full">

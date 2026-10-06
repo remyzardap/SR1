@@ -32,7 +32,7 @@
 .sutaeru-chat .sutaeru-user-content { background: var(--r-ink) !important; color: var(--r-paper) !important; border: 0 !important; border-radius: var(--r-radius-bubble) !important; padding: 14px 22px !important; box-shadow: none !important; }
 .sutaeru-chat .sutaeru-user-content * { color: var(--r-paper) !important; }
 
-/* Kemma's answer: a card on the paper, one hairline stroke. */
+/* Sutaeru's answer: a card on the paper, one hairline stroke. */
 .sutaeru-chat .sutaeru-assistant-content { background: var(--r-card); border: 1px solid var(--r-stroke); border-radius: var(--r-radius-card); padding: 16px 20px; font: 400 16px/1.7 var(--r-font-body); color: var(--r-ink); overflow-wrap: anywhere; }
 .sutaeru-chat .sutaeru-assistant-content :is(p, li) { line-height: 1.75; }
 .sutaeru-chat .sutaeru-assistant-content :is(h1, h2, h3) { font-family: var(--r-font-title); font-weight: 700; letter-spacing: 0; }
