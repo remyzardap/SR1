@@ -40,6 +40,9 @@ export default defineConfig(({ mode }) => {
       exclude: [...configDefaults.exclude, ...suite.exclude],
       // The db suite shares one database, so its files run one at a time.
       fileParallelism: mode !== "db",
+      // Several server tests import large module graphs (engine, s1Router, intelligence) on first use;
+      // on the VPS's 2.5 GHz cores that alone takes 4-6 s, past Vitest's 5 s default (found in #13).
+      testTimeout: 15_000,
     },
   };
 });

@@ -49,7 +49,7 @@ const typeConfig: Record<
   prompt: {
     label: "Prompt",
     icon: "make",
-    text: "A standing instruction Kemma follows.",
+    text: "A standing instruction Sutaeru follows.",
   },
   workflow: {
     label: "Workflow",
@@ -59,12 +59,12 @@ const typeConfig: Record<
   tool_definition: {
     label: "Tool",
     icon: "settings",
-    text: "Something Kemma can call and read back.",
+    text: "Something Sutaeru can call and read back.",
   },
   behavior: {
     label: "Behavior",
     icon: "agent",
-    text: "How Kemma should act on every answer.",
+    text: "How Sutaeru should act on every answer.",
   },
 };
 

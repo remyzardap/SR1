@@ -212,7 +212,7 @@ function CodeRunStep({ events }: { events: Ev[] }) {
   );
 }
 
-/** The conversation: your messages, Kemma's replies, one pill per step, notes, and the approval card. */
+/** The conversation: your messages, Sutaeru's replies, one pill per step, notes, and the approval card. */
 export function CodeThreadView({ code }: { code: CodeThreadApi }) {
   const bottom = useRef<HTMLDivElement>(null);
   useEffect(() => { bottom.current?.scrollIntoView({ block: "end" }); }, [code.events.length, code.session?.status]);
@@ -266,7 +266,7 @@ export function CodeThreadView({ code }: { code: CodeThreadApi }) {
       {code.running && <CodeRunStep events={code.events} />}
       {code.needsApproval && s && (
         <div className="cs-approve" role="alert">
-          <strong>Kemma wants to do this</strong>
+          <strong>Sutaeru wants to do this</strong>
           {s.pending_approvals.map((a) => (
             <pre key={a.id} className="cs-code">{a.tool}: {String(a.input?.command ?? a.input?.file_path ?? JSON.stringify(a.input)).slice(0, 400)}</pre>
           ))}
@@ -301,7 +301,7 @@ export function CodeAccessBar({
       {locked && <p className="cs-muted cs-small">Access is fixed for this session.</p>}
       {!locked && access === "full" && (
         <>
-          <p className="cs-warn-line">Full access lets Kemma run any command on the server as root without asking. Known secret files are blocked and a 30 minute limit applies, but a command can get around the file rules. Use it only for tasks you trust.</p>
+          <p className="cs-warn-line">Full access lets Sutaeru run any command on the server as root without asking. Known secret files are blocked and a 30 minute limit applies, but a command can get around the file rules. Use it only for tasks you trust.</p>
           <input
             type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" maxLength={6}
             className="cs-input cs-totp-input" placeholder="6-digit 2FA code" aria-label="Authenticator code"

@@ -97,7 +97,7 @@ describe("runTelegramChat (blended, the default)", () => {
     expect(await runTelegramChat("and now?")).toBe("blended answer");
     const opts = m.s1Blend.mock.calls[0][2];
     expect(opts.skipDraft).toEqual(["gemini"]);
-    expect(await opts.extraDrafts).toEqual([{ id: "gemini", label: "Kemma", text: "the answer" }]);
+    expect(await opts.extraDrafts).toEqual([{ id: "gemini", label: "Sutaeru", text: "the answer" }]);
     expect(m.addChatMessage).toHaveBeenCalledWith("tg-1", 7, "blended answer", "assistant");
     expect(m.addChatMessage).toHaveBeenCalledTimes(2);
   });

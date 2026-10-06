@@ -34,22 +34,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { createSseParser, decodeEvent, type RawSseEvent } from "@/lib/sse";
+import { initialStreamState, reduceStream, type AgentStep, type Source } from "@/lib/streamReducer";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface StreamSettings {
   model?: string;
   taggedSkills?: number[];
-}
-
-interface AgentStep {
-  id: string;
-  label: string;
-  detail?: string;
-  active?: boolean;
-}
-
-interface Source {
-  title: string;
-  url: string;
 }
 
 const ALL_TOOLS = [
@@ -95,24 +86,6 @@ function createPlanDirections(prompt: string): PlanDirection[] {
   ];
 }
 
-// ─── SSE parser ───────────────────────────────────────────────────────────
-function parseSseChunk(
-  raw: string
-): { events: Array<{ event: string; data: string }>; remainder: string } {
-  const events: Array<{ event: string; data: string }> = [];
-  const blocks = raw.split("\n\n");
-  const remainder = blocks.pop() ?? "";
-  for (const block of blocks) {
-    let event = "message";
-    let data = "";
-    for (const line of block.split("\n")) {
-      if (line.startsWith("event: ")) event = line.slice(7).trim();
-      else if (line.startsWith("data: ")) data = line.slice(6);
-    }
-    if (data) events.push({ event, data });
-  }
-  return { events, remainder };
-}
 
 function friendlyStatus(status: number) {
   if (status === 401 || status === 403) return "Your session has expired. Sign in again to continue.";
@@ -513,91 +486,68 @@ export default function Chat() {
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let sseBuffer = "";
-        let finalModel: string | undefined;
-        const assistantSkills: Array<{ id: number; name: string }> = [];
-        const assistantSteps: AgentStep[] = [];
-        const assistantActivity: ActivityItem[] = [];
+        const parser = createSseParser();
+        let streamState = initialStreamState();
+
+        const processRawEvents = (rawEvents: RawSseEvent[]) => {
+          for (const raw of rawEvents) {
+            const ev = decodeEvent(raw);
+            if (!ev) continue;
+            const next = reduceStream(streamState, ev);
+
+            if (next.content !== streamState.content) {
+              setMessages((prev) =>
+                prev.map((m) => (m.id === assistantId ? { ...m, content: next.content } : m))
+              );
+            }
+            if (next.sources !== streamState.sources && next.sources !== null) {
+              setSources(next.sources);
+              setMessages((prev) =>
+                prev.map((m) => (m.id === assistantId ? { ...m, sources: next.sources! } : m))
+              );
+            }
+            if (next.steps !== streamState.steps) {
+              setAgentSteps(next.steps);
+            }
+            if (next.activity !== streamState.activity) {
+              setActivity(next.activity);
+            }
+            if (next.skills !== streamState.skills) {
+              setUsedSkills(next.skills);
+            }
+            if (next.usage !== streamState.usage && next.usage !== null) {
+              setUsage(next.usage);
+            }
+            if (next.currentStep !== streamState.currentStep && next.currentStep !== null) {
+              setCurrentStep(next.currentStep);
+            }
+
+            streamState = next;
+
+            switch (ev.type) {
+              case "quota_warn":
+                if (ev.message) toast.warning(ev.message);
+                break;
+              case "error":
+                throw new Error(ev.message);
+            }
+          }
+        };
 
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
-          sseBuffer += decoder.decode(value, { stream: true });
-          const { events, remainder } = parseSseChunk(sseBuffer);
-          sseBuffer = remainder;
-
-          for (const { event, data } of events) {
-            if (event === "token") {
-              let token: string;
-              try { token = JSON.parse(data) as string; } catch { token = data; }
-              setMessages((prev) =>
-                prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + token } : m))
-              );
-            } else if (event === "agent") {
-               setCurrentStep("Working on your request…");
-            } else if (event === "model") {
-              // The model id stays in the data (finalModel is persisted with the
-              // message) but is never shown: which model answered is not a label.
-              const parsed = JSON.parse(data) as { step?: number; label?: string };
-              finalModel = parsed.label ?? finalModel;
-              setCurrentStep("Working on your request…");
-            } else if (event === "tool_start") {
-              const parsed = JSON.parse(data) as { tool?: string };
-              const label = parsed.tool ?? "tool";
-              assistantSteps.push({ id: crypto.randomUUID(), label: `Run ${label}`, detail: label });
-              setAgentSteps([...assistantSteps]);
-              setCurrentStep(`Run ${label}`);
-            } else if (event === "activity") {
-              try {
-                const item = JSON.parse(data) as ActivityItem;
-                const at = assistantActivity.findIndex((existing) => existing.id === item.id);
-                if (at >= 0) assistantActivity[at] = { ...assistantActivity[at], ...item };
-                else assistantActivity.push(item);
-                setActivity([...assistantActivity]);
-                if (item.status === "running" && item.kind !== "write") setCurrentStep(item.detail ? `${item.label}: ${item.detail}` : item.label);
-              } catch { /* ignore malformed activity */ }
-            } else if (event === "skill") {
-              const parsed = JSON.parse(data) as { id: number; name: string };
-              assistantSkills.push(parsed);
-              setUsedSkills([...assistantSkills]);
-            } else if (event === "quota_warn") {
-              try {
-                const parsed = JSON.parse(data) as { message?: string };
-                if (parsed.message) toast.warning(parsed.message);
-              } catch { /* ignore malformed warning */ }
-            } else if (event === "notice") {
-              const parsed = JSON.parse(data) as { message?: string };
-              if (parsed.message) {
-                assistantSteps.push({ id: crypto.randomUUID(), label: parsed.message });
-                setAgentSteps([...assistantSteps]);
-              }
-            } else if (event === "sources") {
-              const parsed = JSON.parse(data) as Source[];
-              const nextSources = Array.isArray(parsed) ? parsed : [];
-              setSources(nextSources);
-              setMessages((prev) => prev.map((message) => message.id === assistantId ? { ...message, sources: nextSources } : message));
-            } else if (event === "usage") {
-              const parsed = JSON.parse(data) as { inputTokens?: number; outputTokens?: number; totalTokens?: number };
-              setUsage({
-                inputTokens: parsed.inputTokens ?? 0,
-                outputTokens: parsed.outputTokens ?? 0,
-                totalTokens: parsed.totalTokens ?? 0,
-              });
-            } else if (event === "done") {
-              try {
-                const result: unknown = JSON.parse(data);
-                if (typeof result === "string") finalModel = result;
-                else if (result && typeof result === "object" && "model" in result && typeof result.model === "string") finalModel = result.model;
-              } catch { /* completion may contain no model */ }
-            } else if (event === "error") {
-              let errMsg: string;
-              try { errMsg = JSON.parse(data) as string; } catch { errMsg = data; }
-              throw new Error(errMsg);
-            }
+          if (done) {
+            processRawEvents(parser.flush());
+            break;
           }
+          const chunk = decoder.decode(value, { stream: true });
+          processRawEvents(parser.push(chunk));
         }
 
-         setMessages((prev) =>
+        const finalModel = streamState.model;
+        const assistantSkills = streamState.skills;
+
+        setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
               ? { ...m, streaming: false, model: finalModel, skills: assistantSkills, question: mode === "deep" ? messageText : undefined }
@@ -614,7 +564,7 @@ export default function Chat() {
             if (!assistantText.trim()) return;
             const conversation = [...latest.filter((m) => m.id !== assistantId), { role: "assistant" as const, content: assistantText }]
               .slice(-8)
-              .map((m) => `${m.role === "user" ? "User" : "Kemma"}: ${m.content}`)
+              .map((m) => `${m.role === "user" ? "User" : "Sutaeru"}: ${m.content}`)
               .join("\n\n")
               .slice(0, 30000);
             const result = await callFunction<{ memories: Array<{ type: string; content: string }> }>("memories", { action: "extract", conversation, source: "chat" });
@@ -672,7 +622,7 @@ export default function Chat() {
 
   const exportThread = useCallback(() => {
     const md = messages
-      .map((m) => `**${m.role === "user" ? "You" : "Kemma"}:** ${m.content}`)
+      .map((m) => `**${m.role === "user" ? "You" : "Sutaeru"}:** ${m.content}`)
       .join("\n\n");
     const blob = new Blob([md], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
@@ -771,7 +721,7 @@ export default function Chat() {
         <ChatInsightsDialog
           open={insightsOpen}
           onOpenChange={setInsightsOpen}
-          initialConversation={messages.filter((m) => m.content.trim()).map((m) => `${m.role === "user" ? "User" : "Kemma"}: ${m.content}`).join("\n\n")}
+          initialConversation={messages.filter((m) => m.content.trim()).map((m) => `${m.role === "user" ? "User" : "Sutaeru"}: ${m.content}`).join("\n\n")}
         />
 
         <div className="sutaeru-run-status" role="status" aria-live="off">

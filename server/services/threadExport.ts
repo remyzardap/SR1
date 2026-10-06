@@ -23,7 +23,7 @@ export function threadToStructuredContent(
     title: session.title || "Untitled chat",
     subtitle: `Exported ${new Date().toISOString()}`,
     sections: messages.map((m) => {
-      const who = m.role === "user" ? "You" : "Kemma";
+      const who = m.role === "user" ? "You" : "Sutaeru";
       const when = new Date(m.createdAt).toISOString();
       return {
         heading: `${who} · ${when}`,

@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { SutaeruGlyph } from "@/components/SutaeruGlyph";
+import { SutaeruSeal } from "@/components/brand/SutaeruSeal";
 import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
 
 export interface NavDestination {
@@ -237,6 +238,7 @@ export function NavLogoMenu({ variant = "header", className }: NavLogoMenuProps)
               <div className="skx-nav-drawer-brand">
                 <SutaeruGlyph className="skx-nav-drawer-glyph" />
                 <span className="skx-nav-drawer-title">Sutaeru</span>
+                <SutaeruSeal className="skx-nav-drawer-seal" rough={false} />
               </div>
               <button
                 ref={closeButtonRef}

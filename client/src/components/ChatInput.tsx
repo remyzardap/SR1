@@ -74,8 +74,8 @@ export function ChatInput({ value, isStreaming, onChange, onKeyDown, onSend, onS
           value={value}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={onKeyDown}
-          placeholder={offline ? "Reconnect to send" : "Ask Kemma anything…"}
-          aria-label="Message Kemma"
+          placeholder={offline ? "Reconnect to send" : "Ask anything…"}
+          aria-label="Message Sutaeru"
           className="sutaeru-composer-textarea"
         />
         <PromptInputFooter className="sutaeru-composer-footer justify-end">

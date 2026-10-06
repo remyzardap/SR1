@@ -1,7 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { buildKemmaSystemPrompt, buildKemmaVoicePrompt } from "./personality";
-import { executeToolCall } from "./kemmaMax";
 import { isAdminUser } from "./executors/vpsFiles";
+import { registerBuiltinTools } from "./toolkit/builtin";
+import { runTool, toOpenAiTools, toolsFor, type OpenAiToolDef } from "./toolkit/registry";
+import { SKILL_TOOL_NAMES } from "./toolkit/names";
+import type { ToolContext } from "./toolkit/types";
 import {
   chatRoute,
   reportRoute,
@@ -36,7 +39,6 @@ import {
 } from "../core/llmHttp";
 import { checkQuota, incrementQuota } from "../core/quotaCheck";
 import { logUsage, checkSpendCap } from "../core/usage";
-import { KEMMA_TOOLS, SKILL_TOOLS, VPS_FILES_TOOL, SKILL_TOOL_NAMES, type ToolDefinition } from "./tools";
 import { getMemoriesContext } from "./memory";
 import { type Source, extractSources, dedupeSources, annotateSearchResult, keepCitedSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
 
@@ -104,6 +106,11 @@ import { buildSkillIndex, type FileSkill } from "./fileSkills";
 import { getEnabledSkills } from "./skillReviews";
 import { getMcpRegistry } from "./mcp/client";
 import { BLOCKED_MESSAGE, decideChatRouting, isBlockedPrompt } from "../lib/sensitive";
+
+/** P1-05 wires a real, run-scoped signal. Until then every run gets a signal that never aborts. */
+const NEVER_ABORTS: AbortSignal = new AbortController().signal;
+
+registerBuiltinTools();
 
 function selectRoute(input: EngineInput, currentMessages: KemmaMessage[], step: number, maxSteps: number): RouteConfig {
   const { isThinking, modelOverride } = input;
@@ -301,54 +308,49 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     ? (Number(process.env.KEMMA_TOOL_BUDGET) || 60)
     : MAX_TOOL_CALLS[tier];
   const maxToolCalls = input.toolBudget ?? defaultBudget;
-  let baseTools = input.allowedTools
-    ? KEMMA_TOOLS.filter((t) => input.allowedTools!.includes(t.name))
-    : KEMMA_TOOLS;
+  // The per-run tool context. `toolsFor`/`runTool` use this for availability checks (Drive
+  // connected, admin role) and for executing the tool itself. P1-05 will give `signal` a real,
+  // abortable value; P1-11 will populate `approvals`.
+  const runId = `${sessionId ?? "s"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const toolCtx: ToolContext = {
+    userId,
+    sessionId,
+    runId,
+    tier,
+    signal: NEVER_ABORTS,
+    emit: () => {},
+    skillsEnabled: enabledSkills.length > 0,
+    isSubAgent: !!input.isSubAgent,
+  };
 
-  // Auto-register Google Drive tools when Drive is connected and no explicit allowlist is set.
-  if (!input.allowedTools) {
-    try {
-      const { getConnectionStatus } = await import("../services/google");
-      const driveStatus = await getConnectionStatus(userId);
-      if (driveStatus.connected) {
-        const { DRIVE_TOOLS } = await import("./tools");
-        const driveToolDefs = DRIVE_TOOLS.map((name) => KEMMA_TOOLS.find((t) => t.name === name)).filter((t): t is ToolDefinition => !!t);
-        baseTools = [...baseTools, ...driveToolDefs];
-      }
-    } catch {
-      // Ignore Drive status errors.
-    }
-  }
+  // The ordinary registered tools (safe_files, web_search, browse, run_code, generate_file,
+  // phone_scan, vps_files, drive_*, skill tools): allowedTools filtering, Drive auto-registration,
+  // admin vps_files and skill-tool inclusion all live inside toolsFor now (see its docstring).
+  const originalSpecs = await toolsFor(toolCtx, input.allowedTools);
 
-  // Admin-only host file access. The executor re-checks the role, this just keeps it out of other users' tool lists.
-  if (!input.isSubAgent && (!input.allowedTools || input.allowedTools.includes("vps_files"))) {
-    try {
-      if (await isAdminUser(userId)) baseTools = [...baseTools, VPS_FILES_TOOL];
-    } catch { /* non-admin path on any error */ }
-  }
-
-  // MCP tools join the same registry and the same per-run filter as built-in tools.
+  // MCP tools carry their own JSON Schema rather than a zod one, so they are merged into the wire
+  // list here instead of being represented as a ToolSpec. Same per-run filter as built-in tools.
+  let mcpDefs: OpenAiToolDef[] = [];
   if (!input.isSubAgent) {
     try {
-      const mcpTools = (await getMcpRegistry().tools()).filter((t) => !input.allowedTools || input.allowedTools.includes(t.name));
-      if (mcpTools.length > 0) baseTools = [...baseTools, ...mcpTools];
+      mcpDefs = (await getMcpRegistry().tools()).filter((t) => !input.allowedTools || input.allowedTools.includes(t.name));
     } catch { /* MCP is optional */ }
   }
 
-  if (enabledSkills.length > 0) {
-    const canRunScripts = baseTools.some((t) => t.name === "run_code");
-    baseTools = [...baseTools, ...SKILL_TOOLS.filter((t) => t.name !== "run_skill_script" || canRunScripts)];
-  }
+  let toolSpecs = originalSpecs;
+  let activeMcpDefs = mcpDefs;
 
   // A skill can only narrow the tool set. Recomputed from the original set each time a skill loads.
-  const originalTools = baseTools;
   const loadedSkillNarrowing = new Map<string, string[] | null>();
   const applySkillNarrowing = () => {
     const lists = [...loadedSkillNarrowing.values()];
-    if (lists.length === 0 || lists.some((l) => l === null)) { baseTools = originalTools; return; }
+    if (lists.length === 0 || lists.some((l) => l === null)) { toolSpecs = originalSpecs; activeMcpDefs = mcpDefs; return; }
     const allowed = new Set(lists.flatMap((l) => l as string[]));
-    baseTools = originalTools.filter((t) => allowed.has(t.name) || (SKILL_TOOL_NAMES as readonly string[]).includes(t.name));
+    toolSpecs = originalSpecs.filter((t) => allowed.has(t.name) || (SKILL_TOOL_NAMES as readonly string[]).includes(t.name));
+    activeMcpDefs = mcpDefs.filter((t) => allowed.has(t.name));
   };
+  const wireTools = (): OpenAiToolDef[] => [...toOpenAiTools(toolSpecs), ...activeMcpDefs];
+  const availableToolNames = (): Set<string> => new Set([...toolSpecs.map((t) => t.name), ...activeMcpDefs.map((t) => t.name)]);
 
   const toolExecutions: ToolExecution[] = [];
   const modelsUsed: string[] = [];
@@ -396,7 +398,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         dynamicContext: memories,
         cachePrefix: true,
         messages: currentMessages,
-        tools: offerTools ? baseTools : undefined,
+        tools: offerTools ? wireTools() : undefined,
         stream: !!onStream && !offerTools,
         onStream,
         onNotice,
@@ -406,7 +408,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         purpose: step === 1 ? "initial" : "follow-up",
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Kemma hit an error";
+      const message = err instanceof Error ? err.message : "Sutaeru hit an error";
       return makeErrorResponse(message, startTime);
     }
 
@@ -425,11 +427,13 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         onToolStart?.(tc.function.name, parsedArgs);
         const toolStart = Date.now();
         let toolResult: unknown;
-        if (!baseTools.some((t) => t.name === tc.function.name)) {
+        if (!availableToolNames().has(tc.function.name)) {
           toolResult = { success: false, error: `Tool ${tc.function.name} is not available in this run.`, code: "TOOL_NOT_ALLOWED" };
         } else {
-          try { toolResult = await executeToolCall(userId, tc.function.name, parsedArgs); }
-          catch (err) { toolResult = { error: `Tool ${tc.function.name} failed: ${(err as Error).message}` }; }
+          try {
+            const outcome = await runTool(tc.function.name, parsedArgs, toolCtx);
+            toolResult = outcome.ok ? outcome.data : { success: false, error: outcome.error, code: outcome.code };
+          } catch (err) { toolResult = { error: `Tool ${tc.function.name} failed: ${(err as Error).message}` }; }
         }
         if (tc.function.name === "load_skill" && (toolResult as { success?: boolean })?.success) {
           const loaded = enabledSkills.find((sk) => sk.slug === (parsedArgs as { name?: string })?.name);

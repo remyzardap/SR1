@@ -391,9 +391,13 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: #242320;
-  font: 600 10.5px/1 var(--r-font-mono, 'JetBrains Mono', monospace);
+  font: 600 11px/1 var(--r-font-mono, 'JetBrains Mono', monospace);
   letter-spacing: 1.54px;
   text-transform: uppercase;
+  white-space: nowrap;
+  max-width: calc(100% - 28px);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .img-split-right {

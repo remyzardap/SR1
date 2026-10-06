@@ -460,7 +460,9 @@ function DashboardLayoutContent({
         />
       </div>
 
-      <SidebarInset>
+      {/* Padded pages scroll with the document, so nothing between them and the window may be a
+          scroll container: that keeps the mobile header and in-page sticky bars (Images) pinned. */}
+      <SidebarInset className={noPadding ? undefined : "sk-inset-flow"}>
         <div ref={contentRef} className="flex flex-col flex-1 min-h-0 relative">
           {isMobile && (location === "/chat" || location.startsWith("/sessions")) && (
             <NavLogoMenu variant="floating" />
@@ -468,7 +470,7 @@ function DashboardLayoutContent({
           {isMobile && location !== "/chat" && !location.startsWith("/sessions") && (
             <AppHeader label={mobileHeaderLabel(location)} userInitial={user?.name || user?.email || "?"} />
           )}
-          <main className={noPadding ? "flex-1 min-w-0 flex flex-col overflow-hidden bg-sutaeru" : "flex-1 min-w-0 p-3 sm:p-6 overflow-y-auto bg-sutaeru"}>{children}</main>
+          <main className={noPadding ? "flex-1 min-w-0 flex flex-col overflow-hidden bg-sutaeru" : "flex-1 min-w-0 p-3 sm:p-6 overflow-x-clip bg-sutaeru"}>{children}</main>
         </div>
       </SidebarInset>
     </>
