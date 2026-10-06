@@ -978,12 +978,8 @@ export async function addChatMessage(
   const { chatMessages } = await import("../drizzle/schema");
   const id = crypto.randomUUID();
 
-  let effectiveSettings = settings ?? {};
-  let effectiveMetadata = metadata ?? {};
-  if (role === "assistant" && settings && !metadata) {
-    effectiveMetadata = settings;
-    effectiveSettings = {};
-  }
+  const effectiveSettings = settings ?? {};
+  const effectiveMetadata = metadata ?? {};
 
   // Generate embedding for semantic search (best-effort; don't block chat on failure)
   let embedding: number[] | undefined;

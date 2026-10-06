@@ -39,12 +39,19 @@ describe("citedSubset", () => {
     expect(res.unknownIds).toEqual([]);
   });
 
-  it("returns empty sources when text contains no citation markers", () => {
+  it("returns all sources unchanged when text contains no citation markers", () => {
     const text = "The sky is blue and grass is green.";
     const res = citedSubset(text, sampleSources);
-    expect(res.sources).toEqual([]);
+    expect(res.sources).toEqual(sampleSources);
     expect(res.unknownIds).toEqual([]);
     expect(res.text).toBe(text);
+  });
+
+  it("returns empty sources when text contains only unknown citation markers", () => {
+    const text = "Reference [99] only.";
+    const res = citedSubset(text, sampleSources);
+    expect(res.sources).toEqual([]);
+    expect(res.unknownIds).toEqual([99]);
   });
 
   describe("unknown citation IDs", () => {
@@ -93,10 +100,13 @@ describe("citedSubset", () => {
 
       // Run 100 randomized trials
       for (let trial = 0; trial < 100; trial++) {
-        // Pick a random subset of source IDs to cite
-        const chosenIds = allSources
+        // Pick a random non-empty subset of source IDs to cite
+        let chosenIds = allSources
           .map((s) => s.id)
           .filter(() => Math.random() < 0.4);
+        if (chosenIds.length === 0) {
+          chosenIds = [allSources[Math.floor(Math.random() * allSources.length)].id];
+        }
 
         // Generate synthetic streamed text containing those markers
         const sentenceParts: string[] = ["Introduction."];

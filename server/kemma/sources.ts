@@ -189,8 +189,10 @@ export function citedSubset(
     });
   }
 
-  // Keep the sources the text cites, with their ids unchanged
-  const keptSources = sources.filter((s) => citedIds.has(s.id));
+  // When text has no markers at all (no known and no unknown ids), return all sources unchanged.
+  // Otherwise, keep only the sources the text cites, with their ids unchanged.
+  const hasNoMarkers = citedIds.size === 0 && unknownIds.length === 0;
+  const keptSources = hasNoMarkers ? sources : sources.filter((s) => citedIds.has(s.id));
 
   return {
     text: resultText,
