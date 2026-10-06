@@ -87,6 +87,11 @@ for f in dispatch.sh watch.sh; do
   bash -n "$BIN_DIR/$f.new" || die "$f has a syntax error on $SCRIPTS_REF"
   install -m 755 -o root -g root "$BIN_DIR/$f.new" "$BIN_DIR/$f" && rm -f "$BIN_DIR/$f.new"
 done
+# how many agent runs may go at once; the watcher re-reads this file every minute, so edit it any time
+if [[ -n ${MAX_AGENTS:-} || ! -s $BIN_DIR/max_agents ]]; then
+  echo "${MAX_AGENTS:-4}" >"$BIN_DIR/max_agents"; chmod 644 "$BIN_DIR/max_agents"
+fi
+echo "parallel agent runs: $(cat "$BIN_DIR/max_agents")   (change: echo 3 | sudo tee $BIN_DIR/max_agents)"
 ln -sfn "$BIN_DIR/dispatch.sh" "$HOME_DIR/dispatch.sh"   # so `sudo -iu agents ~/dispatch.sh ...` works by hand
 chown -h "$AGENTS_USER": "$HOME_DIR/dispatch.sh"
 

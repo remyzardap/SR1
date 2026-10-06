@@ -22,7 +22,13 @@ REPO_SLUG="${REPO_SLUG:-remyzardap/SR1}"
 OWNER_LOGIN="${OWNER_LOGIN:-remyzardap,claude[bot]}"
 DISPATCH="${DISPATCH:-$HOME/dispatch.sh}"
 LOGDIR="${AGENTS_LOGS:-$HOME/agent-logs}"
-MAX_AGENTS="${MAX_AGENTS:-2}"
+CAP_FILE="${AGENTS_CAP_FILE:-/opt/sutaeru-agents/max_agents}"   # root-owned; edit it to change the cap, no restart
+max_agents() {  # the cap is re-read every time, so changing the file takes effect on the next check
+  local n=""
+  [[ -r $CAP_FILE ]] && n=$(tr -dc '0-9' <"$CAP_FILE" | head -c 2)
+  [[ $n =~ ^[1-9]$ ]] || n="${MAX_AGENTS:-4}"
+  echo "$n"
+}
 INTERVAL="${WATCH_INTERVAL:-60}"
 
 log() { echo "[$(date '+%F %T')] $*"; }
@@ -106,7 +112,7 @@ reject() {  # <issue> <reason>
 
 tick() {
   local free issues n body agent mode wp slug title ref
-  free=$(( MAX_AGENTS - $(running_count) ))
+  free=$(( $(max_agents) - $(running_count) ))
   (( free > 0 )) || return 0
   issues=$(gh issue list --repo "$REPO_SLUG" --state open --label agent-task \
     --limit 50 --json number,labels,author \

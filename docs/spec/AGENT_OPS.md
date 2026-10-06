@@ -77,8 +77,10 @@ On GitHub (Settings → Branches), protect `main` and `develop`: require a PR, r
 and `db-tests` checks, and block force-push. Then even a confused agent with the token cannot touch either branch.
 Follow the watcher with `journalctl -u sutaeru-agents -f`.
 
-Resource note: each worktree runs its own `npm ci` (≈1 GB with `node_modules`). Run **at most 2 agents at once**
-on the VPS, alongside production. `npm` shares its download cache, so the second install is fast.
+Resource note: each worktree runs its own `npm ci` (≈1 GB of disk with `node_modules`; `npm` shares its download
+cache, so later installs are fast). The VPS has 16 cores and 31 GiB, shared with production. The default cap is
+**4 runs at once**, and each run's Vitest gets `cores / cap` workers (`VITEST_MAX_FORKS`), so four test runs together
+don't starve production. If `free -h` shows less than ~3 GiB available while 4 runs are going, lower the cap (§4.5).
 
 ## 4. Launching work
 
@@ -170,7 +172,11 @@ reducer in client/src/lib/sse.ts. Ignore unknown events. Keep today's events wor
 What happens: label `agent-running` → "picked up" comment → the run → a comment with the result
 → `agent-done` and closed, or `agent-failed` and left open. To retry, fix the body, remove `agent-failed`
 and add `agent-task` again. You can open these issues yourself from the GitHub app too.
-At most `MAX_AGENTS` (2) run at once; extra issues wait for the next free slot.
+At most 4 runs go at once by default; extra issues wait for the next free slot. The cap lives in the root-owned file
+`/opt/sutaeru-agents/max_agents`. The watcher re-reads it every minute, so `echo 6 | sudo tee /opt/sutaeru-agents/max_agents`
+takes effect without a restart. Two runs of the same CLI at once are fine: each run has its own worktree and logs.
+Restarting the watcher (re-running `install.sh`) doesn't stop runs in progress. If a reboot does, the watcher marks
+those issues `agent-failed` with an "interrupted" comment when it starts.
 
 ### 4.6 Asking the agents to investigate (`mode: ask`)
 

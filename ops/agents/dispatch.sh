@@ -20,7 +20,13 @@ CLONE="${AGENTS_CLONE:-$HOME/sr1}"
 WT_ROOT="${AGENTS_WT:-$HOME/wt}"
 LOGDIR="${AGENTS_LOGS:-$HOME/agent-logs}"
 AGENT_TIMEOUT="${AGENT_TIMEOUT:-10800}"   # seconds per agent run
-MAX_AGENTS="${MAX_AGENTS:-2}"
+CAP_FILE="${AGENTS_CAP_FILE:-/opt/sutaeru-agents/max_agents}"   # root-owned; edit it to change the cap, no restart
+max_agents() {  # the cap is re-read every time, so changing the file takes effect on the next check
+  local n=""
+  [[ -r $CAP_FILE ]] && n=$(tr -dc '0-9' <"$CAP_FILE" | head -c 2)
+  [[ $n =~ ^[1-9]$ ]] || n="${MAX_AGENTS:-4}"
+  echo "$n"
+}
 FORBIDDEN_RE='^(\.env|secrets/|\.github/workflows/deploy\.yml$|ops/session-manager/)'
 AUTH_RE='api error: 40[13]|invalid access token|token expired|not (logged|signed) in|please (log|sign) in|authenticat(e|ion) (required|failed)|unauthori[sz]ed'
 LIMIT_RE='rate.?limit|usage limit|quota|insufficient|credit balance|too many requests|\b429\b|\b402\b'
@@ -56,7 +62,11 @@ for f in "$LOGDIR"/running/*.pid; do
   [[ -e $f ]] || continue
   if kill -0 "$(cat "$f")" 2>/dev/null; then running=$((running + 1)); else rm -f "$f"; fi
 done
-(( running < MAX_AGENTS )) || die "$running agents already running (MAX_AGENTS=$MAX_AGENTS)"
+CAP=$(max_agents)
+(( running < CAP )) || die "$running agents already running (cap $CAP, from $CAP_FILE)"
+# share the CPUs between parallel runs: each run's vitest (gate and the agent's own npm test) gets cores/cap workers
+VW=$(( $(nproc) / CAP )); (( VW >= 2 )) || VW=2
+export VITEST_MAX_FORKS=$VW VITEST_MAX_THREADS=$VW VITEST_MIN_FORKS=1 VITEST_MIN_THREADS=1
 PIDFILE="$LOGDIR/running/$WP.$MODE.pid"
 echo $$ > "$PIDFILE"
 trap 'rm -f "$PIDFILE"' EXIT
