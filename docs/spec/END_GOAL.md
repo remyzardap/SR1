@@ -19,6 +19,7 @@ account only with your OK. It runs on one VPS you own, and you always know what 
 |---|---|---|---|
 | 1 | **The owner** (you), on a phone | One place for research, writing, images, inbox/calendar and code sessions, trusted with real accounts | the main user today |
 | 2 | **Family and friends**, invited by the owner | The same app on their own private account, simple enough to use without help, within a monthly limit | beta invites exist (`server/db/betaInvites.ts`) |
+
 > **Decision E1 (owner, 2026-10-06): Sutaeru stays private, for the owner, family and friends.**
 > No public sign-up, no payments, no paying users, not in 1.0 and not planned after it.
 > What follows from that:
