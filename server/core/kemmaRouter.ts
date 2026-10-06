@@ -406,6 +406,103 @@ export function estimateCostUsd(model: string, inputTokens: number, outputTokens
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// MODEL LIMITS AND OUTPUT CAPS (P1-06)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface ModelLimits {
+  contextWindow: number;
+  maxOutput: number;
+}
+
+export const DEFAULT_MODEL_LIMITS: ModelLimits = {
+  contextWindow: 128000,
+  maxOutput: 8192,
+};
+
+export const MODEL_LIMITS: Record<string, ModelLimits> = {
+  "qwen3.8-max": { contextWindow: 128000, maxOutput: 8192 },
+  "gemini-3.8-flash": { contextWindow: 1048576, maxOutput: 8192 },
+  "gemini-2.0-flash": { contextWindow: 1048576, maxOutput: 8192 },
+  "gemini-2.0-flash-thinking": { contextWindow: 1048576, maxOutput: 8192 },
+  "gemini-3.1-pro-preview": { contextWindow: 2097152, maxOutput: 65536 },
+  "gemini-2.5-pro": { contextWindow: 2097152, maxOutput: 65536 },
+  "sonar-pro": { contextWindow: 200000, maxOutput: 8192 },
+  "sonar": { contextWindow: 128000, maxOutput: 8192 },
+  "deepseek-ai/deepseek-v3.2-maas": { contextWindow: 128000, maxOutput: 8192 },
+  "qwq-32b": { contextWindow: 128000, maxOutput: 8192 },
+  "text-embedding-004": { contextWindow: 8192, maxOutput: 0 },
+  "gemini-3.1-flash-image": { contextWindow: 128000, maxOutput: 8192 },
+};
+
+/**
+ * Returns the model's context window and maximum output token limits.
+ * Strips provider prefixes ("litellm/", "venice/", "google/").
+ * Falls back to conservative defaults ({ 128000, 8192 }).
+ */
+export function modelLimitsFor(model: string): ModelLimits {
+  const stripped = stripProviderPrefix(model);
+  const withoutGoogle = stripped.replace(/^google\//i, "");
+  const found =
+    MODEL_LIMITS[model] ??
+    MODEL_LIMITS[stripped] ??
+    MODEL_LIMITS[withoutGoogle] ??
+    MODEL_LIMITS[model.toLowerCase()] ??
+    MODEL_LIMITS[stripped.toLowerCase()] ??
+    MODEL_LIMITS[withoutGoogle.toLowerCase()];
+
+  return found ? { ...found } : { ...DEFAULT_MODEL_LIMITS };
+}
+
+export const getModelLimits = modelLimitsFor;
+
+export const PURPOSE_CAPS: Record<string, number> = {
+  chat: 8192,
+  report: 32768,
+  "long-doc": 32768,
+  long_doc: 32768,
+  planner: 2048,
+  verify: 2048,
+};
+
+/** Chat purpose cap: default 8192, overridden by KEMMA_MAX_OUTPUT_TOKENS. Read at call time. */
+export function chatOutputCap(): number {
+  const envVal = process.env.KEMMA_MAX_OUTPUT_TOKENS?.trim();
+  if (envVal) {
+    const parsed = Number.parseInt(envVal, 10);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return PURPOSE_CAPS.chat;
+}
+
+/**
+ * Purpose cap: chat 8192 (or KEMMA_MAX_OUTPUT_TOKENS), report and long-doc 32768, planner and verify 2048.
+ * Also checks route if purpose is generic (e.g. "initial"/"follow-up" in report or long-doc slot).
+ */
+export function purposeCapFor(purpose?: string, route?: RouteConfig): number {
+  const p = (purpose ?? "chat").toLowerCase().trim();
+  if (p === "planner") return PURPOSE_CAPS.planner;
+  if (p === "verify") return PURPOSE_CAPS.verify;
+  if (p === "report" || p === "long-doc" || p === "long_doc" || p === "synthesis") return PURPOSE_CAPS.report;
+
+  if (route) {
+    if (route.model === reportRoute().model || route.model === longDocRoute().model) {
+      return PURPOSE_CAPS.report;
+    }
+  }
+
+  return chatOutputCap();
+}
+
+/**
+ * Per call: max_tokens = min(model.maxOutput, purposeCap)
+ */
+export function resolveMaxTokens(model: string, purpose?: string, route?: RouteConfig): number {
+  const limits = modelLimitsFor(model);
+  const cap = purposeCapFor(purpose, route);
+  return Math.min(limits.maxOutput, cap);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // LEGACY COMPATIBILITY
 // ═══════════════════════════════════════════════════════════════════════════════
 
