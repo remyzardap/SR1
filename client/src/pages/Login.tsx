@@ -2,10 +2,12 @@ import React, { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { LandingMark } from "@/components/LandingMark";
 import { setAuthToken } from "@/lib/authSession";
+import { runRedeemAfterSignIn } from "@/lib/inviteRedeem";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Email or handle is required"),
@@ -51,6 +53,9 @@ export default function Login() {
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
   const registerForm = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) });
 
+  // Both sign-in paths (password, and password + 2FA code) land here, so the invite code is
+  // checked in one place. It has to wait for the session to exist — the server needs to know
+  // whose code it is — and by then the page has moved on, so the answer arrives as a toast.
   const finishSignIn = async (data: unknown, showError: (msg: string) => void) => {
     const result = data as { token?: unknown } | null;
     if (!setAuthToken(result?.token)) {
@@ -59,6 +64,10 @@ export default function Login() {
     }
     await utils.auth.me.invalidate();
     navigate('/chat');
+    const invite = await runRedeemAfterSignIn();
+    if (invite.status === 'redeemed') toast.success(invite.message);
+    else if (invite.status === 'failed') toast.error(invite.message);
+    else if (invite.status === 'unavailable') toast.info(invite.message);
   };
 
   const loginMutation = trpc.auth.login.useMutation({

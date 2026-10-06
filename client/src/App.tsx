@@ -30,6 +30,7 @@ import { useAuth } from "./_core/hooks/useAuth";
 import { IntelligenceProvider } from "./_core/hooks/useSutaeruIntelligence";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
+import { captureInviteFromWindow } from "./lib/inviteCapture";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, loading } = useAuth();
@@ -213,6 +214,13 @@ function AppRoutes() {
 }
 
 function App() {
+  // An invite link arrives as `/?invite=<code>`. A route can redirect before the sign-in
+  // page ever renders, and a redirect drops the query string, so the code is read here on
+  // the first load and the parameter is removed from the address bar.
+  useEffect(() => {
+    captureInviteFromWindow();
+  }, []);
+
   return (
     <ErrorBoundary>
       <ThemeProvider>
