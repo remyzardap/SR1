@@ -87,6 +87,7 @@ export interface EngineInput {
   onQuotaWarn?: (message: string) => void;
   onNotice?: (message: string) => void;
   onSkillUsed?: (skill: { id: number; name: string }) => void;
+  signal?: AbortSignal;
 }
 
 export interface VisionEngineInput extends EngineInput {
@@ -105,6 +106,7 @@ export interface EngineOutput {
    * an assistant answer.
    */
   isError?: boolean;
+  cancelled?: boolean;
 }
 
 import { MAX_TOOL_CALLS } from "./kemmaMax";
@@ -167,6 +169,7 @@ async function runParallelSubAgents(
 
   onStepStart?.(1, planCfg.label);
   const planStart = Date.now();
+  if (input.signal?.aborted) return null;
   let subQueries: string[] = [];
   try {
     const planResponse = await callLLM({
@@ -178,6 +181,7 @@ async function runParallelSubAgents(
       sessionId: input.sessionId,
       reportId: input.reportId,
       purpose: "planner",
+      signal: input.signal,
     });
     const cleaned = (planResponse.content ?? "").replace(/```json\n?|```\n?/g, "").trim();
     const parsed = JSON.parse(cleaned);
@@ -190,7 +194,7 @@ async function runParallelSubAgents(
   }
   onStepEnd?.(1);
 
-  if (subQueries.length === 0) return null;
+  if (subQueries.length === 0 || input.signal?.aborted) return null;
 
   onNotice?.(`Running ${subQueries.length} parallel research sub-agent${subQueries.length === 1 ? "" : "s"}...`);
   const perAgentBudget = Math.max(2, Math.floor(toolBudget / subQueries.length));
@@ -212,6 +216,8 @@ async function runParallelSubAgents(
       return { query, output };
     })
   );
+
+  if (input.signal?.aborted) return null;
 
   const collectedSources = dedupeSources(results.flatMap((r) => r.output.sources));
   const synthesisPrompt = [
@@ -236,6 +242,7 @@ async function runParallelSubAgents(
     sessionId: input.sessionId,
     reportId: input.reportId,
     purpose: "synthesis",
+    signal: input.signal,
   });
   onStepEnd?.(2);
 
@@ -255,6 +262,20 @@ function getToolConcurrency(): number {
 
 export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   const startTime = Date.now();
+  if (input.signal?.aborted) {
+    return {
+      response: "",
+      toolCalls: [],
+      isAgentic: false,
+      tokensUsed: { input: 0, output: 0, total: 0 },
+      modelsUsed: [],
+      stepsUsed: 0,
+      durationMs: Date.now() - startTime,
+      sources: [],
+      isError: false,
+      cancelled: true,
+    };
+  }
   // Admin-only models are re-checked against the DB here, whatever the caller passed.
   if (input.modelOverride && isAdminOnlyModel(input.modelOverride) && !(await isAdminUser(input.userId))) {
     input = { ...input, modelOverride: undefined };
@@ -322,7 +343,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     : MAX_TOOL_CALLS[tier];
   const maxToolCalls = input.toolBudget ?? defaultBudget;
   // The per-run tool context. `toolsFor`/`runTool` use this for availability checks (Drive
-  // connected, admin role) and for executing the tool itself. P1-05 will give `signal` a real,
+  // connected, admin role) and for executing the tool itself. P1-05 gives `signal` a real,
   // abortable value; P1-11 will populate `approvals`.
   const runId = `${sessionId ?? "s"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const toolCtx: ToolContext = {
@@ -330,7 +351,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     sessionId,
     runId,
     tier,
-    signal: NEVER_ABORTS,
+    signal: input.signal ?? NEVER_ABORTS,
     emit: () => {},
     skillsEnabled: enabledSkills.length > 0,
     isSubAgent: !!input.isSubAgent,
@@ -399,6 +420,20 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   const parallelTools = flag("PARALLEL_TOOLS");
 
   while (step < maxSteps) {
+    if (input.signal?.aborted) {
+      return {
+        response: "",
+        toolCalls: toolExecutions,
+        isAgentic: toolExecutions.length >= 2,
+        tokensUsed: totalTokens,
+        modelsUsed: Array.from(new Set(modelsUsed)),
+        stepsUsed: step,
+        durationMs: Date.now() - startTime,
+        sources: dedupeSources(collectedSources),
+        isError: false,
+        cancelled: true,
+      };
+    }
     step++;
     const route = selectRoute(input, currentMessages, step, maxSteps);
     modelsUsed.push(route.label);
@@ -424,8 +459,23 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         sessionId,
         reportId,
         purpose: step === 1 ? "initial" : "follow-up",
+        signal: input.signal,
       });
     } catch (err) {
+      if (input.signal?.aborted) {
+        return {
+          response: "",
+          toolCalls: toolExecutions,
+          isAgentic: toolExecutions.length >= 2,
+          tokensUsed: totalTokens,
+          modelsUsed: Array.from(new Set(modelsUsed)),
+          stepsUsed: step,
+          durationMs: Date.now() - startTime,
+          sources: dedupeSources(collectedSources),
+          isError: false,
+          cancelled: true,
+        };
+      }
       const message = err instanceof Error ? err.message : "Sutaeru hit an error";
       return makeErrorResponse(message, startTime);
     }
@@ -436,6 +486,20 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     onStepEnd?.(step);
 
     if (llmResponse.toolCalls && llmResponse.toolCalls.length > 0) {
+      if (input.signal?.aborted) {
+        return {
+          response: "",
+          toolCalls: toolExecutions,
+          isAgentic: toolExecutions.length >= 2,
+          tokensUsed: totalTokens,
+          modelsUsed: Array.from(new Set(modelsUsed)),
+          stepsUsed: step,
+          durationMs: Date.now() - startTime,
+          sources: dedupeSources(collectedSources),
+          isError: false,
+          cancelled: true,
+        };
+      }
       if (streamToolTurns) {
         onSegmentEnd?.("narration");
       }
@@ -527,6 +591,21 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         };
       };
 
+      if (input.signal?.aborted) {
+        return {
+          response: "",
+          toolCalls: toolExecutions,
+          isAgentic: toolExecutions.length >= 2,
+          tokensUsed: totalTokens,
+          modelsUsed: Array.from(new Set(modelsUsed)),
+          stepsUsed: step,
+          durationMs: Date.now() - startTime,
+          sources: dedupeSources(collectedSources),
+          isError: false,
+          cancelled: true,
+        };
+      }
+
       let outcomes: ExecutedCallOutcome[];
       if (parallelTools) {
         const safeCalls = preparedCalls.filter((c) => c.parallelSafe);
@@ -546,6 +625,21 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         for (const c of preparedCalls) {
           outcomes.push(await executeCall(c));
         }
+      }
+
+      if (input.signal?.aborted) {
+        return {
+          response: "",
+          toolCalls: toolExecutions,
+          isAgentic: toolExecutions.length >= 2,
+          tokensUsed: totalTokens,
+          modelsUsed: Array.from(new Set(modelsUsed)),
+          stepsUsed: step,
+          durationMs: Date.now() - startTime,
+          sources: dedupeSources(collectedSources),
+          isError: false,
+          cancelled: true,
+        };
       }
 
       for (const item of outcomes) {
@@ -590,6 +684,20 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
 
     // Optional citation verification pass (only for research-style runs with sources)
     if (sources.length > 0 && isAgentic) {
+      if (input.signal?.aborted) {
+        return {
+          response: "",
+          toolCalls: toolExecutions,
+          isAgentic: toolExecutions.length >= 2,
+          tokensUsed: totalTokens,
+          modelsUsed: Array.from(new Set(modelsUsed)),
+          stepsUsed: step,
+          durationMs: Date.now() - startTime,
+          sources: dedupeSources(collectedSources),
+          isError: false,
+          cancelled: true,
+        };
+      }
       try {
         const verifyRouteConfig = verifyRoute();
         if (routeHasAuth(verifyRouteConfig)) {
@@ -607,13 +715,43 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
               sessionId,
               reportId,
               purpose: "verify",
+              signal: input.signal,
             });
             return res.content ?? "[]";
           });
         }
-      } catch {
+      } catch (err) {
+        if (input.signal?.aborted) {
+          return {
+            response: "",
+            toolCalls: toolExecutions,
+            isAgentic: toolExecutions.length >= 2,
+            tokensUsed: totalTokens,
+            modelsUsed: Array.from(new Set(modelsUsed)),
+            stepsUsed: step,
+            durationMs: Date.now() - startTime,
+            sources: dedupeSources(collectedSources),
+            isError: false,
+            cancelled: true,
+          };
+        }
         // Verification is best-effort; don't fail the answer.
       }
+    }
+
+    if (input.signal?.aborted) {
+      return {
+        response: "",
+        toolCalls: toolExecutions,
+        isAgentic: toolExecutions.length >= 2,
+        tokensUsed: totalTokens,
+        modelsUsed: Array.from(new Set(modelsUsed)),
+        stepsUsed: step,
+        durationMs: Date.now() - startTime,
+        sources: dedupeSources(collectedSources),
+        isError: false,
+        cancelled: true,
+      };
     }
 
     // Append numbered source cards
@@ -625,6 +763,20 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     }
 
     if (polish) {
+      if (input.signal?.aborted) {
+        return {
+          response: "",
+          toolCalls: toolExecutions,
+          isAgentic: toolExecutions.length >= 2,
+          tokensUsed: totalTokens,
+          modelsUsed: Array.from(new Set(modelsUsed)),
+          stepsUsed: step,
+          durationMs: Date.now() - startTime,
+          sources: dedupeSources(collectedSources),
+          isError: false,
+          cancelled: true,
+        };
+      }
       // Optional final polish (currently disabled: polishRoute() returns null).
       try {
         const { polishRoute } = await import("../core/kemmaRouter");
@@ -641,6 +793,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
             sessionId,
             reportId,
             purpose: "polish",
+            signal: input.signal,
           });
           finalContent = polishResponse.content ?? finalContent;
           totalTokens.input += polishResponse.usage?.input ?? 0;
@@ -648,6 +801,20 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
           totalTokens.total += polishResponse.usage?.total ?? 0;
         }
       } catch (err) {
+        if (input.signal?.aborted) {
+          return {
+            response: "",
+            toolCalls: toolExecutions,
+            isAgentic: toolExecutions.length >= 2,
+            tokensUsed: totalTokens,
+            modelsUsed: Array.from(new Set(modelsUsed)),
+            stepsUsed: step,
+            durationMs: Date.now() - startTime,
+            sources: dedupeSources(collectedSources),
+            isError: false,
+            cancelled: true,
+          };
+        }
         onNotice?.("Final polish step was skipped.");
       }
     }
@@ -662,6 +829,20 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
 
 export async function kemmaVisionExecute(input: VisionEngineInput): Promise<EngineOutput> {
   const startTime = Date.now();
+  if (input.signal?.aborted) {
+    return {
+      response: "",
+      toolCalls: [],
+      isAgentic: false,
+      tokensUsed: { input: 0, output: 0, total: 0 },
+      modelsUsed: [],
+      stepsUsed: 0,
+      durationMs: Date.now() - startTime,
+      sources: [],
+      isError: false,
+      cancelled: true,
+    };
+  }
   const { userId, userName, messages, tier, imageData, mimeType, onStream, sessionId, reportId, onNotice } = input;
 
   const msgQuota = await checkQuota(userId, "message");
@@ -711,6 +892,20 @@ export async function kemmaVisionExecute(input: VisionEngineInput): Promise<Engi
       sources: [],
     };
   } catch (err) {
+    if (input.signal?.aborted || (err instanceof Error && (err.name === "AbortError" || err.message === "Aborted"))) {
+      return {
+        response: "",
+        toolCalls: [],
+        isAgentic: false,
+        tokensUsed: { input: 0, output: 0, total: 0 },
+        modelsUsed: [],
+        stepsUsed: 0,
+        durationMs: Date.now() - startTime,
+        sources: [],
+        isError: false,
+        cancelled: true,
+      };
+    }
     console.error("[kemmaVisionExecute] Error:", err);
     return makeErrorResponse("I couldn't analyze that image. Please try again.", startTime);
   }
@@ -800,12 +995,17 @@ interface CallLLMOptions {
   sessionId?: string;
   reportId?: string;
   purpose?: string;
+  signal?: AbortSignal;
 }
 
 interface LLMResult { content: string | null; toolCalls?: ToolCall[]; usage?: TokenUsage }
 
 async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
-  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onReasoning, onNotice, userId, sessionId, reportId, purpose } = input;
+  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onReasoning, onNotice, userId, sessionId, reportId, purpose, signal } = input;
+
+  if (signal?.aborted) {
+    throw signal.reason ?? new Error("Aborted");
+  }
 
   const cap = await checkSpendCap(route.provider);
   if (!cap.allowed) {
@@ -816,7 +1016,19 @@ async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
   // The chain includes KEMMA_MODEL_PRO_FALLBACK right after the pro slot (see callChainFor).
   const routesToTry = callChainFor(route);
 
+  let streamedChars = 0;
+  const wrappedOnStream = onStream
+    ? (chunk: string) => {
+        streamedChars += chunk.length;
+        onStream(chunk);
+      }
+    : undefined;
+
   for (let i = 0; i < routesToTry.length; i++) {
+    if (signal?.aborted) {
+      throw signal.reason ?? new Error("Aborted");
+    }
+
     const tryRoute = routesToTry[i];
 
     if (i > 0) {
@@ -825,7 +1037,7 @@ async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
     }
 
     try {
-      const result = await callSingleLLM({ route: tryRoute, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onReasoning });
+      const result = await callSingleLLM({ route: tryRoute, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream: wrappedOnStream, onReasoning, signal });
 
       await logUsage({
         userId,
@@ -845,6 +1057,31 @@ async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
 
       return result;
     } catch (err) {
+      const isAborted = signal?.aborted || (err instanceof Error && (err.name === "AbortError" || err.message === "Aborted" || err.message.includes("abort")));
+      if (signal?.aborted || isAborted) {
+        // Usage on abort: log a usage row for a partially streamed call. Use provider usage if received; otherwise estimate output tokens as ceil(chars/4) and set purpose to "<purpose>:aborted".
+        const providerUsage = (err && typeof err === "object" ? (err as any).usage : undefined) as TokenUsage | undefined;
+        if (streamedChars > 0 || providerUsage) {
+          try {
+            await logUsage({
+              userId,
+              sessionId,
+              reportId,
+              provider: tryRoute.provider,
+              model: tryRoute.model,
+              inputTokens: providerUsage?.input ?? 0,
+              outputTokens: providerUsage?.output ?? Math.ceil(streamedChars / 4),
+              cachedInputTokens: providerUsage?.cachedInput ?? 0,
+              purpose: `${purpose ?? "chat"}:aborted`,
+            });
+          } catch {
+            // non-fatal
+          }
+        }
+        // Fallback chains stop on abort; they don't try the next model.
+        throw signal?.reason ?? (err instanceof Error ? err : new Error("Aborted"));
+      }
+
       const message = err instanceof Error ? err.message : String(err);
       // The per-route detail (with model labels) goes to the server log only;
       // the user sees the upstream reasons, which say what to do about it.
@@ -869,6 +1106,7 @@ interface SingleLLMOptions {
   stream: boolean;
   onStream?: (chunk: string) => void;
   onReasoning?: (delta: string) => void;
+  signal?: AbortSignal;
 }
 
 // Providers that rejected stream_options once; not sent again for the life of the process.
@@ -920,7 +1158,7 @@ export function reasoningEffortFor(route: { provider: string; model: string }, e
 }
 
 async function callSingleLLM(input: SingleLLMOptions): Promise<LLMResult> {
-  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onReasoning } = input;
+  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onReasoning, signal } = input;
 
   if (!routeHasAuth(route)) {
     throw new Error(`${route.provider} API key is not configured.`);
@@ -957,6 +1195,7 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<LLMResult> {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${target.auth}` },
       body: JSON.stringify(buildBody(opts)),
+      signal,
     });
 
   let cacheMarkers = !!cachePrefix && usesExplicitCacheMarkers(route.provider);
@@ -992,6 +1231,7 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<LLMResult> {
     const resStream = await readChatStream(res, {
       onText: onStream,
       onReasoning: isReasoningOff ? undefined : onReasoning,
+      signal,
     });
     if (!flag("STREAM_TOOL_TURNS")) {
       return {
@@ -1002,6 +1242,7 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<LLMResult> {
     return resStream;
   }
 
+  if (signal?.aborted) throw signal.reason ?? new Error("Aborted");
   return parseCompletionJson(await res.json());
 }
 
