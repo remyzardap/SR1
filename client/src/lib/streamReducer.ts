@@ -20,6 +20,10 @@ export interface AgentStep {
 export interface Source {
   title: string;
   url: string;
+  /** Stable source id from the server (P1-07). Absent on older payloads. */
+  id?: number;
+  /** Short quote the server sent alongside the source, when it has one. */
+  snippet?: string;
 }
 
 export interface StreamSegment {

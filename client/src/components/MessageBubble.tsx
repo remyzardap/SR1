@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { FileText } from "lucide-react";
+import { defaultRehypePlugins, type StreamdownProps } from "streamdown";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Message, MessageContent, MessageResponse, MessageActions, MessageAction } from "@/components/ai-elements/message";
@@ -8,20 +9,40 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import { downloadResearchMarkdown, downloadResearchPdf } from "@/lib/researchReports";
 import { SpeakButton } from "./SpeakButton";
 import { PlanOptionCards } from "./PlanOptionCards";
-import type { ChatMessageData, PlanDirection } from "@/types/chat";
+import type { ChatMessageData, ChatSource, PlanDirection } from "@/types/chat";
 import { ThinkingBlock } from "./chat/ThinkingBlock";
+import { CitationChip } from "./chat/CitationChip";
+import { citationAnchorId, createCitationPlugin, hostOf, numberedSources } from "@/lib/citations";
 import { SutaeruIcon } from "./SutaeruIcon";
 import { FocusBrackets } from "@/components/art";
 import { ActivityFeed, type ActivityItem } from "./ActivityFeed";
 import { toolState, formatDuration, type AgentStep } from "@/lib/streamReducer";
 
+/** `<citationchip>` nodes come from `createCitationPlugin`; Streamdown types `components` as a map
+ *  over HTML tags only, so the custom tag needs a cast. */
+const CITATION_COMPONENTS = { citationchip: CitationChip } as unknown as StreamdownProps["components"];
+
+/** Stable default so `useMemo` below is not invalidated by a fresh array on every render. */
+const NO_SOURCES: ChatSource[] = [];
+
+/** What the answer's `MessageResponse` needs to render numbered chips; empty while there are no sources. */
+interface CitationRenderOptions {
+  rehypePlugins?: StreamdownProps["rehypePlugins"];
+  components?: StreamdownProps["components"];
+}
+
 function renderAssistantContent(
   content: string,
   segments: Array<{ kind: "narration" | "answer"; end: number }> | undefined,
-  isStreaming: boolean
+  isStreaming: boolean,
+  citations: CitationRenderOptions
 ) {
   if (!segments || segments.length === 0) {
-    return <MessageResponse isAnimating={isStreaming}>{content}</MessageResponse>;
+    return (
+      <MessageResponse isAnimating={isStreaming} {...citations}>
+        {content}
+      </MessageResponse>
+    );
   }
 
   const parts: Array<{ kind: "narration" | "answer"; text: string }> = [];
@@ -45,7 +66,7 @@ function renderAssistantContent(
             {part.text}
           </div>
         ) : (
-          <MessageResponse key={i} isAnimating={isStreaming}>
+          <MessageResponse key={i} isAnimating={isStreaming} {...citations}>
             {part.text}
           </MessageResponse>
         )
@@ -54,28 +75,19 @@ function renderAssistantContent(
   );
 }
 
-/** Host label for a source card, e.g. "irena.org". Empty when the url is not absolute. */
-function hostOf(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return "";
-  }
-}
-
 interface MessageBubbleProps {
   message: ChatMessageData;
   onSave?: (content: string) => void;
   tools?: AgentStep[];
   isRunning?: boolean;
   activity?: ActivityItem[];
-  sources?: Array<{ title: string; url: string }>;
+  sources?: ChatSource[];
   question?: string;
   references?: string[];
   onSelectPlan?: (option: PlanDirection) => void;
 }
 
-export function MessageBubble({ message, onSave, tools = [], isRunning = false, activity = [], sources = [], question, references = [], onSelectPlan }: MessageBubbleProps) {
+export function MessageBubble({ message, onSave, tools = [], isRunning = false, activity = [], sources = NO_SOURCES, question, references = [], onSelectPlan }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const utils = trpc.useUtils();
   const createBlock = trpc.blocks.create.useMutation({
@@ -83,6 +95,18 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
     onError: (error) => toast.error(error.message),
   });
   const isUser = message.role === "user";
+  // Streamdown replaces its rehype pipeline when one is supplied, so the defaults have to come
+  // first (they harden links and sanitise HTML) with the citation plugin last.
+  const citations = useMemo<CitationRenderOptions>(
+    () => ({
+      rehypePlugins: [
+        ...Object.values(defaultRehypePlugins),
+        createCitationPlugin({ sources, messageId: message.id }),
+      ],
+      components: CITATION_COMPONENTS,
+    }),
+    [sources, message.id]
+  );
 
   return (
     <Message from={message.role} className="sutaeru-editorial-message max-w-full">
@@ -105,7 +129,7 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
         <MessageContent className={isUser ? "sutaeru-user-content" : "sutaeru-assistant-content"}>
           {message.streaming && !message.content ? <Shimmer>Thinking…</Shimmer> :
             isUser ? <span className="whitespace-pre-wrap">{message.content}</span> :
-            renderAssistantContent(message.content, message.segments, !!message.streaming)}
+            renderAssistantContent(message.content, message.segments, !!message.streaming, citations)}
         </MessageContent>
       )}
       {!isUser && message.thinking && (
@@ -119,13 +143,13 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
         <section className="sutaeru-message-sources" aria-label="Sources for this answer">
           <strong>Sources / {sources.length}</strong>
           <ol>
-            {sources.map((source, index) => (
-              <li key={`${source.url}-${index}`}>
+            {numberedSources(sources).map(({ source, number }, index) => (
+              <li key={citationAnchorId(message.id, number)} id={citationAnchorId(message.id, number)}>
                 {index === 0 && <FocusBrackets />}
                 <a href={source.url} target="_blank" rel="noreferrer">
-                  <span className="sutaeru-cite-chip">{index + 1}</span>
+                  <span className="sutaeru-cite-chip">{number}</span>
                   <span className="sutaeru-source-copy">
-                    <span className="sutaeru-source-host">{index + 1} · {hostOf(source.url)}</span>
+                    <span className="sutaeru-source-host">{number} · {hostOf(source.url)}</span>
                     <span className="sutaeru-source-title">{source.title}</span>
                   </span>
                 </a>
