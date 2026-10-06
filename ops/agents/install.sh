@@ -56,7 +56,10 @@ else
     echo "(github.com/settings/personal-access-tokens/new; Contents, Pull requests, Issues: read and write)"
     read -rsp "token: " token </dev/tty; echo
   fi
+  token=$(printf '%s' "$token" | tr -d '[:space:]')   # pasted tokens often carry a newline or spaces
   [[ -n $token ]] || die "empty token"
+  [[ $token =~ ^(github_pat_|ghp_)[A-Za-z0-9_]+$ ]] \
+    || die "that doesn't look like a GitHub token (should start with github_pat_ and contain only letters, digits and _): check the paste"
   printf '%s\n' "$token" | sudo -u "$AGENTS_USER" -H gh auth login --hostname github.com --with-token
   unset token
 fi
@@ -79,7 +82,7 @@ say "5/7 install dispatch.sh and watch.sh from '$SCRIPTS_REF' into $BIN_DIR"
 install -d -m 755 "$BIN_DIR"
 for f in dispatch.sh watch.sh; do
   # read as the agents user: root running git in a repo it does not own trips "dubious ownership"
-  sudo -u "$AGENTS_USER" -H git -C "$HOME_DIR/sr1" show "origin/$SCRIPTS_REF:ops/agents/$f" >"$BIN_DIR/$f.new" \
+  sudo -u "$AGENTS_USER" -H git -c safe.directory="$HOME_DIR/sr1" -C "$HOME_DIR/sr1" show "origin/$SCRIPTS_REF:ops/agents/$f" >"$BIN_DIR/$f.new" \
     || die "ops/agents/$f is not on $SCRIPTS_REF; re-run with SCRIPTS_REF=<branch that has it>"
   bash -n "$BIN_DIR/$f.new" || die "$f has a syntax error on $SCRIPTS_REF"
   install -m 755 -o root -g root "$BIN_DIR/$f.new" "$BIN_DIR/$f" && rm -f "$BIN_DIR/$f.new"
