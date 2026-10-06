@@ -124,14 +124,31 @@ const NEVER_ABORTS: AbortSignal = new AbortController().signal;
 
 registerBuiltinTools();
 
+/** How far back from the end of prev the overlap scan looks (P1-06). */
+const OVERLAP_MAX_CHECK = 200;
+
+/**
+ * A common stretch shorter than this is a coincidence, not a repeated continuation, so it is
+ * treated as no overlap at all: trimming it would silently drop real characters from the start
+ * of the continuation (T-62, follow-up to P1-06).
+ */
+const OVERLAP_MIN_MATCH = 12;
+
 /**
  * Finds the length of the longest common suffix of prev and prefix of next,
- * checking up to maxOverlap characters (P1-06).
+ * checking up to maxOverlap characters (P1-06). A match shorter than minOverlap
+ * counts as no overlap (T-62).
  */
-export function getOverlapLength(prev: string, next: string, maxOverlap = 200): number {
+export function getOverlapLength(
+  prev: string,
+  next: string,
+  maxOverlap = OVERLAP_MAX_CHECK,
+  minOverlap = OVERLAP_MIN_MATCH,
+): number {
   if (!prev || !next) return 0;
   const maxCheck = Math.min(maxOverlap, prev.length, next.length);
-  for (let len = maxCheck; len > 0; len--) {
+  const minCheck = Math.max(1, minOverlap);
+  for (let len = maxCheck; len >= minCheck; len--) {
     const suffix = prev.slice(prev.length - len);
     const prefix = next.slice(0, len);
     if (suffix === prefix) {
@@ -143,19 +160,30 @@ export function getOverlapLength(prev: string, next: string, maxOverlap = 200): 
 
 /**
  * Trims up to maxOverlap characters of duplicated overlap between the suffix of prev
- * and prefix of next (P1-06).
+ * and prefix of next (P1-06). Overlaps shorter than minOverlap are not trimmed (T-62).
  */
-export function trimOverlap(prev: string, next: string, maxOverlap = 200): string {
-  const overlap = getOverlapLength(prev, next, maxOverlap);
+export function trimOverlap(
+  prev: string,
+  next: string,
+  maxOverlap = OVERLAP_MAX_CHECK,
+  minOverlap = OVERLAP_MIN_MATCH,
+): string {
+  const overlap = getOverlapLength(prev, next, maxOverlap, minOverlap);
   return overlap > 0 ? next.slice(overlap) : next;
 }
 
 /**
  * Joins prev and next text with no duplicated overlap, trimming up to maxOverlap
- * characters of overlap by longest common suffix and prefix (P1-06).
+ * characters of overlap by longest common suffix and prefix (P1-06). Overlaps shorter
+ * than minOverlap are not trimmed, so both texts keep every character they have (T-62).
  */
-export function joinWithoutOverlap(prev: string, next: string, maxOverlap = 200): string {
-  return prev + trimOverlap(prev, next, maxOverlap);
+export function joinWithoutOverlap(
+  prev: string,
+  next: string,
+  maxOverlap = OVERLAP_MAX_CHECK,
+  minOverlap = OVERLAP_MIN_MATCH,
+): string {
+  return prev + trimOverlap(prev, next, maxOverlap, minOverlap);
 }
 
 function selectRoute(input: EngineInput, currentMessages: KemmaMessage[], step: number, maxSteps: number): RouteConfig {
@@ -741,8 +769,8 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     // append the partial answer as an assistant message plus
     // user: "Continue exactly where you stopped. Do not repeat anything."
     // and call again, streaming into the same output. At most 2 continuations.
-    // Join the text with no duplicated overlap: trim up to 200 characters of overlap
-    // by longest common suffix and prefix.
+    // Join the text with no duplicated overlap: trim up to OVERLAP_MAX_CHECK characters of
+    // overlap by longest common suffix and prefix, ignoring matches under OVERLAP_MIN_MATCH (T-62).
     const isLengthFinish = (reason?: string) => {
       if (!reason) return false;
       const r = reason.trim().toLowerCase();
@@ -771,8 +799,8 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
               if (!shouldStream) return;
               continuationStreamed += chunk;
               if (!trimmedLeadingOverlap) {
-                if (continuationStreamed.length >= 200) {
-                  const overlap = getOverlapLength(finalContent, continuationStreamed, 200);
+                if (continuationStreamed.length >= OVERLAP_MAX_CHECK) {
+                  const overlap = getOverlapLength(finalContent, continuationStreamed, OVERLAP_MAX_CHECK, OVERLAP_MIN_MATCH);
                   const toEmit = continuationStreamed.slice(overlap);
                   trimmedLeadingOverlap = true;
                   if (toEmit.length > 0) onStream(toEmit);
@@ -802,9 +830,9 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
             signal: input.signal,
           });
 
-          // Flush any buffered stream chunks if under 200 chars
+          // Flush any buffered stream chunks if under OVERLAP_MAX_CHECK chars
           if (onStream && shouldStream && !trimmedLeadingOverlap && continuationStreamed.length > 0) {
-            const overlap = getOverlapLength(finalContent, continuationStreamed, 200);
+            const overlap = getOverlapLength(finalContent, continuationStreamed, OVERLAP_MAX_CHECK, OVERLAP_MIN_MATCH);
             const toEmit = continuationStreamed.slice(overlap);
             trimmedLeadingOverlap = true;
             if (toEmit.length > 0) onStream(toEmit);
@@ -812,11 +840,11 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
 
           const continuationContent = llmResponse.content ?? "";
           if (!shouldStream && onStream && continuationContent) {
-            const trimmed = trimOverlap(finalContent, continuationContent, 200);
+            const trimmed = trimOverlap(finalContent, continuationContent, OVERLAP_MAX_CHECK, OVERLAP_MIN_MATCH);
             if (trimmed) onStream(trimmed);
           }
 
-          finalContent = joinWithoutOverlap(finalContent, continuationContent, 200);
+          finalContent = joinWithoutOverlap(finalContent, continuationContent, OVERLAP_MAX_CHECK, OVERLAP_MIN_MATCH);
 
           totalTokens.input  += llmResponse.usage?.input  ?? 0;
           totalTokens.output += llmResponse.usage?.output ?? 0;
