@@ -78,7 +78,7 @@ Each F package depends on the backend package named, ships behind the same flag 
 
 | ID | What | Needs | Size |
 |---|---|---|---|
-| F-01 | Typed SSE client: one parser and reducer for every event, unknown events ignored; replaces the if-chain in `Chat.tsx` | P1-03 | M |
+| F-01 | Typed SSE client: one parser and reducer for every event, unknown events ignored; replaces the if-chain in `Chat.tsx` (**spec: `FRONTEND.md`**; no longer waits on P1-03) | — | M |
 | F-02 | Live steps panel: tools, models, skills, sub-agents, collapsed `thinking` | F-01, P1-03 | M |
 | F-03 | Source cards and numbered citations with hover quote spans | F-01, P1-07 | S |
 | F-04 | Approval cards (approve, edit, decline) for email, calendar, Drive edits; phone-friendly | F-01, P1-11 | M |
