@@ -45,7 +45,7 @@ import { flag } from "../core/flags";
 import { readChatStream } from "../core/llmStream";
 import type { SegmentKind } from "./events";
 import { getMemoriesContext } from "./memory";
-import { type Source, extractSources, dedupeSources, annotateSearchResult, keepCitedSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
+import { type Source, extractSources, dedupeSources, annotateSearchResult, citedSubset, keepCitedSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
 import { isUntrustedTool, extractToolSource, detectInjection, wrapUntrustedContent } from "./untrusted";
 
 export interface KemmaMessage {
@@ -102,6 +102,8 @@ export interface EngineOutput {
   tokensUsed: { input: number; output: number; total: number };
   modelsUsed: string[]; stepsUsed: number; durationMs: number;
   sources: Source[];
+  /** Unknown citation IDs detected in the answer. */
+  citationUnknownIds?: number[];
   /**
    * True when `response` holds an error message (quota block, all models failed) that never
    * went through onStream. Callers streaming to a client must surface it as an error, not as
@@ -436,7 +438,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
       await incrementQuota(userId, "message");
       await incrementQuota(userId, "agentic_task");
       if (isThinking) await incrementQuota(userId, "think");
-      const kept = subResult.sources.length > 0 ? keepCitedSources(subResult.content, subResult.sources) : { text: subResult.content, sources: subResult.sources };
+      const kept = subResult.sources.length > 0 ? citedSubset(subResult.content, subResult.sources, { dropUnknown: true }) : { text: subResult.content, sources: subResult.sources, unknownIds: [] };
       const sources = kept.sources;
       const cited = sources.length > 0 ? appendCitations(kept.text, sources) : { text: subResult.content };
       return {
@@ -920,12 +922,35 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
       };
     }
 
-    // Append numbered source cards
-    if (sources.length > 0) {
-      const kept = keepCitedSources(finalContent, sources);
-      sources = kept.sources;
-      const cited = appendCitations(kept.text, sources);
-      finalContent = cited.text;
+    // Stable citations and persisted message metadata (P1-07):
+    // In streaming mode: the text is already out, so unknown markers are left alone
+    // and logged as citation_unknown_id in usage purpose metadata.
+    // The text-appended "Sources:" list is no longer added in streaming mode; the client renders sources from the event.
+    // Non-streaming callers (Telegram, monitors, documents) keep the appended list and drop unknown markers.
+    const isStreaming = Boolean(onStream);
+    const subset = citedSubset(finalContent, sources, { dropUnknown: !isStreaming });
+    sources = subset.sources;
+
+    if (isStreaming) {
+      if (subset.unknownIds.length > 0) {
+        const lastRoute = chatRoute();
+        const lastModel = modelsUsed[modelsUsed.length - 1] ?? lastRoute.model;
+        await logUsage({
+          userId,
+          sessionId,
+          reportId,
+          provider: lastRoute.provider,
+          model: lastModel,
+          inputTokens: 0,
+          outputTokens: 0,
+          purpose: "citation_unknown_id",
+        });
+      }
+    } else {
+      finalContent = subset.text;
+      if (sources.length > 0) {
+        finalContent = appendCitations(finalContent, sources).text;
+      }
     }
 
     if (polish) {
@@ -985,12 +1010,37 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
       }
     }
 
-    return { response: finalContent, toolCalls: toolExecutions, isAgentic, tokensUsed: totalTokens, modelsUsed: Array.from(new Set(modelsUsed)), stepsUsed: step, durationMs: Date.now() - startTime, sources };
+    return {
+      response: finalContent,
+      toolCalls: toolExecutions,
+      isAgentic,
+      tokensUsed: totalTokens,
+      modelsUsed: Array.from(new Set(modelsUsed)),
+      stepsUsed: step,
+      durationMs: Date.now() - startTime,
+      sources,
+      ...(subset.unknownIds.length > 0 ? { citationUnknownIds: subset.unknownIds } : {}),
+    };
   }
 
   await incrementQuota(userId, "message");
   if (toolExecutions.length >= 2) await incrementQuota(userId, "agentic_task");
-  return { response: "I have completed the available steps. Let me know if you need anything else.", toolCalls: toolExecutions, isAgentic: true, tokensUsed: totalTokens, modelsUsed: Array.from(new Set(modelsUsed)), stepsUsed: maxSteps, durationMs: Date.now() - startTime, sources: dedupeSources(collectedSources) };
+  const fallbackSources = dedupeSources(collectedSources);
+  const fallbackSubset = citedSubset(
+    "I have completed the available steps. Let me know if you need anything else.",
+    fallbackSources,
+    { dropUnknown: !onStream }
+  );
+  return {
+    response: "I have completed the available steps. Let me know if you need anything else.",
+    toolCalls: toolExecutions,
+    isAgentic: true,
+    tokensUsed: totalTokens,
+    modelsUsed: Array.from(new Set(modelsUsed)),
+    stepsUsed: maxSteps,
+    durationMs: Date.now() - startTime,
+    sources: fallbackSubset.sources,
+  };
 }
 
 export async function kemmaVisionExecute(input: VisionEngineInput): Promise<EngineOutput> {

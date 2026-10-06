@@ -405,13 +405,58 @@ describe("tool-call loop with web_search", () => {
     expect(output.toolCalls).toHaveLength(1);
     expect(output.toolCalls[0]).toMatchObject({ tool: "web_search", step: 1, input: { query: "best routers" } });
 
-    // Only the cited source survives, renumbered, and a Sources section is appended.
+    // Only the cited source survives (stable id); in streaming mode the Sources card is not appended (P1-07).
     expect(output.sources).toHaveLength(1);
     expect(output.sources[0]).toMatchObject({ id: 1, url: "https://a.example", title: "Alpha" });
-    expect(output.response).toBe("Sunny day [1].\n\nSources:\n[1] Alpha: https://a.example");
+    expect(output.response).toBe("Sunny day [1].");
     // The streamed text is the pre-citation content (the Sources card is not re-streamed).
     expect(onStream).toHaveBeenCalledTimes(1);
     expect(onStream).toHaveBeenCalledWith("Sunny day [1].");
+  });
+
+  it("non-streamed callers get the appended Sources list", async () => {
+    registryMock.runTool.mockResolvedValue({ ok: true, data: searchResults });
+    stubFetch((i) =>
+      i === 0
+        ? jsonRes(completion(null, { toolCalls: [toolCall] }))
+        : jsonRes(completion("Sunny day [1].")));
+    const output = await kemmaExecute(baseInput()); // no onStream
+
+    expect(output.sources).toHaveLength(1);
+    expect(output.sources[0]).toMatchObject({ id: 1, url: "https://a.example", title: "Alpha" });
+    expect(output.response).toBe("Sunny day [1].\n\nSources:\n[1] Alpha: https://a.example");
+  });
+
+  it("preserves all sources in final output when answer contains no citation markers", async () => {
+    registryMock.runTool.mockResolvedValue({ ok: true, data: searchResults });
+    stubFetch((i) =>
+      i === 0
+        ? jsonRes(completion(null, { toolCalls: [toolCall] }))
+        : jsonRes(completion("Sunny day without any markers.")));
+    const output = await kemmaExecute(baseInput()); // no onStream
+
+    // When the model produces no [n] markers, all sources are kept
+    expect(output.sources).toHaveLength(2);
+    expect(output.sources.map((s) => s.id)).toEqual([1, 2]);
+    expect(output.sources[0]).toMatchObject({ id: 1, url: "https://a.example", title: "Alpha" });
+    expect(output.sources[1]).toMatchObject({ id: 2, url: "https://b.example", title: "Beta" });
+    expect(output.response).toBe(
+      "Sunny day without any markers.\n\nSources:\n[1] Alpha: https://a.example\n[2] Beta: https://b.example"
+    );
+  });
+
+  it("preserves all sources in final output for uncited streamed answer without appending Sources", async () => {
+    registryMock.runTool.mockResolvedValue({ ok: true, data: searchResults });
+    const onStream = vi.fn();
+    stubFetch((i) =>
+      i === 0
+        ? jsonRes(completion(null, { toolCalls: [toolCall] }))
+        : jsonRes(completion("Sunny day without any markers.")));
+    const output = await kemmaExecute(baseInput({ onStream }));
+
+    expect(output.sources).toHaveLength(2);
+    expect(output.sources.map((s) => s.id)).toEqual([1, 2]);
+    expect(output.response).toBe("Sunny day without any markers.");
   });
 
   it("annotates the web_search tool message with global source ids for the model", async () => {

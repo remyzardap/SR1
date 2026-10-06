@@ -812,9 +812,13 @@ export async function getChatSessionMessages(sessionId: string) {
   if (!db) return [];
   const { chatMessages } = await import("../drizzle/schema");
   const { asc } = await import("drizzle-orm");
-  return db.select().from(chatMessages)
+  const rows = await db.select().from(chatMessages)
     .where(eq(chatMessages.sessionId, sessionId))
     .orderBy(asc(chatMessages.createdAt));
+  return rows.map((r) => ({
+    ...r,
+    metadata: (r.metadata as Record<string, unknown>) ?? {},
+  }));
 }
 
 export async function createChatSession(userId: number, title: string) {
@@ -967,12 +971,15 @@ export async function addChatMessage(
   role: string,
   model?: string,
   settings?: Record<string, unknown>,
-  metadata?: Record<string, unknown>,
+  metadata?: Record<string, unknown>
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const { chatMessages } = await import("../drizzle/schema");
   const id = crypto.randomUUID();
+
+  const effectiveSettings = settings ?? {};
+  const effectiveMetadata = metadata ?? {};
 
   // Generate embedding for semantic search (best-effort; don't block chat on failure)
   let embedding: number[] | undefined;
@@ -992,10 +999,10 @@ export async function addChatMessage(
     content,
     role,
     model: model || null,
-    settings: settings ?? {},
+    settings: effectiveSettings,
+    metadata: effectiveMetadata,
     embedding,
     createdAt: new Date(),
-    metadata: metadata ?? {},
   });
   await updateChatSessionLastMessageAt(sessionId);
   return id;
