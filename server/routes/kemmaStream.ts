@@ -127,6 +127,7 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
     let writing = false;
     const sendActivity = (event: ActivityEvent) => { if (!aborted) sendEvent(res, "activity", event); };
 
+    let thinkingAccumulated = "";
     const output = await kemmaExecute({
       userId: user.id,
       userName: user.name ?? undefined,
@@ -148,6 +149,7 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
       },
       onReasoning: (delta) => {
         if (aborted) return;
+        thinkingAccumulated += delta;
         const isReasoningOff = (process.env.KEMMA_REASONING_EFFORT ?? "").trim().toLowerCase() === "off";
         if (streamToolTurns && !isReasoningOff) {
           sendEvent(res, "thinking", delta);
@@ -230,7 +232,40 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
       if (aborted || output.cancelled) {
         await addChatMessage(sessionId, user.id, assistantContent, "assistant", finalModels[finalModels.length - 1] ?? resolved.model ?? undefined, undefined, { cancelled: true });
       } else {
-        await addChatMessage(sessionId, user.id, assistantContent, "assistant", finalModels[finalModels.length - 1] ?? resolved.model ?? undefined);
+        const compactActivity = output.toolCalls.map((tc) => {
+          const end = describeToolEnd("call", tc.tool, tc.input, tc.output, tc.durationMs);
+          return {
+            tool: tc.tool,
+            label: end.label,
+            status: end.status,
+            ms: tc.durationMs,
+          };
+        });
+
+        const metadata: Record<string, unknown> = {
+          sources: output.sources,
+          activity: compactActivity,
+          usage: {
+            inputTokens: output.tokensUsed.input,
+            outputTokens: output.tokensUsed.output,
+            totalTokens: output.tokensUsed.total,
+            ...(output.citationUnknownIds && output.citationUnknownIds.length > 0
+              ? { citation_unknown_id: output.citationUnknownIds }
+              : {}),
+          },
+          model: finalModels[finalModels.length - 1] ?? resolved.model ?? undefined,
+          ...(thinkingAccumulated ? { thinking: thinkingAccumulated.slice(0, 20_000) } : {}),
+        };
+
+        await addChatMessage(
+          sessionId,
+          user.id,
+          assistantContent,
+          "assistant",
+          finalModels[finalModels.length - 1] ?? resolved.model ?? undefined,
+          undefined,
+          metadata
+        );
       }
       assistantSaved = true;
     }

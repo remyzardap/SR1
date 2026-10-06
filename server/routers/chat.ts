@@ -432,7 +432,7 @@ export function registerChatStreamRoute(app: Router) {
         .from(chatMessages)
         .where(eq(chatMessages.sessionId, sid))
         .orderBy(asc(chatMessages.createdAt));
-      res.json(history);
+      res.json(history.map((m) => ({ ...m, metadata: (m.metadata as Record<string, unknown>) ?? {} })));
     } catch {
       res.json([]);
     }
