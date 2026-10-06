@@ -73,9 +73,30 @@ sudo -iu agents gh auth login --with-token < /path/to/token   # then delete the 
 sudo -iu agents kimi      # complete login, then /exit
 sudo -iu agents agy       # complete login, then exit
 
-# 5. Install the dispatcher
+# 5. Install the dispatcher and the GitHub watcher
 sudo install -m 755 /root/sr1/ops/agents/dispatch.sh /home/agents/dispatch.sh
+sudo install -m 755 /root/sr1/ops/agents/watch.sh    /home/agents/watch.sh
+
+# 6. Run the watcher as a service, so Claude can command the agents through GitHub issues (§4.5)
+sudo tee /etc/systemd/system/sutaeru-agents.service >/dev/null <<'UNIT'
+[Unit]
+Description=Sutaeru agent watcher (GitHub issues -> kimi/agy)
+After=network-online.target
+[Service]
+User=agents
+WorkingDirectory=/home/agents
+Environment=PATH=/home/agents/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/agents/watch.sh
+Restart=always
+RestartSec=30
+[Install]
+WantedBy=multi-user.target
+UNIT
+sudo systemctl daemon-reload && sudo systemctl enable --now sutaeru-agents
+journalctl -u sutaeru-agents -f        # watch it pick up tasks
 ```
+
+If `kimi` or `agy` live somewhere else (`which kimi` as the agents user), add that folder to the `PATH` line.
 
 On GitHub (Settings → Branches), protect `main` and `develop`: require a PR, require the `check`, `test`
 and `db-tests` checks, and block force-push. Then even a confused agent with the token cannot touch either branch.
@@ -136,6 +157,28 @@ Do NOT push, do NOT open a PR, do NOT touch .env, secrets/, .github/workflows/de
 When done, write the PR body (README.md §5.3 template, every acceptance criterion with evidence)
 to <logdir>/<WP>.pr.md. If the spec is wrong or impossible, write that to the same file instead and stop.
 ```
+
+### 4.5 Commanding the agents through GitHub (how Claude does it)
+
+Claude's cloud sessions can't reach the VPS, but they can open GitHub issues. The watcher
+(`ops/agents/watch.sh`, installed in §3 step 6) checks every 60 s for open issues that are labelled
+`agent-task` **and opened by `remyzardap`**, and runs each one with `dispatch.sh`. Anyone else's issues are ignored.
+
+Issue body format (other text in the body is ignored, so Claude adds context above it):
+
+```
+agent: kimi
+mode: build
+wp: P1-03
+slug: streaming
+title: Stream every turn, plus thinking and segment events
+```
+
+`mode` is `build`, `fix` or `review`; `slug` and `title` are only needed for `build`.
+What happens: label `agent-running` → "picked up" comment → the run → a comment with the result
+→ `agent-done` and closed, or `agent-failed` and left open. To retry, fix the body, remove `agent-failed`
+and add `agent-task` again. You can open these issues yourself from the GitHub app too.
+At most `MAX_AGENTS` (2) run at once; extra issues wait for the next free slot.
 
 ## 5. Who builds what
 
@@ -204,7 +247,7 @@ reviews with a mutation spot-check on every gate.
 | P4-01 Schema + structured logging (gate) | **kimi** | |
 | P4-02 Tracing | **kimi** | |
 | P4-03 Cost truth | **kimi** | ⚠ money |
-| P4-04 Credits + tiers | **kimi** (reduced) | ⚠ replaced by per-person monthly limits set by the owner; Claude rewrites this WP's spec before dispatch |
+| P4-04 Credits + tiers | n/a | dropped: no quotas or billing (END_GOAL E1) |
 | P4-05 Evals in CI | **agy** | |
 | P4-06 Feedback loop | **agy** | |
 | P4-07 Safety: guard model, PII | **agy** | ⚠ kimi second review |
@@ -224,11 +267,12 @@ reds per agent (§7). Move packages toward whichever agent is doing better in th
 
 | Order | Who | Action |
 |---|---|---|
+| 0 | **Owner** | One-time VPS setup in §3, including the watcher service |
 | 1 | **Claude** | Review PR #7 (P1-02), PR #5 (P1-08), PR #6 (P1-09) against the rubric; post verdicts |
-| 2 | **kimi** | `dispatch.sh fix kimi P1-09` (red `check` on PR #6), plus any CHANGES REQUESTED from step 1 |
-| 3 | **Owner** | Merge approved PRs into `develop`; run the benchmark baseline (HANDOVER §9.1); answer D2–D10; pick the default monthly limit per person |
-| 4 | **kimi** | `dispatch.sh kimi P1-03 streaming "Stream every turn, plus thinking and segment events"` once P1-02 is merged |
-| 5 | **agy** | `dispatch.sh agy P1-10 untrusted-fencing "Fencing for untrusted content"` once P1-02 is merged (parallel with 4) |
+| 2 | **kimi** | fix P1-09 (red `check` on PR #6), plus any CHANGES REQUESTED from step 1; Claude opens the `agent-task` issues |
+| 3 | **Owner** | Merge approved PRs into `develop`; run the benchmark baseline (HANDOVER §9.1); answer D2–D10 |
+| 4 | **kimi** | (Claude opens the issue) `dispatch.sh kimi P1-03 streaming "Stream every turn, plus thinking and segment events"` once P1-02 is merged |
+| 5 | **agy** | (Claude opens the issue) `dispatch.sh agy P1-10 untrusted-fencing "Fencing for untrusted content"` once P1-02 is merged (parallel with 4) |
 | 6 | **Claude** | Write `docs/spec/FRONTEND.md` with full F-01…F-04 specs so agy has its next packages ready |
 
 ## 7. Keeping score

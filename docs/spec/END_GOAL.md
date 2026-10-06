@@ -18,15 +18,18 @@ account only with your OK. It runs on one VPS you own, and you always know what 
 | # | Who | What they need | Status |
 |---|---|---|---|
 | 1 | **The owner** (you), on a phone | One place for research, writing, images, inbox/calendar and code sessions, trusted with real accounts | the main user today |
-| 2 | **Family and friends**, invited by the owner | The same app on their own private account, simple enough to use without help, within a monthly limit | beta invites exist (`server/db/betaInvites.ts`) |
+| 2 | **Family and friends**, invited by the owner | The same app on their own private account, simple enough to use without help | beta invites exist (`server/db/betaInvites.ts`) |
 
 > **Decision E1 (owner, 2026-10-06): Sutaeru stays private, for the owner, family and friends.**
 > No public sign-up, no payments, no paying users, not in 1.0 and not planned after it.
 > What follows from that:
 > - **Access is by invitation only.** Sign-up stays locked (PLAN A3) and members join through beta
 >   invites. The owner can switch any account off.
-> - **Money is the owner's monthly spend, not billing.** Each person gets a monthly spending limit the owner
->   sets, and per-provider caps (PLAN A14) protect the total. No credits, tiers or Stripe.
+> - **No usage limits and no billing.** Nobody has a quota or spending limit. You pay the providers and
+>   can see what each person used. The per-provider caps from PLAN A14 stay in the code as an optional
+>   safety switch, unset by default. No credits, tiers or Stripe.
+>   Today the code still applies tier quotas (`server/core/quotaCheck.ts`). Until a later package
+>   removes them, the owner adds each member's user id to `KEMMA_UNLIMITED_USER_IDS` in `.env`.
 > - **Trust is high, but accounts stay separate.** Each person's chats, memories, files and Google
 >   connection are private to them; the owner's admin view shows usage and cost, not content.
 > - **Small scale.** Up to about 20 people on one VPS. No multi-instance, no load-test targets beyond that.
@@ -44,7 +47,7 @@ with the flags switched on.
 | P4 | **Remembers.** It knows your profile, past chats and files, and shows what it used | memory recall ≥ 85%, stale facts ≤ 5%; every injected memory listed in the UI | P2-01…P2-05, P2-07 |
 | P5 | **Acts safely.** Gmail, Calendar, Drive actions; nothing leaves without your tap | 0 write actions without an approval row; G1 holds (no delete, share or permission tools exist) | P1-10, P1-11, P1-12, P4-07 |
 | P6 | **Keeps working.** Long jobs run in the background, survive restarts and tell you when done | crash mid-run resumes with no duplicate tool calls; push or Telegram notice on completion | P3-01, P3-02, P3-03 |
-| P7 | **Honest about money.** Every billable call is logged; you see what each person spends; limits block before overspend | 100% of runs traced; cost drift vs. invoices ≤ 10%; per-person monthly limits and per-provider caps enforced | PLAN A14/A15, P4-01…P4-03, F-10 |
+| P7 | **Honest about money.** Every billable call is logged and you can see what each person used | 100% of runs traced; cost drift vs. invoices ≤ 10% | PLAN A14/A15, P4-01…P4-03, F-10 |
 
 Also in 1.0, but not headline promises: realtime voice (P3-05), model picker and modes including
 Council and Private (P2-08, P2-09), Code mode from the phone (exists, `ops/session-manager`).
@@ -53,8 +56,8 @@ Council and Private (P2-08, P2-09), Code mode from the phone (exists, `ops/sessi
 
 Out because Sutaeru is private (E1), or to keep the finish line reachable.
 
-- Public sign-up, payments, Stripe, pricing tiers, credits (P4-04 is dropped; `server/stripeProducts.ts` stays unused)
-- Bring-your-own-key (P3-10 is dropped; the owner's keys serve everyone, within each person's monthly limit)
+- Public sign-up, payments, Stripe, pricing tiers, credits, per-person quotas (P4-04 is dropped; `server/stripeProducts.ts` stays unused)
+- Bring-your-own-key (P3-10 is dropped; the owner's keys serve everyone)
 - Marketing landing page work, SEO, app-store native apps (the PWA is the app, installed from the home screen)
 - Skill **marketplace** and public custom-agent sharing (P3-09 ships custom agents shared only between members)
 - Slack, Discord and email-in channels (P3-12); Telegram and WhatsApp stay as they are
@@ -84,7 +87,7 @@ Each F package depends on the backend package named, ships behind the same flag 
 | F-07 | Background runs: run list, re-attach by `runId`, plan/to-do checklist, done notifications | P3-01…P3-03 | L |
 | F-08 | Library v2: file cards from sandbox/report outputs, previews, jump to source chat | P2-07, P2-11 | M |
 | F-09 | Voice: push-to-talk and duplex screen with barge-in | P3-05 | L |
-| F-10 | Owner's household view: spend per person and per month, set each person's limit, switch an account off; members see their own usage | P4-03 | S |
+| F-10 | Owner's household view: usage and cost per person and per month, switch an account off | P4-03 | S |
 | F-12 | Invite flow: owner sends an invite link from the phone; first-run screen that explains the app in plain words for non-technical family | none | S |
 | F-11 | PWA polish: offline shell, install prompt, safe areas, reduced motion; Lighthouse PWA pass | none | S |
 
@@ -124,5 +127,5 @@ These come from `PLAN.md` and `docs/spec/README.md` §3 and are restated here be
 | PR #6 `[P1-09] Tiered page reader` | open, **`check` failing** |
 | PR #2 batch image generation (into `main`) | open since 2026-09-28; stale against the reskin; decide close or rebase |
 | Decision E1 | **decided:** private, owner + family and friends (§2) |
-| Owner to-dos | benchmark baseline (`HANDOVER.md` §9.1), decisions D2–D10 (`README.md` §6), rotate committed secrets, decide the default monthly limit per person |
+| Owner to-dos | benchmark baseline (`HANDOVER.md` §9.1), decisions D2–D10 (`README.md` §6), rotate committed secrets, install the agent watcher (`AGENT_OPS.md` §3) |
 | Next agent work | see `AGENT_OPS.md` §6 (wave 1) |
