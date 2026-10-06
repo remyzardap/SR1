@@ -474,6 +474,15 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     modelsUsed.push(route.label);
     onStepStart?.(step, route.label);
 
+    const stepPurpose =
+      isThinking && step === 1
+        ? "long-doc"
+        : complexity === "complex"
+          ? "report"
+          : step === 1
+            ? "initial"
+            : "follow-up";
+
     const offerTools = totalToolCallCount < maxToolCalls && step < maxSteps;
     const shouldStream = streamToolTurns ? !!onStream : (!!onStream && !offerTools);
 
@@ -493,7 +502,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         userId,
         sessionId,
         reportId,
-        purpose: step === 1 ? "initial" : "follow-up",
+        purpose: stepPurpose,
         signal: input.signal,
       });
     } catch (err) {
@@ -772,7 +781,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
             userId,
             sessionId,
             reportId,
-            purpose: step === 1 ? "initial" : "follow-up",
+            purpose: stepPurpose,
             signal: input.signal,
           });
 
@@ -1329,7 +1338,7 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<LLMResult> {
       stream: wantStream,
       // Ask for a final usage chunk on streams so streamed answers are metered (they were logged as 0 tokens before).
       ...(wantStream && opts.streamUsage ? { stream_options: { include_usage: true } } : {}),
-      max_tokens: resolveMaxTokens(route.model, purpose, route),
+      max_tokens: resolveMaxTokens(route.model, purpose),
       reasoning_effort: reasoningEffortFor(route),
     };
   };

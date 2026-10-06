@@ -476,29 +476,21 @@ export function chatOutputCap(): number {
 
 /**
  * Purpose cap: chat 8192 (or KEMMA_MAX_OUTPUT_TOKENS), report and long-doc 32768, planner and verify 2048.
- * Also checks route if purpose is generic (e.g. "initial"/"follow-up" in report or long-doc slot).
  */
-export function purposeCapFor(purpose?: string, route?: RouteConfig): number {
+export function purposeCapFor(purpose?: string): number {
   const p = (purpose ?? "chat").toLowerCase().trim();
   if (p === "planner") return PURPOSE_CAPS.planner;
   if (p === "verify") return PURPOSE_CAPS.verify;
   if (p === "report" || p === "long-doc" || p === "long_doc" || p === "synthesis") return PURPOSE_CAPS.report;
-
-  if (route) {
-    if (route.model === reportRoute().model || route.model === longDocRoute().model) {
-      return PURPOSE_CAPS.report;
-    }
-  }
-
   return chatOutputCap();
 }
 
 /**
  * Per call: max_tokens = min(model.maxOutput, purposeCap)
  */
-export function resolveMaxTokens(model: string, purpose?: string, route?: RouteConfig): number {
+export function resolveMaxTokens(model: string, purpose?: string): number {
   const limits = modelLimitsFor(model);
-  const cap = purposeCapFor(purpose, route);
+  const cap = purposeCapFor(purpose);
   return Math.min(limits.maxOutput, cap);
 }
 
