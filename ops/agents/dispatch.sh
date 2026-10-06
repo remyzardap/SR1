@@ -181,8 +181,13 @@ if [[ $MODE == build || $MODE == task ]]; then
     [[ $5 -ef $TASKFILE ]] || cp "$5" "$TASKFILE"
   fi
   BRANCH="wp/$WP-$SLUG"; WT="$WT_ROOT/$WP"
-  [[ ! -e $WT ]] || die "$WT already exists; use 'fix', or remove it with: git -C $CLONE worktree remove $WT"
   [[ -z $(branch_for_wp) ]] || die "a wp/$WP-* branch already exists on origin; use 'fix'"
+  if [[ -e $WT ]]; then
+    # nothing was ever pushed for this id, so this is debris from an earlier failed run: start over
+    log "removing stale $WT (no branch on origin)"
+    git -C "$CLONE" worktree remove --force "$WT" 2>/dev/null || rm -rf -- "$WT"
+    git -C "$CLONE" worktree prune
+  fi
   git -C "$CLONE" worktree add -q -B "$BRANCH" "$WT" origin/develop
   log "npm ci"; (cd "$WT" && npm ci --no-audit --no-fund >"$LOGDIR/$WP.npm.log" 2>&1)
   log "baseline check on develop"
