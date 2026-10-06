@@ -28,4 +28,6 @@ export interface ChatMessageData {
   selectedOptionId?: string;
   /** True for a message held on screen while the device is offline (never sent). */
   queued?: boolean;
+  thinking?: string;
+  segments?: Array<{ kind: "narration" | "answer"; end: number }>;
 }

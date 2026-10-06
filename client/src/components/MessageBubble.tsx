@@ -9,9 +9,49 @@ import { downloadResearchMarkdown, downloadResearchPdf } from "@/lib/researchRep
 import { SpeakButton } from "./SpeakButton";
 import { PlanOptionCards } from "./PlanOptionCards";
 import type { ChatMessageData, PlanDirection } from "@/types/chat";
+import { ThinkingBlock } from "./chat/ThinkingBlock";
 import { SutaeruIcon } from "./SutaeruIcon";
 import { FocusBrackets } from "@/components/art";
 import { ActivityFeed, type ActivityItem } from "./ActivityFeed";
+
+function renderAssistantContent(
+  content: string,
+  segments: Array<{ kind: "narration" | "answer"; end: number }> | undefined,
+  isStreaming: boolean
+) {
+  if (!segments || segments.length === 0) {
+    return <MessageResponse isAnimating={isStreaming}>{content}</MessageResponse>;
+  }
+
+  const parts: Array<{ kind: "narration" | "answer"; text: string }> = [];
+  let prev = 0;
+  for (const seg of segments) {
+    const end = Math.min(seg.end, content.length);
+    if (end > prev) {
+      parts.push({ kind: seg.kind, text: content.slice(prev, end) });
+      prev = end;
+    }
+  }
+  if (prev < content.length) {
+    parts.push({ kind: "answer", text: content.slice(prev) });
+  }
+
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.kind === "narration" ? (
+          <div key={i} className="text-muted-foreground/80 text-sm italic mb-2 whitespace-pre-wrap">
+            {part.text}
+          </div>
+        ) : (
+          <MessageResponse key={i} isAnimating={isStreaming}>
+            {part.text}
+          </MessageResponse>
+        )
+      )}
+    </>
+  );
+}
 
 /** Host label for a source card, e.g. "irena.org". Empty when the url is not absolute. */
 function hostOf(url: string): string {
@@ -64,8 +104,11 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
         <MessageContent className={isUser ? "sutaeru-user-content" : "sutaeru-assistant-content"}>
           {message.streaming && !message.content ? <Shimmer>Thinking…</Shimmer> :
             isUser ? <span className="whitespace-pre-wrap">{message.content}</span> :
-            <MessageResponse isAnimating={message.streaming}>{message.content}</MessageResponse>}
+            renderAssistantContent(message.content, message.segments, !!message.streaming)}
         </MessageContent>
+      )}
+      {!isUser && message.thinking && (
+        <ThinkingBlock thinking={message.thinking} />
       )}
       {!isUser && message.planOptions?.length && onSelectPlan ? (
         <PlanOptionCards options={message.planOptions} selectedId={message.selectedOptionId} disabled={message.streaming} onSelect={onSelectPlan} />

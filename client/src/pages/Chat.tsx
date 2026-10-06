@@ -495,9 +495,22 @@ export default function Chat() {
             if (!ev) continue;
             const next = reduceStream(streamState, ev);
 
-            if (next.content !== streamState.content) {
+            if (
+              next.content !== streamState.content ||
+              next.thinking !== streamState.thinking ||
+              next.segments !== streamState.segments
+            ) {
               setMessages((prev) =>
-                prev.map((m) => (m.id === assistantId ? { ...m, content: next.content } : m))
+                prev.map((m) =>
+                  m.id === assistantId
+                    ? {
+                        ...m,
+                        content: next.content,
+                        thinking: next.thinking || undefined,
+                        segments: next.segments.length > 0 ? next.segments : undefined,
+                      }
+                    : m
+                )
               );
             }
             if (next.sources !== streamState.sources && next.sources !== null) {
@@ -550,7 +563,15 @@ export default function Chat() {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
-              ? { ...m, streaming: false, model: finalModel, skills: assistantSkills, question: mode === "deep" ? messageText : undefined }
+              ? {
+                  ...m,
+                  streaming: false,
+                  model: finalModel,
+                  skills: assistantSkills,
+                  question: mode === "deep" ? messageText : undefined,
+                  thinking: streamState.thinking || undefined,
+                  segments: streamState.segments.length > 0 ? streamState.segments : undefined,
+                }
               : m
           )
         );
