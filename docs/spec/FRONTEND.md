@@ -174,3 +174,67 @@ steps finish when the run ends, exactly like today.
 - AC4: Diff limited to the six files listed.
 
 **Size:** M. **Lane:** F. **Builder:** agy.
+
+---
+
+## F-03 Numbered citations that match their sources, and sources that survive a reload
+
+**Why:** answers cite sources as `[n]`, but on screen that's plain text. The source cards under an answer
+(`MessageBubble.tsx`, "Sources / N") number themselves by **position** (`index + 1`). After P1-07, source ids are
+stable and only the *cited* ones are sent, so the list can be `[2], [5], [9]`. Position numbering would label them
+1, 2, 3 and contradict the text. Sources also vanish on reload, because history doesn't carry them. P1-07 fixes the
+server side: stable ids, a cited subset, and `metadata` with sources and activity saved per message and returned in
+session history.
+
+**Depends on:** P1-07 merged. **Before building, read the merged P1-07 code** (`server/kemma/sources.ts`,
+`server/routes/kemmaStream.ts`, the session-history procedure in `server/routers.ts`) and use its real field names
+for the source id and the history `metadata`. Where this spec guesses a name, the code wins. Note any difference
+under "Deviations".
+
+**Files**
+- edit `client/src/lib/sse.ts` + `sse.test.ts` (sources keep their `id`, and any short quote/snippet field P1-07 sends)
+- edit `client/src/types/chat.ts` (`ChatSource.id?: number`, plus the snippet field if one exists)
+- create `client/src/lib/citations.ts` + `citations.test.ts` (a rehype plugin and pure helpers)
+- create `client/src/components/chat/CitationChip.tsx`
+- edit `client/src/components/MessageBubble.tsx`, `client/src/pages/Chat.tsx` (the history mapping only)
+- nothing else
+
+**Spec**
+
+1. **Decoder.** The `sources` event keeps each item's numeric `id` (and the snippet, if P1-07 sends one). Items
+   without a numeric id keep today's behaviour: their number is their position, `index + 1`.
+2. **Source cards** (`MessageBubble.tsx`): label each card with `source.id ?? index + 1`, sort by that number, and
+   give each card a DOM id `src-<messageId>-<n>`, so a citation can jump to it. Keep the existing markup and classes.
+3. **Citation chips.** In assistant **answer** text (not user messages, not narration parts, not inside code blocks
+   or inline code), turn `[n]`, and runs such as `[2][5]` or `[2, 5]`, into small superscript chips. Each chip is a
+   link to `#src-<messageId>-<n>`.
+   - Hover or keyboard focus shows a tooltip with the source title and host (and the snippet, if there is one). Tap on
+     mobile scrolls to the card. Use the existing tooltip component from `components/ui` if there is one, and no new
+     dependency.
+   - Accessible name: `Source n: <title>`.
+   - A number with no matching source stays plain text, exactly as written. While the answer is still streaming and
+     sources haven't arrived, numbers stay plain text, so the layout doesn't jump.
+   - Implement it as a **rehype plugin** in `citations.ts`, passed to `MessageResponse` (Streamdown 1.6 accepts
+     `rehypePlugins`) **in addition to** Streamdown's `defaultRehypePlugins`, never instead of them: they include the
+     HTML hardening. The plugin works on hast text nodes and skips `code` and `pre`. Don't regex the raw markdown.
+4. **Reload** (`Chat.tsx`, where persisted history is mapped into messages): when a history item has P1-07's metadata,
+   set `sources` (with ids) and `activity` on the message. Old messages without metadata are unchanged.
+5. **No visual noise:** chips use the existing muted text and accent tokens. No new colours. Downloads (the PDF and
+   Markdown reports) keep working: they get the same sources, with ids, from the message.
+
+**Tests** (vitest, no DOM rendering)
+- `citations.test.ts`: on small hast trees, the plugin turns `[3]`, `[2][5]` and `[2, 5]` into chip nodes; leaves
+  `[7]` with no source untouched; leaves text in `code`/`pre` untouched; doesn't touch `[link](url)` markdown links;
+  produces nothing when there are no sources. Pure helpers (parse markers, map id to source) are tested directly.
+- `sse.test.ts`: sources keep numeric ids; an item without an id still decodes.
+- The history mapping is a pure helper with a test: metadata becomes sources and activity, and a message without
+  metadata comes back unchanged.
+
+**Acceptance criteria**
+- AC1: `npm run check` and `npm test` pass, and the new tests cover every rule above.
+- AC2: For a sources list with ids `[2, 5]`, the cards read 2 and 5 and the chips `[2]` and `[5]` link to them
+  (helper-level evidence). Visual checks are NOT RUN unless a person or browser did them.
+- AC3: Reloading a session restores sources (evidence: the history-mapping helper test, run against the P1-07 response shape).
+- AC4: Diff limited to the files listed.
+
+**Size:** M. **Lane:** F. **Builder:** agy or qwen.
