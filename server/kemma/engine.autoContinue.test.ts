@@ -14,6 +14,14 @@
  * - Tool calls on a turn do not trigger auto-continue (applies only to final answer).
  * - Acceptance criteria: bench "long-form report" prompt produces complete answer ending with conclusion.
  * - Failure paths: abort during continuation, provider error during continuation.
+ *
+ * T-62 (minimum overlap before trimming) adds:
+ * - A common stretch shorter than 12 characters counts as no overlap, so a one-character coincidence
+ *   like "…made a" + "and…" keeps both texts whole instead of losing the "a".
+ * - The floor is a minOverlap parameter with default 12: 12 repeats trim, 11 do not, and callers can
+ *   still opt in to trimming anything (minOverlap = 1) or raise it.
+ * - A repeated sentence of 40+ characters is trimmed, both by the helpers and by the auto-continue loop.
+ * - The streaming path in the auto-continue loop applies the same rule as the non-streaming join.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -173,12 +181,14 @@ afterEach(() => {
 });
 
 describe("P1-06 overlap trimming helpers", () => {
+  // These assertions target the longest-common suffix/prefix scan and the maxOverlap cap only, so they
+  // pass minOverlap = 1 and are unaffected by the 12-character floor that T-62 added to the defaults.
   it("computes longest common suffix and prefix length up to maxOverlap", () => {
-    expect(getOverlapLength("hello world ", "world foo", 200)).toBe(6);
-    expect(getOverlapLength("abcdef", "defghi", 200)).toBe(3);
-    expect(getOverlapLength("no overlap", "different", 200)).toBe(0);
-    expect(getOverlapLength("", "abc", 200)).toBe(0);
-    expect(getOverlapLength("abc", "", 200)).toBe(0);
+    expect(getOverlapLength("hello world ", "world foo", 200, 1)).toBe(6);
+    expect(getOverlapLength("abcdef", "defghi", 200, 1)).toBe(3);
+    expect(getOverlapLength("no overlap", "different", 200, 1)).toBe(0);
+    expect(getOverlapLength("", "abc", 200, 1)).toBe(0);
+    expect(getOverlapLength("abc", "", 200, 1)).toBe(0);
   });
 
   it("caps overlap check at maxOverlap characters", () => {
@@ -188,23 +198,85 @@ describe("P1-06 overlap trimming helpers", () => {
   });
 
   it("trims overlap cleanly from the prefix of next", () => {
-    expect(trimOverlap("hello world ", "world foo", 200)).toBe("foo");
-    expect(trimOverlap("abc", "def", 200)).toBe("def");
-    expect(trimOverlap("exact duplicate", "exact duplicate", 200)).toBe("");
+    expect(trimOverlap("hello world ", "world foo", 200, 1)).toBe("foo");
+    expect(trimOverlap("abc", "def", 200, 1)).toBe("def");
+    expect(trimOverlap("exact duplicate", "exact duplicate", 200, 1)).toBe("");
   });
 
   it("joins strings without duplicated overlap", () => {
-    expect(joinWithoutOverlap("hello world ", "world foo", 200)).toBe("hello world foo");
-    expect(joinWithoutOverlap("chapter 1. ", "chapter 2.", 200)).toBe("chapter 1. chapter 2.");
-    expect(joinWithoutOverlap("abc", "abcdef", 200)).toBe("abcdef");
+    expect(joinWithoutOverlap("hello world ", "world foo", 200, 1)).toBe("hello world foo");
+    expect(joinWithoutOverlap("chapter 1. ", "chapter 2.", 200, 1)).toBe("chapter 1. chapter 2.");
+    expect(joinWithoutOverlap("abc", "abcdef", 200, 1)).toBe("abcdef");
+  });
+});
+
+describe("T-62 minimum overlap before trimming", () => {
+  const REPEATED_SENTENCE = "The network stays up when one node fails and another takes over.";
+
+  it("does not trim a one-character coincidence, so no letter is lost", () => {
+    const prev = "Section 1 explains why the model made a";
+    const next = "and that is the whole point of the design.";
+
+    expect(getOverlapLength(prev, next)).toBe(0);
+    expect(trimOverlap(prev, next)).toBe(next);
+    expect(joinWithoutOverlap(prev, next)).toBe(prev + next);
+    // The old behaviour swallowed the trailing "a" and produced "made and that".
+    expect(joinWithoutOverlap(prev, next)).not.toBe("Section 1 explains why the model made and that is the whole point of the design.");
+  });
+
+  it("trims a repeated sentence of at least 40 characters", () => {
+    expect(REPEATED_SENTENCE.length).toBeGreaterThanOrEqual(40);
+    const prev = "Section 1 explains the design. " + REPEATED_SENTENCE;
+    const next = REPEATED_SENTENCE + " Section 2 gives the benchmarks.";
+
+    expect(getOverlapLength(prev, next)).toBe(REPEATED_SENTENCE.length);
+    expect(trimOverlap(prev, next)).toBe(" Section 2 gives the benchmarks.");
+    expect(joinWithoutOverlap(prev, next)).toBe(
+      "Section 1 explains the design. " + REPEATED_SENTENCE + " Section 2 gives the benchmarks.",
+    );
+  });
+
+  it("counts a 12-character repeat as overlap and an 11-character one as none", () => {
+    const twelve = "The report says 0123456789ab";
+    const twelveNext = "0123456789ab is the measured value.";
+    expect(getOverlapLength(twelve, twelveNext)).toBe(12);
+    expect(joinWithoutOverlap(twelve, twelveNext)).toBe("The report says 0123456789ab is the measured value.");
+
+    const eleven = "The report says 0123456789a";
+    const elevenNext = "0123456789a is the measured value.";
+    expect(getOverlapLength(eleven, elevenNext)).toBe(0);
+    expect(joinWithoutOverlap(eleven, elevenNext)).toBe(eleven + elevenNext);
+  });
+
+  it("uses minOverlap as a parameter, not only as a default", () => {
+    const prev = "The report says 0123456789ab";
+    const next = "0123456789ab is the measured value.";
+
+    expect(getOverlapLength(prev, next, 200, 13)).toBe(0);
+    expect(getOverlapLength(prev, next, 200, 1)).toBe(12);
+    expect(trimOverlap(prev, next, 200, 1)).toBe(" is the measured value.");
+  });
+
+  it("finds no overlap when maxOverlap is below minOverlap", () => {
+    expect(getOverlapLength(REPEATED_SENTENCE, REPEATED_SENTENCE, 5, 12)).toBe(0);
+    expect(trimOverlap(REPEATED_SENTENCE, REPEATED_SENTENCE, 5, 12)).toBe(REPEATED_SENTENCE);
+    expect(joinWithoutOverlap(REPEATED_SENTENCE, REPEATED_SENTENCE, 5, 12)).toBe(REPEATED_SENTENCE + REPEATED_SENTENCE);
+  });
+
+  it("still treats empty text as no overlap", () => {
+    expect(getOverlapLength("", REPEATED_SENTENCE)).toBe(0);
+    expect(getOverlapLength(REPEATED_SENTENCE, "")).toBe(0);
+    expect(joinWithoutOverlap("", REPEATED_SENTENCE)).toBe(REPEATED_SENTENCE);
   });
 });
 
 describe("P1-06 auto-continue in engine", () => {
   it("spec test: fake provider returns length twice and then stop, and the output is the concatenation without overlap", async () => {
+    // Each continuation repeats the tail of the previous text; the repeats are "the network topology "
+    // (21 characters) and "In addition, " (13 characters), both at or above the T-62 12-character floor.
     const part1 = "Section 1 covers background and history. Specifically, the network topology ";
-    const part2 = "topology involves core routers and aggregation switches. In addition, ";
-    const part3 = "addition, Section 2 provides performance benchmarks and our final conclusion.";
+    const part2 = "the network topology involves core routers and aggregation switches. In addition, ";
+    const part3 = "In addition, Section 2 provides performance benchmarks and our final conclusion.";
 
     const { calls } = stubFetch((index) => {
       if (index === 0) {
@@ -239,7 +311,7 @@ describe("P1-06 auto-continue in engine", () => {
     });
 
     // Verify final concatenated output without overlap:
-    // part1 + trimmed(part2 by "topology ") + trimmed(part3 by "addition, ")
+    // part1 + trimmed(part2 by "the network topology ") + trimmed(part3 by "In addition, ")
     const expected =
       "Section 1 covers background and history. Specifically, the network topology " +
       "involves core routers and aggregation switches. In addition, " +
@@ -342,7 +414,7 @@ describe("P1-06 auto-continue in engine", () => {
     ];
 
     const part2Chunks = [
-      'data: {"choices":[{"index":0,"delta":{"content":"with second part."}}]}\n\n',
+      'data: {"choices":[{"index":0,"delta":{"content":"concludes with second part."}}]}\n\n',
       'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n',
       "data: [DONE]\n\n",
     ];
@@ -355,7 +427,7 @@ describe("P1-06 auto-continue in engine", () => {
     const output = await kemmaExecute(baseInput({ onStream }));
 
     expect(output.response).toBe("First part concludes with second part.");
-    // Verify onStream got the combined text without duplicated "with "
+    // Verify onStream got the combined text without the duplicated 15-character "concludes with " repeat
     const fullStreamed = onStream.mock.calls.map((c) => c[0]).join("");
     expect(fullStreamed).toBe("First part concludes with second part.");
   });
