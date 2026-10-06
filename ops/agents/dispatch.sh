@@ -125,7 +125,9 @@ run_agent() {  # <workdir> <prompt> <logfile>
   fi
   if (( rc != 0 )); then
     if tail -n 20 "$out" | grep -qiE "$LIMIT_RE"; then
-      score limit; die "$AGENT hit a rate or credit limit; nothing pushed (see $out)"
+      score limit
+      # quote the provider's own words: they usually say when the limit resets
+      die "$AGENT hit a rate or credit limit; nothing pushed (see $out). Its message: $(grep -iE "$LIMIT_RE" "$out" | tail -n 2 | tr '\n' ' ' | cut -c1-400)"
     fi
     log "$AGENT exited with code $rc; gating anyway"
   fi
