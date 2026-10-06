@@ -433,6 +433,113 @@ describe("P1-06 auto-continue in engine", () => {
   });
 });
 
+describe("T-62 minimum overlap in the auto-continue loop", () => {
+  const delta = (text: string) =>
+    `data: {"choices":[{"index":0,"delta":{"content":${JSON.stringify(text)}}}]}\n\n`;
+  const finish = (reason: string) =>
+    `data: {"choices":[{"index":0,"delta":{},"finish_reason":"${reason}"}]}\n\n`;
+  const DONE = "data: [DONE]\n\n";
+
+  const COINCIDENCE_PART1 = "Section 1 explains why the model made a";
+  const COINCIDENCE_PART2 = "and that is the whole point of the design.";
+  // What the pre-T-62 trimming produced: the trailing "a" swallowed by the repeat of "a".
+  const BROKEN_JOIN = "Section 1 explains why the model made and that is the whole point of the design.";
+
+  it("joins a one-character coincidence without dropping a letter", async () => {
+    const { calls } = stubFetch((index) => {
+      if (index === 0) return jsonRes(completion(COINCIDENCE_PART1, { finish_reason: "length" }));
+      return jsonRes(completion(COINCIDENCE_PART2, { finish_reason: "stop" }));
+    });
+
+    const output = await kemmaExecute(baseInput());
+
+    expect(calls).toHaveLength(2);
+    expect(output.response).toBe(COINCIDENCE_PART1 + COINCIDENCE_PART2);
+    expect(output.response).not.toBe(BROKEN_JOIN);
+    expect(output.response.length).toBe(COINCIDENCE_PART1.length + COINCIDENCE_PART2.length);
+  });
+
+  it("emits the whole continuation on the non-streaming onStream path below the floor", async () => {
+    // Without FF_STREAM_TOOL_TURNS the call offers tools, so the continuation reaches the route only
+    // through trimOverlap, not through the provider stream.
+    const onStream = vi.fn();
+
+    stubFetch((index) => {
+      if (index === 0) return jsonRes(completion(COINCIDENCE_PART1, { finish_reason: "length" }));
+      return jsonRes(completion(COINCIDENCE_PART2, { finish_reason: "stop" }));
+    });
+
+    const output = await kemmaExecute(baseInput({ onStream }));
+
+    expect(onStream.mock.calls.map((c) => c[0])).toEqual([COINCIDENCE_PART1, COINCIDENCE_PART2]);
+    expect(onStream.mock.calls.map((c) => c[0]).join("")).not.toBe(BROKEN_JOIN);
+    expect(output.response).toBe(COINCIDENCE_PART1 + COINCIDENCE_PART2);
+  });
+
+  it("streams a one-character coincidence through the flush path untrimmed", async () => {
+    process.env.FF_STREAM_TOOL_TURNS = "1";
+    const onStream = vi.fn();
+
+    stubFetch((index) => {
+      if (index === 0) {
+        return sseRes([delta(COINCIDENCE_PART1), finish("length"), DONE]);
+      }
+      return sseRes([delta(COINCIDENCE_PART2), finish("stop"), DONE]);
+    });
+
+    const output = await kemmaExecute(baseInput({ onStream }));
+
+    expect(output.response).toBe(COINCIDENCE_PART1 + COINCIDENCE_PART2);
+    expect(onStream.mock.calls.map((c) => c[0]).join("")).toBe(COINCIDENCE_PART1 + COINCIDENCE_PART2);
+  });
+
+  it("trims a 40-character repeated sentence in the streaming path", async () => {
+    process.env.FF_STREAM_TOOL_TURNS = "1";
+    const onStream = vi.fn();
+
+    const repeated = "The network stays up when one node fails and another takes over.";
+    expect(repeated.length).toBeGreaterThanOrEqual(40);
+
+    const part1 = "Section 1 explains the design. " + repeated;
+    // The stream only decides where to trim once the buffer has seen 200 characters.
+    const continuationChunks = [
+      repeated,
+      " Section 2 covers the benchmarks we ran last quarter on three clusters in Jakarta.",
+      " Section 3 lists the remaining risks and our final recommendation.",
+    ];
+    expect(continuationChunks.join("").length).toBeGreaterThanOrEqual(200);
+
+    stubFetch((index) => {
+      if (index === 0) {
+        return sseRes([delta("Section 1 explains the design. "), delta(repeated), finish("length"), DONE]);
+      }
+      return sseRes([...continuationChunks.map(delta), finish("stop"), DONE]);
+    });
+
+    const output = await kemmaExecute(baseInput({ onStream }));
+
+    const expected = part1 + continuationChunks.slice(1).join("");
+    expect(output.response).toBe(expected);
+    expect(onStream.mock.calls.map((c) => c[0]).join("")).toBe(expected);
+    expect(output.response.match(/The network stays/g)).toHaveLength(1);
+  });
+
+  it("leaves the answer as it is when the continuation comes back empty", async () => {
+    const onStream = vi.fn();
+    const part1 = "Section 1 explains the design. The network stays up when one node fails.";
+
+    stubFetch((index) => {
+      if (index === 0) return jsonRes(completion(part1, { finish_reason: "length" }));
+      return jsonRes(completion("", { finish_reason: "stop" }));
+    });
+
+    const output = await kemmaExecute(baseInput({ onStream }));
+
+    expect(output.response).toBe(part1);
+    expect(onStream.mock.calls.map((c) => c[0])).toEqual([part1]);
+  });
+});
+
 describe("P1-06 purpose caps in engine calls", () => {
   it("sends max_tokens matching the purpose cap in request body", async () => {
     const { calls } = stubFetch(() => jsonRes(completion("Simple answer.")));
