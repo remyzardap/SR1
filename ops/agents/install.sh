@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-command VPS setup so Claude can command qwen and agy through GitHub issues.
+# One-command VPS setup so Claude can command qwen, agy, kimi and opencode through GitHub issues.
 # Does everything in docs/spec/AGENT_OPS.md §3 and is safe to re-run (re-running also updates the scripts).
 #
 #   sudo bash ops/agents/install.sh          from a checkout that has this file, e.g. /root/sr1, or straight from git:
@@ -95,11 +95,14 @@ echo "parallel agent runs: $(cat "$BIN_DIR/max_agents")   (change: echo 3 | sudo
 ln -sfn "$BIN_DIR/dispatch.sh" "$HOME_DIR/dispatch.sh"   # so `sudo -iu agents ~/dispatch.sh ...` works by hand
 chown -h "$AGENTS_USER": "$HOME_DIR/dispatch.sh"
 
-say "6/7 install the coding agents (qwen, agy) for '$AGENTS_USER'"
-# Both go in ~agents/.local/bin; no root, no system packages touched. Already installed = left alone
+say "6/7 install the coding agents (qwen, agy, kimi, opencode) for '$AGENTS_USER'"
+# All go in ~agents/.local/bin; no root, no system packages touched. Already installed = left alone
 # (set AGENTS_UPGRADE=1 to update them). A failure here is a warning, not fatal: one agent is enough.
 QWEN_PKG="${QWEN_PKG:-@qwen-code/qwen-code}"
 AGY_INSTALL_URL="${AGY_INSTALL_URL:-https://antigravity.google/cli/install.sh}"
+KIMI_INSTALL_URL="${KIMI_INSTALL_URL:-https://code.kimi.com/install.sh}"
+OPENCODE_PKG="${OPENCODE_PKG:-opencode-ai}"
+has_cli() { [[ -z ${AGENTS_UPGRADE:-} ]] && as_agents "export PATH=\"\$HOME/.local/bin:\$PATH\"; command -v $1" >/dev/null; }
 as_agents 'mkdir -p ~/.local/bin'
 if [[ -n ${AGENTS_UPGRADE:-} ]] || ! as_agents 'export PATH="$HOME/.local/bin:$PATH"; command -v qwen' >/dev/null; then
   if command -v npm >/dev/null; then
@@ -113,21 +116,31 @@ if [[ -n ${AGENTS_UPGRADE:-} ]] || ! as_agents 'export PATH="$HOME/.local/bin:$P
   echo "installing agy ($AGY_INSTALL_URL)"
   as_agents "set -o pipefail; curl -fsSL '$AGY_INSTALL_URL' | bash" || warn "agy install failed (see above)"
 fi
+if ! has_cli kimi; then
+  echo "installing kimi ($KIMI_INSTALL_URL)"
+  as_agents "set -o pipefail; curl -LsSf '$KIMI_INSTALL_URL' | bash" || warn "kimi install failed (see above)"
+fi
+if ! has_cli opencode; then
+  echo "installing opencode (npm $OPENCODE_PKG)"
+  as_agents "npm install -g --prefix \"\$HOME/.local\" --no-audit --no-fund '$OPENCODE_PKG'" || warn "opencode install failed (see above)"
+fi
+# opencode asks before edits/commands unless its config allows them; agents run unattended (the gate is the check)
+as_agents 'f=~/.config/opencode/opencode.json; [ -s "$f" ] || { mkdir -p ~/.config/opencode && printf "%s\n" "{\"\$schema\": \"https://opencode.ai/config.json\", \"permission\": {\"edit\": \"allow\", \"bash\": \"allow\", \"webfetch\": \"allow\"}}" > "$f"; }'
 AGENT_PATH=$(as_agents 'echo "$HOME/.local/bin:$HOME/bin:$PATH"')
 missing=()
-for cli in qwen agy; do
+for cli in qwen agy kimi opencode; do
   if p=$(as_agents "export PATH=\"\$HOME/.local/bin:\$PATH\"; command -v $cli"); then
     echo "$cli: $p"; AGENT_PATH="$(dirname "$p"):$AGENT_PATH"
   else
     missing+=("$cli")
   fi
 done
-((${#missing[@]} < 2)) || warn "neither qwen nor agy got installed for $AGENTS_USER; fix the errors above and re-run"
+((${#missing[@]} < 4)) || warn "no coding agent got installed for $AGENTS_USER; fix the errors above and re-run"
 
 say "7/7 watcher service"
 cat >"$UNIT" <<UNIT_EOF
 [Unit]
-Description=Sutaeru agent watcher (GitHub issues -> qwen/agy)
+Description=Sutaeru agent watcher (GitHub issues -> qwen/agy/kimi/opencode)
 After=network-online.target
 Wants=network-online.target
 [Service]
@@ -157,14 +170,15 @@ cat <<EOF
 
 Still to do by hand (only once):
 EOF
-for cli in qwen agy; do
+for cli in qwen agy kimi opencode; do
   if [[ " ${missing[*]} " == *" $cli "* ]]; then
     echo "  - $cli: not installed (see the warning above)"
   else
     echo "  - sign $cli in:   sudo -iu $AGENTS_USER bash -c 'PATH=\$HOME/.local/bin:\$PATH $cli'"
   fi
 done
-echo "      qwen: type /auth, pick your Qwen plan, then /quit.   agy: open the link it prints, sign in, paste the code."
+echo "      qwen: /auth, pick your plan (or set the key in ~/.qwen/.env), /quit.   agy: open the link it prints, sign in, paste the code."
+echo "      kimi: type /login, finish in the browser, /exit.   opencode: run 'opencode auth login' instead (same sudo prefix), pick a provider."
 echo "  - then: systemctl restart sutaeru-agents"
 cat <<EOF
   - on GitHub, protect main and develop (Settings > Branches): require a PR and the check/test checks
