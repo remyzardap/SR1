@@ -22,6 +22,7 @@ CLONE="${AGENTS_CLONE:-$HOME/sr1}"
 WT_ROOT="${AGENTS_WT:-$HOME/wt}"
 LOGDIR="${AGENTS_LOGS:-$HOME/agent-logs}"
 AGENT_TIMEOUT="${AGENT_TIMEOUT:-10800}"   # seconds per agent run
+STALL_SEC="${STALL_SEC:-2400}"           # stop a run with no output and no file changes for this long
 CAP_FILE="${AGENTS_CAP_FILE:-/opt/sutaeru-agents/max_agents}"   # root-owned; edit it to change the cap, no restart
 max_agents() {  # the cap is re-read every time, so changing the file takes effect on the next check
   local n=""
@@ -88,25 +89,47 @@ retry() {  # retry a network command with 2/4/8/16 s backoff
 }
 
 run_agent() {  # <workdir> <prompt> <logfile>
-  local dir=$1 prompt=$2 out=$3 rc=0 t0=$SECONDS
-  log "running $AGENT in $dir (log: $out)"
-  if [[ $AGENT == qwen ]]; then
+  local dir=$1 prompt=$2 out=$3 rc=0 t0=$SECONDS pid stalled="" idle=0 last_size=-1
+  local -a cmd
+  case $AGENT in
     # Qwen Code headless: -p runs one prompt and exits; --yolo auto-approves its tools
-    (cd "$dir" && timeout "$AGENT_TIMEOUT" qwen -p "$prompt" --yolo) >"$out" 2>&1 || rc=$?
-  elif [[ $AGENT == kimi ]]; then
+    qwen) cmd=(timeout "$AGENT_TIMEOUT" qwen -p "$prompt" --yolo) ;;
     # Kimi Code CLI: --print is headless and auto-approves (deny rules in its config still apply)
-    (cd "$dir" && timeout "$AGENT_TIMEOUT" kimi --print --output-format stream-json -p "$prompt") >"$out" 2>&1 || rc=$?
-  elif [[ $AGENT == opencode ]]; then
-    # opencode.ai (sst) has `run`; permissions come from ~/.config/opencode/opencode.json (install.sh sets allow).
-    # The older Go opencode (now Crush) has no `run` and auto-approves in -p mode.
-    if opencode run --help >/dev/null 2>&1; then
-      (cd "$dir" && timeout "$AGENT_TIMEOUT" opencode run "$prompt") >"$out" 2>&1 || rc=$?
+    kimi) cmd=(timeout "$AGENT_TIMEOUT" kimi --print --output-format stream-json -p "$prompt") ;;
+    opencode)
+      # opencode.ai (sst) has `run`; permissions come from ~/.config/opencode/opencode.json (install.sh sets allow).
+      # The older Go opencode (now Crush) has no `run` and auto-approves in -p mode.
+      if opencode run --help >/dev/null 2>&1; then cmd=(timeout "$AGENT_TIMEOUT" opencode run "$prompt")
+      else cmd=(timeout "$AGENT_TIMEOUT" opencode -p "$prompt" -q); fi ;;
+    *) cmd=(timeout "$((AGENT_TIMEOUT + 60))" agy -p "$prompt" --output-format stream-json
+            --dangerously-skip-permissions --print-timeout "${AGENT_TIMEOUT}s") ;;
+  esac
+  log "running $AGENT in $dir (log: $out)"
+  # setsid puts the agent and everything it starts (tests, servers) in one process group we can stop as a whole
+  (cd "$dir" && exec setsid "${cmd[@]}") >"$out" 2>&1 &
+  pid=$!
+  # watchdog: no new output AND no file changed in the worktree for STALL_SEC means the agent is stuck
+  # (some CLIs print only at the end, so file activity counts too)
+  RUN_MARK=$(mktemp); trap 'rm -f "$RUN_MARK" "$PIDFILE"' EXIT
+  while kill -0 "$pid" 2>/dev/null; do
+    sleep 30
+    local size; size=$(wc -c <"$out" 2>/dev/null || echo 0)
+    if [[ $size != "$last_size" ]] || [[ -n $(find "$dir" -path "$dir/node_modules" -prune -o -path "$dir/.git" -prune \
+         -o -newer "$RUN_MARK" -type f -print -quit 2>/dev/null) ]]; then
+      idle=0; last_size=$size; touch "$RUN_MARK"
     else
-      (cd "$dir" && timeout "$AGENT_TIMEOUT" opencode -p "$prompt" -q) >"$out" 2>&1 || rc=$?
+      idle=$((idle + 30))
     fi
-  else
-    (cd "$dir" && timeout "$((AGENT_TIMEOUT + 60))" agy -p "$prompt" --output-format stream-json \
-      --dangerously-skip-permissions --print-timeout "${AGENT_TIMEOUT}s") >"$out" 2>&1 || rc=$?
+    if (( idle >= STALL_SEC )); then
+      stalled=1; log "no output or file changes for $((STALL_SEC / 60)) min; stopping $AGENT"
+      kill -TERM -- "-$pid" 2>/dev/null; sleep 20; kill -KILL -- "-$pid" 2>/dev/null
+      break
+    fi
+  done
+  wait "$pid" 2>/dev/null || rc=$?
+  if [[ -n $stalled ]]; then
+    score stalled
+    die "$AGENT stalled (no output or file changes for $((STALL_SEC / 60)) min) and was stopped; nothing pushed. Last output: $(tail -n 2 "$out" | tr '\n' ' ' | cut -c1-300)"
   fi
   # a real run takes minutes; a CLI that isn't signed in or configured quits within seconds with a few lines
   local wrote=""   # every mode deletes its output file before the run, so finding one means the agent did work
@@ -155,6 +178,16 @@ branch_for_wp() {
 pr_for_branch() {
   # REST, not `gh pr list`: GraphQL PR queries can touch fields the repo-scoped token can't read
   gh api "repos/$REPO_SLUG/pulls?head=${REPO_SLUG%%/*}:$1&state=open" --jq '.[0].number // empty'
+}
+
+clean_worktree() {  # <dir>: abort any half-finished merge/rebase/cherry-pick and drop uncommitted changes
+  local d=$1 g; g=$(git -C "$d" rev-parse --git-dir)
+  [[ -e $g/MERGE_HEAD ]] && { log "aborting an unfinished merge in $d"; git -C "$d" merge --abort 2>/dev/null; }
+  [[ -d $g/rebase-merge || -d $g/rebase-apply ]] && { log "aborting an unfinished rebase in $d"; git -C "$d" rebase --abort 2>/dev/null; }
+  [[ -e $g/CHERRY_PICK_HEAD ]] && { log "aborting an unfinished cherry-pick in $d"; git -C "$d" cherry-pick --abort 2>/dev/null; }
+  if [[ -n $(git -C "$d" status --porcelain --untracked-files=no) ]]; then
+    log "dropping uncommitted changes in $d"; git -C "$d" reset -q --hard
+  fi
 }
 
 pr_comment() {  # <file>: post a file as a comment on $PR (REST)
@@ -277,6 +310,7 @@ fi
 if [[ $MODE == push ]]; then
   WT="$WT_ROOT/$WP"
   [[ -d $WT ]] || die "no kept worktree at $WT; nothing to push"
+  clean_worktree "$WT"   # keeps commits; only clears an unfinished merge/rebase and uncommitted leftovers
   BRANCH=$(git -C "$WT" symbolic-ref --short HEAD) || die "$WT is not on a branch"
   [[ $BRANCH == wp/$WP-* ]] || die "$WT is on $BRANCH, expected wp/$WP-*"
   (( $(git -C "$WT" rev-list --count origin/develop..HEAD) > 0 )) || die "no commits on $BRANCH beyond develop; nothing to push"
@@ -328,7 +362,13 @@ if [[ $MODE == fix ]]; then
   if [[ ! -e $WT ]]; then
     git -C "$CLONE" worktree add -q -B "$BRANCH" "$WT" "origin/$BRANCH"
   else
-    git -C "$WT" merge --ff-only -q "origin/$BRANCH" || die "$WT has diverged from origin/$BRANCH; sort it out by hand"
+    # a run that died mid-way (limit, crash, watchdog) can leave a merge/rebase in progress or unpushed work;
+    # GitHub's branch is the truth for a fix, so clear all of that and start from it
+    clean_worktree "$WT"
+    if ! git -C "$WT" merge --ff-only -q "origin/$BRANCH" 2>/dev/null; then
+      log "discarding unpushed commits from an earlier failed run: $(git -C "$WT" log --oneline "origin/$BRANCH"..HEAD | tr '\n' ';')"
+      git -C "$WT" reset -q --hard "origin/$BRANCH"
+    fi
   fi
   [[ -d $WT/node_modules ]] || (cd "$WT" && npm ci --no-audit --no-fund >"$LOGDIR/$WP.npm.log" 2>&1)
   PROMPT="You are fixing work package $WP in the Sutaeru repository, on branch $BRANCH (PR #$PR into develop).
