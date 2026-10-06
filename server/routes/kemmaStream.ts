@@ -117,7 +117,7 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
 
     // Live activity feed ("activity" SSE events): one row per tool call / phase, updated by id.
     let toolSeq = 0;
-    let currentTool: { id: string; input: unknown } | null = null;
+    const activeTools = new Map<string, { id: string; input: unknown; tool: string }>();
     let thinkId: string | null = null;
     let writing = false;
     const sendActivity = (event: ActivityEvent) => { if (!aborted) sendEvent(res, "activity", event); };
@@ -155,28 +155,37 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
       },
       onToolStart: (tool, input, callId) => {
         if (aborted) return;
-        const id = (streamToolTurns && callId) ? callId : `tool-${++toolSeq}`;
-        currentTool = { id, input };
+        const id = callId || `tool-${++toolSeq}`;
+        activeTools.set(id, { id, input, tool });
         if (streamToolTurns) {
           sendEvent(res, "tool_start", { id, tool, input });
         } else {
           sendEvent(res, "tool_start", { tool, input });
         }
         sendEvent(res, "agent", true);
-        sendActivity(describeToolStart(currentTool.id, tool, input));
+        sendActivity(describeToolStart(id, tool, input));
       },
       onToolEnd: (tool, result, durationMs, callId) => {
         if (aborted) return;
-        const fallbackId = `tool-${++toolSeq}`;
-        const started = currentTool ?? { id: (streamToolTurns && callId) ? callId : fallbackId, input: {} };
-        const id = (streamToolTurns && callId) ? callId : started.id;
-        currentTool = null;
+        let started = callId ? activeTools.get(callId) : undefined;
+        if (started && callId) {
+          activeTools.delete(callId);
+        } else if (!started) {
+          const fallbackEntry = [...activeTools.entries()].find(([_k, v]) => v.tool === tool) ?? [...activeTools.entries()][0];
+          if (fallbackEntry) {
+            started = fallbackEntry[1];
+            activeTools.delete(fallbackEntry[0]);
+          } else {
+            started = { id: callId || `tool-${++toolSeq}`, input: {}, tool };
+          }
+        }
+        const id = started.id;
         if (streamToolTurns) {
           sendEvent(res, "tool_end", { id, tool, input: started.input, output: result, step: 0, durationMs });
         } else {
           sendEvent(res, "tool_end", { tool, input: started.input, output: result, step: 0, durationMs });
         }
-        sendActivity(describeToolEnd(started.id, tool, started.input, result, durationMs));
+        sendActivity(describeToolEnd(id, tool, started.input, result, durationMs));
       },
       onStepStart: (step, model) => {
         if (aborted) return;

@@ -1,8 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { buildKemmaSystemPrompt, buildKemmaVoicePrompt } from "./personality";
 import { isAdminUser } from "./executors/vpsFiles";
+import pLimit from "p-limit";
 import { registerBuiltinTools } from "./toolkit/builtin";
-import { runTool, toOpenAiTools, toolsFor, type OpenAiToolDef } from "./toolkit/registry";
+import { getToolSpec, runTool, toOpenAiTools, toolsFor, type OpenAiToolDef } from "./toolkit/registry";
 import { SKILL_TOOL_NAMES } from "./toolkit/names";
 import type { ToolContext } from "./toolkit/types";
 import {
@@ -245,6 +246,13 @@ async function runParallelSubAgents(
   };
 }
 
+function getToolConcurrency(): number {
+  const raw = process.env.KEMMA_TOOL_CONCURRENCY?.trim();
+  if (!raw) return 4;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 4;
+}
+
 export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   const startTime = Date.now();
   // Admin-only models are re-checked against the DB here, whatever the caller passed.
@@ -388,6 +396,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   }
 
   const streamToolTurns = flag("STREAM_TOOL_TURNS");
+  const parallelTools = flag("PARALLEL_TOOLS");
 
   while (step < maxSteps) {
     step++;
@@ -432,15 +441,64 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
       }
       currentMessages.push({ role: "assistant", content: llmResponse.content ?? null, tool_calls: llmResponse.toolCalls });
 
-      for (const tc of llmResponse.toolCalls) {
-        totalToolCallCount++;
+      interface PreparedCall {
+        index: number;
+        tc: ToolCall;
+        parsedArgs: unknown;
+        parallelSafe: boolean;
+        budgetAllowed: boolean;
+      }
+
+      interface ExecutedCallOutcome {
+        index: number;
+        tc: ToolCall;
+        parsedArgs: unknown;
+        toolResult: unknown;
+        toolDuration: number;
+      }
+
+      const preparedCalls: PreparedCall[] = [];
+      for (let i = 0; i < llmResponse.toolCalls.length; i++) {
+        const tc = llmResponse.toolCalls[i];
         let parsedArgs: unknown;
         try { parsedArgs = JSON.parse(tc.function.arguments || "{}"); } catch { parsedArgs = {}; }
-        if (streamToolTurns) {
-          onToolStart?.(tc.function.name, parsedArgs, tc.id);
+        const spec = toolSpecs.find((s) => s.name === tc.function.name) ?? getToolSpec(tc.function.name);
+        const parallelSafe = spec?.parallelSafe === true;
+
+        if (totalToolCallCount < maxToolCalls) {
+          totalToolCallCount++;
+          preparedCalls.push({ index: i, tc, parsedArgs, parallelSafe, budgetAllowed: true });
+        } else {
+          preparedCalls.push({ index: i, tc, parsedArgs, parallelSafe, budgetAllowed: false });
+        }
+      }
+
+      const executeCall = async (call: PreparedCall): Promise<ExecutedCallOutcome> => {
+        const { tc, parsedArgs, budgetAllowed } = call;
+        const callId = (streamToolTurns || parallelTools) ? (tc.id || `call_${call.index}`) : undefined;
+
+        if (callId) {
+          onToolStart?.(tc.function.name, parsedArgs, callId);
         } else {
           onToolStart?.(tc.function.name, parsedArgs);
         }
+
+        if (!budgetAllowed) {
+          const toolResult = { ok: false, code: "NOT_ALLOWED" as const, error: "Tool budget for this run is used up." };
+          if (callId) {
+            onToolEnd?.(tc.function.name, toolResult, 0, callId);
+          } else {
+            onToolEnd?.(tc.function.name, toolResult, 0);
+          }
+          return {
+            index: call.index,
+            tc,
+            parsedArgs,
+            toolResult,
+            toolDuration: 0,
+          };
+        }
+
         const toolStart = Date.now();
         let toolResult: unknown;
         if (!availableToolNames().has(tc.function.name)) {
@@ -449,8 +507,49 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
           try {
             const outcome = await runTool(tc.function.name, parsedArgs, toolCtx);
             toolResult = outcome.ok ? outcome.data : { success: false, error: outcome.error, code: outcome.code };
-          } catch (err) { toolResult = { error: `Tool ${tc.function.name} failed: ${(err as Error).message}` }; }
+          } catch (err) {
+            toolResult = { error: `Tool ${tc.function.name} failed: ${(err as Error).message}` };
+          }
         }
+        const toolDuration = Date.now() - toolStart;
+        if (callId) {
+          onToolEnd?.(tc.function.name, toolResult, toolDuration, callId);
+        } else {
+          onToolEnd?.(tc.function.name, toolResult, toolDuration);
+        }
+
+        return {
+          index: call.index,
+          tc,
+          parsedArgs,
+          toolResult,
+          toolDuration,
+        };
+      };
+
+      let outcomes: ExecutedCallOutcome[];
+      if (parallelTools) {
+        const safeCalls = preparedCalls.filter((c) => c.parallelSafe);
+        const otherCalls = preparedCalls.filter((c) => !c.parallelSafe);
+
+        const limit = pLimit(getToolConcurrency());
+        const safeOutcomes = await Promise.all(safeCalls.map((c) => limit(() => executeCall(c))));
+
+        const otherOutcomes: ExecutedCallOutcome[] = [];
+        for (const c of otherCalls) {
+          otherOutcomes.push(await executeCall(c));
+        }
+
+        outcomes = [...safeOutcomes, ...otherOutcomes].sort((a, b) => a.index - b.index);
+      } else {
+        outcomes = [];
+        for (const c of preparedCalls) {
+          outcomes.push(await executeCall(c));
+        }
+      }
+
+      for (const item of outcomes) {
+        const { tc, parsedArgs, toolResult, toolDuration } = item;
         if (tc.function.name === "load_skill" && (toolResult as { success?: boolean })?.success) {
           const loaded = enabledSkills.find((sk) => sk.slug === (parsedArgs as { name?: string })?.name);
           if (loaded) {
@@ -458,12 +557,6 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
             applySkillNarrowing();
             onSkillUsed?.({ id: 0, name: loaded.slug });
           }
-        }
-        const toolDuration = Date.now() - toolStart;
-        if (streamToolTurns) {
-          onToolEnd?.(tc.function.name, toolResult, toolDuration, tc.id);
-        } else {
-          onToolEnd?.(tc.function.name, toolResult, toolDuration);
         }
         toolExecutions.push({ tool: tc.function.name, input: parsedArgs, output: toolResult, step, durationMs: toolDuration });
         const newSources = extractSources(tc.function.name, toolResult);
