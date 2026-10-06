@@ -52,10 +52,10 @@ Today the session daemon runs as root next to `/root/sr1/.env`. Auto-approve age
 `ops/agents/install.sh` sets up a separate `agents` user for them. As root on the VPS:
 
 ```bash
-git -C /root/sr1 fetch -q origin main && git -C /root/sr1 show FETCH_HEAD:ops/agents/install.sh | bash
+git -C /root/sr1 fetch -q origin develop && git -C /root/sr1 show FETCH_HEAD:ops/agents/install.sh | bash
 ```
 
-(Before this is merged to `main`, put the branch name in both places and add `SCRIPTS_REF=<branch>` before `bash`.)
+(This takes the scripts from `develop`. To test a branch, put its name in both places and add `SCRIPTS_REF=<branch>` before `bash`.)
 It asks once for a GitHub token: a fine-grained token for this repo only, with **Contents, Pull requests and
 Issues: read and write** and nothing else. Then it:
 
@@ -64,7 +64,7 @@ Issues: read and write** and nothing else. Then it:
 3. installs `dispatch.sh` and `watch.sh` root-owned in `/opt/sutaeru-agents/`, so an agent can't rewrite its own gate
 4. installs `qwen` (npm, `@qwen-code/qwen-code`) and `agy` (Google's install script) into `~agents/.local/bin`, and runs the watcher as the `sutaeru-agents` systemd service
 
-It's safe to re-run. Re-running is also how you update the scripts after they change on `main`.
+It's safe to re-run. Re-running is also how you update the scripts after they change on `develop`.
 Two things it can't do for you, once each:
 
 ```bash

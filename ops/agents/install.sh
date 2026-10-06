@@ -3,7 +3,7 @@
 # Does everything in docs/spec/AGENT_OPS.md §3 and is safe to re-run (re-running also updates the scripts).
 #
 #   sudo bash ops/agents/install.sh          from a checkout that has this file, e.g. /root/sr1, or straight from git:
-#   git -C /root/sr1 fetch -q origin main && git -C /root/sr1 show FETCH_HEAD:ops/agents/install.sh | sudo bash
+#   git -C /root/sr1 fetch -q origin develop && git -C /root/sr1 show FETCH_HEAD:ops/agents/install.sh | sudo bash
 #
 # It asks once for a fine-grained GitHub token (this repo only; Contents + Pull requests + Issues: read/write),
 # unless GH_TOKEN is set or the agents user is already signed in to gh.
@@ -13,7 +13,7 @@ set -euo pipefail
 
 AGENTS_USER="${AGENTS_USER:-agents}"
 REPO_SLUG="${REPO_SLUG:-remyzardap/SR1}"
-SCRIPTS_REF="${SCRIPTS_REF:-main}"
+SCRIPTS_REF="${SCRIPTS_REF:-develop}"
 OWNER_LOGIN="${OWNER_LOGIN:-${REPO_SLUG%%/*},claude[bot]}"   # who may open agent-task issues
 BIN_DIR=/opt/sutaeru-agents          # root-owned, so an agent can't rewrite its own gate
 UNIT=/etc/systemd/system/sutaeru-agents.service
