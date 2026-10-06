@@ -47,6 +47,16 @@ import type { SegmentKind } from "./events";
 import { getMemoriesContext } from "./memory";
 import { type Source, extractSources, dedupeSources, annotateSearchResult, citedSubset, keepCitedSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
 import { isUntrustedTool, extractToolSource, detectInjection, wrapUntrustedContent } from "./untrusted";
+import {
+  COMPACTION_SYSTEM_PROMPT,
+  handleFreshResult,
+  manageContext,
+  normalizeCacheEntry,
+  releaseResultStore,
+  resultStoreFor,
+  type CompactionCacheEntry,
+} from "./context";
+import { getSessionContextCache, saveSessionContextCache } from "../db";
 
 export interface KemmaMessage {
   role: "user" | "assistant" | "system" | "tool";
@@ -457,6 +467,63 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   const streamToolTurns = flag("STREAM_TOOL_TURNS");
   const parallelTools = flag("PARALLEL_TOOLS");
 
+  // Context manager (P1-13), dark behind flag("CONTEXT_MANAGER"). The run's full tool results and
+  // this chat's cached summary live here so every request can be fitted to its budget before it is sent.
+  const contextStore = resultStoreFor(runId);
+  let contextCache: CompactionCacheEntry | null = null;
+  if (sessionId && flag("CONTEXT_MANAGER")) {
+    try {
+      contextCache = normalizeCacheEntry(await getSessionContextCache(sessionId));
+    } catch { /* non-fatal: at worst the summary is recomputed */ }
+  }
+
+  /**
+   * Rewrites `currentMessages` so the call about to be made fits its model's input budget. It never
+   * throws: a manager that cannot fit the request logs a warning and lets the request go as it was,
+   * which is kinder than failing the user's turn over an estimate.
+   */
+  const fitContext = async (route: RouteConfig, tools: OpenAiToolDef[] | undefined, purpose: string): Promise<void> => {
+    const cheapRoute = plannerRoute();
+    const managed = await manageContext({
+      messages: currentMessages,
+      model: route.model,
+      maxTokens: resolveMaxTokens(route.model, purpose),
+      tools,
+      store: contextStore,
+      cache: contextCache,
+      summaryModel: cheapRoute.model,
+      saveCache: async (entry) => {
+        contextCache = entry;
+        if (!sessionId) return;
+        try {
+          await saveSessionContextCache(sessionId, entry);
+        } catch (err) {
+          console.error("[context] could not store the summary:", err instanceof Error ? err.message : err);
+        }
+      },
+      summarizeCalls: async (transcript) => {
+        const result = await callLLM({
+          route: cheapRoute,
+          systemPrompt: COMPACTION_SYSTEM_PROMPT,
+          messages: [{ role: "user", content: transcript }],
+          stream: false,
+          userId,
+          sessionId,
+          reportId,
+          purpose: "compaction",
+          signal: input.signal,
+        });
+        return result.content ?? "";
+      },
+    });
+    currentMessages = managed.messages;
+    if (managed.overBudget) {
+      console.error(
+        `[context] over budget after ${managed.applied.join("+") || "nothing"}: ${managed.estimatedTokens}/${managed.budget} tokens`,
+      );
+    }
+  };
+
   while (step < maxSteps) {
     if (input.signal?.aborted) {
       return {
@@ -491,6 +558,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
 
     let llmResponse: Awaited<ReturnType<typeof callLLM>>;
     try {
+      await fitContext(route, offerTools ? wireTools() : undefined, stepPurpose);
       llmResponse = await callLLM({
         route,
         systemPrompt,
@@ -702,6 +770,8 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
             injectionSuspected: detection.injectionSuspected,
           });
         }
+        // A result too big to keep whole enters the transcript as its head plus a handle (P1-13).
+        toolMessageContent = handleFreshResult({ content: toolMessageContent, toolName: tc.function.name, store: contextStore }) ?? toolMessageContent;
         currentMessages.push({ role: "tool", content: toolMessageContent, tool_call_id: tc.id, name: tc.function.name });
       }
 
@@ -784,6 +854,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
           : undefined;
 
         try {
+          await fitContext(route, undefined, stepPurpose);
           llmResponse = await callLLM({
             route,
             systemPrompt,
@@ -1010,6 +1081,8 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
       }
     }
 
+    // The run is over: its stashed full results are no longer reachable by `read_result`.
+    releaseResultStore(runId);
     return {
       response: finalContent,
       toolCalls: toolExecutions,
@@ -1031,6 +1104,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     fallbackSources,
     { dropUnknown: !onStream }
   );
+  releaseResultStore(runId);
   return {
     response: "I have completed the available steps. Let me know if you need anything else.",
     toolCalls: toolExecutions,
