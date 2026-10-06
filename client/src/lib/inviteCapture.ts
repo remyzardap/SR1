@@ -116,7 +116,7 @@ export type InviteCaptureResult = {
   hadParam: boolean;
 };
 
-/** Captures `?invite=` into storage. Does not touch the address bar — see stripInviteParam. */
+/** Captures `?invite=` into storage. Does not touch the address bar — see captureInviteFromWindow. */
 export function captureInviteCode(
   search: string,
   storage: StorageLike | null,
@@ -150,12 +150,4 @@ export function captureInviteFromWindow(): string | null {
     window.history.replaceState({}, "", next);
   }
   return code;
-}
-
-/** Rewrites the address bar without the invite parameter, leaving storage untouched. */
-export function stripInviteParam(): void {
-  if (typeof window === "undefined") return;
-  const { pathname, search } = window.location;
-  if (!toParams(search).has(INVITE_PARAM)) return;
-  window.history.replaceState({}, "", urlWithoutInviteParam(pathname, search));
 }

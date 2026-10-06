@@ -11,7 +11,6 @@ import {
   peekInviteCode,
   readInviteParam,
   saveInviteCode,
-  stripInviteParam,
   urlWithoutInviteParam,
   type StorageLike,
 } from "./inviteCapture";
@@ -132,7 +131,6 @@ describe("captureInviteCode", () => {
   it("captures nothing on the server, where there is no window", () => {
     expect(typeof window).toBe("undefined");
     expect(captureInviteFromWindow()).toBeNull();
-    expect(() => stripInviteParam()).not.toThrow();
   });
 });
 
