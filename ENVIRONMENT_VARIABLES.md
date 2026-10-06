@@ -58,6 +58,18 @@ GEMINI_API_KEY=
 SONAR_API_KEY=
 ```
 
+### P1-08 search provider layer (only used when `FF_SEARCH_V2` is on)
+
+| Variable | Description |
+|----------|-------------|
+| `BRAVE_SEARCH_API_KEY` | Brave Search API key |
+| `TAVILY_API_KEY` | Tavily Search API key |
+| `EXA_API_KEY` | Exa Search API key |
+| `SEARXNG_URL` | Base URL of a self-hosted SearXNG instance (no trailing slash), e.g. a private one; most public instances disable the JSON API |
+| `KEMMA_SEARCH_PROVIDERS` | Comma-separated fast-path provider order, filtered to whichever are configured (default `brave,tavily,sonar`). The `perplexity` id is the results-only Perplexity Search API, reusing `PERPLEXITY_API_KEY`/`SONAR_API_KEY` above — a different endpoint from the Sonar chat-completions path the `sonar` id wraps |
+| `SEARCH_COST_<ID>` | Per-request cost override (USD) for provider `<ID>` in upper case, e.g. `SEARCH_COST_BRAVE=0.004`. Falls back to a built-in estimate per provider |
+| `KEMMA_SEARCH_RPM_<ID>` | Per-provider requests-per-minute override, e.g. `KEMMA_SEARCH_RPM_BRAVE=20`. Falls back to `KEMMA_SEARCH_RPM` |
+
 ### LiteLLM gateway (KoboiLLM)
 
 OpenAI-compatible gateway available as a fourth provider. Calls go to `{LITELLM_BASE_URL}/chat/completions` with `Authorization: Bearer <key>`.
