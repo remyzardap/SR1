@@ -62,4 +62,22 @@ describe("Tier 3 escalation recursion guard integration", () => {
     expect(result.content).toContain("Content from interactive browse");
     expect(browserUseRun).toHaveBeenCalledTimes(1);
   });
+
+  it("cancels an in-flight tier-3 agent task when the caller's signal aborts", async () => {
+    // Tier 1 escalates (503), tier 2 is unconfigured, so the read lands on the browser agent.
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("Service Unavailable", { status: 503 })));
+
+    const controller = new AbortController();
+    // The agent task never settles on its own: only the abort can end the read. Aborting from
+    // inside run() would race browseWithAgent's own listener registration, so defer a tick.
+    browserUseRun.mockImplementation(() => {
+      setTimeout(() => controller.abort(), 0);
+      return new Promise(() => {});
+    });
+
+    await expect(browse("https://example.com/app", { signal: controller.signal })).rejects.toMatchObject({
+      code: "ABORTED",
+    });
+    expect(browserUseRun).toHaveBeenCalledTimes(1);
+  });
 });
