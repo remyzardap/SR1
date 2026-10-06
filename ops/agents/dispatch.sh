@@ -104,6 +104,17 @@ run_agent() {  # <workdir> <prompt> <logfile>
     *) cmd=(timeout "$((AGENT_TIMEOUT + 60))" agy -p "$prompt" --output-format stream-json
             --dangerously-skip-permissions --print-timeout "${AGENT_TIMEOUT}s") ;;
   esac
+  # Files the prompt names under $LOGDIR (task, feedback, the PR body/report to write) are mirrored into
+  # <worktree>/.agent/ and the prompt points there: some CLIs (opencode) refuse paths outside their working dir.
+  # .agent/ is git-excluded, so the gate never sees it; results are copied back after the run.
+  local -a xfer=() f
+  mkdir -p "$dir/.agent"
+  grep -qx '/.agent/' "$CLONE/.git/info/exclude" 2>/dev/null || echo '/.agent/' >> "$CLONE/.git/info/exclude"
+  while IFS= read -r f; do
+    f=${f%%[.,;:)\"\']}; [[ -n $f ]] && xfer+=("$f")
+  done < <(grep -oE "$LOGDIR/[^[:space:]]+" <<<"$prompt" | sort -u)
+  for f in "${xfer[@]}"; do [[ -f $f ]] && cp "$f" "$dir/.agent/${f##*/}"; done
+  prompt=${prompt//"$LOGDIR/"/"$dir/.agent/"}
   log "running $AGENT in $dir (log: $out)"
   # setsid puts the agent and everything it starts (tests, servers) in one process group we can stop as a whole
   (cd "$dir" && exec setsid "${cmd[@]}") >"$out" 2>&1 &
@@ -127,6 +138,7 @@ run_agent() {  # <workdir> <prompt> <logfile>
     fi
   done
   wait "$pid" 2>/dev/null || rc=$?
+  for f in "${xfer[@]}"; do [[ -s $dir/.agent/${f##*/} ]] && cp "$dir/.agent/${f##*/}" "$f"; done
   if [[ -n $stalled ]]; then
     score stalled
     die "$AGENT stalled (no output or file changes for $((STALL_SEC / 60)) min) and was stopped; nothing pushed. Last output: $(tail -n 2 "$out" | tr '\n' ' ' | cut -c1-300)"
