@@ -15,7 +15,7 @@ vi.mock("browser-use-sdk", () => ({
   BrowserUse: vi.fn().mockImplementation(() => ({ run: browserUseRun })),
 }));
 
-import { browse } from "./kemmaMax";
+import { browse, browseWithAgent } from "./kemmaMax";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -29,7 +29,7 @@ afterEach(() => {
 describe("browse() with READER_V2 off", () => {
   beforeEach(() => flagsMock.flag.mockReturnValue(false));
 
-  it("never calls the tiered reader", async () => {
+  it("never calls the tiered reader and delegates to browseWithAgent", async () => {
     process.env.BROWSER_USE_API_KEY = "bu-key";
     browserUseRun.mockResolvedValue({ output: JSON.stringify({ title: "Legacy", content: "legacy content" }) });
     const result = await browse("https://example.com/page");
@@ -40,6 +40,19 @@ describe("browse() with READER_V2 off", () => {
   it("fails the same way as before when BROWSER_USE_API_KEY is unset", async () => {
     await expect(browse("https://example.com/page")).rejects.toMatchObject({ code: "NOT_CONFIGURED" });
     expect(readerMock.readPage).not.toHaveBeenCalled();
+  });
+});
+
+describe("browseWithAgent()", () => {
+  it("executes the browser agent directly regardless of flag state", async () => {
+    flagsMock.flag.mockReturnValue(true); // flag is ON, but browseWithAgent must NOT consult reader
+    process.env.BROWSER_USE_API_KEY = "bu-key";
+    browserUseRun.mockResolvedValue({ output: JSON.stringify({ title: "Direct Agent", content: "agent body" }) });
+
+    const result = await browseWithAgent("https://example.com/direct", { interactive: true });
+    expect(readerMock.readPage).not.toHaveBeenCalled();
+    expect(result).toEqual({ title: "Direct Agent", content: "agent body" });
+    expect(browserUseRun).toHaveBeenCalled();
   });
 });
 
@@ -68,7 +81,7 @@ describe("browse() with READER_V2 on", () => {
     expect(browserUseRun).not.toHaveBeenCalled();
   });
 
-  it("never calls the browser-use agent directly from this path", async () => {
+  it("never calls the browser-use agent directly from this path when tier 1/2 succeed", async () => {
     readerMock.readPage.mockResolvedValue({ url: "u", finalUrl: "u", title: "T", markdown: "m", tier: 2, truncated: true });
     await browse("https://example.com/page");
     expect(browserUseRun).not.toHaveBeenCalled();

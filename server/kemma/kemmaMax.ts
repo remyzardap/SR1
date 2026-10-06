@@ -373,6 +373,14 @@ export async function browse(url: string, options: BrowseOptions = {}): Promise<
     return { title: page.title || "Untitled", content: page.markdown, tier: page.tier, truncated: page.truncated, url: page.finalUrl, publishedAt: page.publishedAt };
   }
 
+  return browseWithAgent(url, options);
+}
+
+/**
+ * Executes the browser-use agent directly without checking flag("READER_V2").
+ * Used when READER_V2 is off, or as Tier 3 fallback by the tiered reader.
+ */
+export async function browseWithAgent(url: string, options: BrowseOptions = {}): Promise<BrowseResult> {
   const normalizedUrl = validateUrl(url);
 
   if (!browserUseApiKey()) {

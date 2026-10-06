@@ -30,6 +30,12 @@ export async function readWithFirecrawl(
   url: string,
   opts: { signal?: AbortSignal } = {}
 ): Promise<Tier2Result> {
+  if (opts.signal?.aborted) {
+    const err = new Error("The operation was aborted");
+    err.name = "AbortError";
+    throw err;
+  }
+
   const apiKey = process.env.FIRECRAWL_API_KEY?.trim();
   if (!apiKey) throw new ReaderTierError("FIRECRAWL_API_KEY is not configured");
 
@@ -47,6 +53,11 @@ export async function readWithFirecrawl(
       signal: controller.signal,
     });
   } catch (err) {
+    if (opts.signal?.aborted || (err instanceof Error && err.name === "AbortError")) {
+      const abortErr = new Error("The operation was aborted");
+      abortErr.name = "AbortError";
+      throw abortErr;
+    }
     throw new ReaderTierError(`Firecrawl request failed: ${err instanceof Error ? err.message : "network error"}`);
   } finally {
     clearTimeout(timer);

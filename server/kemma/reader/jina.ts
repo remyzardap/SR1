@@ -39,6 +39,12 @@ export async function readWithJina(
   url: string,
   opts: { signal?: AbortSignal } = {}
 ): Promise<Tier2Result> {
+  if (opts.signal?.aborted) {
+    const err = new Error("The operation was aborted");
+    err.name = "AbortError";
+    throw err;
+  }
+
   const apiKey = process.env.JINA_API_KEY?.trim();
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -55,6 +61,11 @@ export async function readWithJina(
   try {
     res = await fetch(`https://r.jina.ai/${url}`, { headers, signal: controller.signal });
   } catch (err) {
+    if (opts.signal?.aborted || (err instanceof Error && err.name === "AbortError")) {
+      const abortErr = new Error("The operation was aborted");
+      abortErr.name = "AbortError";
+      throw abortErr;
+    }
     throw new ReaderTierError(`Jina Reader request failed: ${err instanceof Error ? err.message : "network error"}`);
   } finally {
     clearTimeout(timer);

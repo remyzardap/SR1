@@ -18,10 +18,10 @@ vi.mock("./jina", async () => {
 const firecrawlMock = vi.hoisted(() => ({ readWithFirecrawl: vi.fn() }));
 vi.mock("./firecrawl", () => firecrawlMock);
 
-const kemmaMaxMock = vi.hoisted(() => ({ browse: vi.fn() }));
+const kemmaMaxMock = vi.hoisted(() => ({ browse: vi.fn(), browseWithAgent: vi.fn() }));
 vi.mock("../kemmaMax", () => kemmaMaxMock);
 
-import { readPage, canonicalizeUrl } from "./index";
+import { readPage, canonicalizeUrl, SsrfBlockedError } from "./index";
 
 const htmlRes = (body: string, init?: ResponseInit) =>
   new Response(body, { status: 200, headers: { "content-type": "text/html" }, ...init });
@@ -46,26 +46,49 @@ afterEach(() => {
 });
 
 describe("readPage SSRF guards", () => {
-  it("refuses a literal private IP", async () => {
-    await expect(readPage("http://169.254.169.254/latest/meta-data")).rejects.toThrow();
+  it("refuses a literal private IP and never calls tier 2 or 3 even when configured", async () => {
+    process.env.READER_FALLBACK = "jina";
+    process.env.BROWSER_USE_API_KEY = "bu-key";
+    await expect(readPage("http://169.254.169.254/latest/meta-data")).rejects.toThrow(SsrfBlockedError);
+    expect(jinaMock.readWithJina).not.toHaveBeenCalled();
+    expect(kemmaMaxMock.browseWithAgent).not.toHaveBeenCalled();
   });
 
-  it("refuses a redirect that lands on a private address", async () => {
+  it("refuses a redirect that lands on a private address without calling tier 2 or 3", async () => {
+    process.env.READER_FALLBACK = "jina";
+    process.env.BROWSER_USE_API_KEY = "bu-key";
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(redirect("http://127.0.0.1/admin")));
-    await expect(readPage("https://good.example.com/start")).rejects.toThrow();
+    await expect(readPage("https://good.example.com/start")).rejects.toThrow(SsrfBlockedError);
+    expect(jinaMock.readWithJina).not.toHaveBeenCalled();
+    expect(kemmaMaxMock.browseWithAgent).not.toHaveBeenCalled();
   });
 
-  it("refuses a redirect to a private address even after public hops", async () => {
+  it("refuses a redirect to a private address even after public hops without escalating", async () => {
+    process.env.READER_FALLBACK = "jina";
+    process.env.BROWSER_USE_API_KEY = "bu-key";
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(redirect("https://also-public.example.com/next"))
       .mockResolvedValueOnce(redirect("http://10.0.0.5/secret"));
     vi.stubGlobal("fetch", fetchMock);
-    await expect(readPage("https://good.example.com/start")).rejects.toThrow();
+    await expect(readPage("https://good.example.com/start")).rejects.toThrow(SsrfBlockedError);
+    expect(jinaMock.readWithJina).not.toHaveBeenCalled();
+    expect(kemmaMaxMock.browseWithAgent).not.toHaveBeenCalled();
   });
 
-  it("refuses a file: URL", async () => {
-    await expect(readPage("file:///etc/passwd")).rejects.toThrow();
+  it("refuses a file: URL on standard and interactive paths without escalating", async () => {
+    process.env.READER_FALLBACK = "jina";
+    process.env.BROWSER_USE_API_KEY = "bu-key";
+    await expect(readPage("file:///etc/passwd")).rejects.toThrow(SsrfBlockedError);
+    await expect(readPage("file:///etc/passwd", { interactive: true })).rejects.toThrow(SsrfBlockedError);
+    expect(jinaMock.readWithJina).not.toHaveBeenCalled();
+    expect(kemmaMaxMock.browseWithAgent).not.toHaveBeenCalled();
+  });
+
+  it("refuses a private IP on interactive path without calling tier 3", async () => {
+    process.env.BROWSER_USE_API_KEY = "bu-key";
+    await expect(readPage("http://127.0.0.1:8080/dashboard", { interactive: true })).rejects.toThrow(SsrfBlockedError);
+    expect(kemmaMaxMock.browseWithAgent).not.toHaveBeenCalled();
   });
 
   it("stops after too many redirects", async () => {
@@ -73,6 +96,41 @@ describe("readPage SSRF guards", () => {
     vi.stubGlobal("fetch", fetchMock);
     await expect(readPage("https://good.example.com/start")).rejects.toThrow(/redirect/i);
     expect(fetchMock.mock.calls.length).toBeLessThanOrEqual(6);
+  });
+});
+
+describe("readPage abort cancellation", () => {
+  it("rejects immediately on pre-aborted signal without fetching or calling tier 2/3", async () => {
+    process.env.READER_FALLBACK = "jina";
+    process.env.BROWSER_USE_API_KEY = "bu-key";
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(readPage("https://good.example.com/page", { signal: controller.signal })).rejects.toThrow(/abort/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(jinaMock.readWithJina).not.toHaveBeenCalled();
+    expect(kemmaMaxMock.browseWithAgent).not.toHaveBeenCalled();
+  });
+
+  it("rejects when aborted mid-tier-1 without escalating to tier 2 or tier 3", async () => {
+    process.env.READER_FALLBACK = "jina";
+    process.env.BROWSER_USE_API_KEY = "bu-key";
+    const controller = new AbortController();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() => {
+        controller.abort();
+        const err = new Error("The operation was aborted");
+        err.name = "AbortError";
+        return Promise.reject(err);
+      })
+    );
+
+    await expect(readPage("https://good.example.com/page", { signal: controller.signal })).rejects.toThrow(/abort/i);
+    expect(jinaMock.readWithJina).not.toHaveBeenCalled();
+    expect(kemmaMaxMock.browseWithAgent).not.toHaveBeenCalled();
   });
 });
 
@@ -103,12 +161,37 @@ describe("readPage cache", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("caches under both canonical URL and requested URL on redirects/canonical links", async () => {
+    const articleWithCanonical = `<!doctype html><html><head><title>A Real Article</title><link rel="canonical" href="https://good.example.com/real-article" /></head><body><article><h1>A Real Article</h1><p>${LONG_PARAGRAPH}</p></article></body></html>`;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(htmlRes(articleWithCanonical)));
+
+    await readPage("https://good.example.com/shortlink");
+
+    expect(kv.kvSet).toHaveBeenCalledWith(
+      "page",
+      canonicalizeUrl("https://good.example.com/real-article"),
+      expect.objectContaining({ finalUrl: "https://good.example.com/real-article" }),
+      86400
+    );
+    expect(kv.kvSet).toHaveBeenCalledWith(
+      "page",
+      canonicalizeUrl("https://good.example.com/shortlink"),
+      expect.objectContaining({ finalUrl: "https://good.example.com/real-article" }),
+      86400
+    );
+  });
+
   it("does not use the cache for interactive reads", async () => {
     kv.kvGet.mockResolvedValue({ finalUrl: "https://good.example.com/cached", title: "Cached", markdown: "x", tier: 1 });
-    kemmaMaxMock.browse.mockResolvedValue({ title: "Fresh", content: "fresh content" });
+    kemmaMaxMock.browseWithAgent.mockResolvedValue({ title: "Fresh", content: "fresh content" });
     const result = await readPage("https://good.example.com/cached", { interactive: true });
     expect(result.title).toBe("Fresh");
     expect(kv.kvGet).not.toHaveBeenCalled();
+    expect(kemmaMaxMock.browseWithAgent).toHaveBeenCalledWith("https://good.example.com/cached", {
+      extractText: true,
+      maxLength: 50_000,
+      interactive: true,
+    });
   });
 });
 
@@ -152,7 +235,7 @@ describe("readPage escalation", () => {
   it("escalates to tier 3 when tier 1 and tier 2 both fail and browser-use is configured", async () => {
     process.env.BROWSER_USE_API_KEY = "bu-key";
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("forbidden", { status: 403 })));
-    kemmaMaxMock.browse.mockResolvedValue({ title: "Agent Title", content: "agent content" });
+    kemmaMaxMock.browseWithAgent.mockResolvedValue({ title: "Agent Title", content: "agent content" });
 
     const result = await readPage("https://blocked.example.com/page");
     expect(result.tier).toBe(3);

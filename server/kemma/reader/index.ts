@@ -19,7 +19,7 @@ import { extractPdf } from "./pdf";
 import { readWithJina, type Tier2Result } from "./jina";
 import { readWithFirecrawl } from "./firecrawl";
 import { selectForBudget } from "./select";
-import type { browse as BrowseWithAgentFn } from "../kemmaMax";
+import type { browseWithAgent as BrowseWithAgentFn } from "../kemmaMax";
 
 export const READER_CACHE_NAMESPACE = "page";
 export const READER_CACHE_TTL_SEC = 24 * 60 * 60;
@@ -68,6 +68,21 @@ export class EscalateError extends Error {
   }
 }
 
+export class SsrfBlockedError extends Error {
+  constructor(reason: string) {
+    super(reason);
+    this.name = "SsrfBlockedError";
+  }
+}
+
+export function isAbortError(err: unknown): boolean {
+  if (!err) return false;
+  if (err instanceof Error) {
+    return err.name === "AbortError" || /abort/i.test(err.name) || /aborted/i.test(err.message);
+  }
+  return false;
+}
+
 // ─── URL canonicalization (for the cache key) ────────────────────────────────────────────────
 // A standalone copy for this reader, deliberately not shared with P1-08's search cache (that
 // WP's branch is not merged yet): lowercase host, strip common tracking params, drop the
@@ -102,31 +117,33 @@ export function canonicalizeUrl(rawUrl: string): string {
 
 const BLOCKED_HOSTNAMES = new Set(["localhost", "metadata", "metadata.google.internal"]);
 
-async function assertPublicPageUrl(raw: string): Promise<URL> {
+export async function assertPublicPageUrl(raw: string): Promise<URL> {
   let url: URL;
   try {
     url = new URL(raw);
   } catch {
-    throw new Error("Not a valid URL.");
+    throw new SsrfBlockedError("Not a valid URL.");
   }
-  if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("Only http and https URLs can be read.");
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new SsrfBlockedError("Only http and https URLs can be read.");
+  }
   const host = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
   if (BLOCKED_HOSTNAMES.has(host) || host.endsWith(".localhost") || host.endsWith(".internal")) {
-    throw new Error("That address cannot be read.");
+    throw new SsrfBlockedError("That address cannot be read.");
   }
-  if (/^\d+$/.test(host)) throw new Error("That address cannot be read.");
+  if (/^\d+$/.test(host)) throw new SsrfBlockedError("That address cannot be read.");
   if (host.includes(":") || /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
-    if (isPrivateAddress(host)) throw new Error("That address cannot be read.");
+    if (isPrivateAddress(host)) throw new SsrfBlockedError("That address cannot be read.");
     return url;
   }
   let addresses: Array<{ address: string }>;
   try {
     addresses = await lookup(host, { all: true, verbatim: true });
   } catch {
-    throw new Error("That address cannot be resolved.");
+    throw new SsrfBlockedError("That address cannot be resolved.");
   }
   if (addresses.length === 0 || addresses.some((entry) => isPrivateAddress(entry.address))) {
-    throw new Error("That address cannot be read.");
+    throw new SsrfBlockedError("That address cannot be read.");
   }
   return url;
 }
@@ -142,6 +159,12 @@ async function fetchTier1(rawUrl: string, signal?: AbortSignal): Promise<Tier1Fe
   let url = await assertPublicPageUrl(rawUrl);
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    if (signal?.aborted) {
+      const err = new Error("The operation was aborted");
+      err.name = "AbortError";
+      throw err;
+    }
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     const onAbort = () => controller.abort();
@@ -149,7 +172,19 @@ async function fetchTier1(rawUrl: string, signal?: AbortSignal): Promise<Tier1Fe
 
     let res: Response;
     try {
-      res = await fetch(url.toString(), { method: "GET", redirect: "manual", signal: controller.signal, headers: { Accept: "text/html,application/pdf,text/plain,*/*" } });
+      res = await fetch(url.toString(), {
+        method: "GET",
+        redirect: "manual",
+        signal: controller.signal,
+        headers: { Accept: "text/html,application/pdf,text/plain,*/*" },
+      });
+    } catch (err) {
+      if (signal?.aborted || isAbortError(err)) {
+        const abortErr = new Error("The operation was aborted");
+        abortErr.name = "AbortError";
+        throw abortErr;
+      }
+      throw err;
     } finally {
       clearTimeout(timer);
       signal?.removeEventListener("abort", onAbort);
@@ -255,9 +290,9 @@ async function readTier2(url: string, signal?: AbortSignal): Promise<RawPage> {
 // Dynamically imported, not statically: kemmaMax.ts calls into this module for its tier-1/2
 // path, so a static import here would be circular. The dynamic import below resolves once the
 // module graph has already settled, which breaks the cycle.
-async function readTier3(url: string): Promise<RawPage> {
-  const { browse: browseWithAgent } = (await import("../kemmaMax")) as { browse: typeof BrowseWithAgentFn };
-  const result = await browseWithAgent(url, { extractText: true, maxLength: 50_000 });
+async function readTier3(url: string, opts?: { interactive?: boolean }): Promise<RawPage> {
+  const { browseWithAgent } = (await import("../kemmaMax")) as { browseWithAgent: typeof BrowseWithAgentFn };
+  const result = await browseWithAgent(url, { extractText: true, maxLength: 50_000, interactive: opts?.interactive });
   return { finalUrl: url, title: result.title, markdown: htmlToMarkdown(result.content) || result.content, tier: 3 };
 }
 
@@ -324,6 +359,15 @@ async function logReaderUsage(opts: ReadPageOptions, tier: 2 | 3, provider: "jin
 
 /** Reads a page through the tiered reader and returns markdown selected for `opts.query`/`opts.maxChars`. */
 export async function readPage(url: string, opts: ReadPageOptions = {}): Promise<ReadPageResult> {
+  if (opts.signal?.aborted) {
+    const err = new Error("The operation was aborted");
+    err.name = "AbortError";
+    throw err;
+  }
+
+  // SSRF guard: run before cache, before tier 1, tier 2, or tier 3 (including interactive)
+  await assertPublicPageUrl(url);
+
   const maxChars = opts.maxChars && opts.maxChars > 0 ? opts.maxChars : DEFAULT_MAX_CHARS;
   const cacheKey = canonicalizeUrl(url);
 
@@ -333,7 +377,7 @@ export async function readPage(url: string, opts: ReadPageOptions = {}): Promise
   }
 
   if (opts.interactive) {
-    const page = await readTier3(url);
+    const page = await readTier3(url, { interactive: true });
     if (tier3Available()) await logReaderUsage(opts, 3, "browser-use");
     return finish(url, page, opts.query, maxChars);
   }
@@ -344,6 +388,8 @@ export async function readPage(url: string, opts: ReadPageOptions = {}): Promise
   try {
     page = await readTier1(url, opts.signal);
   } catch (err) {
+    if (err instanceof SsrfBlockedError) throw err;
+    if (opts.signal?.aborted || isAbortError(err)) throw err;
     lastError = err;
   }
 
@@ -354,6 +400,7 @@ export async function readPage(url: string, opts: ReadPageOptions = {}): Promise
         page = await readTier2(url, opts.signal);
         await logReaderUsage(opts, 2, provider);
       } catch (err) {
+        if (opts.signal?.aborted || isAbortError(err)) throw err;
         lastError = err;
       }
     }
@@ -368,13 +415,21 @@ export async function readPage(url: string, opts: ReadPageOptions = {}): Promise
     }
   }
 
-  await setCachedPage(cacheKey, {
+  // Cache under canonical URL (page.finalUrl) as required by spec,
+  // and also under the requested URL so aliases / redirects hit the cache.
+  const canonicalKey = canonicalizeUrl(page.finalUrl);
+  const cachePayload: CachedPage = {
     finalUrl: page.finalUrl,
     title: page.title,
     markdown: page.markdown,
     publishedAt: page.publishedAt,
     tier: page.tier,
-  });
+  };
+
+  await setCachedPage(canonicalKey, cachePayload);
+  if (cacheKey !== canonicalKey) {
+    await setCachedPage(cacheKey, cachePayload);
+  }
 
   return finish(url, page, opts.query, maxChars);
 }
