@@ -24,6 +24,7 @@ import {
   detectProvider,
   resolveRouteAuth,
   routeHasAuth,
+  resolveMaxTokens,
 } from "../core/kemmaRouter";
 import { vertexGenerateContentBody, vertexGenerateContentText } from "../core/vertexAuth";
 import {
@@ -119,6 +120,40 @@ import { BLOCKED_MESSAGE, decideChatRouting, isBlockedPrompt } from "../lib/sens
 const NEVER_ABORTS: AbortSignal = new AbortController().signal;
 
 registerBuiltinTools();
+
+/**
+ * Finds the length of the longest common suffix of prev and prefix of next,
+ * checking up to maxOverlap characters (P1-06).
+ */
+export function getOverlapLength(prev: string, next: string, maxOverlap = 200): number {
+  if (!prev || !next) return 0;
+  const maxCheck = Math.min(maxOverlap, prev.length, next.length);
+  for (let len = maxCheck; len > 0; len--) {
+    const suffix = prev.slice(prev.length - len);
+    const prefix = next.slice(0, len);
+    if (suffix === prefix) {
+      return len;
+    }
+  }
+  return 0;
+}
+
+/**
+ * Trims up to maxOverlap characters of duplicated overlap between the suffix of prev
+ * and prefix of next (P1-06).
+ */
+export function trimOverlap(prev: string, next: string, maxOverlap = 200): string {
+  const overlap = getOverlapLength(prev, next, maxOverlap);
+  return overlap > 0 ? next.slice(overlap) : next;
+}
+
+/**
+ * Joins prev and next text with no duplicated overlap, trimming up to maxOverlap
+ * characters of overlap by longest common suffix and prefix (P1-06).
+ */
+export function joinWithoutOverlap(prev: string, next: string, maxOverlap = 200): string {
+  return prev + trimOverlap(prev, next, maxOverlap);
+}
 
 function selectRoute(input: EngineInput, currentMessages: KemmaMessage[], step: number, maxSteps: number): RouteConfig {
   const { isThinking, modelOverride } = input;
@@ -670,11 +705,118 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     await incrementQuota(userId, "message");
     if (isAgentic) await incrementQuota(userId, "agentic_task");
     if (isThinking) await incrementQuota(userId, "think");
-    if (totalTokens.total > 0) await incrementQuota(userId, "token", totalTokens.total);
 
     let finalContent = llmResponse.content ?? "Done.";
     // Calls that offered tools are not streamed, so the route would never see this text: emit it now.
     if (!streamToolTurns && onStream && offerTools && llmResponse.content) onStream(llmResponse.content);
+
+    // Auto-continue (P1-06):
+    // With flag("AUTO_CONTINUE"): if finishReason is length (or max_tokens) on a final answer,
+    // append the partial answer as an assistant message plus
+    // user: "Continue exactly where you stopped. Do not repeat anything."
+    // and call again, streaming into the same output. At most 2 continuations.
+    // Join the text with no duplicated overlap: trim up to 200 characters of overlap
+    // by longest common suffix and prefix.
+    const isLengthFinish = (reason?: string) => {
+      if (!reason) return false;
+      const r = reason.trim().toLowerCase();
+      return r === "length" || r === "max_tokens";
+    };
+
+    if (flag("AUTO_CONTINUE") && isLengthFinish(llmResponse.finishReason)) {
+      let continuationsCount = 0;
+      const MAX_CONTINUATIONS = 2;
+
+      while (
+        continuationsCount < MAX_CONTINUATIONS &&
+        isLengthFinish(llmResponse.finishReason) &&
+        !input.signal?.aborted
+      ) {
+        continuationsCount++;
+        const partialAnswer = llmResponse.content ?? "";
+        currentMessages.push({ role: "assistant", content: partialAnswer });
+        currentMessages.push({ role: "user", content: "Continue exactly where you stopped. Do not repeat anything." });
+
+        let continuationStreamed = "";
+        let trimmedLeadingOverlap = false;
+
+        const continuationOnStream = onStream
+          ? (chunk: string) => {
+              if (!shouldStream) return;
+              continuationStreamed += chunk;
+              if (!trimmedLeadingOverlap) {
+                if (continuationStreamed.length >= 200) {
+                  const overlap = getOverlapLength(finalContent, continuationStreamed, 200);
+                  const toEmit = continuationStreamed.slice(overlap);
+                  trimmedLeadingOverlap = true;
+                  if (toEmit.length > 0) onStream(toEmit);
+                }
+              } else {
+                onStream(chunk);
+              }
+            }
+          : undefined;
+
+        try {
+          llmResponse = await callLLM({
+            route,
+            systemPrompt,
+            dynamicContext: memories,
+            cachePrefix: true,
+            messages: currentMessages,
+            tools: undefined,
+            stream: shouldStream,
+            onStream: continuationOnStream,
+            onReasoning,
+            onNotice,
+            userId,
+            sessionId,
+            reportId,
+            purpose: step === 1 ? "initial" : "follow-up",
+            signal: input.signal,
+          });
+
+          // Flush any buffered stream chunks if under 200 chars
+          if (onStream && shouldStream && !trimmedLeadingOverlap && continuationStreamed.length > 0) {
+            const overlap = getOverlapLength(finalContent, continuationStreamed, 200);
+            const toEmit = continuationStreamed.slice(overlap);
+            trimmedLeadingOverlap = true;
+            if (toEmit.length > 0) onStream(toEmit);
+          }
+
+          const continuationContent = llmResponse.content ?? "";
+          if (!shouldStream && onStream && continuationContent) {
+            const trimmed = trimOverlap(finalContent, continuationContent, 200);
+            if (trimmed) onStream(trimmed);
+          }
+
+          finalContent = joinWithoutOverlap(finalContent, continuationContent, 200);
+
+          totalTokens.input  += llmResponse.usage?.input  ?? 0;
+          totalTokens.output += llmResponse.usage?.output ?? 0;
+          totalTokens.total  += llmResponse.usage?.total  ?? 0;
+        } catch (err) {
+          if (input.signal?.aborted) {
+            return {
+              response: finalContent,
+              toolCalls: toolExecutions,
+              isAgentic: toolExecutions.length >= 2,
+              tokensUsed: totalTokens,
+              modelsUsed: Array.from(new Set(modelsUsed)),
+              stepsUsed: step,
+              durationMs: Date.now() - startTime,
+              sources: dedupeSources(collectedSources),
+              isError: false,
+              cancelled: true,
+            };
+          }
+          break;
+        }
+      }
+    }
+
+    if (totalTokens.total > 0) await incrementQuota(userId, "token", totalTokens.total);
+
     if (streamToolTurns) {
       onSegmentEnd?.("answer");
     }
@@ -998,7 +1140,7 @@ interface CallLLMOptions {
   signal?: AbortSignal;
 }
 
-interface LLMResult { content: string | null; toolCalls?: ToolCall[]; usage?: TokenUsage }
+interface LLMResult { content: string | null; toolCalls?: ToolCall[]; usage?: TokenUsage; finishReason?: string }
 
 async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
   const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onReasoning, onNotice, userId, sessionId, reportId, purpose, signal } = input;
@@ -1037,7 +1179,7 @@ async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
     }
 
     try {
-      const result = await callSingleLLM({ route: tryRoute, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream: wrappedOnStream, onReasoning, signal });
+      const result = await callSingleLLM({ route: tryRoute, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream: wrappedOnStream, onReasoning, signal, purpose });
 
       await logUsage({
         userId,
@@ -1107,6 +1249,7 @@ interface SingleLLMOptions {
   onStream?: (chunk: string) => void;
   onReasoning?: (delta: string) => void;
   signal?: AbortSignal;
+  purpose?: string;
 }
 
 // Providers that rejected stream_options once; not sent again for the life of the process.
@@ -1142,6 +1285,7 @@ function parseCompletionJson(data: any): LLMResult {
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
     // parseUsage folds Vertex reasoning tokens into output and reads cached prompt tokens.
     usage: parseUsage(data.usage),
+    finishReason: choice?.finish_reason ?? undefined,
   };
 }
 
@@ -1158,7 +1302,7 @@ export function reasoningEffortFor(route: { provider: string; model: string }, e
 }
 
 async function callSingleLLM(input: SingleLLMOptions): Promise<LLMResult> {
-  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onReasoning, signal } = input;
+  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onReasoning, signal, purpose } = input;
 
   if (!routeHasAuth(route)) {
     throw new Error(`${route.provider} API key is not configured.`);
@@ -1185,7 +1329,7 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<LLMResult> {
       stream: wantStream,
       // Ask for a final usage chunk on streams so streamed answers are metered (they were logged as 0 tokens before).
       ...(wantStream && opts.streamUsage ? { stream_options: { include_usage: true } } : {}),
-      max_tokens: 4096,
+      max_tokens: resolveMaxTokens(route.model, purpose, route),
       reasoning_effort: reasoningEffortFor(route),
     };
   };
