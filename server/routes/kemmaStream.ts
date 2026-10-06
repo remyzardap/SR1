@@ -15,6 +15,7 @@ import {
 } from "../lib/attachments";
 import { FnError } from "../lib/fnErrors";
 import { flag } from "../core/flags";
+import { createApprovalGate } from "../kemma/approvals";
 
 function sendEvent(res: Response, event: string, data: unknown) {
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -127,6 +128,22 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
     let writing = false;
     const sendActivity = (event: ActivityEvent) => { if (!aborted) sendEvent(res, "activity", event); };
 
+    const approvalsOn = flag("APPROVALS");
+    const approvalGate = approvalsOn
+      ? createApprovalGate({
+          userId: user.id,
+          sessionId,
+          runId,
+          tier: quota.tier,
+          signal: abortController.signal,
+          emit: (event) => {
+            if (!aborted) {
+              sendEvent(res, event.type, event);
+            }
+          },
+        })
+      : undefined;
+
     const output = await kemmaExecute({
       userId: user.id,
       userName: user.name ?? undefined,
@@ -139,6 +156,7 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
       sensitiveRouting: resolved.sensitiveRouting,
       allowedTools: resolved.allowedTools,
       signal: abortController.signal,
+      approvals: approvalGate,
       onStream: (chunk) => {
         assistantContent += chunk;
         if (!aborted) {

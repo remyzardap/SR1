@@ -5,7 +5,8 @@ import pLimit from "p-limit";
 import { registerBuiltinTools } from "./toolkit/builtin";
 import { getToolSpec, runTool, toOpenAiTools, toolsFor, type OpenAiToolDef } from "./toolkit/registry";
 import { SKILL_TOOL_NAMES } from "./toolkit/names";
-import type { ToolContext } from "./toolkit/types";
+import type { ApprovalGate, ToolContext } from "./toolkit/types";
+import { createApprovalGate } from "./approvals";
 import {
   chatRoute,
   reportRoute,
@@ -87,6 +88,7 @@ export interface EngineInput {
   onQuotaWarn?: (message: string) => void;
   onNotice?: (message: string) => void;
   onSkillUsed?: (skill: { id: number; name: string }) => void;
+  approvals?: ApprovalGate;
   signal?: AbortSignal;
 }
 
@@ -353,6 +355,16 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     tier,
     signal: input.signal ?? NEVER_ABORTS,
     emit: () => {},
+    approvals: input.approvals ?? (flag("APPROVALS") ? createApprovalGate({
+      userId,
+      sessionId,
+      runId,
+      tier,
+      signal: input.signal ?? NEVER_ABORTS,
+      emit: () => {},
+      skillsEnabled: enabledSkills.length > 0,
+      isSubAgent: !!input.isSubAgent,
+    }) : undefined),
     skillsEnabled: enabledSkills.length > 0,
     isSubAgent: !!input.isSubAgent,
   };
