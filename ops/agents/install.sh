@@ -46,7 +46,7 @@ chmod 700 /root
 HOME_DIR=$(getent passwd "$AGENTS_USER" | cut -d: -f6)
 
 say "3/7 GitHub sign-in for '$AGENTS_USER'"
-if as_agents 'gh auth status' >/dev/null 2>&1 && [[ -z ${GH_TOKEN:-} ]]; then
+if as_agents "gh repo view '$REPO_SLUG' --json name" >/dev/null 2>&1 && [[ -z ${GH_TOKEN:-} ]]; then
   echo "already signed in"
 else
   token="${GH_TOKEN:-}"
