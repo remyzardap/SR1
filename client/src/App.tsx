@@ -30,6 +30,7 @@ import { useAuth } from "./_core/hooks/useAuth";
 import { IntelligenceProvider } from "./_core/hooks/useSutaeruIntelligence";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
+import { SWUpdateHandler } from "./components/SWUpdateHandler";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, loading } = useAuth();
@@ -220,6 +221,7 @@ function App() {
           <IntelligenceProvider>
             <TooltipProvider>
               <Toaster richColors position="top-right" />
+              <SWUpdateHandler />
               <AppRoutes />
             </TooltipProvider>
           </IntelligenceProvider>

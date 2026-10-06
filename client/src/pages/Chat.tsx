@@ -18,6 +18,7 @@ import { callFunction } from "@/lib/kemmaCloud";
 import { AttachMenu } from "@/components/AttachMenu";
 import { FocusBrackets } from "@/components/art";
 import { useOnline } from "@/hooks/useAppearance";
+import { notifyStreamStart, notifyStreamEnd } from "@/hooks/useServiceWorker";
 import { CodeAccessBar, CodeThreadView, rememberCodeSession, storedCodeSession, useCodeThread, type CodeAccess } from "@/components/CodeThread";
 import { MAX_FILES, attachmentName, type Attachment } from "@/lib/attachments";
 import { NEON_PAGE_BG, NOISE_OVERLAY, NEON, NEON_FD, NEON_FM } from "@/lib/design";
@@ -402,8 +403,10 @@ export default function Chat() {
           toast.error("Enter the 6-digit authenticator code for full access.");
           return;
         }
+        notifyStreamStart();
         const ok = await code.send(messageText, { access: codeAccess, totp: codeTotp, attachments: sent });
         if (ok) { setInput(""); setAttachments([]); setCodeTotp(""); }
+        notifyStreamEnd();
         return;
       }
 
@@ -431,6 +434,7 @@ export default function Chat() {
       setUsedSkills([]);
       setUsage(null);
       setSources([]);
+      notifyStreamStart();
 
       if (PLAN_REQUEST.test(messageText) && !PLAN_SKIP.test(messageText)) {
         const planMessage: Message = {
@@ -637,6 +641,7 @@ export default function Chat() {
         setIsStreaming(false);
         setStartedAt(null);
         setCurrentStep("");
+        notifyStreamEnd();
       }
     },
     [input, isStreaming, messages, sessionId, mode, messageModel, taggedSkills, attachments, isCode, code, codeAccess, codeTotp]
@@ -662,6 +667,7 @@ export default function Chat() {
     setStartedAt(null);
     setCurrentStep("");
     setMessages((prev) => prev.map((m) => m.streaming ? { ...m, streaming: false } : m));
+    notifyStreamEnd();
   };
 
   const exportThread = useCallback(() => {

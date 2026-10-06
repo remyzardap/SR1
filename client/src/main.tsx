@@ -74,14 +74,6 @@ const trpcClient = trpc.createClient({
   ],
 });
 
-if ("serviceWorker" in navigator && import.meta.env.PROD) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(err => {
-      console.warn("[PWA] service worker registration failed", err);
-    });
-  });
-}
-
 // The saved appearance is already on <html> from the inline script in index.html;
 // this keeps the attribute set current and follows the OS while System is chosen.
 applyAppearance();
