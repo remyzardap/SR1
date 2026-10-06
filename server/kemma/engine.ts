@@ -39,6 +39,9 @@ import {
 } from "../core/llmHttp";
 import { checkQuota, incrementQuota } from "../core/quotaCheck";
 import { logUsage, checkSpendCap } from "../core/usage";
+import { flag } from "../core/flags";
+import { readChatStream } from "../core/llmStream";
+import type { SegmentKind } from "./events";
 import { getMemoriesContext } from "./memory";
 import { type Source, extractSources, dedupeSources, annotateSearchResult, keepCitedSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
 
@@ -74,8 +77,10 @@ export interface EngineInput {
   sensitiveRouting?: "auto" | "off";
   skills?: Array<{ id: number; name: string; description?: string | null; content?: unknown }>;
   onStream?: (chunk: string) => void;
-  onToolStart?: (tool: string, input: unknown) => void;
-  onToolEnd?: (tool: string, result: unknown, durationMs: number) => void;
+  onReasoning?: (delta: string) => void;
+  onSegmentEnd?: (kind: SegmentKind) => void;
+  onToolStart?: (tool: string, input: unknown, callId?: string) => void;
+  onToolEnd?: (tool: string, result: unknown, durationMs: number, callId?: string) => void;
   onStepStart?: (step: number, model: string) => void;
   onStepEnd?: (step: number) => void;
   onQuotaWarn?: (message: string) => void;
@@ -260,7 +265,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     if (decision.blocked) return makeErrorResponse(BLOCKED_MESSAGE, startTime);
     if (decision.venice && decision.model) input = { ...input, modelOverride: decision.model };
   }
-  const { userId, userName, messages, tier, isThinking, isVoice = false, sessionId, reportId, polish, onStream, onToolStart, onToolEnd, onStepStart, onStepEnd, onQuotaWarn, onNotice, onSkillUsed } = input;
+  const { userId, userName, messages, tier, isThinking, isVoice = false, sessionId, reportId, polish, onStream, onReasoning, onSegmentEnd, onToolStart, onToolEnd, onStepStart, onStepEnd, onQuotaWarn, onNotice, onSkillUsed } = input;
 
   const msgQuota = await checkQuota(userId, "message");
   if (!msgQuota.allowed) return makeErrorResponse(msgQuota.reason ?? "Daily message limit reached", startTime);
@@ -382,6 +387,8 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     }
   }
 
+  const streamToolTurns = flag("STREAM_TOOL_TURNS");
+
   while (step < maxSteps) {
     step++;
     const route = selectRoute(input, currentMessages, step, maxSteps);
@@ -389,6 +396,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     onStepStart?.(step, route.label);
 
     const offerTools = totalToolCallCount < maxToolCalls && step < maxSteps;
+    const shouldStream = streamToolTurns ? !!onStream : (!!onStream && !offerTools);
 
     let llmResponse: Awaited<ReturnType<typeof callLLM>>;
     try {
@@ -399,8 +407,9 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         cachePrefix: true,
         messages: currentMessages,
         tools: offerTools ? wireTools() : undefined,
-        stream: !!onStream && !offerTools,
+        stream: shouldStream,
         onStream,
+        onReasoning,
         onNotice,
         userId,
         sessionId,
@@ -418,13 +427,20 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     onStepEnd?.(step);
 
     if (llmResponse.toolCalls && llmResponse.toolCalls.length > 0) {
+      if (streamToolTurns) {
+        onSegmentEnd?.("narration");
+      }
       currentMessages.push({ role: "assistant", content: llmResponse.content ?? null, tool_calls: llmResponse.toolCalls });
 
       for (const tc of llmResponse.toolCalls) {
         totalToolCallCount++;
         let parsedArgs: unknown;
         try { parsedArgs = JSON.parse(tc.function.arguments || "{}"); } catch { parsedArgs = {}; }
-        onToolStart?.(tc.function.name, parsedArgs);
+        if (streamToolTurns) {
+          onToolStart?.(tc.function.name, parsedArgs, tc.id);
+        } else {
+          onToolStart?.(tc.function.name, parsedArgs);
+        }
         const toolStart = Date.now();
         let toolResult: unknown;
         if (!availableToolNames().has(tc.function.name)) {
@@ -444,7 +460,11 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
           }
         }
         const toolDuration = Date.now() - toolStart;
-        onToolEnd?.(tc.function.name, toolResult, toolDuration);
+        if (streamToolTurns) {
+          onToolEnd?.(tc.function.name, toolResult, toolDuration, tc.id);
+        } else {
+          onToolEnd?.(tc.function.name, toolResult, toolDuration);
+        }
         toolExecutions.push({ tool: tc.function.name, input: parsedArgs, output: toolResult, step, durationMs: toolDuration });
         const newSources = extractSources(tc.function.name, toolResult);
         if (newSources.length > 0) collectedSources.push(...newSources);
@@ -467,7 +487,10 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
 
     let finalContent = llmResponse.content ?? "Done.";
     // Calls that offered tools are not streamed, so the route would never see this text: emit it now.
-    if (onStream && offerTools && llmResponse.content) onStream(llmResponse.content);
+    if (!streamToolTurns && onStream && offerTools && llmResponse.content) onStream(llmResponse.content);
+    if (streamToolTurns) {
+      onSegmentEnd?.("answer");
+    }
 
     // Deduplicate sources collected during tool use
     let sources = dedupeSources(collectedSources);
@@ -678,6 +701,7 @@ interface CallLLMOptions {
   tools?: any[];
   stream: boolean;
   onStream?: (chunk: string) => void;
+  onReasoning?: (delta: string) => void;
   onNotice?: (message: string) => void;
   userId: number;
   sessionId?: string;
@@ -688,7 +712,7 @@ interface CallLLMOptions {
 interface LLMResult { content: string | null; toolCalls?: ToolCall[]; usage?: TokenUsage }
 
 async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
-  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onNotice, userId, sessionId, reportId, purpose } = input;
+  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onReasoning, onNotice, userId, sessionId, reportId, purpose } = input;
 
   const cap = await checkSpendCap(route.provider);
   if (!cap.allowed) {
@@ -708,7 +732,7 @@ async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
     }
 
     try {
-      const result = await callSingleLLM({ route: tryRoute, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream });
+      const result = await callSingleLLM({ route: tryRoute, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onReasoning });
 
       await logUsage({
         userId,
@@ -751,6 +775,7 @@ interface SingleLLMOptions {
   tools?: any[];
   stream: boolean;
   onStream?: (chunk: string) => void;
+  onReasoning?: (delta: string) => void;
 }
 
 // Providers that rejected stream_options once; not sent again for the life of the process.
@@ -802,7 +827,7 @@ export function reasoningEffortFor(route: { provider: string; model: string }, e
 }
 
 async function callSingleLLM(input: SingleLLMOptions): Promise<LLMResult> {
-  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream } = input;
+  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onReasoning } = input;
 
   if (!routeHasAuth(route)) {
     throw new Error(`${route.provider} API key is not configured.`);
@@ -870,45 +895,18 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<LLMResult> {
   }
 
   if (stream && onStream) {
-    let fullContent = "";
-    let streamedUsage: TokenUsage | undefined;
-    const reader = res.body?.getReader();
-    const decoder = new TextDecoder();
-    let sseBuffer = "";
-    let rawBody = "";
-    if (reader) {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        // SSE lines can be split across network chunks; only parse complete lines.
-        const text = decoder.decode(value, { stream: true });
-        rawBody += text;
-        sseBuffer += text;
-        const parts = sseBuffer.split("\n");
-        sseBuffer = parts.pop() ?? "";
-        const lines = parts.filter((l) => l.startsWith("data: "));
-        for (const line of lines) {
-          const data = line.replace("data: ", "").trim();
-          if (data === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(data);
-            const delta = parsed.choices?.[0]?.delta?.content;
-            if (delta) { fullContent += delta; onStream(delta); }
-            if (parsed.usage) streamedUsage = parseUsage(parsed.usage);
-          } catch { /* skip */ }
-        }
-      }
+    const isReasoningOff = (process.env.KEMMA_REASONING_EFFORT ?? "").trim().toLowerCase() === "off";
+    const resStream = await readChatStream(res, {
+      onText: onStream,
+      onReasoning: isReasoningOff ? undefined : onReasoning,
+    });
+    if (!flag("STREAM_TOOL_TURNS")) {
+      return {
+        ...resStream,
+        toolCalls: undefined,
+      };
     }
-    // Some OpenAI-compatible providers ignore stream=true and answer with a single plain JSON
-    // completion body. Without this fallback the client would get zero token events (blank chat).
-    if (!fullContent && rawBody.trimStart().startsWith("{")) {
-      try {
-        const parsed = parseCompletionJson(JSON.parse(rawBody));
-        if (parsed.content) onStream(parsed.content);
-        return parsed;
-      } catch { /* not a JSON completion either; keep the streamed result */ }
-    }
-    return { content: fullContent, toolCalls: undefined, usage: streamedUsage };
+    return resStream;
   }
 
   return parseCompletionJson(await res.json());
