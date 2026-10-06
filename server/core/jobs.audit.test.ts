@@ -27,6 +27,10 @@ vi.mock("pg-boss", () => ({
       bossState.sends.push({ name, data, opts });
       return "job-id-1";
     }
+    async schedule(name: string, cron: string) {
+      if (bossState.scheduleImpl) return bossState.scheduleImpl(name, cron);
+      bossState.schedules.push({ name, cron });
+    }
     async stop() {
       bossState.stopped = true;
     }
@@ -47,6 +51,8 @@ async function freshJobs() {
   bossState.createdQueues = [];
   bossState.workers = {};
   bossState.sends = [];
+  bossState.schedules = [];
+  bossState.scheduleImpl = null;
   bossState.stopped = false;
   bossState.startImpl = async () => {};
   return await import("./jobs");
@@ -113,6 +119,48 @@ describe("audit-test job handler", () => {
     await jobs.startJobRunner();
     const handler = bossState.workers["audit-test"];
     await expect(handler([{ data: { marker: "m" } }])).rejects.toThrow(/Database unavailable/);
+  });
+});
+
+describe("recurring jobs (cron schedules)", () => {
+  it("kv-cache-sweep is worked and scheduled once a day; one-off queues get no schedule", async () => {
+    process.env.DATABASE_URL = "postgres://fake:fake@localhost/fake";
+    const jobs = await freshJobs();
+    await jobs.startJobRunner();
+    expect(bossState.createdQueues).toContain("kv-cache-sweep");
+    expect(Object.keys(bossState.workers)).toContain("kv-cache-sweep");
+    expect(bossState.schedules).toEqual([{ name: "kv-cache-sweep", cron: "17 3 * * *" }]);
+  });
+
+  it("a job registered with a cron gets that schedule; re-registering without one drops it", async () => {
+    process.env.DATABASE_URL = "postgres://fake:fake@localhost/fake";
+    const jobs = await freshJobs();
+    jobs.registerJob("nightly-thing", async () => {}, { cron: "0 2 * * *" });
+    jobs.registerJob("kv-cache-sweep", async () => {});
+    await jobs.startJobRunner();
+    expect(bossState.schedules).toEqual([{ name: "nightly-thing", cron: "0 2 * * *" }]);
+  });
+
+  it("a schedule() failure is logged and the runner still starts", async () => {
+    process.env.DATABASE_URL = "postgres://fake:fake@localhost/fake";
+    const jobs = await freshJobs();
+    bossState.scheduleImpl = async () => {
+      throw new Error("bad cron");
+    };
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await expect(jobs.startJobRunner()).resolves.not.toBeNull();
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("schedule for kv-cache-sweep not set"), "bad cron");
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("the kv-cache-sweep handler fails the job cleanly when the db is unavailable", async () => {
+    process.env.DATABASE_URL = "postgres://fake:fake@localhost/fake";
+    const jobs = await freshJobs();
+    await jobs.startJobRunner();
+    await expect(bossState.workers["kv-cache-sweep"]([{ data: {} }])).rejects.toThrow(/Database unavailable/);
   });
 });
 

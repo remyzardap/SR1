@@ -1,0 +1,74 @@
+[
+  {
+    "id": "chat-1",
+    "category": "chit-chat",
+    "mode": "fast",
+    "prompt": "Hey Kemma, good morning! How are you doing today?"
+  },
+  {
+    "id": "chat-2",
+    "category": "chit-chat",
+    "mode": "fast",
+    "prompt": "Suggest three friendly names for a small coffee shop in Ubud. One line each, no explanations."
+  },
+  {
+    "id": "chat-3",
+    "category": "chit-chat",
+    "mode": "fast",
+    "prompt": "In two sentences, what is the difference between a latte and a flat white?"
+  },
+  {
+    "id": "lookup-1",
+    "category": "single-lookup",
+    "mode": "fast",
+    "prompt": "What is the current exchange rate from US dollars to Indonesian rupiah?"
+  },
+  {
+    "id": "lookup-2",
+    "category": "single-lookup",
+    "mode": "fast",
+    "prompt": "Who won the most recent Formula 1 Grand Prix, and where was it held?"
+  },
+  {
+    "id": "lookup-3",
+    "category": "single-lookup",
+    "mode": "fast",
+    "prompt": "What is the weather forecast for Jakarta tomorrow?"
+  },
+  {
+    "id": "research-1",
+    "category": "multi-search",
+    "mode": "fast",
+    "prompt": "Compare the corporate income tax rates and the main incentives for foreign investors in Indonesia, Vietnam and Thailand this year. Cite your sources."
+  },
+  {
+    "id": "research-2",
+    "category": "multi-search",
+    "mode": "fast",
+    "prompt": "What are the latest developments in solid-state EV batteries? Summarize the main companies, their announced production timelines and any milestones reached, with sources."
+  },
+  {
+    "id": "research-3",
+    "category": "multi-search",
+    "mode": "fast",
+    "prompt": "How has Indonesia's nickel ore export ban affected investment in EV battery production there? Cover the policy, the main projects and the criticism, with sources."
+  },
+  {
+    "id": "read-1",
+    "category": "read-url",
+    "mode": "deep",
+    "prompt": "Read https://en.wikipedia.org/wiki/Bali and give me five key facts about its economy."
+  },
+  {
+    "id": "read-2",
+    "category": "read-url",
+    "mode": "deep",
+    "prompt": "Read https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/429 and explain in plain words what a 429 response means and how a client should handle it."
+  },
+  {
+    "id": "report-1",
+    "category": "long-report",
+    "mode": "deep",
+    "prompt": "Write a detailed report of about 1,500 words on rooftop solar for small businesses in Indonesia: current regulations, typical costs and payback, financing options, risks, and a recommendation. Use headings, cite sources, and end with a conclusion."
+  }
+]

@@ -156,11 +156,12 @@ describe("schema vs bootstrap coverage", () => {
   });
 
   it("documents which tables live only in journaled migrations", () => {
-    // These four are intentionally NOT in bootstrap.sql: each is created by a
+    // These six are intentionally NOT in bootstrap.sql: each is created by a
     // journaled migration (skill_reviews by 0022, user_settings/monitors/
-    // monitor_runs by 0023). If bootstrap gains or loses one, update this list.
+    // monitor_runs by 0023, kv_cache/approvals by 0025). If bootstrap gains or
+    // loses one, update this list.
     const onlyInMigrations = [...schema.keys()].filter((t) => !boot.has(t)).sort();
-    expect(onlyInMigrations).toEqual(["monitor_runs", "monitors", "skill_reviews", "user_settings"]);
+    expect(onlyInMigrations).toEqual(["approvals", "kv_cache", "monitor_runs", "monitors", "skill_reviews", "user_settings"]);
   });
 });
 
@@ -253,6 +254,10 @@ describe("env var docs vs code", () => {
   for (const m of read("server/core/kemmaRouter.ts").matchAll(/^\s{2}([A-Z][A-Z0-9_]+):/gm)) readByCode.add(m[1]);
   for (const m of read("server/lib/fnImage.ts").matchAll(/env: "([A-Z][A-Z0-9_]+)"/g)) readByCode.add(m[1]);
   for (const m of read("server/_core/secretManager.ts").matchAll(/"([A-Z][A-Z0-9_]+)",\n/g)) readByCode.add(m[1]);
+  // Feature flags: flag("NAME") reads FF_NAME for every entry of the FLAGS registry.
+  for (const m of read("server/core/flags.ts").matchAll(/^\s{2}([A-Z][A-Z0-9_]+):\s*\{/gm)) readByCode.add(`FF_${m[1]}`);
+  // Vars only the database tests read (TEST_DATABASE_URL); they live in *.db.test.ts.
+  const dbTestBlob = walkTs("server").filter((f) => /\.db\.test\.ts$/.test(f)).map(read).join("\n");
 
   const doc = read("ENVIRONMENT_VARIABLES.md");
   const example = read(".env.example");
@@ -319,7 +324,9 @@ describe("env var docs vs code", () => {
     for (const m of doc.matchAll(/^([A-Z][A-Z0-9_]+)=[^\n]*$/gm)) docVars.add(m[1]);
     for (const m of example.matchAll(/^([A-Z][A-Z0-9_]+)=/gm)) docVars.add(m[1]);
     const evalBlob = walkTs("evals").map(read).join("\n");
-    const dead = [...docVars].filter((n) => !codeBlob.includes(n) && !evalBlob.includes(n) && !DEAD_DOC_ALLOWLIST.has(n)).sort();
+    const dead = [...docVars]
+      .filter((n) => !codeBlob.includes(n) && !readByCode.has(n) && !evalBlob.includes(n) && !dbTestBlob.includes(n) && !DEAD_DOC_ALLOWLIST.has(n))
+      .sort();
     expect(dead, `documented but unreferenced vars (prune the allowlist if intentional): ${dead.join(", ")}`).toEqual([]);
   });
 

@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import PgBoss from "pg-boss";
 import { getDb } from "../db";
 import { auditLogs } from "../../drizzle/schema";
+import { KV_SWEEP_CRON, KV_SWEEP_JOB, sweepExpiredKv } from "./kvCache";
 
 /**
  * Postgres-backed job runner (pg-boss). Runs in process on the VPS.
@@ -11,12 +12,20 @@ import { auditLogs } from "../../drizzle/schema";
 
 export type JobHandler = (data: Record<string, unknown>) => Promise<void>;
 
+export interface JobOptions {
+  /** Recurring schedule as a pg-boss cron expression (UTC). The runner (re)applies it on start. */
+  cron?: string;
+}
+
 const handlers = new Map<string, JobHandler>();
+const schedules = new Map<string, string>();
 let boss: PgBoss | null = null;
 let starting: Promise<PgBoss | null> | null = null;
 
-export function registerJob(name: string, handler: JobHandler) {
+export function registerJob(name: string, handler: JobHandler, opts: JobOptions = {}) {
   handlers.set(name, handler);
+  if (opts.cron) schedules.set(name, opts.cron);
+  else schedules.delete(name);
 }
 
 registerJob("audit-test", async (data) => {
@@ -35,6 +44,11 @@ registerJob("audit-test", async (data) => {
   });
 });
 
+// Daily: delete expired kv_cache rows (reads already ignore them).
+registerJob(KV_SWEEP_JOB, async () => {
+  await sweepExpiredKv();
+}, { cron: KV_SWEEP_CRON });
+
 export function startJobRunner(): Promise<PgBoss | null> {
   if (process.env.JOBS_ENABLED === "false" || !process.env.DATABASE_URL) return Promise.resolve(null);
   starting ??= (async () => {
@@ -47,6 +61,11 @@ export function startJobRunner(): Promise<PgBoss | null> {
         await b.work(name, { pollingIntervalSeconds: 2 }, async (jobs) => {
           for (const job of jobs) await handler((job.data ?? {}) as Record<string, unknown>);
         });
+        const cron = schedules.get(name);
+        if (cron) {
+          // A schedule that can't be saved costs that job its runs, never the whole runner.
+          await b.schedule(name, cron).catch((err: Error) => console.warn(`[jobs] schedule for ${name} not set:`, err.message));
+        }
       }
       boss = b;
       console.log(`[jobs] runner started (${handlers.size} queues)`);
