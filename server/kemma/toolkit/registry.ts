@@ -8,6 +8,9 @@ import type { ToolContext, ToolOutcome, ToolOutcomeCode, ToolSpec } from "./type
 import { TOOL_NAME_RE } from "./types";
 import { DRIVE_TOOL_NAMES, SKILL_TOOL_NAMES } from "./names";
 import { MCP_TOOL_PREFIX, getMcpRegistry, riskForMcpMode } from "../mcp/client";
+import { flag } from "../../core/flags";
+import { compactResult, getApprovalById, transitionApprovalStatus } from "../approvals";
+import { logAuditEvent } from "../../middleware/audit-logging";
 
 /** OpenAI function-calling wire format, unchanged from the hand-written shape in the old tools.ts. */
 export interface OpenAiToolParam {
@@ -84,15 +87,20 @@ const SKILL_NAME_SET: ReadonlySet<string> = new Set(SKILL_TOOL_NAMES);
  */
 export async function toolsFor(ctx: ToolContext, allow?: string[]): Promise<ToolSpec<z.ZodTypeAny, unknown>[]> {
   const allowSet = allow ? new Set(allow) : null;
+  const approvalsOn = flag("APPROVALS");
 
   const ordinary = [...registry.values()].filter(
-    (s) => !DRIVE_NAME_SET.has(s.name) && !SKILL_NAME_SET.has(s.name) && (!allowSet || allowSet.has(s.name)),
+    (s) =>
+      !DRIVE_NAME_SET.has(s.name) &&
+      !SKILL_NAME_SET.has(s.name) &&
+      (!allowSet || allowSet.has(s.name)) &&
+      (!s.requiresApproval || approvalsOn),
   );
   let result = await filterAvailable(ordinary, ctx);
 
   const driveCandidates = (allowSet ? DRIVE_TOOL_NAMES.filter((n) => allowSet.has(n)) : DRIVE_TOOL_NAMES)
     .map((n) => registry.get(n))
-    .filter((s): s is ToolSpec<z.ZodTypeAny, unknown> => !!s);
+    .filter((s): s is ToolSpec<z.ZodTypeAny, unknown> => !!s && (!s.requiresApproval || approvalsOn));
   result = [...result, ...(await filterAvailable(driveCandidates, ctx))];
 
   if (ctx.skillsEnabled) {
@@ -218,6 +226,106 @@ export async function runTool(name: string, rawArgs: unknown, ctx: ToolContext):
   const parsed = spec.args.safeParse(rawArgs ?? {});
   if (!parsed.success) return { ok: false, error: summarizeZodError(parsed.error), code: "INVALID_ARGS" };
 
+  const approvalsOn = flag("APPROVALS");
+  const requiresApproval =
+    typeof spec.requiresApproval === "function"
+      ? spec.requiresApproval(parsed.data, ctx)
+      : !!spec.requiresApproval;
+
+  if (requiresApproval && !approvalsOn) {
+    return { ok: false, error: `Tool ${name} requires approval, which is currently disabled.`, code: "NOT_ALLOWED" };
+  }
+
+  let finalArgs = parsed.data;
+  let approvalId: string | undefined;
+
+  if (requiresApproval && approvalsOn) {
+    if (!ctx.approvals) {
+      return { ok: false, code: "NOT_ALLOWED", error: "This action needs your approval, which isn't available yet." };
+    }
+
+    const preview = spec.preview ? await spec.preview(parsed.data, ctx) : undefined;
+    const targetRef = spec.targetRef ? await spec.targetRef(parsed.data, ctx) : undefined;
+    const targetRevision = spec.targetRevision ? await spec.targetRevision(parsed.data, ctx) : undefined;
+
+    const outcome = await ctx.approvals.request({
+      tool: name,
+      risk: spec.risk,
+      args: parsed.data,
+      preview,
+      targetRef,
+      targetRevision,
+    });
+
+    if (typeof outcome === "boolean") {
+      if (!outcome) {
+        return { ok: false, code: "REJECTED", error: "The user declined this action." };
+      }
+    } else if (outcome.decision !== "approved") {
+      return { ok: false, code: "REJECTED", error: "The user declined this action." };
+    } else {
+      finalArgs = outcome.args ?? parsed.data;
+      approvalId = outcome.approvalId;
+    }
+
+    if (approvalId) {
+      // Re-check 1: user still has access (connection active, tool still in toolsFor, flag is on)
+      const stillOffered = (await toolsFor(ctx)).some((s) => s.name === name);
+      if (!stillOffered || !flag("APPROVALS")) {
+        await transitionApprovalStatus(approvalId, "approved", "failed", {
+          executedAt: new Date(),
+          result: { error: "Access revoked." },
+        });
+        await logAuditEvent({
+          userId: String(ctx.userId),
+          action: "approval.failed",
+          resourceType: "tool",
+          resourceId: name,
+          metadata: { approvalId, error: "Access revoked" },
+          sessionId: ctx.sessionId,
+          severity: "warn",
+          status: "failure",
+        });
+        return { ok: false, code: "NOT_ALLOWED", error: "Access revoked." };
+      }
+
+      // Re-check 2: target revision unchanged
+      if (targetRef && targetRevision && spec.targetRevision) {
+        const currentRev = await spec.targetRevision(finalArgs, ctx);
+        if (currentRev !== targetRevision) {
+          await transitionApprovalStatus(approvalId, "approved", "failed", {
+            executedAt: new Date(),
+            result: { error: "Target revision conflict." },
+          });
+          await logAuditEvent({
+            userId: String(ctx.userId),
+            action: "approval.failed",
+            resourceType: "tool",
+            resourceId: name,
+            metadata: { approvalId, error: "Target revision conflict" },
+            sessionId: ctx.sessionId,
+            severity: "warn",
+            status: "failure",
+          });
+          return { ok: false, code: "CONFLICT", error: "Target revision changed." };
+        }
+      }
+
+      // Atomic transition: approved -> executing (idempotency key)
+      const transitioned = await transitionApprovalStatus(approvalId, "approved", "executing");
+      if (!transitioned) {
+        const current = await getApprovalById(approvalId);
+        if (current?.status === "executed") {
+          return { ok: true, data: current.result };
+        }
+        if (current?.status === "failed") {
+          return { ok: false, code: "FAILED", error: (current.result as any)?.error ?? "Tool execution failed." };
+        }
+        return { ok: false, code: "FAILED", error: "Concurrent execution in progress." };
+      }
+    }
+  }
+
   const timeoutController = new AbortController();
   const timer = setTimeout(() => timeoutController.abort(), spec.timeoutMs);
   const combinedController = new AbortController();
@@ -236,12 +344,45 @@ export async function runTool(name: string, rawArgs: unknown, ctx: ToolContext):
   };
 
   try {
-    const result = await runWithAbort(spec.execute(parsed.data, toolCtx), [ctx.signal, timeoutController.signal]);
+    const result = await runWithAbort(spec.execute(finalArgs, toolCtx), [ctx.signal, timeoutController.signal]);
+    if (approvalId) {
+      const compact = compactResult(result);
+      await transitionApprovalStatus(approvalId, "executing", "executed", {
+        executedAt: new Date(),
+        result: compact as any,
+      });
+      await logAuditEvent({
+        userId: String(ctx.userId),
+        action: "approval.executed",
+        resourceType: "tool",
+        resourceId: name,
+        metadata: { approvalId },
+        sessionId: ctx.sessionId,
+        severity: "info",
+        status: "success",
+      });
+    }
     return { ok: true, data: result };
   } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : typeof err === "string" ? err : "Tool failed with a non-Error value.";
+    if (approvalId) {
+      await transitionApprovalStatus(approvalId, "executing", "failed", {
+        executedAt: new Date(),
+        result: { error: errorMsg } as any,
+      });
+      await logAuditEvent({
+        userId: String(ctx.userId),
+        action: "approval.failed",
+        resourceType: "tool",
+        resourceId: name,
+        metadata: { approvalId, error: errorMsg },
+        sessionId: ctx.sessionId,
+        severity: "warn",
+        status: "failure",
+      });
+    }
     if (err instanceof AbortMarker) return { ok: false, error: err.message, code: err.code as ToolOutcomeCode };
-    const message = err instanceof Error ? err.message : typeof err === "string" ? err : "Tool failed with a non-Error value.";
-    return { ok: false, error: message, code: "FAILED" };
+    return { ok: false, error: errorMsg, code: "FAILED" };
   } finally {
     clearTimeout(timer);
     ctx.signal.removeEventListener("abort", forwardRunAbort);
