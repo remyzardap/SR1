@@ -4,10 +4,18 @@
  * @module kemma/toolkit/registry
  */
 import { z } from "zod";
-import type { ToolContext, ToolOutcome, ToolOutcomeCode, ToolSpec } from "./types";
+import type {
+  ApprovalRequestOutcome,
+  ToolContext,
+  ToolOutcome,
+  ToolOutcomeCode,
+  ToolRisk,
+  ToolSpec,
+} from "./types";
 import { TOOL_NAME_RE } from "./types";
 import { DRIVE_TOOL_NAMES, SKILL_TOOL_NAMES } from "./names";
 import { MCP_TOOL_PREFIX, getMcpRegistry, riskForMcpMode } from "../mcp/client";
+import type { McpToolMode } from "../mcp/config";
 import { flag } from "../../core/flags";
 import { compactResult, getApprovalById, transitionApprovalStatus } from "../approvals";
 import { logAuditEvent } from "../../middleware/audit-logging";
@@ -73,6 +81,25 @@ const DRIVE_NAME_SET: ReadonlySet<string> = new Set(DRIVE_TOOL_NAMES);
 const SKILL_NAME_SET: ReadonlySet<string> = new Set(SKILL_TOOL_NAMES);
 
 /**
+ * Whether this run can actually answer an approval: the flag is on *and* the caller wired a gate.
+ * Nothing ever invents a gate (P1-11) — a run with no UI to answer (kemmaMax's legacy context, a
+ * sub-agent) is `false`, so an approval-requiring tool is neither offered nor executed there.
+ */
+function approvalsAvailable(ctx: ToolContext): boolean {
+  return flag("APPROVALS") && !!ctx.approvals;
+}
+
+/**
+ * Whether a spec ever asks for approval. This is judged on *presence* — listing happens before any
+ * args exist, so the function form cannot be consulted, and treating it as "not asking" would let
+ * an approval-requiring tool run unapproved (P1-11 review). The function form is only ever an
+ * opt-out, evaluated in `runTool` after the flag and a real gate have already passed.
+ */
+function mayRequireApproval(spec: ToolSpec<z.ZodTypeAny, unknown>): boolean {
+  return spec.requiresApproval !== undefined && spec.requiresApproval !== false;
+}
+
+/**
  * The specs offered for this run, replicating the exact pre-refactor outcomes of three
  * differently-gated groups (ported from the engine's old tool-list-building code):
  *  - the ordinary registered tools (safe_files, web_search, browse, run_code, generate_file,
@@ -84,23 +111,29 @@ const SKILL_NAME_SET: ReadonlySet<string> = new Set(SKILL_TOOL_NAMES);
  *  - skill tools (load_skill, read_skill_file, run_skill_script): included whenever
  *    `ctx.skillsEnabled` is set, independent of `allow` — same as the old unconditional append —
  *    except `run_skill_script` is dropped when `run_code` itself did not survive filtering.
+ *
+ * Every group is additionally withheld when the tool asks for approval and this run cannot answer
+ * one (P1-11): the three groups used to be filtered separately, so Drive and skill tools leaked
+ * through while the approval path was closed.
  */
 export async function toolsFor(ctx: ToolContext, allow?: string[]): Promise<ToolSpec<z.ZodTypeAny, unknown>[]> {
   const allowSet = allow ? new Set(allow) : null;
-  const approvalsOn = flag("APPROVALS");
+  const canApprove = approvalsAvailable(ctx);
+  const offerable = (s: ToolSpec<z.ZodTypeAny, unknown>) => !mayRequireApproval(s) || canApprove;
 
   const ordinary = [...registry.values()].filter(
     (s) =>
       !DRIVE_NAME_SET.has(s.name) &&
       !SKILL_NAME_SET.has(s.name) &&
       (!allowSet || allowSet.has(s.name)) &&
-      (!s.requiresApproval || approvalsOn),
+      offerable(s),
   );
   let result = await filterAvailable(ordinary, ctx);
 
   const driveCandidates = (allowSet ? DRIVE_TOOL_NAMES.filter((n) => allowSet.has(n)) : DRIVE_TOOL_NAMES)
     .map((n) => registry.get(n))
-    .filter((s): s is ToolSpec<z.ZodTypeAny, unknown> => !!s);
+    .filter((s): s is ToolSpec<z.ZodTypeAny, unknown> => !!s)
+    .filter(offerable);
   result = [...result, ...(await filterAvailable(driveCandidates, ctx))];
 
   if (ctx.skillsEnabled) {
@@ -108,7 +141,8 @@ export async function toolsFor(ctx: ToolContext, allow?: string[]): Promise<Tool
     const skillCandidates = SKILL_TOOL_NAMES
       .filter((n) => n !== "run_skill_script" || canRunScripts)
       .map((n) => registry.get(n))
-      .filter((s): s is ToolSpec<z.ZodTypeAny, unknown> => !!s);
+      .filter((s): s is ToolSpec<z.ZodTypeAny, unknown> => !!s)
+      .filter(offerable);
     result = [...result, ...skillCandidates];
   }
 
@@ -134,6 +168,30 @@ export function toOpenAiTools(specs: ToolSpec<z.ZodTypeAny, unknown>[]): OpenAiT
     description: s.description,
     parameters: paramsFromZod(s.args),
   }));
+}
+
+/**
+ * MCP definitions for the wire (P1-11). `McpRegistry.tools()` already hides `confirm`-mode tools
+ * while `FF_APPROVALS` is off; this covers the other half of the rule — the flag is on but this run
+ * has no gate (a legacy or background call) — so the model is never offered a tool that could only
+ * ever be refused. A tool whose mode cannot be resolved is kept rather than dropped: `runTool` still
+ * refuses to execute a confirm-mode call without an approval, so keeping one can never cause an
+ * unapproved action, whereas dropping it would silently disappear a working read tool.
+ */
+export async function filterMcpDefs(defs: OpenAiToolDef[], ctx: ToolContext): Promise<OpenAiToolDef[]> {
+  if (approvalsAvailable(ctx)) return defs;
+  const out: OpenAiToolDef[] = [];
+  for (const def of defs) {
+    let mode: McpToolMode | undefined;
+    try {
+      mode = await getMcpRegistry().modeOf(def.name);
+    } catch {
+      mode = undefined;
+    }
+    if (mode && riskForMcpMode(mode).requiresApproval) continue;
+    out.push(def);
+  }
+  return out;
 }
 
 function summarizeZodError(err: z.ZodError): string {
@@ -183,6 +241,207 @@ function runWithAbort<T>(p: Promise<T>, signals: AbortSignal[]): Promise<T> {
   });
 }
 
+/** Where an approval left us once the user answered (P1-11). */
+type ApprovalLadder =
+  | { kind: "outcome"; outcome: ToolOutcome }
+  | { kind: "approved"; approvalId: string; finalArgs: any };
+
+/** The flag is on but this run has nobody to ask — `runTool` refuses at once, never waiting on a TTL. */
+const NO_APPROVER_MESSAGE = "This action needs your approval, which isn't available yet.";
+
+/** The approval feature itself is off, so this action can only be done once it is enabled. */
+function approvalDisabledMessage(name: string): string {
+  return `Tool ${name} requires approval, which is currently disabled.`;
+}
+
+/** Records the result of a claimed approval: the row's terminal state plus the matching audit event. */
+async function completeApproval(approvalId: string, name: string, ctx: ToolContext, result: unknown): Promise<void> {
+  try {
+    await transitionApprovalStatus(approvalId, "executing", "executed", {
+      executedAt: new Date(),
+      result: compactResult(result) as any,
+    });
+    await logAuditEvent({
+      userId: String(ctx.userId),
+      action: "approval.executed",
+      resourceType: "tool",
+      resourceId: name,
+      metadata: { approvalId },
+      sessionId: ctx.sessionId,
+      severity: "info",
+      status: "success",
+    });
+  } catch {
+    // The action really happened; a broken record must not be reported to the model as a failure.
+  }
+}
+
+/** Records a terminal `failed` state (plus the matching audit event) from either of the two hops. */
+async function failApproval(
+  approvalId: string,
+  from: "approved" | "executing",
+  name: string,
+  ctx: ToolContext,
+  errorMsg: string,
+): Promise<void> {
+  try {
+    await transitionApprovalStatus(approvalId, from, "failed", {
+      executedAt: new Date(),
+      result: { error: errorMsg } as any,
+    });
+    await logAuditEvent({
+      userId: String(ctx.userId),
+      action: "approval.failed",
+      resourceType: "tool",
+      resourceId: name,
+      metadata: { approvalId, error: errorMsg },
+      sessionId: ctx.sessionId,
+      severity: "warn",
+      status: "failure",
+    });
+  } catch {
+    // As above: the outcome returned to the caller is the important part.
+  }
+}
+
+/**
+ * The shared approval ladder for one action, used by built-in tools and MCP `confirm` tools alike so
+ * both follow the same state machine (P1-11): ask, re-check that the action is still allowed and
+ * still aimed at the same target, then claim it with a compare-and-set `approved -> executing`.
+ * Anything other than a won claim comes back as a final outcome — declined, access revoked, target
+ * changed, or a replay of work a concurrent call already recorded.
+ */
+async function seekApproval(opts: {
+  name: string;
+  risk: ToolRisk;
+  proposedArgs: any;
+  preview?: unknown;
+  targetRef?: string;
+  targetRevision?: string;
+  ctx: ToolContext;
+  /** Still offerable for this run? (access, availability and the flag all fold into `toolsFor`.) */
+  stillOffered: () => Promise<boolean>;
+  /** Re-reads the revision from the *decided* args; only tools with a target have one. */
+  recheckRevision?: (finalArgs: any) => Promise<string | undefined>;
+}): Promise<ApprovalLadder> {
+  const { name, ctx } = opts;
+  const gate = ctx.approvals;
+  if (!gate) return { kind: "outcome", outcome: { ok: false, code: "NOT_ALLOWED", error: NO_APPROVER_MESSAGE } };
+
+  const outcome: ApprovalRequestOutcome = await gate.request({
+    tool: name,
+    risk: opts.risk,
+    args: opts.proposedArgs,
+    preview: opts.preview,
+    targetRef: opts.targetRef,
+    targetRevision: opts.targetRevision,
+  });
+  if (outcome.decision !== "approved") {
+    return { kind: "outcome", outcome: { ok: false, code: "REJECTED", error: "The user declined this action." } };
+  }
+  const approvalId = outcome.approvalId;
+  const finalArgs = outcome.args ?? opts.proposedArgs;
+
+  // Re-check 1: access may have been revoked, or the approval path closed, while the card was open.
+  if (!(await opts.stillOffered()) || !flag("APPROVALS")) {
+    await failApproval(approvalId, "approved", name, ctx, "Access revoked.");
+    return { kind: "outcome", outcome: { ok: false, code: "NOT_ALLOWED", error: "Access revoked." } };
+  }
+
+  // Re-check 2: the target must not have moved underneath the approved args, edited args included.
+  if (opts.targetRevision && opts.recheckRevision) {
+    const currentRev = await opts.recheckRevision(finalArgs);
+    if (currentRev !== opts.targetRevision) {
+      await failApproval(approvalId, "approved", name, ctx, "Target revision changed.");
+      return { kind: "outcome", outcome: { ok: false, code: "CONFLICT", error: "Target revision changed." } };
+    }
+  }
+
+  // Claim the action: exactly one caller can win `approved -> executing`, and that id is the
+  // idempotency key for everything recorded after this point.
+  let claimLost = false;
+  try {
+    claimLost = !(await transitionApprovalStatus(approvalId, "approved", "executing"));
+  } catch {
+    // No database to claim against (a gate that is not the store-backed one). There is no row to
+    // replay either, so the approved action runs — once, because a real gate always claims first.
+  }
+  if (claimLost) {
+    const current = await getApprovalById(approvalId).catch(() => null);
+    if (current?.status === "executed") {
+      return { kind: "outcome", outcome: { ok: true, data: current.result } };
+    }
+    if (current?.status === "failed") {
+      return {
+        kind: "outcome",
+        outcome: { ok: false, code: "FAILED", error: (current.result as any)?.error ?? "Tool execution failed." },
+      };
+    }
+    return { kind: "outcome", outcome: { ok: false, code: "FAILED", error: "Concurrent execution in progress." } };
+  }
+
+  return { kind: "approved", approvalId, finalArgs };
+}
+
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  return "Tool failed with a non-Error value.";
+}
+
+/** Maps a thrown value to the outcome the model sees: an abort/timeout keeps its own code. */
+function failureOutcome(err: unknown, errorMsg: string): ToolOutcome {
+  if (err instanceof AbortMarker) return { ok: false, error: err.message, code: err.code as ToolOutcomeCode };
+  return { ok: false, error: errorMsg, code: "FAILED" };
+}
+
+/** Keys whose values must never reach an approval card or a log (P1-11). */
+const SECRET_ARG_RE = /token|secret|pass(word|wd)?|api[-_]?key|credential|authorization|session/i;
+
+/** One `key=value` fragment of an approval preview, with credentials masked and long values cut. */
+function describeApprovalValue(key: string, value: unknown): string {
+  if (SECRET_ARG_RE.test(key)) return "***";
+  const text = typeof value === "string" ? value : (() => { try { return JSON.stringify(value) ?? String(value); } catch { return String(value); } })();
+  return text.length > 80 ? `${text.slice(0, 80)}…` : text;
+}
+
+/**
+ * A short summary of an MCP call's arguments for the approval card (P1-11). Raw args are never shown
+ * or logged as-is: at most six keys, credential-looking values masked, long values truncated.
+ */
+function mcpPreview(name: string, args: Record<string, unknown>): { title: string; tool: string; argsSummary: string } {
+  const entries = Object.entries(args);
+  const parts = entries
+    .slice(0, 6)
+    .map(([k, v]) => `${k}=${describeApprovalValue(k, v)}`);
+  if (entries.length > 6) parts.push(`(+${entries.length - 6} more)`);
+  return {
+    title: `Approve ${name}`,
+    tool: name,
+    argsSummary: parts.join(", "),
+  };
+}
+
+/** The single `still offered` check for built-in tools: access, availability and the flag all fold in. */
+async function stillOfferedFor(ctx: ToolContext, name: string): Promise<boolean> {
+  try {
+    return (await toolsFor(ctx)).some((s) => s.name === name);
+  } catch {
+    // The check itself failed, which is not evidence that access was revoked; let the run proceed and
+    // let the tool's own permission checks decide.
+    return true;
+  }
+}
+
+/** What the model sees for one MCP call, whether the server returned text or an error (P1-11). */
+function mcpCallOutcome(
+  r: { ok: true; text: string } | { ok: false; error: string }
+): { success: boolean; data?: unknown; error?: string; code?: string } {
+  return r.ok
+    ? { success: true, data: { output: r.text } }
+    : { success: false, error: r.error, code: "MCP_ERROR" };
+}
+
 /**
  * Runs a tool by name. Never throws: parsing, timeout, abort and execution failures all come back
  * as a `{ ok: false }` outcome the model (or caller) can act on.
@@ -196,24 +455,53 @@ export async function runTool(name: string, rawArgs: unknown, ctx: ToolContext):
     const mode = await mcpRegistry.modeOf(name);
     if (!mode) return { ok: false, error: `Unknown tool: ${name}`, code: "NOT_ALLOWED" };
 
-    const { requiresApproval } = riskForMcpMode(mode);
+    const { risk, requiresApproval } = riskForMcpMode(mode);
     const args = typeof rawArgs === "object" && rawArgs !== null ? (rawArgs as Record<string, unknown>) : {};
 
-    if (requiresApproval) {
-      if (!ctx.approvals) {
-        return { ok: false, code: "NOT_ALLOWED", error: "This action needs your approval, which isn't available yet." };
-      }
-      const approved = await ctx.approvals.request(name, args);
-      if (!approved) {
-        return { ok: false, code: "REJECTED", error: "Action rejected by user approval." };
+    // `read`/`draft` tools do an action-free round-trip, so they need no approval and no record.
+    if (!requiresApproval) {
+      try {
+        const r = await mcpRegistry.call(name, args, { confirmed: true });
+        return { ok: true, data: mcpCallOutcome(r) };
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : "MCP tool failed.", code: "FAILED" };
       }
     }
 
+    // A `confirm` tool is an action, so it goes through exactly the same approval state machine as a
+    // built-in tool: one card, one id, the re-checks, and both audit rows (P1-11).
+    if (!approvalsAvailable(ctx)) {
+      return {
+        ok: false,
+        code: "NOT_ALLOWED",
+        error: flag("APPROVALS") ? NO_APPROVER_MESSAGE : approvalDisabledMessage(name),
+      };
+    }
+    const ladder = await seekApproval({
+      name,
+      risk,
+      proposedArgs: args,
+      preview: mcpPreview(name, args),
+      ctx,
+      stillOffered: async () => {
+        try {
+          const current = await getMcpRegistry().modeOf(name);
+          return !!current && riskForMcpMode(current).requiresApproval;
+        } catch {
+          return true;
+        }
+      },
+    });
+    if (ladder.kind === "outcome") return ladder.outcome;
+
     try {
-      const r = await mcpRegistry.call(name, args, { confirmed: true });
-      return { ok: true, data: r.ok ? { success: true, data: { output: r.text } } : { success: false, error: r.error, code: "MCP_ERROR" } };
+      const r = await mcpRegistry.call(name, ladder.finalArgs, { confirmed: true });
+      const data = mcpCallOutcome(r);
+      await completeApproval(ladder.approvalId, name, ctx, data);
+      return { ok: true, data };
     } catch (err) {
       const message = err instanceof Error ? err.message : "MCP tool failed.";
+      await failApproval(ladder.approvalId, "executing", name, ctx, message);
       return { ok: false, error: message, code: "FAILED" };
     }
   }
@@ -226,106 +514,82 @@ export async function runTool(name: string, rawArgs: unknown, ctx: ToolContext):
   const parsed = spec.args.safeParse(rawArgs ?? {});
   if (!parsed.success) return { ok: false, error: summarizeZodError(parsed.error), code: "INVALID_ARGS" };
 
-  const approvalsOn = flag("APPROVALS");
+  // A tool that declares nothing is a plain tool: it runs.
+  if (!mayRequireApproval(spec)) return invokeSpec(spec, parsed.data, ctx);
+
+  // Presence, not value: a tool that declares any approval requirement is only runnable when this run
+  // can actually ask a human. `FF_APPROVALS` off therefore refuses it outright rather than running it.
+  // The per-args function is *not* consulted on this path — evaluating it first is what let
+  // `{ text: "safe" }` slip through unapproved, and a function that throws or misreports would do so
+  // with nobody watching.
+  if (!approvalsAvailable(ctx)) {
+    return {
+      ok: false,
+      code: "NOT_ALLOWED",
+      error: flag("APPROVALS") ? NO_APPROVER_MESSAGE : approvalDisabledMessage(name),
+    };
+  }
+
+  // With an approver available, the tool may still waive the card for the calls it knows are safe.
   const requiresApproval =
-    typeof spec.requiresApproval === "function"
-      ? spec.requiresApproval(parsed.data, ctx)
-      : !!spec.requiresApproval;
+    typeof spec.requiresApproval === "function" ? await spec.requiresApproval(parsed.data, ctx) : true;
 
-  if (requiresApproval && !approvalsOn) {
-    return { ok: false, error: `Tool ${name} requires approval, which is currently disabled.`, code: "NOT_ALLOWED" };
+  if (!requiresApproval) return invokeSpec(spec, parsed.data, ctx);
+
+  const preview = spec.preview ? await spec.preview(parsed.data, ctx) : undefined;
+  const targetRef = spec.targetRef ? await spec.targetRef(parsed.data, ctx) : undefined;
+  const targetRevision = spec.targetRevision ? await spec.targetRevision(parsed.data, ctx) : undefined;
+
+  const ladder = await seekApproval({
+    name,
+    risk: spec.risk,
+    proposedArgs: parsed.data,
+    preview,
+    targetRef,
+    targetRevision,
+    ctx,
+    stillOffered: () => stillOfferedFor(ctx, name),
+    recheckRevision:
+      spec.targetRevision && targetRevision
+        ? async (decided) => {
+            try {
+              return await spec.targetRevision!(decided, ctx);
+            } catch {
+              // Fail closed: a target we cannot re-read is not a target we may overwrite.
+              return undefined;
+            }
+          }
+        : undefined,
+  });
+  if (ladder.kind === "outcome") return ladder.outcome;
+
+  return invokeSpec(spec, ladder.finalArgs, ctx, { approvalId: ladder.approvalId, name });
+}
+
+/** The timed, abort-aware execution of one tool call, mapped to the outcome the model sees. */
+async function invokeSpec(
+  spec: ToolSpec<z.ZodTypeAny, unknown>,
+  args: any,
+  ctx: ToolContext,
+  approval?: { approvalId: string; name: string },
+): Promise<ToolOutcome> {
+  try {
+    const result = await executeSpec(spec, args, ctx);
+    if (approval) await completeApproval(approval.approvalId, approval.name, ctx, result);
+    return { ok: true, data: result };
+  } catch (err) {
+    const errorMsg = errorMessage(err);
+    if (approval) await failApproval(approval.approvalId, "executing", approval.name, ctx, errorMsg);
+    return failureOutcome(err, errorMsg);
   }
+}
 
-  let finalArgs = parsed.data;
-  let approvalId: string | undefined;
-
-  if (requiresApproval && approvalsOn) {
-    if (!ctx.approvals) {
-      return { ok: false, code: "NOT_ALLOWED", error: "This action needs your approval, which isn't available yet." };
-    }
-
-    const preview = spec.preview ? await spec.preview(parsed.data, ctx) : undefined;
-    const targetRef = spec.targetRef ? await spec.targetRef(parsed.data, ctx) : undefined;
-    const targetRevision = spec.targetRevision ? await spec.targetRevision(parsed.data, ctx) : undefined;
-
-    const outcome = await ctx.approvals.request({
-      tool: name,
-      risk: spec.risk,
-      args: parsed.data,
-      preview,
-      targetRef,
-      targetRevision,
-    });
-
-    if (typeof outcome === "boolean") {
-      if (!outcome) {
-        return { ok: false, code: "REJECTED", error: "The user declined this action." };
-      }
-    } else if (outcome.decision !== "approved") {
-      return { ok: false, code: "REJECTED", error: "The user declined this action." };
-    } else {
-      finalArgs = outcome.args ?? parsed.data;
-      approvalId = outcome.approvalId;
-    }
-
-    if (approvalId) {
-      // Re-check 1: user still has access (connection active, tool still in toolsFor, flag is on)
-      const stillOffered = (await toolsFor(ctx)).some((s) => s.name === name);
-      if (!stillOffered || !flag("APPROVALS")) {
-        await transitionApprovalStatus(approvalId, "approved", "failed", {
-          executedAt: new Date(),
-          result: { error: "Access revoked." },
-        });
-        await logAuditEvent({
-          userId: String(ctx.userId),
-          action: "approval.failed",
-          resourceType: "tool",
-          resourceId: name,
-          metadata: { approvalId, error: "Access revoked" },
-          sessionId: ctx.sessionId,
-          severity: "warn",
-          status: "failure",
-        });
-        return { ok: false, code: "NOT_ALLOWED", error: "Access revoked." };
-      }
-
-      // Re-check 2: target revision unchanged
-      if (targetRef && targetRevision && spec.targetRevision) {
-        const currentRev = await spec.targetRevision(finalArgs, ctx);
-        if (currentRev !== targetRevision) {
-          await transitionApprovalStatus(approvalId, "approved", "failed", {
-            executedAt: new Date(),
-            result: { error: "Target revision conflict." },
-          });
-          await logAuditEvent({
-            userId: String(ctx.userId),
-            action: "approval.failed",
-            resourceType: "tool",
-            resourceId: name,
-            metadata: { approvalId, error: "Target revision conflict" },
-            sessionId: ctx.sessionId,
-            severity: "warn",
-            status: "failure",
-          });
-          return { ok: false, code: "CONFLICT", error: "Target revision changed." };
-        }
-      }
-
-      // Atomic transition: approved -> executing (idempotency key)
-      const transitioned = await transitionApprovalStatus(approvalId, "approved", "executing");
-      if (!transitioned) {
-        const current = await getApprovalById(approvalId);
-        if (current?.status === "executed") {
-          return { ok: true, data: current.result };
-        }
-        if (current?.status === "failed") {
-          return { ok: false, code: "FAILED", error: (current.result as any)?.error ?? "Tool execution failed." };
-        }
-        return { ok: false, code: "FAILED", error: "Concurrent execution in progress." };
-      }
-    }
-  }
-
+/** The timed, abort-aware execution of one already-approved tool call. */
+async function executeSpec(
+  spec: ToolSpec<z.ZodTypeAny, unknown>,
+  args: any,
+  ctx: ToolContext,
+): Promise<unknown> {
   const timeoutController = new AbortController();
   const timer = setTimeout(() => timeoutController.abort(), spec.timeoutMs);
   const combinedController = new AbortController();
@@ -344,45 +608,7 @@ export async function runTool(name: string, rawArgs: unknown, ctx: ToolContext):
   };
 
   try {
-    const result = await runWithAbort(spec.execute(finalArgs, toolCtx), [ctx.signal, timeoutController.signal]);
-    if (approvalId) {
-      const compact = compactResult(result);
-      await transitionApprovalStatus(approvalId, "executing", "executed", {
-        executedAt: new Date(),
-        result: compact as any,
-      });
-      await logAuditEvent({
-        userId: String(ctx.userId),
-        action: "approval.executed",
-        resourceType: "tool",
-        resourceId: name,
-        metadata: { approvalId },
-        sessionId: ctx.sessionId,
-        severity: "info",
-        status: "success",
-      });
-    }
-    return { ok: true, data: result };
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : typeof err === "string" ? err : "Tool failed with a non-Error value.";
-    if (approvalId) {
-      await transitionApprovalStatus(approvalId, "executing", "failed", {
-        executedAt: new Date(),
-        result: { error: errorMsg } as any,
-      });
-      await logAuditEvent({
-        userId: String(ctx.userId),
-        action: "approval.failed",
-        resourceType: "tool",
-        resourceId: name,
-        metadata: { approvalId, error: errorMsg },
-        sessionId: ctx.sessionId,
-        severity: "warn",
-        status: "failure",
-      });
-    }
-    if (err instanceof AbortMarker) return { ok: false, error: err.message, code: err.code as ToolOutcomeCode };
-    return { ok: false, error: errorMsg, code: "FAILED" };
+    return await runWithAbort(spec.execute(args, toolCtx), [ctx.signal, timeoutController.signal]);
   } finally {
     clearTimeout(timer);
     ctx.signal.removeEventListener("abort", forwardRunAbort);

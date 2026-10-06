@@ -4,9 +4,7 @@
  * (enforced in server/services/google.ts); G1 means no delete/trash/share tool is ever offered —
  * drive_move only relocates within the Sutaeru root, and drive_edit only stages a pending edit.
  */
-import crypto from "node:crypto";
 import { z } from "zod";
-import { flag } from "../../../core/flags";
 import { registerTool } from "../registry";
 import type { ToolContext } from "../types";
 import {
@@ -186,30 +184,7 @@ export function registerDriveTools(): void {
     description: "Propose an edit to an existing Google Drive file. The change is staged as a pending revision and must be confirmed in the UI before it is applied. Does not modify the file immediately.",
     args: DriveEditArgs,
     risk: "write",
-    requiresApproval: () => flag("APPROVALS"),
-    targetRef: (args) => `drive:${args.fileId}`,
-    targetRevision: async (args, ctx) => {
-      try {
-        const file = await readDriveFile(ctx.userId, args.fileId);
-        return crypto.createHash("sha256").update(file.text).digest("hex");
-      } catch {
-        return undefined;
-      }
-    },
-    preview: async (args, ctx) => {
-      let currentText = "";
-      try {
-        const file = await readDriveFile(ctx.userId, args.fileId);
-        currentText = file.text;
-      } catch {}
-      return {
-        title: `Edit file ${args.fileId}`,
-        fileId: args.fileId,
-        reason: args.reason,
-        currentPreview: currentText.slice(0, 500),
-        proposedPreview: args.newContent.slice(0, 500),
-      };
-    },
+    requiresApproval: true,
     parallelSafe: false,
     timeoutMs: 20_000,
     maxModelChars: 4_000,

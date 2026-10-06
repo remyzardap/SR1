@@ -8,8 +8,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { z } from "zod";
 import * as mcpClient from "../mcp/client";
-import { __resetRegistryForTests, registerTool, runTool, toOpenAiTools, toolsFor } from "./registry";
-import type { ToolContext, ToolSpec } from "./types";
+import {
+  __resetRegistryForTests,
+  filterMcpDefs,
+  registerTool,
+  runTool,
+  toOpenAiTools,
+  toolsFor,
+} from "./registry";
+import type { ApprovalGate, ApprovalRequestOutcome, ToolContext, ToolSpec } from "./types";
 
 function ctx(overrides: Partial<ToolContext> = {}): ToolContext {
   return {
@@ -40,6 +47,13 @@ function echoTool(overrides: Partial<ToolSpec<typeof echoArgs, unknown>> = {}): 
 
 beforeEach(() => {
   __resetRegistryForTests();
+});
+
+afterEach(() => {
+  // These tests flip FF_APPROVALS to reach the approval paths. `flag()` reads the environment on
+  // every call, so the value has to leave with the test that set it — otherwise the next file's
+  // ordinary tools suddenly "require approval" and fail for a reason that has nothing to do with them.
+  delete process.env.FF_APPROVALS;
 });
 
 describe("registerTool", () => {
@@ -186,6 +200,9 @@ describe("toOpenAiTools", () => {
   });
 });
 
+// P1-11 [P1-11] rule 1: an approval tool may only be offered — or run — when this run can actually
+// ask a human. These cover the toolkit side of that rule; the gate's own behaviour is in
+// approvals.test.ts.
 describe("runTool: MCP approval and mode handling", () => {
   const mockCall = vi.fn();
   const mockModeOf = vi.fn();
@@ -199,9 +216,23 @@ describe("runTool: MCP approval and mode handling", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    delete process.env.FF_APPROVALS;
   });
 
-  it("confirm tool with no gate returns NOT_ALLOWED", async () => {
+  it("confirm tool while the approval feature is off returns NOT_ALLOWED with the disabled message", async () => {
+    delete process.env.FF_APPROVALS;
+    mockModeOf.mockResolvedValue("confirm");
+    const outcome = await runTool("mcp__test__confirm_tool", { arg: 1 }, ctx({ approvals: undefined }));
+    expect(outcome).toEqual({
+      ok: false,
+      code: "NOT_ALLOWED",
+      error: "Tool mcp__test__confirm_tool requires approval, which is currently disabled.",
+    });
+    expect(mockCall).not.toHaveBeenCalled();
+  });
+
+  it("confirm tool with the flag on but no gate returns NOT_ALLOWED, never waiting on a TTL", async () => {
+    process.env.FF_APPROVALS = "1";
     mockModeOf.mockResolvedValue("confirm");
     const outcome = await runTool("mcp__test__confirm_tool", { arg: 1 }, ctx({ approvals: undefined }));
     expect(outcome).toEqual({
@@ -213,28 +244,43 @@ describe("runTool: MCP approval and mode handling", () => {
   });
 
   it("confirm tool with gate saying no returns REJECTED", async () => {
+    process.env.FF_APPROVALS = "1";
     mockModeOf.mockResolvedValue("confirm");
-    const request = vi.fn().mockResolvedValue(false);
+    const request = vi.fn(async (): Promise<ApprovalRequestOutcome> => ({
+      decision: "rejected",
+      args: { arg: 1 },
+      approvalId: "ap-no",
+    }));
     const outcome = await runTool("mcp__test__confirm_tool", { arg: 1 }, ctx({ approvals: { request } }));
     expect(outcome).toEqual({
       ok: false,
       code: "REJECTED",
-      error: "Action rejected by user approval.",
+      error: "The user declined this action.",
     });
-    expect(request).toHaveBeenCalledWith("mcp__test__confirm_tool", { arg: 1 });
     expect(mockCall).not.toHaveBeenCalled();
   });
 
-  it("confirm tool with gate saying yes runs with confirmed: true", async () => {
+  it("confirm tool with gate saying yes is asked as one structured request, then runs confirmed", async () => {
+    process.env.FF_APPROVALS = "1";
     mockModeOf.mockResolvedValue("confirm");
-    const request = vi.fn().mockResolvedValue(true);
+    const request = vi.fn(async (): Promise<ApprovalRequestOutcome> => ({
+      decision: "approved",
+      args: { arg: 1 },
+      approvalId: "ap-yes",
+    }));
     mockCall.mockResolvedValue({ ok: true, text: "action performed" });
     const outcome = await runTool("mcp__test__confirm_tool", { arg: 1 }, ctx({ approvals: { request } }));
     expect(outcome).toEqual({
       ok: true,
       data: { success: true, data: { output: "action performed" } },
     });
-    expect(request).toHaveBeenCalledWith("mcp__test__confirm_tool", { arg: 1 });
+    // The structured contract: the card is told which tool, how risky, what it will do.
+    expect(request.mock.calls[0][0]).toMatchObject({
+      tool: "mcp__test__confirm_tool",
+      risk: "write",
+      args: { arg: 1 },
+    });
+    expect(request.mock.calls[0][0].preview).toMatchObject({ tool: "mcp__test__confirm_tool" });
     expect(mockCall).toHaveBeenCalledWith("mcp__test__confirm_tool", { arg: 1 }, { confirmed: true });
   });
 
@@ -272,6 +318,261 @@ describe("runTool: MCP approval and mode handling", () => {
       code: "NOT_ALLOWED",
       error: "Unknown tool: mcp__test__unknown",
     });
+  });
+});
+
+describe("runTool: approval ladder for built-in tools", () => {
+  const approved = (approvalId = "b-1", args: unknown = { text: "hello" }): ApprovalRequestOutcome => ({
+    decision: "approved",
+    args,
+    approvalId,
+  });
+
+  afterEach(() => {
+    delete process.env.FF_APPROVALS;
+  });
+
+  it("flag on, no gate: refuses immediately instead of waiting for the approval to expire", async () => {
+    process.env.FF_APPROVALS = "1";
+    let ran = 0;
+    registerTool(
+      echoTool({ name: "gateless_tool", risk: "write", requiresApproval: true, execute: async () => ({ ran: ++ran }) }),
+    );
+
+    const started = Date.now();
+    const outcome = await runTool("gateless_tool", { text: "hello" }, ctx());
+
+    expect(outcome).toEqual({
+      ok: false,
+      code: "NOT_ALLOWED",
+      error: "This action needs your approval, which isn't available yet.",
+    });
+    expect(ran).toBe(0);
+    // The default approval TTL is 600s; anything close to that means we waited on a nobody-to-ask card.
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+
+  it("flag off: a tool whose approval check would opt out is still refused, never run", async () => {
+    delete process.env.FF_APPROVALS;
+    let ran = 0;
+    registerTool(
+      echoTool({
+        name: "approval_opt_out_tool",
+        risk: "write",
+        requiresApproval: () => false,
+        execute: async () => ({ ran: ++ran }),
+      }),
+    );
+
+    const outcome = await runTool(
+      "approval_opt_out_tool",
+      { text: "hi" },
+      ctx({ approvals: { request: async () => approved() } }),
+    );
+
+    // Before this rule was fixed the `false` returned by the function let this run with no approval.
+    expect(ran).toBe(0);
+    expect(outcome).toEqual({
+      ok: false,
+      code: "NOT_ALLOWED",
+      error: "Tool approval_opt_out_tool requires approval, which is currently disabled.",
+    });
+  });
+
+  it("flag on with a gate: the function may still opt an individual call out of approval", async () => {
+    process.env.FF_APPROVALS = "1";
+    let ran = 0;
+    const request = vi.fn(async () => approved());
+    registerTool(
+      echoTool({
+        name: "conditional_approval_tool",
+        risk: "write",
+        requiresApproval: (args) => args.text !== "safe",
+        execute: async () => ({ ran: ++ran }),
+      }),
+    );
+
+    const safe = await runTool("conditional_approval_tool", { text: "safe" }, ctx({ approvals: { request } }));
+    expect(safe).toEqual({ ok: true, data: { ran: 1 } });
+    expect(request).not.toHaveBeenCalled();
+
+    const risky = await runTool("conditional_approval_tool", { text: "risky" }, ctx({ approvals: { request } }));
+    expect(risky).toEqual({ ok: true, data: { ran: 2 } });
+    expect(request).toHaveBeenCalledOnce();
+    expect(request.mock.calls[0][0]).toMatchObject({ tool: "conditional_approval_tool", risk: "write" });
+  });
+
+  it("a declined approval never reaches execute()", async () => {
+    process.env.FF_APPROVALS = "1";
+    let ran = 0;
+    registerTool(
+      echoTool({ name: "declined_builtin_tool", risk: "write", requiresApproval: true, execute: async () => ({ ran: ++ran }) }),
+    );
+    const request = vi.fn(async () => ({ decision: "rejected" as const, args: { text: "hi" }, approvalId: "b-no" }));
+
+    const outcome = await runTool("declined_builtin_tool", { text: "hi" }, ctx({ approvals: { request } }));
+
+    expect(ran).toBe(0);
+    expect(outcome).toEqual({ ok: false, code: "REJECTED", error: "The user declined this action." });
+  });
+
+  it("the preview, targetRef and targetRevision all reach the card", async () => {
+    process.env.FF_APPROVALS = "1";
+    const request = vi.fn(async () => approved("b-preview", { text: "hi" }));
+    registerTool(
+      echoTool({
+        name: "previewed_tool",
+        risk: "write",
+        requiresApproval: true,
+        preview: async (args) => ({ title: `Echo ${args.text}`, detail: "echo" }),
+        targetRef: async (args) => `ref:${args.text}`,
+        targetRevision: async (args) => `rev:${args.text}`,
+        execute: async () => ({ echoed: true }),
+      }),
+    );
+
+    const outcome = await runTool("previewed_tool", { text: "hi" }, ctx({ approvals: { request } }));
+
+    expect(outcome).toEqual({ ok: true, data: { echoed: true } });
+    expect(request.mock.calls[0][0]).toMatchObject({
+      tool: "previewed_tool",
+      preview: { title: "Echo hi", detail: "echo" },
+      targetRef: "ref:hi",
+      targetRevision: "rev:hi",
+    });
+  });
+
+  it("an approved tool that leaves the offer while the card is open is not run", async () => {
+    process.env.FF_APPROVALS = "1";
+    let ran = 0;
+    registerTool(
+      echoTool({ name: "withdrawn_tool", risk: "write", requiresApproval: true, execute: async () => ({ ran: ++ran }) }),
+    );
+    // Simulate access (or the feature) going away between the card and the decision: the tool is no
+    // longer part of what this run may use.
+    const request = vi.fn(async () => {
+      __resetRegistryForTests();
+      registerTool(
+        echoTool({ name: "other_tool", risk: "write", execute: async () => ({ ran: ++ran }) }),
+      );
+      return approved("b-revoked");
+    });
+
+    const outcome = await runTool("withdrawn_tool", { text: "hi" }, ctx({ approvals: { request } }));
+
+    expect(ran).toBe(0);
+    expect(outcome).toEqual({ ok: false, code: "NOT_ALLOWED", error: "Access revoked." });
+  });
+
+  it("a moved target revision comes back as CONFLICT instead of overwriting the new version", async () => {
+    process.env.FF_APPROVALS = "1";
+    let revision = "rev-1";
+    let ran = 0;
+    registerTool(
+      echoTool({
+        name: "moving_target_tool",
+        risk: "write",
+        requiresApproval: true,
+        targetRevision: async () => revision,
+        execute: async () => ({ ran: ++ran }),
+      }),
+    );
+    const request = vi.fn(async () => {
+      revision = "rev-2"; // somebody else edited the file while the card was open
+      return approved("b-conflict");
+    });
+
+    const outcome = await runTool("moving_target_tool", { text: "hi" }, ctx({ approvals: { request } }));
+
+    expect(ran).toBe(0);
+    expect(outcome).toEqual({ ok: false, code: "CONFLICT", error: "Target revision changed." });
+  });
+
+  it("an approval tool is withheld from the offer while this run has no approver", async () => {
+    process.env.FF_APPROVALS = "1";
+    registerTool(echoTool({ name: "listed_only_with_gate", risk: "write", requiresApproval: true }));
+    const gate: ApprovalGate = { request: async () => approved() };
+
+    expect((await toolsFor(ctx(), undefined)).map((s) => s.name)).not.toContain("listed_only_with_gate");
+    expect((await toolsFor(ctx({ approvals: gate }), undefined)).map((s) => s.name)).toContain("listed_only_with_gate");
+  });
+
+  it("with the flag off, an approval tool is withheld from every group", async () => {
+    delete process.env.FF_APPROVALS;
+    registerTool(echoTool());
+    registerTool(echoTool({ name: "drive_edit", risk: "write", requiresApproval: true }));
+    registerTool(echoTool({ name: "load_skill", risk: "write", requiresApproval: true }));
+    const gate: ApprovalGate = { request: async () => approved() };
+
+    const names = (await toolsFor(ctx({ approvals: gate, skillsEnabled: true }), undefined)).map((s) => s.name);
+
+    expect(names).not.toContain("drive_edit");
+    expect(names).not.toContain("load_skill");
+    expect(names).toContain("echo");
+  });
+});
+
+// P1-11 rule 1, MCP half: `McpRegistry.tools()` already hides `confirm` tools while the flag is off;
+// this hides them for a run that has the flag on but nobody to ask.
+describe("filterMcpDefs: confirm tools need an approver to be offered", () => {
+  const modes: Record<string, string> = { read_tool: "read", draft_tool: "draft", action_tool: "confirm" };
+  const defs = ["read_tool", "draft_tool", "action_tool"].map((n) => ({
+    name: `mcp__srv__${n}`,
+    description: n,
+    parameters: { type: "object" as const, properties: {}, required: [] },
+  }));
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete process.env.FF_APPROVALS;
+  });
+
+  it("keeps every definition when this run can ask a human", async () => {
+    process.env.FF_APPROVALS = "1";
+    const modeOf = vi.fn(async (name: string) => modes[name.split("__")[2]]);
+    vi.spyOn(mcpClient, "getMcpRegistry").mockReturnValue({ tools: async () => [], modeOf } as any);
+
+    const kept = await filterMcpDefs(defs, ctx({ approvals: { request: vi.fn() } }));
+
+    expect(kept.map((d) => d.name)).toEqual(defs.map((d) => d.name));
+    expect(modeOf).not.toHaveBeenCalled(); // the fast path keeps everything without consulting modes
+  });
+
+  it("drops only the confirm-mode tool when there is no gate (flag on)", async () => {
+    process.env.FF_APPROVALS = "1";
+    vi.spyOn(mcpClient, "getMcpRegistry").mockReturnValue({
+      tools: async () => [],
+      modeOf: async (name: string) => modes[name.split("__")[2]],
+    } as any);
+
+    const kept = await filterMcpDefs(defs, ctx());
+
+    expect(kept.map((d) => d.name)).toEqual(["mcp__srv__read_tool", "mcp__srv__draft_tool"]);
+  });
+
+  it("does not depend on the flag: with the feature off it still drops the confirm tool", async () => {
+    // `McpRegistry.tools()` hides confirm-mode tools while the flag is off, so this case should be
+    // empty in practice; the filter not leaning on that is the point — a confirm tool that reaches
+    // the wire list by any route still cannot be offered to a run that cannot approve it.
+    delete process.env.FF_APPROVALS;
+    const modeOf = vi.fn(async (name: string) => modes[name.split("__")[2]]);
+    vi.spyOn(mcpClient, "getMcpRegistry").mockReturnValue({ tools: async () => [], modeOf } as any);
+
+    const kept = await filterMcpDefs(defs, ctx({ approvals: { request: vi.fn() } }));
+
+    expect(kept.map((d) => d.name)).toEqual(["mcp__srv__read_tool", "mcp__srv__draft_tool"]);
+    expect(modeOf).toHaveBeenCalled();
+  });
+
+  it("keeps a tool whose mode cannot be resolved, and survives a registry without modeOf", async () => {
+    process.env.FF_APPROVALS = "1";
+    vi.spyOn(mcpClient, "getMcpRegistry").mockReturnValue({ tools: async () => [] } as any);
+
+    const kept = await filterMcpDefs(defs, ctx());
+
+    // Dropping them would silently remove working read tools; `runTool` still refuses to *execute* a
+    // confirm call without an approval, so keeping an unknown tool can never cause an action.
+    expect(kept.map((d) => d.name)).toEqual(defs.map((d) => d.name));
   });
 });
 

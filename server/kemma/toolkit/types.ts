@@ -42,8 +42,13 @@ export interface ApprovalRequestOutcome {
  * wait for the user's okay before execution.
  */
 export interface ApprovalGate {
+  /**
+   * One shape for everything (P1-11): the caller proposes, the gate returns the decision plus the
+   * approval id that later state transitions and audit rows are keyed on. There is deliberately no
+   * `(name, args) => boolean` overload — a bare yes/no cannot carry an approval id, so an approved
+   * action could never be claimed, recorded or replayed.
+   */
   request(params: ApprovalRequestParams): Promise<ApprovalRequestOutcome>;
-  request(toolName: string, args: unknown): Promise<boolean | ApprovalRequestOutcome>;
 }
 
 export interface ToolContext {

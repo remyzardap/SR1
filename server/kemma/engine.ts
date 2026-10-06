@@ -3,10 +3,9 @@ import { buildKemmaSystemPrompt, buildKemmaVoicePrompt } from "./personality";
 import { isAdminUser } from "./executors/vpsFiles";
 import pLimit from "p-limit";
 import { registerBuiltinTools } from "./toolkit/builtin";
-import { getToolSpec, runTool, toOpenAiTools, toolsFor, type OpenAiToolDef } from "./toolkit/registry";
+import { filterMcpDefs, getToolSpec, runTool, toOpenAiTools, toolsFor, type OpenAiToolDef } from "./toolkit/registry";
 import { SKILL_TOOL_NAMES } from "./toolkit/names";
 import type { ApprovalGate, ToolContext } from "./toolkit/types";
-import { createApprovalGate } from "./approvals";
 import {
   chatRoute,
   reportRoute,
@@ -393,16 +392,11 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     tier,
     signal: input.signal ?? NEVER_ABORTS,
     emit: () => {},
-    approvals: input.approvals ?? (flag("APPROVALS") ? createApprovalGate({
-      userId,
-      sessionId,
-      runId,
-      tier,
-      signal: input.signal ?? NEVER_ABORTS,
-      emit: () => {},
-      skillsEnabled: enabledSkills.length > 0,
-      isSubAgent: !!input.isSubAgent,
-    }) : undefined),
+    // Only the caller can supply a gate (P1-11): a gate built here would push its approval card to
+    // nowhere, so the run would block on a TTL and then report a misleading `expired`. With no gate
+    // the approval tools are not offered at all, and `runTool` refuses one immediately if it is
+    // nevertheless asked for.
+    approvals: input.approvals,
     skillsEnabled: enabledSkills.length > 0,
     isSubAgent: !!input.isSubAgent,
   };
@@ -417,7 +411,12 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   let mcpDefs: OpenAiToolDef[] = [];
   if (!input.isSubAgent) {
     try {
-      mcpDefs = (await getMcpRegistry().tools()).filter((t) => !input.allowedTools || input.allowedTools.includes(t.name));
+      // `filterMcpDefs` closes the other half of the P1-11 listing rule: an MCP `confirm` tool is not
+      // offered to a run that has no approver to ask, exactly like a built-in one.
+      mcpDefs = await filterMcpDefs(
+        (await getMcpRegistry().tools()).filter((t) => !input.allowedTools || input.allowedTools.includes(t.name)),
+        toolCtx,
+      );
     } catch { /* MCP is optional */ }
   }
 

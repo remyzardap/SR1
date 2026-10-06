@@ -147,20 +147,8 @@ export class KemmaApprovalGate implements ApprovalGate {
     this.ctx = ctx;
   }
 
-  async request(
-    paramsOrName: ApprovalRequestParams | string,
-    maybeArgs?: unknown,
-  ): Promise<any> {
-    if (typeof paramsOrName === "string") {
-      const res = await this.enqueueRequest({
-        tool: paramsOrName,
-        risk: "write",
-        args: maybeArgs,
-      });
-      return res.decision === "approved";
-    }
-
-    return this.enqueueRequest(paramsOrName);
+  async request(params: ApprovalRequestParams): Promise<ApprovalRequestOutcome> {
+    return this.enqueueRequest(params);
   }
 
   private async enqueueRequest(params: ApprovalRequestParams): Promise<ApprovalRequestOutcome> {
