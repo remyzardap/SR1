@@ -26,6 +26,7 @@ import More from "./pages/More";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
 import DashboardLayout from "./components/DashboardLayout";
+import FirstRunScreen from "./components/FirstRunScreen";
 import { useAuth } from "./_core/hooks/useAuth";
 import { IntelligenceProvider } from "./_core/hooks/useSutaeruIntelligence";
 import { useLocation } from "wouter";
@@ -229,6 +230,9 @@ function App() {
             <TooltipProvider>
               <Toaster richColors position="top-right" />
               <AppRoutes />
+              {/* The greeting is a sibling of the router, not a route: a new person can be
+                  redirected to any page after signing in, and must be greeted regardless. */}
+              <FirstRunScreen />
             </TooltipProvider>
           </IntelligenceProvider>
         </VideoPlayerProvider>
