@@ -4,6 +4,9 @@ import type { AgentStep } from "@/lib/streamReducer";
 export interface ChatSource {
   title: string;
   url: string;
+  /** Stable source id from the server (P1-07); chips and cards number by it. */
+  id?: number;
+  snippet?: string;
 }
 
 export interface PlanDirection {
