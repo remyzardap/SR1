@@ -13,6 +13,9 @@
  * - abort while waiting becomes cancelled
  * - audit rows written in order
  * - with the flag off the tool isn't offered
+ * - with the flag on but no approver the refusal is immediate (no row, no card, no TTL wait)
+ * - MCP confirm tools walk the same ladder: row, both audit rows, replay without a second call
+ * - edited args cannot move the action to a different target (400, the card stays pending)
  * - failure paths: 400 on invalid decision/args, 404 on missing approval, 401 unauthenticated
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -120,6 +123,32 @@ vi.mock("../db", () => {
   };
 });
 
+// Mock MCP registry: one `confirm` tool (an action) and one `read` tool, recording every call so a
+// replay can be proven not to repeat the side effect.
+const mcpMock = vi.hoisted(() => {
+  const calls: { name: string; args: unknown }[] = [];
+  const modes: Record<string, string> = { confirm_tool: "confirm", read_tool: "read" };
+  return {
+    calls,
+    modes,
+    getMcpRegistry: () => ({
+      modeOf: async (name: string) => modes[name.split("__").pop() ?? ""] ?? undefined,
+      call: async (name: string, args: any) => {
+        calls.push({ name, args });
+        return { ok: true, text: "confirmed" };
+      },
+      tools: async () => [],
+    }),
+  };
+});
+
+vi.mock("./mcp/client", () => ({
+  MCP_TOOL_PREFIX: "mcp__",
+  riskForMcpMode: (mode: string) =>
+    mode === "confirm" ? { risk: "write", requiresApproval: true } : { risk: "read", requiresApproval: false },
+  getMcpRegistry: mcpMock.getMcpRegistry,
+}));
+
 // Mock drizzle-orm operators for predictable where matching
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((col: any, val: any) => {
@@ -153,7 +182,7 @@ import {
   __resetRegistryForTests,
 } from "./toolkit/registry";
 import { approvalsRouter } from "../routes/approvals";
-import type { ToolContext } from "./toolkit/types";
+import type { ApprovalGate, ToolContext } from "./toolkit/types";
 
 describe("P1-11 Approvals: canonicalJson and hashArgs", () => {
   it("computes deterministic canonical JSON regardless of key ordering", () => {
@@ -697,6 +726,159 @@ describe("P1-11 Approvals: HTTP endpoints and gate lifecycle", () => {
       code: "NOT_ALLOWED",
       error: "Tool test_flag_off_tool requires approval, which is currently disabled.",
     });
+  });
+
+  it("no approver: refused immediately, with no card, no row and no wait", async () => {
+    // FF_APPROVALS on but the run has nobody to answer: creating the row first would leave the
+    // model blocked for the whole TTL and expire an approval that was never really offered (P1-11).
+    vi.stubEnv("KEMMA_APPROVAL_TTL_SEC", "30");
+
+    let executeCalled = false;
+    registerTool({
+      name: "test_no_approver",
+      description: "Needs an approver",
+      args: z.object({ note: z.string() }),
+      risk: "write",
+      requiresApproval: true,
+      parallelSafe: false,
+      timeoutMs: 5000,
+      maxModelChars: 1000,
+      execute: async () => { executeCalled = true; return { success: true }; },
+    });
+
+    const events: any[] = [];
+    const ctx: ToolContext = {
+      userId: 42,
+      runId: "run-no-approver",
+      tier: "trial",
+      signal: new AbortController().signal,
+      emit: (e: any) => { events.push(e); },
+      // no `approvals` gate on this context
+    };
+
+    const started = Date.now();
+    const outcome = await runToolPromise(runTool("test_no_approver", { note: "x" }, ctx));
+
+    expect(outcome).toEqual({
+      ok: false,
+      code: "NOT_ALLOWED",
+      error: "This action needs your approval, which isn't available yet.",
+    });
+    expect(executeCalled).toBe(false);
+    expect(Date.now() - started).toBeLessThan(500);
+    expect(mockApprovalsStore.size).toBe(0);
+    expect(events.filter((e) => e?.type === "approval_request")).toHaveLength(0);
+  });
+
+  it("an MCP confirm tool walks the same state machine and writes both audit rows", async () => {
+    mcpMock.calls.length = 0;
+    const args = { fileId: "f1", accessToken: "bearer-secret" };
+    const events: any[] = [];
+    const ctx: ToolContext = {
+      userId: 42,
+      runId: "run-mcp-ladder",
+      tier: "trial",
+      signal: new AbortController().signal,
+      emit: (e: any) => { events.push(e); },
+    };
+    ctx.approvals = new KemmaApprovalGate(ctx);
+
+    const runPromise = runTool("mcp__srv__confirm_tool", args, ctx);
+    await new Promise((r) => setTimeout(r, 20));
+
+    const approvalId = Array.from(mockApprovalsStore.keys()).pop()!;
+    expect(mockApprovalsStore.get(approvalId)?.status).toBe("pending");
+    expect(mockApprovalsStore.get(approvalId)?.tool).toBe("mcp__srv__confirm_tool");
+
+    // The card shows a summary with secret-ish values masked (the gate ships preview as a string).
+    const card = events.find((e) => e?.type === "approval_request");
+    expect(card?.tool).toBe("mcp__srv__confirm_tool");
+    expect(card?.title).toBe("Approve mcp__srv__confirm_tool");
+    const preview = JSON.parse(String(card?.preview ?? "{}"));
+    expect(preview.argsSummary).toContain("fileId=f1");
+    expect(preview.argsSummary).toContain("accessToken=***");
+    expect(String(card?.preview)).not.toContain("bearer-secret");
+
+    const res = await fetch(`${baseUrl}/${approvalId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer test-token" },
+      body: JSON.stringify({ decision: "approve" }),
+    });
+    expect(res.status).toBe(200);
+
+    const outcome = await runToolPromise(runPromise);
+    expect(outcome).toEqual({ ok: true, data: { success: true, data: { output: "confirmed" } } });
+    expect(mcpMock.calls).toEqual([{ name: "mcp__srv__confirm_tool", args }]);
+    expect(mockApprovalsStore.get(approvalId)?.status).toBe("executed");
+
+    // decision row + execution row, both keyed by the approval id, neither with raw args
+    expect(mockAuditStore.map((a) => a.action)).toEqual(["approval.approve", "approval.executed"]);
+    for (const row of mockAuditStore) expect(row.metadata?.approvalId).toBe(approvalId);
+    expect(JSON.stringify(mockAuditStore)).not.toContain("bearer-secret");
+
+    // Replaying the same approval id returns the stored result instead of acting twice.
+    const replayGate: ApprovalGate = {
+      request: async () => ({ decision: "approved" as const, args, approvalId }),
+    };
+    const replay = await runToolPromise(
+      runTool("mcp__srv__confirm_tool", args, { ...ctx, approvals: replayGate })
+    );
+    expect(replay.ok).toBe(true);
+    expect(replay.data).toEqual(mockApprovalsStore.get(approvalId)?.result);
+    expect(mcpMock.calls).toHaveLength(1);
+  });
+
+  it("edited args that move the action to another target are refused with 400", async () => {
+    // The human approves the file shown on the card; re-reading the target from the edited args
+    // would let a different file be written while still reporting "approved" (P1-11).
+    let executedWith: any = null;
+    registerTool({
+      name: "test_target_move",
+      description: "Writes to one file",
+      args: z.object({ fileId: z.string(), content: z.string() }),
+      risk: "write",
+      requiresApproval: true,
+      targetRef: (args: any) => `drive:${args.fileId}`,
+      parallelSafe: false,
+      timeoutMs: 5000,
+      maxModelChars: 1000,
+      execute: async (args: any) => { executedWith = args; return { success: true }; },
+    });
+
+    const ctx: ToolContext = {
+      userId: 42,
+      runId: "run-target-move",
+      tier: "trial",
+      signal: new AbortController().signal,
+      emit: () => {},
+    };
+    ctx.approvals = new KemmaApprovalGate(ctx);
+
+    const runPromise = runTool("test_target_move", { fileId: "f1", content: "draft" }, ctx);
+    await new Promise((r) => setTimeout(r, 20));
+    const approvalId = Array.from(mockApprovalsStore.keys()).pop()!;
+    expect(mockApprovalsStore.get(approvalId)?.targetRef).toBe("drive:f1");
+
+    const moved = await fetch(`${baseUrl}/${approvalId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer test-token" },
+      body: JSON.stringify({ decision: "approve", args: { fileId: "f2", content: "draft" } }),
+    });
+    expect(moved.status).toBe(400);
+    expect((await moved.json()).error).toMatch(/target/i);
+    expect(mockApprovalsStore.get(approvalId)?.status).toBe("pending");
+    expect(executedWith).toBe(null);
+
+    // The same card still works for the action it actually displayed.
+    const ok = await fetch(`${baseUrl}/${approvalId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer test-token" },
+      body: JSON.stringify({ decision: "approve", args: { fileId: "f1", content: "final copy" } }),
+    });
+    expect(ok.status).toBe(200);
+
+    expect((await runToolPromise(runPromise)).ok).toBe(true);
+    expect(executedWith).toEqual({ fileId: "f1", content: "final copy" });
   });
 
   it("failure paths: 400 on invalid decision, 400 on invalid args, 404 on not found, 401 on unauthenticated", async () => {
