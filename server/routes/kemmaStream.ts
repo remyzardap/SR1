@@ -14,6 +14,7 @@ import {
   type Attachment,
 } from "../lib/attachments";
 import { FnError } from "../lib/fnErrors";
+import { flag } from "../core/flags";
 
 function sendEvent(res: Response, event: string, data: unknown) {
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -70,6 +71,16 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
   res.setHeader("Connection", "keep-alive");
   res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
+
+  const streamToolTurns = flag("STREAM_TOOL_TURNS");
+  const runId = (typeof req.body?.runId === "string" && req.body.runId) ? req.body.runId : crypto.randomUUID();
+  if (streamToolTurns) {
+    sendEvent(res, "meta", {
+      protocol: 2,
+      runId,
+      ...(sessionId ? { sessionId } : {}),
+    });
+  }
 
   const heartbeat = setInterval(() => res.write(": ping\n\n"), 20000);
   let aborted = false;
@@ -129,18 +140,42 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
           sendEvent(res, "token", chunk);
         }
       },
-      onToolStart: (tool, input) => {
+      onReasoning: (delta) => {
         if (aborted) return;
-        currentTool = { id: `tool-${++toolSeq}`, input };
-        sendEvent(res, "tool_start", { tool, input });
+        const isReasoningOff = (process.env.KEMMA_REASONING_EFFORT ?? "").trim().toLowerCase() === "off";
+        if (streamToolTurns && !isReasoningOff) {
+          sendEvent(res, "thinking", delta);
+        }
+      },
+      onSegmentEnd: (kind) => {
+        if (aborted) return;
+        if (streamToolTurns) {
+          sendEvent(res, "segment", { kind });
+        }
+      },
+      onToolStart: (tool, input, callId) => {
+        if (aborted) return;
+        const id = (streamToolTurns && callId) ? callId : `tool-${++toolSeq}`;
+        currentTool = { id, input };
+        if (streamToolTurns) {
+          sendEvent(res, "tool_start", { id, tool, input });
+        } else {
+          sendEvent(res, "tool_start", { tool, input });
+        }
         sendEvent(res, "agent", true);
         sendActivity(describeToolStart(currentTool.id, tool, input));
       },
-      onToolEnd: (tool, result, durationMs) => {
+      onToolEnd: (tool, result, durationMs, callId) => {
         if (aborted) return;
-        const started = currentTool ?? { id: `tool-${++toolSeq}`, input: {} };
+        const fallbackId = `tool-${++toolSeq}`;
+        const started = currentTool ?? { id: (streamToolTurns && callId) ? callId : fallbackId, input: {} };
+        const id = (streamToolTurns && callId) ? callId : started.id;
         currentTool = null;
-        sendEvent(res, "tool_end", { tool, input: started.input, output: result, step: 0, durationMs });
+        if (streamToolTurns) {
+          sendEvent(res, "tool_end", { id, tool, input: started.input, output: result, step: 0, durationMs });
+        } else {
+          sendEvent(res, "tool_end", { tool, input: started.input, output: result, step: 0, durationMs });
+        }
         sendActivity(describeToolEnd(started.id, tool, started.input, result, durationMs));
       },
       onStepStart: (step, model) => {
