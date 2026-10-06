@@ -22,6 +22,7 @@ LOGDIR="${AGENTS_LOGS:-$HOME/agent-logs}"
 AGENT_TIMEOUT="${AGENT_TIMEOUT:-10800}"   # seconds per agent run
 MAX_AGENTS="${MAX_AGENTS:-2}"
 FORBIDDEN_RE='^(\.env|secrets/|\.github/workflows/deploy\.yml$|ops/session-manager/)'
+AUTH_RE='api error: 40[13]|invalid access token|token expired|not (logged|signed) in|please (log|sign) in|authenticat(e|ion) (required|failed)|unauthori[sz]ed'
 LIMIT_RE='rate.?limit|usage limit|quota|insufficient|credit balance|too many requests|\b429\b|\b402\b'
 
 die() { echo "dispatch: $*" >&2; exit 1; }
@@ -82,6 +83,11 @@ run_agent() {  # <workdir> <prompt> <logfile>
   else
     (cd "$dir" && timeout "$((AGENT_TIMEOUT + 60))" agy -p "$prompt" --output-format stream-json \
       --dangerously-skip-permissions --print-timeout "${AGENT_TIMEOUT}s") >"$out" 2>&1 || rc=$?
+  fi
+  # a CLI that lost its login often exits 0 after one error line, so check the end of the log either way
+  if tail -n 5 "$out" | grep -qiE "$AUTH_RE"; then
+    score auth
+    die "$AGENT is not signed in (or its login expired); nothing done. Owner: sudo -iu $(whoami) bash -c 'PATH=\$HOME/.local/bin:\$PATH $AGENT' and sign in again. Last line: $(tail -n 1 "$out" | cut -c1-200)"
   fi
   if (( rc != 0 )); then
     if tail -n 20 "$out" | grep -qiE "$LIMIT_RE"; then
