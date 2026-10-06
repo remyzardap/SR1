@@ -239,7 +239,19 @@ describe("stream route: direct answer end to end", () => {
     await kemmaStreamRoute(req, res);
     expect(db.addChatMessage).toHaveBeenCalledTimes(2);
     expect(db.addChatMessage.mock.calls[0]).toEqual(["sess-9", 1, "What is 2+2?", "user", undefined, { mode: "fast" }]);
-    expect(db.addChatMessage.mock.calls[1]).toEqual(["sess-9", 1, "It is 4.", "assistant", "qwen3.8-max (qwen)"]);
+    expect(db.addChatMessage.mock.calls[1]).toEqual([
+      "sess-9",
+      1,
+      "It is 4.",
+      "assistant",
+      "qwen3.8-max (qwen)",
+      undefined,
+      expect.objectContaining({
+        sources: [],
+        activity: [],
+        model: "qwen3.8-max (qwen)",
+      }),
+    ]);
   });
 
   it("without a sessionId nothing is persisted but tokens still stream", async () => {
@@ -265,7 +277,18 @@ describe("stream route: provider ignores stream=true and returns plain JSON", ()
     const token = frames.find((f) => f.event === "token");
     expect(token).toBeDefined();
     expect(token!.data).toBe("Plain JSON reply.");
-    expect(db.addChatMessage).toHaveBeenCalledWith("sess-9", 1, "Plain JSON reply.", "assistant", "qwen3.8-max (qwen)");
+    expect(db.addChatMessage).toHaveBeenCalledWith(
+      "sess-9",
+      1,
+      "Plain JSON reply.",
+      "assistant",
+      "qwen3.8-max (qwen)",
+      undefined,
+      expect.objectContaining({
+        sources: [],
+        model: "qwen3.8-max (qwen)",
+      })
+    );
   });
 });
 
@@ -279,7 +302,18 @@ describe("stream route: null content with finish_reason length", () => {
     const frames = parseFrames(res.frames);
     expect(frames.map((f) => f.event)).toEqual(["model", "token", "usage", "done"]);
     expect(frames[1].data).toBe("Done.");
-    expect(db.addChatMessage.mock.calls[1]).toEqual(["sess-9", 1, "Done.", "assistant", "qwen3.8-max (qwen)"]);
+    expect(db.addChatMessage.mock.calls[1]).toEqual([
+      "sess-9",
+      1,
+      "Done.",
+      "assistant",
+      "qwen3.8-max (qwen)",
+      undefined,
+      expect.objectContaining({
+        sources: [],
+        model: "qwen3.8-max (qwen)",
+      }),
+    ]);
   });
 });
 

@@ -47,6 +47,7 @@ vi.mock("./mcp/client", () => mcp);
 vi.mock("../services/google", () => google);
 
 import { kemmaExecute, type EngineInput } from "./engine";
+import { unwrapUntrustedContent } from "./untrusted";
 
 const savedEnv = new Map<string, string | undefined>();
 const ENV_NAMES = [
@@ -324,7 +325,7 @@ describe("P1-04 Parallel tool execution in engine", () => {
     expect(toolMessages[1].tool_call_id).toBe("c2");
     expect(toolMessages[2].tool_call_id).toBe("c3");
 
-    const c3Payload = JSON.parse(toolMessages[2].content);
+    const c3Payload = JSON.parse(unwrapUntrustedContent(toolMessages[2].content).content);
     expect(c3Payload).toEqual({
       ok: false,
       code: "NOT_ALLOWED",
@@ -371,9 +372,9 @@ describe("P1-04 Parallel tool execution in engine", () => {
     expect(toolMessages).toHaveLength(3);
 
     // c1 and c3 succeeded, c2 failed
-    const c1Content = JSON.parse(toolMessages[0].content);
-    const c2Content = JSON.parse(toolMessages[1].content);
-    const c3Content = JSON.parse(toolMessages[2].content);
+    const c1Content = JSON.parse(unwrapUntrustedContent(toolMessages[0].content).content);
+    const c2Content = JSON.parse(unwrapUntrustedContent(toolMessages[1].content).content);
+    const c3Content = JSON.parse(unwrapUntrustedContent(toolMessages[2].content).content);
 
     expect(c1Content.success).toBe(true);
     expect(c2Content).toEqual({ success: false, error: "Page unreachable", code: "FAILED" });

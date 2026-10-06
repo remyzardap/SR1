@@ -235,6 +235,7 @@ rules: 3.x requires `VERTEX_LOCATION=global`. There is no `gemini-3.8-pro` on Ve
 | `KEMMA_MAX_SUBAGENTS` | `1` | Parallel research sub-agents (max 5) |
 | `KEMMA_TOOL_BUDGET` | `60` | Tool-call budget for Deep Research |
 | `KEMMA_TOOL_CONCURRENCY` | `4` | Concurrency limit for parallel-safe tool calls in one step (P1-04) |
+| `KEMMA_MAX_OUTPUT_TOKENS` | `8192` | Chat purpose output token cap override (default 8192). Report/long-doc cap stays 32768, planner/verify stays 2048 (P1-06) |
 | `ATTACH_MAX_MB` | `10` | Decoded size ceiling for one attached file (chat, Deep Research, document brief) and for a Drive file the server downloads or exports for them. Set to `5` to halve it; a non-positive or unparsable value falls back to `10`. Reference photos for image generation keep their own fixed 8 MB ceiling |
 
 ---

@@ -24,6 +24,7 @@ import {
   detectProvider,
   resolveRouteAuth,
   routeHasAuth,
+  resolveMaxTokens,
 } from "../core/kemmaRouter";
 import { vertexGenerateContentBody, vertexGenerateContentText } from "../core/vertexAuth";
 import {
@@ -44,7 +45,8 @@ import { flag } from "../core/flags";
 import { readChatStream } from "../core/llmStream";
 import type { SegmentKind } from "./events";
 import { getMemoriesContext } from "./memory";
-import { type Source, extractSources, dedupeSources, annotateSearchResult, keepCitedSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
+import { type Source, extractSources, dedupeSources, annotateSearchResult, citedSubset, keepCitedSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
+import { isUntrustedTool, extractToolSource, detectInjection, wrapUntrustedContent } from "./untrusted";
 
 export interface KemmaMessage {
   role: "user" | "assistant" | "system" | "tool";
@@ -100,6 +102,8 @@ export interface EngineOutput {
   tokensUsed: { input: number; output: number; total: number };
   modelsUsed: string[]; stepsUsed: number; durationMs: number;
   sources: Source[];
+  /** Unknown citation IDs detected in the answer. */
+  citationUnknownIds?: number[];
   /**
    * True when `response` holds an error message (quota block, all models failed) that never
    * went through onStream. Callers streaming to a client must surface it as an error, not as
@@ -119,6 +123,68 @@ import { BLOCKED_MESSAGE, decideChatRouting, isBlockedPrompt } from "../lib/sens
 const NEVER_ABORTS: AbortSignal = new AbortController().signal;
 
 registerBuiltinTools();
+
+/** How far back from the end of prev the overlap scan looks (P1-06). */
+const OVERLAP_MAX_CHECK = 200;
+
+/**
+ * A common stretch shorter than this is a coincidence, not a repeated continuation, so it is
+ * treated as no overlap at all: trimming it would silently drop real characters from the start
+ * of the continuation (T-62, follow-up to P1-06).
+ */
+const OVERLAP_MIN_MATCH = 12;
+
+/**
+ * Finds the length of the longest common suffix of prev and prefix of next,
+ * checking up to maxOverlap characters (P1-06). A match shorter than minOverlap
+ * counts as no overlap (T-62).
+ */
+export function getOverlapLength(
+  prev: string,
+  next: string,
+  maxOverlap = OVERLAP_MAX_CHECK,
+  minOverlap = OVERLAP_MIN_MATCH,
+): number {
+  if (!prev || !next) return 0;
+  const maxCheck = Math.min(maxOverlap, prev.length, next.length);
+  const minCheck = Math.max(1, minOverlap);
+  for (let len = maxCheck; len >= minCheck; len--) {
+    const suffix = prev.slice(prev.length - len);
+    const prefix = next.slice(0, len);
+    if (suffix === prefix) {
+      return len;
+    }
+  }
+  return 0;
+}
+
+/**
+ * Trims up to maxOverlap characters of duplicated overlap between the suffix of prev
+ * and prefix of next (P1-06). Overlaps shorter than minOverlap are not trimmed (T-62).
+ */
+export function trimOverlap(
+  prev: string,
+  next: string,
+  maxOverlap = OVERLAP_MAX_CHECK,
+  minOverlap = OVERLAP_MIN_MATCH,
+): string {
+  const overlap = getOverlapLength(prev, next, maxOverlap, minOverlap);
+  return overlap > 0 ? next.slice(overlap) : next;
+}
+
+/**
+ * Joins prev and next text with no duplicated overlap, trimming up to maxOverlap
+ * characters of overlap by longest common suffix and prefix (P1-06). Overlaps shorter
+ * than minOverlap are not trimmed, so both texts keep every character they have (T-62).
+ */
+export function joinWithoutOverlap(
+  prev: string,
+  next: string,
+  maxOverlap = OVERLAP_MAX_CHECK,
+  minOverlap = OVERLAP_MIN_MATCH,
+): string {
+  return prev + trimOverlap(prev, next, maxOverlap, minOverlap);
+}
 
 function selectRoute(input: EngineInput, currentMessages: KemmaMessage[], step: number, maxSteps: number): RouteConfig {
   const { isThinking, modelOverride } = input;
@@ -211,7 +277,7 @@ async function runParallelSubAgents(
         allowedTools: restrictedTools,
         isSubAgent: true,
         onStream: undefined,
-        onNotice: undefined,
+        onNotice,
       });
       return { query, output };
     })
@@ -400,7 +466,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
       await incrementQuota(userId, "message");
       await incrementQuota(userId, "agentic_task");
       if (isThinking) await incrementQuota(userId, "think");
-      const kept = subResult.sources.length > 0 ? keepCitedSources(subResult.content, subResult.sources) : { text: subResult.content, sources: subResult.sources };
+      const kept = subResult.sources.length > 0 ? citedSubset(subResult.content, subResult.sources, { dropUnknown: true }) : { text: subResult.content, sources: subResult.sources, unknownIds: [] };
       const sources = kept.sources;
       const cited = sources.length > 0 ? appendCitations(kept.text, sources) : { text: subResult.content };
       return {
@@ -439,6 +505,15 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     modelsUsed.push(route.label);
     onStepStart?.(step, route.label);
 
+    const stepPurpose =
+      isThinking && step === 1
+        ? "long-doc"
+        : complexity === "complex"
+          ? "report"
+          : step === 1
+            ? "initial"
+            : "follow-up";
+
     const offerTools = totalToolCallCount < maxToolCalls && step < maxSteps;
     const shouldStream = streamToolTurns ? !!onStream : (!!onStream && !offerTools);
 
@@ -458,7 +533,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         userId,
         sessionId,
         reportId,
-        purpose: step === 1 ? "initial" : "follow-up",
+        purpose: stepPurpose,
         signal: input.signal,
       });
     } catch (err) {
@@ -641,7 +716,21 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         const newSources = extractSources(tc.function.name, toolResult);
         if (newSources.length > 0) collectedSources.push(...newSources);
         const forModel = tc.function.name === "web_search" ? annotateSearchResult(toolResult, dedupeSources(collectedSources)) : toolResult;
-        currentMessages.push({ role: "tool", content: JSON.stringify(forModel), tool_call_id: tc.id, name: tc.function.name });
+        let toolMessageContent = JSON.stringify(forModel);
+        if (flag("UNTRUSTED_FENCING") && isUntrustedTool(tc.function.name)) {
+          const source = extractToolSource(tc.function.name, parsedArgs, toolResult);
+          const detection = detectInjection(toolMessageContent);
+          if (detection.injectionSuspected) {
+            onNotice?.(`Suspected prompt injection detected in ${tc.function.name} output.`);
+          }
+          toolMessageContent = wrapUntrustedContent({
+            tool: tc.function.name,
+            source,
+            content: toolMessageContent,
+            injectionSuspected: detection.injectionSuspected,
+          });
+        }
+        currentMessages.push({ role: "tool", content: toolMessageContent, tool_call_id: tc.id, name: tc.function.name });
       }
 
       if (input.signal?.aborted) {
@@ -670,11 +759,118 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     await incrementQuota(userId, "message");
     if (isAgentic) await incrementQuota(userId, "agentic_task");
     if (isThinking) await incrementQuota(userId, "think");
-    if (totalTokens.total > 0) await incrementQuota(userId, "token", totalTokens.total);
 
     let finalContent = llmResponse.content ?? "Done.";
     // Calls that offered tools are not streamed, so the route would never see this text: emit it now.
     if (!streamToolTurns && onStream && offerTools && llmResponse.content) onStream(llmResponse.content);
+
+    // Auto-continue (P1-06):
+    // With flag("AUTO_CONTINUE"): if finishReason is length (or max_tokens) on a final answer,
+    // append the partial answer as an assistant message plus
+    // user: "Continue exactly where you stopped. Do not repeat anything."
+    // and call again, streaming into the same output. At most 2 continuations.
+    // Join the text with no duplicated overlap: trim up to OVERLAP_MAX_CHECK characters of
+    // overlap by longest common suffix and prefix, ignoring matches under OVERLAP_MIN_MATCH (T-62).
+    const isLengthFinish = (reason?: string) => {
+      if (!reason) return false;
+      const r = reason.trim().toLowerCase();
+      return r === "length" || r === "max_tokens";
+    };
+
+    if (flag("AUTO_CONTINUE") && isLengthFinish(llmResponse.finishReason)) {
+      let continuationsCount = 0;
+      const MAX_CONTINUATIONS = 2;
+
+      while (
+        continuationsCount < MAX_CONTINUATIONS &&
+        isLengthFinish(llmResponse.finishReason) &&
+        !input.signal?.aborted
+      ) {
+        continuationsCount++;
+        const partialAnswer = llmResponse.content ?? "";
+        currentMessages.push({ role: "assistant", content: partialAnswer });
+        currentMessages.push({ role: "user", content: "Continue exactly where you stopped. Do not repeat anything." });
+
+        let continuationStreamed = "";
+        let trimmedLeadingOverlap = false;
+
+        const continuationOnStream = onStream
+          ? (chunk: string) => {
+              if (!shouldStream) return;
+              continuationStreamed += chunk;
+              if (!trimmedLeadingOverlap) {
+                if (continuationStreamed.length >= OVERLAP_MAX_CHECK) {
+                  const overlap = getOverlapLength(finalContent, continuationStreamed, OVERLAP_MAX_CHECK, OVERLAP_MIN_MATCH);
+                  const toEmit = continuationStreamed.slice(overlap);
+                  trimmedLeadingOverlap = true;
+                  if (toEmit.length > 0) onStream(toEmit);
+                }
+              } else {
+                onStream(chunk);
+              }
+            }
+          : undefined;
+
+        try {
+          llmResponse = await callLLM({
+            route,
+            systemPrompt,
+            dynamicContext: memories,
+            cachePrefix: true,
+            messages: currentMessages,
+            tools: undefined,
+            stream: shouldStream,
+            onStream: continuationOnStream,
+            onReasoning,
+            onNotice,
+            userId,
+            sessionId,
+            reportId,
+            purpose: stepPurpose,
+            signal: input.signal,
+          });
+
+          // Flush any buffered stream chunks if under OVERLAP_MAX_CHECK chars
+          if (onStream && shouldStream && !trimmedLeadingOverlap && continuationStreamed.length > 0) {
+            const overlap = getOverlapLength(finalContent, continuationStreamed, OVERLAP_MAX_CHECK, OVERLAP_MIN_MATCH);
+            const toEmit = continuationStreamed.slice(overlap);
+            trimmedLeadingOverlap = true;
+            if (toEmit.length > 0) onStream(toEmit);
+          }
+
+          const continuationContent = llmResponse.content ?? "";
+          if (!shouldStream && onStream && continuationContent) {
+            const trimmed = trimOverlap(finalContent, continuationContent, OVERLAP_MAX_CHECK, OVERLAP_MIN_MATCH);
+            if (trimmed) onStream(trimmed);
+          }
+
+          finalContent = joinWithoutOverlap(finalContent, continuationContent, OVERLAP_MAX_CHECK, OVERLAP_MIN_MATCH);
+
+          totalTokens.input  += llmResponse.usage?.input  ?? 0;
+          totalTokens.output += llmResponse.usage?.output ?? 0;
+          totalTokens.total  += llmResponse.usage?.total  ?? 0;
+        } catch (err) {
+          if (input.signal?.aborted) {
+            return {
+              response: finalContent,
+              toolCalls: toolExecutions,
+              isAgentic: toolExecutions.length >= 2,
+              tokensUsed: totalTokens,
+              modelsUsed: Array.from(new Set(modelsUsed)),
+              stepsUsed: step,
+              durationMs: Date.now() - startTime,
+              sources: dedupeSources(collectedSources),
+              isError: false,
+              cancelled: true,
+            };
+          }
+          break;
+        }
+      }
+    }
+
+    if (totalTokens.total > 0) await incrementQuota(userId, "token", totalTokens.total);
+
     if (streamToolTurns) {
       onSegmentEnd?.("answer");
     }
@@ -754,12 +950,35 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
       };
     }
 
-    // Append numbered source cards
-    if (sources.length > 0) {
-      const kept = keepCitedSources(finalContent, sources);
-      sources = kept.sources;
-      const cited = appendCitations(kept.text, sources);
-      finalContent = cited.text;
+    // Stable citations and persisted message metadata (P1-07):
+    // In streaming mode: the text is already out, so unknown markers are left alone
+    // and logged as citation_unknown_id in usage purpose metadata.
+    // The text-appended "Sources:" list is no longer added in streaming mode; the client renders sources from the event.
+    // Non-streaming callers (Telegram, monitors, documents) keep the appended list and drop unknown markers.
+    const isStreaming = Boolean(onStream);
+    const subset = citedSubset(finalContent, sources, { dropUnknown: !isStreaming });
+    sources = subset.sources;
+
+    if (isStreaming) {
+      if (subset.unknownIds.length > 0) {
+        const lastRoute = chatRoute();
+        const lastModel = modelsUsed[modelsUsed.length - 1] ?? lastRoute.model;
+        await logUsage({
+          userId,
+          sessionId,
+          reportId,
+          provider: lastRoute.provider,
+          model: lastModel,
+          inputTokens: 0,
+          outputTokens: 0,
+          purpose: "citation_unknown_id",
+        });
+      }
+    } else {
+      finalContent = subset.text;
+      if (sources.length > 0) {
+        finalContent = appendCitations(finalContent, sources).text;
+      }
     }
 
     if (polish) {
@@ -819,12 +1038,37 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
       }
     }
 
-    return { response: finalContent, toolCalls: toolExecutions, isAgentic, tokensUsed: totalTokens, modelsUsed: Array.from(new Set(modelsUsed)), stepsUsed: step, durationMs: Date.now() - startTime, sources };
+    return {
+      response: finalContent,
+      toolCalls: toolExecutions,
+      isAgentic,
+      tokensUsed: totalTokens,
+      modelsUsed: Array.from(new Set(modelsUsed)),
+      stepsUsed: step,
+      durationMs: Date.now() - startTime,
+      sources,
+      ...(subset.unknownIds.length > 0 ? { citationUnknownIds: subset.unknownIds } : {}),
+    };
   }
 
   await incrementQuota(userId, "message");
   if (toolExecutions.length >= 2) await incrementQuota(userId, "agentic_task");
-  return { response: "I have completed the available steps. Let me know if you need anything else.", toolCalls: toolExecutions, isAgentic: true, tokensUsed: totalTokens, modelsUsed: Array.from(new Set(modelsUsed)), stepsUsed: maxSteps, durationMs: Date.now() - startTime, sources: dedupeSources(collectedSources) };
+  const fallbackSources = dedupeSources(collectedSources);
+  const fallbackSubset = citedSubset(
+    "I have completed the available steps. Let me know if you need anything else.",
+    fallbackSources,
+    { dropUnknown: !onStream }
+  );
+  return {
+    response: "I have completed the available steps. Let me know if you need anything else.",
+    toolCalls: toolExecutions,
+    isAgentic: true,
+    tokensUsed: totalTokens,
+    modelsUsed: Array.from(new Set(modelsUsed)),
+    stepsUsed: maxSteps,
+    durationMs: Date.now() - startTime,
+    sources: fallbackSubset.sources,
+  };
 }
 
 export async function kemmaVisionExecute(input: VisionEngineInput): Promise<EngineOutput> {
@@ -998,7 +1242,7 @@ interface CallLLMOptions {
   signal?: AbortSignal;
 }
 
-interface LLMResult { content: string | null; toolCalls?: ToolCall[]; usage?: TokenUsage }
+interface LLMResult { content: string | null; toolCalls?: ToolCall[]; usage?: TokenUsage; finishReason?: string }
 
 async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
   const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onReasoning, onNotice, userId, sessionId, reportId, purpose, signal } = input;
@@ -1037,7 +1281,7 @@ async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
     }
 
     try {
-      const result = await callSingleLLM({ route: tryRoute, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream: wrappedOnStream, onReasoning, signal });
+      const result = await callSingleLLM({ route: tryRoute, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream: wrappedOnStream, onReasoning, signal, purpose });
 
       await logUsage({
         userId,
@@ -1107,6 +1351,7 @@ interface SingleLLMOptions {
   onStream?: (chunk: string) => void;
   onReasoning?: (delta: string) => void;
   signal?: AbortSignal;
+  purpose?: string;
 }
 
 // Providers that rejected stream_options once; not sent again for the life of the process.
@@ -1142,6 +1387,7 @@ function parseCompletionJson(data: any): LLMResult {
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
     // parseUsage folds Vertex reasoning tokens into output and reads cached prompt tokens.
     usage: parseUsage(data.usage),
+    finishReason: choice?.finish_reason ?? undefined,
   };
 }
 
@@ -1158,7 +1404,7 @@ export function reasoningEffortFor(route: { provider: string; model: string }, e
 }
 
 async function callSingleLLM(input: SingleLLMOptions): Promise<LLMResult> {
-  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onReasoning, signal } = input;
+  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onReasoning, signal, purpose } = input;
 
   if (!routeHasAuth(route)) {
     throw new Error(`${route.provider} API key is not configured.`);
@@ -1185,7 +1431,7 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<LLMResult> {
       stream: wantStream,
       // Ask for a final usage chunk on streams so streamed answers are metered (they were logged as 0 tokens before).
       ...(wantStream && opts.streamUsage ? { stream_options: { include_usage: true } } : {}),
-      max_tokens: 4096,
+      max_tokens: resolveMaxTokens(route.model, purpose),
       reasoning_effort: reasoningEffortFor(route),
     };
   };

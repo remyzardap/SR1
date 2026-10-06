@@ -33,6 +33,7 @@ max_agents() {  # the cap is re-read every time, so changing the file takes effe
 FORBIDDEN_RE='(^|/)\.env($|\.)|^(secrets/|\.github/workflows/deploy\.yml$|ops/session-manager/)'
 ALLOWED_RE='(^|/)\.env\.example$'   # the documented list of env var names (no values); specs require new vars there
 AUTH_RE='api error: 40[13]|invalid access token|token expired|not (logged|signed) in|please (log|sign) in|authenticat(e|ion) (required|failed)|unauthori[sz]ed'
+TRANSIENT_RE='ECONNRESET|ETIMEDOUT|ECONNREFUSED|EAI_AGAIN|socket hang up|fetch failed|terminated \(cause|\b50[234]\b|bad gateway|service unavailable|gateway time-?out'
 LIMIT_RE='rate.?limit|usage limit|quota|insufficient|credit balance|too many requests|\b429\b|\b402\b'
 
 die() { echo "dispatch: $*" >&2; exit 1; }
@@ -89,11 +90,11 @@ retry() {  # retry a network command with 2/4/8/16 s backoff
 }
 
 run_agent() {  # <workdir> <prompt> <logfile>
-  local dir=$1 prompt=$2 out=$3 rc=0 t0=$SECONDS pid stalled="" idle=0 last_size=-1
+  local dir=$1 prompt=$2 out=$3 rc=0 t0=$SECONDS pid stalled="" idle=0 last_size=-1 orig_prompt=$2
   local -a cmd
   case $AGENT in
     # Qwen Code headless: -p runs one prompt and exits; --yolo auto-approves its tools
-    qwen) cmd=(timeout "$AGENT_TIMEOUT" qwen -p "$prompt" --yolo) ;;
+    qwen) cmd=(timeout "$AGENT_TIMEOUT" qwen -p "$prompt" --yolo --output-format stream-json) ;;
     # Kimi Code CLI: --print is headless and auto-approves (deny rules in its config still apply)
     kimi) cmd=(timeout "$AGENT_TIMEOUT" kimi --print --output-format stream-json -p "$prompt") ;;
     opencode)
@@ -104,6 +105,17 @@ run_agent() {  # <workdir> <prompt> <logfile>
     *) cmd=(timeout "$((AGENT_TIMEOUT + 60))" agy -p "$prompt" --output-format stream-json
             --dangerously-skip-permissions --print-timeout "${AGENT_TIMEOUT}s") ;;
   esac
+  # Files the prompt names under $LOGDIR (task, feedback, the PR body/report to write) are mirrored into
+  # <worktree>/.agent/ and the prompt points there: some CLIs (opencode) refuse paths outside their working dir.
+  # .agent/ is git-excluded, so the gate never sees it; results are copied back after the run.
+  local -a xfer=() f
+  mkdir -p "$dir/.agent"
+  grep -qx '/.agent/' "$CLONE/.git/info/exclude" 2>/dev/null || echo '/.agent/' >> "$CLONE/.git/info/exclude"
+  while IFS= read -r f; do
+    f=${f%%[.,;:)\"\']}; [[ -n $f ]] && xfer+=("$f")
+  done < <(grep -oE "$LOGDIR/[^[:space:]]+" <<<"$prompt" | sort -u)
+  for f in "${xfer[@]}"; do [[ -f $f ]] && cp "$f" "$dir/.agent/${f##*/}"; done
+  prompt=${prompt//"$LOGDIR/"/"$dir/.agent/"}
   log "running $AGENT in $dir (log: $out)"
   # setsid puts the agent and everything it starts (tests, servers) in one process group we can stop as a whole
   (cd "$dir" && exec setsid "${cmd[@]}") >"$out" 2>&1 &
@@ -127,6 +139,20 @@ run_agent() {  # <workdir> <prompt> <logfile>
     fi
   done
   wait "$pid" 2>/dev/null || rc=$?
+  for f in "${xfer[@]}"; do [[ -s $dir/.agent/${f##*/} ]] && cp "$dir/.agent/${f##*/}" "$f"; done
+  # a dropped connection mid-run (ECONNRESET, 502/503/504, timeouts) is not the agent's fault: retry once in the same
+  # worktree, telling it to continue from the files already there instead of starting over
+  if (( rc != 0 )) && [[ -z $stalled && -z ${TRANSIENT_RETRIED:-} ]] && (( SECONDS - t0 > 120 )) \
+     && tail -n 20 "$out" | grep -qiE "$TRANSIENT_RE"; then
+    TRANSIENT_RETRIED=1
+    log "$AGENT lost its connection ($(grep -oiE "$TRANSIENT_RE" "$out" | tail -n 1)); retrying once in the same worktree"
+    mv "$out" "$out.1"
+    run_agent "$dir" "A previous attempt at this exact job was cut off by a network error. The worktree already holds its work:
+start with git status, git diff and git log origin/develop..HEAD, keep what is right, and finish the job. Commit as you go.
+
+$orig_prompt" "$out"
+    return
+  fi
   if [[ -n $stalled ]]; then
     score stalled
     die "$AGENT stalled (no output or file changes for $((STALL_SEC / 60)) min) and was stopped; nothing pushed. Last output: $(tail -n 2 "$out" | tr '\n' ' ' | cut -c1-300)"
@@ -272,11 +298,11 @@ if [[ $MODE == build || $MODE == task ]]; then
   if [[ $MODE == task ]]; then
     WHAT="Read first, fully: docs/spec/HANDOVER.md, docs/spec/README.md, then $SPEC_REF.
 Do exactly what those instructions ask, no more, with tests for the new behaviour including failure paths.
-Read the existing code and tests you change before changing them. Commit in small commits."
+Read the existing code and tests you change before changing them. Commit after every milestone (each file or passing typecheck); never hold more than ~20 minutes of work uncommitted, because a dropped connection loses it."
   else
     WHAT="Read first, fully: docs/spec/HANDOVER.md, docs/spec/README.md, docs/spec/END_GOAL.md section 7,
 $SPEC_REF, and every file listed under \"Files\" in that section, plus their existing tests.
-Implement exactly that section, with the tests it names and failure-path tests. Commit in small commits."
+Implement exactly that section, with the tests it names and failure-path tests. Commit after every milestone (each file or passing typecheck); never hold more than ~20 minutes of work uncommitted, because a dropped connection loses it."
   fi
   PROMPT="You are implementing $WP ($TITLE) in the Sutaeru repository. Your working tree is already on
 branch $BRANCH from origin/develop and npm ci has run; npm run check and npm test pass right now.
@@ -375,7 +401,7 @@ if [[ $MODE == fix ]]; then
 Read docs/spec/HANDOVER.md, docs/spec/README.md, $SPEC_REF, then the review feedback in $FEEDBACK.
 Address every must-fix item and every CI failure. If the feedback asks you to merge origin/develop, use
 git merge (never rebase, never force-push). For any item you disagree with, explain why instead of changing code.
-Commit with the trailer line:  Agent: $AGENT_NAME
+Commit after every milestone, with the trailer line:  Agent: $AGENT_NAME
 Run npm run check and npm test until both pass, and leave no uncommitted changes.
 Do NOT push, do NOT touch .env, secrets/, .github/workflows/deploy.yml, ops/session-manager/ or containers.
 Write a short reply for the PR (what you changed per item, and anything you declined, with reasons)

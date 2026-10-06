@@ -13,6 +13,7 @@ import { ChatInsightsDialog } from "@/components/ChatInsightsDialog";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/authSession";
+import { applyHistoryMetadata, type HistoryMetadata } from "@/lib/citations";
 import { callFunction } from "@/lib/kemmaCloud";
 import { AttachMenu } from "@/components/AttachMenu";
 import { FocusBrackets } from "@/components/art";
@@ -335,16 +336,21 @@ export default function Chat() {
         if (!r.ok) throw new Error(String(r.status));
         return r.json();
       })
-      .then((data: Array<{ role: string; content: string; createdAt: string; model?: string }>) => {
+      .then((data: Array<{ role: string; content: string; createdAt: string; model?: string; metadata?: HistoryMetadata }>) => {
         if (cancelled) return;
         if (Array.isArray(data) && data.length > 0) {
-          const saved = data.map((m) => ({
-            id: crypto.randomUUID(),
-            role: m.role as "user" | "assistant",
-            content: m.content,
-            model: m.model,
-            createdAt: new Date(m.createdAt),
-          }));
+          const saved = data.map((m) =>
+            applyHistoryMetadata(
+              {
+                id: crypto.randomUUID(),
+                role: m.role as "user" | "assistant",
+                content: m.content,
+                model: m.model,
+                createdAt: new Date(m.createdAt),
+              },
+              m.metadata
+            )
+          );
           // Saved history only fills an empty thread. A fetch that lands after the person has sent
           // a message must not replace the live conversation with the older saved copy.
           setMessages((prev) => (prev.length > 0 ? prev : saved));
