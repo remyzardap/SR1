@@ -229,7 +229,9 @@ Run npm run check and npm test until both pass, and leave no uncommitted changes
 Do NOT push, do NOT open a PR, do NOT touch .env, secrets/, .github/workflows/deploy.yml,
 ops/session-manager/ or any container.
 When done, write the PR body (docs/spec/README.md section 5.3 template, every acceptance criterion or
-instruction with evidence) to $LOGDIR/$WP.pr.md. If the spec or instructions are wrong or impossible,
+instruction with evidence) to $LOGDIR/$WP.pr.md. Evidence means commands you actually ran and their output.
+You have no browser and no running app here: mark any manual or visual check you could not do as
+NOT RUN (needs a person or a browser), never as verified. If the spec or instructions are wrong or impossible,
 write that explanation to the same file instead and stop."
   rm -f "$LOGDIR/$WP.pr.md"
   run_agent "$WT" "$PROMPT" "$LOGDIR/$WP.$AGENT.jsonl"
