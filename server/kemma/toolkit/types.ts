@@ -17,15 +17,8 @@ import type { Tier } from "../../core/kemmaRouter";
  */
 export type ToolRisk = "read" | "write" | "destructive";
 
-/**
- * Placeholder event union for tool-originated events (file, image, job, notice). P1-03 introduces
- * the full typed union in `server/kemma/events.ts`; until then `ctx.emit` accepts any plain object
- * shaped like `{ type: string }` so a tool can emit without this module depending on P1-03.
- */
-export interface EngineEvent {
-  type: string;
-  [key: string]: unknown;
-}
+import type { EngineEvent } from "../events";
+export type { EngineEvent };
 
 /**
  * Placeholder for the human-in-the-loop gate P1-11 wires up. A ToolSpec may read

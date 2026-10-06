@@ -41,6 +41,7 @@ import {
 import { bytesToText } from "../../lib/fnDocument";
 import { MAX_REFERENCE_FILES, fetchCapped } from "../../lib/fnFetch";
 import { FnError } from "../../lib/fnErrors";
+import { flag } from "../../core/flags";
 import { asRecord, sendError, startHeartbeat, startSse, writeSseEvent } from "./shared";
 
 export const MAX_RESEARCH_MESSAGES = 200;
@@ -110,6 +111,12 @@ export async function handleResearch(userId: number, req: Request, res: Response
     const fanOut = Number(process.env.KEMMA_MAX_SUBAGENTS ?? "1") > 1;
     let streamedChars = 0;
 
+    const streamToolTurns = flag("STREAM_TOOL_TURNS");
+    const runId = (typeof body?.runId === "string" && body.runId) ? body.runId : crypto.randomUUID();
+    if (streamToolTurns) {
+      send("meta", { protocol: 2, runId });
+    }
+
     const output = await kemmaExecute({
       userId,
       messages: prepared,
@@ -123,9 +130,29 @@ export async function handleResearch(userId: number, req: Request, res: Response
             streamedChars += chunk.length;
             send("token", chunk);
           },
-      onToolStart: (tool, input) => {
-        send("tool_start", { tool, input });
+      onReasoning: (delta) => {
+        const isReasoningOff = (process.env.KEMMA_REASONING_EFFORT ?? "").trim().toLowerCase() === "off";
+        if (streamToolTurns && !isReasoningOff) {
+          send("thinking", delta);
+        }
+      },
+      onSegmentEnd: (kind) => {
+        if (streamToolTurns) {
+          send("segment", { kind });
+        }
+      },
+      onToolStart: (tool, input, callId) => {
+        if (streamToolTurns && callId) {
+          send("tool_start", { id: callId, tool, input });
+        } else {
+          send("tool_start", { tool, input });
+        }
         send("agent", true);
+      },
+      onToolEnd: (tool, result, durationMs, callId) => {
+        if (streamToolTurns) {
+          send("tool_end", { ...(callId ? { id: callId } : {}), tool, output: result, durationMs });
+        }
       },
       onStepStart: (step, model) => send("model", { step, label: model }),
       onNotice: (message) => send("notice", { message }),
