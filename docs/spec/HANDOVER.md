@@ -158,7 +158,7 @@ Breaking any of these gets the pull request rejected, however good the rest is.
 8. **New behavior ships switched off.** Add a flag to `server/core/flags.ts` with `default: false`, and read it with `flag("MY_FLAG")`. With the flag off, behavior must be exactly what it is today.
 9. **The agent must never be able to delete, trash, share, or change permissions on a file.** Not through a tool, not through a tool parameter, ever. If a spec line seems to ask for it, you misread it — stop and ask.
 10. **Anything that costs money writes a usage row.** Every model call, search, page fetch, sandbox run or image generation calls `logUsage` from `server/core/usage.ts`. This is how the project knows what it spends.
-11. **Attribution.** Claude sessions end every commit message with the two lines below. Kimi and Antigravity CLI runs instead end each commit with the single trailer `Agent: kimi-cli` or `Agent: antigravity-cli` (see `AGENT_OPS.md` §4.4) and add no Claude line:
+11. **Attribution.** Claude sessions end every commit message with the two lines below. Qwen Code and Antigravity CLI runs instead end each commit with the single trailer `Agent: qwen-code` or `Agent: antigravity-cli` (see `AGENT_OPS.md` §4.4) and add no Claude line:
     ```
     Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
     Claude-Session: https://claude.ai/code/session_01Mqk5k9PeC8BmygaaMdpFFb

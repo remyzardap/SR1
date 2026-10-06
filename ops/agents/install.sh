@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-command VPS setup so Claude can command kimi, agy and qwen through GitHub issues.
+# One-command VPS setup so Claude can command qwen and agy through GitHub issues.
 # Does everything in docs/spec/AGENT_OPS.md §3 and is safe to re-run (re-running also updates the scripts).
 #
 #   sudo bash ops/agents/install.sh          from a checkout that has this file, e.g. /root/sr1, or straight from git:
@@ -90,22 +90,39 @@ done
 ln -sfn "$BIN_DIR/dispatch.sh" "$HOME_DIR/dispatch.sh"   # so `sudo -iu agents ~/dispatch.sh ...` works by hand
 chown -h "$AGENTS_USER": "$HOME_DIR/dispatch.sh"
 
-say "6/7 coding agents (kimi, agy, qwen) for '$AGENTS_USER'"
+say "6/7 install the coding agents (qwen, agy) for '$AGENTS_USER'"
+# Both go in ~agents/.local/bin; no root, no system packages touched. Already installed = left alone
+# (set AGENTS_UPGRADE=1 to update them). A failure here is a warning, not fatal: one agent is enough.
+QWEN_PKG="${QWEN_PKG:-@qwen-code/qwen-code}"
+AGY_INSTALL_URL="${AGY_INSTALL_URL:-https://antigravity.google/cli/install.sh}"
+as_agents 'mkdir -p ~/.local/bin'
+if [[ -n ${AGENTS_UPGRADE:-} ]] || ! as_agents 'export PATH="$HOME/.local/bin:$PATH"; command -v qwen' >/dev/null; then
+  if command -v npm >/dev/null; then
+    echo "installing qwen ($QWEN_PKG)"
+    as_agents "npm install -g --prefix \"\$HOME/.local\" --no-audit --no-fund '$QWEN_PKG'" || warn "qwen install failed (see above)"
+  else
+    warn "npm missing, can't install qwen"
+  fi
+fi
+if [[ -n ${AGENTS_UPGRADE:-} ]] || ! as_agents 'export PATH="$HOME/.local/bin:$PATH"; command -v agy' >/dev/null; then
+  echo "installing agy ($AGY_INSTALL_URL)"
+  as_agents "set -o pipefail; curl -fsSL '$AGY_INSTALL_URL' | bash" || warn "agy install failed (see above)"
+fi
 AGENT_PATH=$(as_agents 'echo "$HOME/.local/bin:$HOME/bin:$PATH"')
 missing=()
-for cli in kimi agy qwen; do
-  if p=$(as_agents "command -v $cli"); then
+for cli in qwen agy; do
+  if p=$(as_agents "export PATH=\"\$HOME/.local/bin:\$PATH\"; command -v $cli"); then
     echo "$cli: $p"; AGENT_PATH="$(dirname "$p"):$AGENT_PATH"
   else
     missing+=("$cli")
   fi
 done
-((${#missing[@]} < 3)) || warn "none of kimi, agy or qwen is installed for $AGENTS_USER; install them as that user, then re-run this"
+((${#missing[@]} < 2)) || warn "neither qwen nor agy got installed for $AGENTS_USER; fix the errors above and re-run"
 
 say "7/7 watcher service"
 cat >"$UNIT" <<UNIT_EOF
 [Unit]
-Description=Sutaeru agent watcher (GitHub issues -> kimi/agy/qwen)
+Description=Sutaeru agent watcher (GitHub issues -> qwen/agy)
 After=network-online.target
 Wants=network-online.target
 [Service]
@@ -133,13 +150,15 @@ cat <<EOF
 
 Still to do by hand (only once):
 EOF
-for cli in kimi agy qwen; do
+for cli in qwen agy; do
   if [[ " ${missing[*]} " == *" $cli "* ]]; then
-    echo "  - $cli: not installed (optional; you need at least one of kimi, agy, qwen)"
+    echo "  - $cli: not installed (see the warning above)"
   else
-    echo "  - sign $cli in:   sudo -iu $AGENTS_USER $cli     (finish the login, then exit)"
+    echo "  - sign $cli in:   sudo -iu $AGENTS_USER bash -c 'PATH=\$HOME/.local/bin:\$PATH $cli'"
   fi
 done
+echo "      qwen: type /auth, pick your Qwen plan, then /quit.   agy: open the link it prints, sign in, paste the code."
+echo "  - then: systemctl restart sutaeru-agents"
 cat <<EOF
   - on GitHub, protect main and develop (Settings > Branches): require a PR and the check/test checks
 

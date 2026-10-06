@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Run one Sutaeru work package with a coding agent CLI (kimi, agy or qwen) in its own git worktree.
+# Run one Sutaeru work package with a coding agent CLI (qwen or agy) in its own git worktree.
 # Playbook: docs/spec/AGENT_OPS.md. Run as the unprivileged `agents` user, never as root.
 #
-#   dispatch.sh <kimi|agy|qwen> <WP-ID> <slug> "<title>"   build a WP, gate it, push, open PR into develop
-#   dispatch.sh fix <kimi|agy|qwen> <WP-ID>                 feed PR review comments back, gate, push same branch
-#   dispatch.sh review <kimi|agy|qwen> <WP-ID>              read-only second-opinion review, posted as a PR comment
-#   dispatch.sh task <kimi|agy|qwen> <T-ID> <slug> "<title>" <file>
+#   dispatch.sh <qwen|agy> <WP-ID> <slug> "<title>"   build a WP, gate it, push, open PR into develop
+#   dispatch.sh fix <qwen|agy> <WP-ID>                 feed PR review comments back, gate, push same branch
+#   dispatch.sh review <qwen|agy> <WP-ID>              read-only second-opinion review, posted as a PR comment
+#   dispatch.sh task <qwen|agy> <T-ID> <slug> "<title>" <file>
 #                                                      free-form task: instructions in <file> instead of a spec
 #                                                      section; T-ID is T-<issue number>. fix/review take T-IDs too.
 #
@@ -30,7 +30,7 @@ mkdir -p "$WT_ROOT" "$LOGDIR/running"
 MODE=build
 case "${1:-}" in fix|review|task) MODE=$1; shift ;; esac
 AGENT="${1:-}"; WP="${2:-}"
-[[ $AGENT =~ ^(kimi|agy|qwen)$ ]] || die "agent must be kimi, agy or qwen"
+[[ $AGENT =~ ^(qwen|agy)$ ]] || die "agent must be qwen or agy"
 [[ $WP =~ ^(P[1-4]-[0-9]{2}|F-[0-9]{2}|T-[0-9]{1,6})$ ]] || die "WP id must look like P1-03, F-01 or T-12"
 [[ $MODE != task || $WP == T-* ]] || die "task mode needs a T-<issue> id"
 [[ $MODE != build || $WP != T-* ]] || die "T- ids are built with 'task', not as a WP"
@@ -42,7 +42,7 @@ TASKFILE="$LOGDIR/$WP.task.md"   # T- tasks: the instructions, kept for later fi
 if [[ $WP == T-* ]]; then SPEC_REF="the task instructions in $TASKFILE"
 elif [[ $WP == F-* ]]; then SPEC_REF="docs/spec/FRONTEND.md section $WP"
 else SPEC_REF="docs/spec/PHASE-${WP:1:1}.md section $WP"; fi
-case $AGENT in kimi) AGENT_NAME=kimi-cli ;; agy) AGENT_NAME=antigravity-cli ;; qwen) AGENT_NAME=qwen-code ;; esac
+case $AGENT in agy) AGENT_NAME=antigravity-cli ;; qwen) AGENT_NAME=qwen-code ;; esac
 START=$(date +%s)
 
 # ---- concurrency cap -------------------------------------------------------
@@ -72,10 +72,7 @@ retry() {  # retry a network command with 2/4/8/16 s backoff
 run_agent() {  # <workdir> <prompt> <logfile>
   local dir=$1 prompt=$2 out=$3 rc=0
   log "running $AGENT in $dir (log: $out)"
-  if [[ $AGENT == kimi ]]; then
-    (cd "$dir" && timeout "$AGENT_TIMEOUT" kimi --print --output-format stream-json -p "$prompt") \
-      >"$out" 2>&1 || rc=$?
-  elif [[ $AGENT == qwen ]]; then
+  if [[ $AGENT == qwen ]]; then
     # Qwen Code headless: -p runs one prompt and exits; --yolo auto-approves its tools
     (cd "$dir" && timeout "$AGENT_TIMEOUT" qwen -p "$prompt" --yolo) >"$out" 2>&1 || rc=$?
   else
@@ -119,7 +116,7 @@ git -C "$CLONE" worktree prune
 # ---- build / task ----------------------------------------------------------
 if [[ $MODE == build || $MODE == task ]]; then
   SLUG="${3:-}"; TITLE="${4:-}"
-  [[ $SLUG =~ ^[a-z0-9-]+$ && -n $TITLE ]] || die "usage: $0 [task] <kimi|agy|qwen> <id> <slug> \"<title>\" [file]"
+  [[ $SLUG =~ ^[a-z0-9-]+$ && -n $TITLE ]] || die "usage: $0 [task] <qwen|agy> <id> <slug> \"<title>\" [file]"
   if [[ $MODE == task ]]; then
     [[ $5 -ef $TASKFILE ]] || cp "$5" "$TASKFILE"
   fi
