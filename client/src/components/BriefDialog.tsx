@@ -99,7 +99,7 @@ export function BriefDialog({ open, onOpenChange, initialDocument }: BriefDialog
         {phase === "pick" && (
           <div className="flex flex-col items-center gap-4 py-10 text-center">
             <p className="sk-empty-text max-w-sm">
-              Drop in a PDF, Word, Markdown, or text file and Kemma will turn it into an interactive brief: overview, key figures with exact quotes, timeline, and section takeaways.
+              Drop in a PDF, Word, Markdown, or text file and Sutaeru will turn it into an interactive brief: overview, key figures with exact quotes, timeline, and section takeaways.
             </p>
             <AttachMenu
               attachments={picked}

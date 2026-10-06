@@ -84,7 +84,7 @@ export default function Documents() {
           </div>
         </div>
         <div className="sk-doc-grid" role="radiogroup" aria-label="Start a document">
-          <OptionCard id="new" label="New document" title="Start from an idea" text="Describe what you need, or let Kemma interview you. You get a finished file." onClick={() => setStartBoth("new")} />
+          <OptionCard id="new" label="New document" title="Start from an idea" text="Describe what you need, or let Sutaeru interview you. You get a finished file." onClick={() => setStartBoth("new")} />
           <OptionCard id="edit" label="Edit document" title="Start from a file" text="Upload a PDF, Word file or notes, then rewrite it or reformat it." onClick={() => setStartBoth("edit")} />
         </div>
       </div>

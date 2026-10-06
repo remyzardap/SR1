@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
 import { LogoMark } from "@/components/chrome/AppHeader";
+import { SutaeruSeal } from "@/components/brand/SutaeruSeal";
 import { ConvergeBar, HalftoneRamp } from "@/components/art";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
 import "@/styles/landing.css";
@@ -29,7 +30,7 @@ export default function Landing() {
     <div className="sk-landing">
       <header className="sk-land-nav-wrap">
         <nav className="sk-land-nav" aria-label="Main">
-          <Link href="/" className="sk-land-brand"><LogoMark /><span>Sutaeru</span></Link>
+          <Link href="/" className="sk-land-brand"><LogoMark /><span>Sutaeru</span><SutaeruSeal className="sk-land-seal" rough={false} /></Link>
           <div className="sk-land-links">
             <a href="#search">Search</a>
             <a href="#research">Research</a>

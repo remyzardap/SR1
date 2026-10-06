@@ -165,7 +165,7 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
     // (the client shows it and removes the blank assistant message) without persisting the
     // error text as an assistant message. Same for an answer that is entirely empty.
     if (!assistantContent && (output.isError || !output.response)) {
-      if (!aborted) sendEvent(res, "error", output.isError ? output.response : "Kemma returned an empty response. Please try again.");
+      if (!aborted) sendEvent(res, "error", output.isError ? output.response : "Sutaeru returned an empty response. Please try again.");
       return;
     }
 
@@ -192,7 +192,7 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
       });
     }
 
-    if (!aborted) sendEvent(res, "done", finalModels[finalModels.length - 1] ?? "Kemma");
+    if (!aborted) sendEvent(res, "done", finalModels[finalModels.length - 1] ?? "Sutaeru");
   } catch (err) {
     if (!aborted) sendEvent(res, "error", (err as Error).message ?? "Unknown error");
   } finally {

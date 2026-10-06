@@ -236,8 +236,8 @@ export async function runChatImage(opts: { chatKey: string; parsed: ChatImageCom
       ok: true,
       buffer: image.buffer,
       mimeType: image.mimeType,
-      // The caption never names the engine or model: the picture is simply Kemma's.
-      caption: "Kemma",
+      // The caption never names the engine or model: the picture is simply Sutaeru's.
+      caption: "Sutaeru",
     };
   } catch (err) {
     return { ok: false, message: userSafeMessage(err) };

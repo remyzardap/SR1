@@ -125,7 +125,7 @@ app.use('/api/admin/messaging', requireSession, adminMessagingRouter); // status
 app.get('/api/admin/whatsapp', requireSession, (req, res) => {
   if ((req as any).user?.role !== 'admin') return res.status(403).send('Admin only');
   const body = waStatus.state === 'open'
-    ? `<h1>Connected</h1><p>Linked as +${waStatus.number}. Send yourself a message to talk to Kemma.</p>`
+    ? `<h1>Connected</h1><p>Linked as +${waStatus.number}. Send yourself a message to talk to Sutaeru.</p>`
     : waStatus.pairingCode
       ? `<h1 style="font:700 48px monospace;letter-spacing:6px">${waStatus.pairingCode}</h1><p>WhatsApp &gt; Settings &gt; Linked devices &gt; Link a device &gt; Link with phone number instead. Enter this code now.</p>`
       : `<h1>${waStatus.state === 'off' ? 'Bridge is off' : 'Getting a code…'}</h1><p>${waStatus.note ?? 'This page refreshes by itself.'}</p>`;

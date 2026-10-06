@@ -31,7 +31,7 @@ export const openclawRouter = router({
         // S1 blends Qwen + Gemini (+ Sonar for web questions) into one answer
         const systemPrompt = buildS1SystemPrompt({
           agent: "s1",
-          label: "Kemma",
+          label: "Sutaeru",
           reason: "openclaw",
           emoji: "🧠",
           color: "#E8442A",

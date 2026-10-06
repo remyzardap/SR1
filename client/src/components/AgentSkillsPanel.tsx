@@ -60,7 +60,7 @@ export function AgentSkillsPanel() {
           <p className="lp-mono">Owner only</p>
           <h2 className="lp-row-title m-0 mt-1">Skill folders</h2>
           <p className="mt-1 mb-0 max-w-2xl lp-body">
-            Kemma only uses a skill after you review it and switch it on. Editing a skill file switches it off until you review it again.
+            Sutaeru only uses a skill after you review it and switch it on. Editing a skill file switches it off until you review it again.
           </p>
         </div>
       </header>
