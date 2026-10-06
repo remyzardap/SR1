@@ -9,6 +9,7 @@ import { registerTool } from "../registry";
 import type { ToolContext } from "../types";
 import {
   createDriveFolder,
+  getDriveFileMeta,
   getConnectionStatus,
   listDriveFiles,
   moveDriveFile,
@@ -128,6 +129,25 @@ async function executeEdit(args: z.infer<typeof DriveEditArgs>, ctx: ToolContext
   });
 }
 
+/**
+ * The file a `drive_edit` aims at. The id comes from the arguments, so this needs no Drive round-trip
+ * — which is what lets the decision route re-read it when the human edits the arguments and refuse a
+ * call that has been pointed at a different file (P1-11).
+ */
+function driveEditTarget(fileId: string): string {
+  return `drive:${fileId}`;
+}
+
+/**
+ * The version of that file, read at the moment the card is shown, so an approval is bound to the text
+ * the human was actually shown. If somebody edits the file while the card is open, the run comes back
+ * as a conflict instead of staging over their change (P1-11).
+ */
+async function driveEditRevision(userId: number, fileId: string): Promise<string | undefined> {
+  const meta = await getDriveFileMeta(userId, fileId);
+  return meta.modifiedTime ?? undefined;
+}
+
 // ── drive_move (within the Sutaeru root only) ─────────────────────────────────
 const DriveMoveArgs = z.object({
   fileId: z.string().describe("The Google Drive file id"),
@@ -185,6 +205,20 @@ export function registerDriveTools(): void {
     args: DriveEditArgs,
     risk: "write",
     requiresApproval: true,
+    // What the card shows is what Drive holds right now plus what this call would replace it with —
+    // never the file's contents, which would put another person's text into an approval log (P1-11).
+    preview: async (args, ctx) => {
+      const meta = await getDriveFileMeta(ctx.userId, args.fileId);
+      return {
+        title: "Stage a Drive edit",
+        detail: `Replaces the text of '${meta.name}' with ${args.newContent.length.toLocaleString()} characters from this call. Nothing changes on Drive until you confirm the staged edit.`,
+        reason: args.reason,
+        currentVersion: meta.modifiedTime ?? "not reported by Drive",
+        target: driveEditTarget(args.fileId),
+      };
+    },
+    targetRef: (args) => driveEditTarget(args.fileId),
+    targetRevision: (args, ctx) => driveEditRevision(ctx.userId, args.fileId),
     parallelSafe: false,
     timeoutMs: 20_000,
     maxModelChars: 4_000,

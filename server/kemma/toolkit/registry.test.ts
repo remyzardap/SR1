@@ -442,6 +442,102 @@ describe("runTool: approval ladder for built-in tools", () => {
     });
   });
 
+  it("a card is never blank: a tool with no preview of its own gets a summary of its arguments", async () => {
+    process.env.FF_APPROVALS = "1";
+    const request = vi.fn(async () => approved("b-summary", { text: "hi" }));
+    registerTool(
+      echoTool({ name: "bare_preview_tool", risk: "write", requiresApproval: true, execute: async () => ({ echoed: true }) }),
+    );
+
+    const outcome = await runTool("bare_preview_tool", { text: "hi" }, ctx({ approvals: { request } }));
+
+    expect(outcome).toEqual({ ok: true, data: { echoed: true } });
+    expect(request.mock.calls[0][0]).toMatchObject({
+      preview: { title: "Approve bare_preview_tool", tool: "bare_preview_tool", argsSummary: "text=hi" },
+    });
+  });
+
+  it("a preview that cannot be generated degrades to the arguments instead of an empty card", async () => {
+    process.env.FF_APPROVALS = "1";
+    const request = vi.fn(async () => approved("b-fallback", { text: "hi" }));
+    registerTool(
+      echoTool({
+        name: "broken_preview_tool",
+        risk: "write",
+        requiresApproval: true,
+        preview: async () => {
+          throw new Error("the doc is gone");
+        },
+        execute: async () => ({ echoed: true }),
+      }),
+    );
+
+    const outcome = await runTool("broken_preview_tool", { text: "hi" }, ctx({ approvals: { request } }));
+
+    // The human still gets to read what will happen, so the approval stays usable.
+    expect(outcome).toEqual({ ok: true, data: { echoed: true } });
+    expect(request.mock.calls[0][0]).toMatchObject({
+      preview: { title: "Approve broken_preview_tool", tool: "broken_preview_tool", argsSummary: "text=hi" },
+    });
+  });
+
+  it("a target that cannot be read is refused before any card exists", async () => {
+    process.env.FF_APPROVALS = "1";
+    let ran = 0;
+    const request = vi.fn(async () => approved("b-broken-target"));
+    registerTool(
+      echoTool({
+        name: "broken_target_tool",
+        risk: "write",
+        requiresApproval: true,
+        targetRef: async () => {
+          throw new Error("drive is down");
+        },
+        execute: async () => ({ ran: ++ran }),
+      }),
+    );
+
+    const outcome = await runTool("broken_target_tool", { text: "hi" }, ctx({ approvals: { request } }));
+
+    // An approval whose target is unknown would be a blank cheque, so nothing is ever offered.
+    expect(ran).toBe(0);
+    expect(request).not.toHaveBeenCalled();
+    expect(outcome).toEqual({
+      ok: false,
+      code: "FAILED",
+      error: "Could not read the target of broken_target_tool, so it was not queued for approval. Try again.",
+    });
+  });
+
+  it("a target version that cannot be read is refused before any card exists", async () => {
+    process.env.FF_APPROVALS = "1";
+    let ran = 0;
+    const request = vi.fn(async () => approved("b-broken-rev"));
+    registerTool(
+      echoTool({
+        name: "broken_revision_tool",
+        risk: "write",
+        requiresApproval: true,
+        targetRef: async (args) => `ref:${args.text}`,
+        targetRevision: async () => {
+          throw new Error("drive is down");
+        },
+        execute: async () => ({ ran: ++ran }),
+      }),
+    );
+
+    const outcome = await runTool("broken_revision_tool", { text: "hi" }, ctx({ approvals: { request } }));
+
+    // Without the version there is no conflict check at execution time, so the card must not appear.
+    expect(ran).toBe(0);
+    expect(request).not.toHaveBeenCalled();
+    expect(outcome).toEqual({
+      ok: false,
+      code: "FAILED",
+      error: "Could not read the current version of broken_revision_tool's target, so it was not queued for approval. Try again.",
+    });
+  });
+
   it("an approved tool that leaves the offer while the card is open is not run", async () => {
     process.env.FF_APPROVALS = "1";
     let ran = 0;

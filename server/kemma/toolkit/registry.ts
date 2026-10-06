@@ -536,9 +536,39 @@ export async function runTool(name: string, rawArgs: unknown, ctx: ToolContext):
 
   if (!requiresApproval) return invokeSpec(spec, parsed.data, ctx);
 
-  const preview = spec.preview ? await spec.preview(parsed.data, ctx) : undefined;
-  const targetRef = spec.targetRef ? await spec.targetRef(parsed.data, ctx) : undefined;
-  const targetRevision = spec.targetRevision ? await spec.targetRevision(parsed.data, ctx) : undefined;
+  // A card with no summary at all would ask the human to approve something they cannot read, so a
+  // tool without its own preview — or one whose preview resolver throws, since these read live state
+  // — still gets the masked argument summary an MCP call is shown (P1-11).
+  const summary = mcpPreview(name, parsed.data as Record<string, unknown>);
+  let preview: unknown = summary;
+  if (spec.preview) {
+    try {
+      preview = await spec.preview(parsed.data, ctx);
+    } catch {
+      preview = summary;
+    }
+  }
+
+  // The target and its version are read the same way, and a failure here cannot be papered over: the
+  // decision route re-checks the recorded target and `seekApproval` re-checks the revision, so an
+  // approval taken out against a target we could not read would be an approval nothing can honour.
+  // Refused before any card exists, rather than shown one that cannot be kept (P1-11).
+  let targetRef: string | undefined;
+  if (spec.targetRef) {
+    try {
+      targetRef = await spec.targetRef(parsed.data, ctx);
+    } catch {
+      return { ok: false, code: "FAILED", error: `Could not read the target of ${name}, so it was not queued for approval. Try again.` };
+    }
+  }
+  let targetRevision: string | undefined;
+  if (spec.targetRevision) {
+    try {
+      targetRevision = await spec.targetRevision(parsed.data, ctx);
+    } catch {
+      return { ok: false, code: "FAILED", error: `Could not read the current version of ${name}'s target, so it was not queued for approval. Try again.` };
+    }
+  }
 
   const ladder = await seekApproval({
     name,
