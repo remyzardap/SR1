@@ -13,6 +13,8 @@ import { ChatInsightsDialog } from "@/components/ChatInsightsDialog";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/authSession";
+import { ApprovalCard } from "@/components/chat/ApprovalCard";
+import type { ApprovalRequest } from "@/lib/sse";
 import { callFunction } from "@/lib/kemmaCloud";
 import { AttachMenu } from "@/components/AttachMenu";
 import { FocusBrackets } from "@/components/art";
@@ -167,6 +169,7 @@ export default function Chat() {
   const [usedSkills, setUsedSkills] = useState<Array<{ id: number; name: string }>>([]);
   const [usage, setUsage] = useState<{ inputTokens: number; outputTokens: number; totalTokens: number } | null>(null);
   const [sources, setSources] = useState<Source[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<ApprovalRequest[]>([]);
 
   // ─── Connection ─────────────────────────────────────────────────────────────
   // Offline is a visual state only: nothing is queued in the backend, the composer
@@ -461,6 +464,7 @@ export default function Chat() {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
+      setPendingApprovals([]);
       let streamState = initialStreamState();
 
       try {
@@ -533,6 +537,9 @@ export default function Chat() {
             }
             if (next.currentStep !== streamState.currentStep && next.currentStep !== null) {
               setCurrentStep(next.currentStep);
+            }
+            if (next.approvals !== streamState.approvals) {
+              setPendingApprovals(next.approvals);
             }
 
             streamState = next;
@@ -780,6 +787,20 @@ export default function Chat() {
               offline={!online}
               onSelectPlan={handleSelectPlan}
             />}
+
+            {pendingApprovals.length > 0 && (
+              <div className="mx-auto w-full max-w-[800px] px-3 sm:px-6">
+                {pendingApprovals.map((approval) => (
+                  <ApprovalCard
+                    key={approval.id}
+                    approval={approval}
+                    onDecision={(id) => {
+                      setPendingApprovals((prev) => prev.filter((a) => a.id !== id));
+                    }}
+                  />
+                ))}
+              </div>
+            )}
 
             {historyState === "loading" && messages.length === 0 && (
               <div role="status" className="flex-none mx-3 sm:mx-6 mb-3 text-center text-xs text-muted-foreground">Loading conversation…</div>
