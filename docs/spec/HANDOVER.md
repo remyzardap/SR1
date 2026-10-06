@@ -35,6 +35,7 @@ Nothing else is in flight. Three agents were working on P1-02, P1-08 and P1-09 a
 |---|---|
 | What are the rules I must follow? | `docs/spec/README.md` §3 |
 | What exactly do I build for my work package? | `docs/spec/PHASE-1.md` … `PHASE-4.md`, find your ID |
+| **What do I start next, and what comes after, all the way to the end?** | **`docs/spec/RUNBOOK.md`** (waves, tracker, owner actions, phase gates) |
 | Which packages can run at the same time? | `docs/spec/README.md` §8 |
 | How will my pull request be judged? | `docs/spec/README.md` §5 |
 | What did the test suite look like before? | `docs/spec/BASELINE.md` |

@@ -14,6 +14,7 @@ import {
   type Attachment,
 } from "../lib/attachments";
 import { FnError } from "../lib/fnErrors";
+import { flag } from "../core/flags";
 
 function sendEvent(res: Response, event: string, data: unknown) {
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -71,9 +72,24 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
   res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
 
+  const streamToolTurns = flag("STREAM_TOOL_TURNS");
+  const runId = (typeof req.body?.runId === "string" && req.body.runId) ? req.body.runId : crypto.randomUUID();
+  if (streamToolTurns) {
+    sendEvent(res, "meta", {
+      protocol: 2,
+      runId,
+      ...(sessionId ? { sessionId } : {}),
+    });
+  }
+
   const heartbeat = setInterval(() => res.write(": ping\n\n"), 20000);
   let aborted = false;
-  const clientGone = () => { aborted = true; clearInterval(heartbeat); };
+  const abortController = new AbortController();
+  const clientGone = () => {
+    aborted = true;
+    clearInterval(heartbeat);
+    if (!abortController.signal.aborted) abortController.abort();
+  };
   // The request readable is auto-destroyed once express.json() consumed the body, so its
   // "close" can fire before this listener is attached: watch the response side for real
   // disconnects, and the request side only for abandoned uploads (same fix as /api/fn).
@@ -81,6 +97,8 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
   res.on("close", () => { if (!res.writableEnded) clientGone(); });
 
   let assistantContent = "";
+  let assistantSaved = false;
+  let finalModels: string[] = [];
   try {
     // Reading the files happens once the stream is open: a Drive download or an
     // image description takes seconds, and a file that fails is a notice rather
@@ -102,11 +120,9 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
       }
     }
 
-    let finalModels: string[] = [];
-
     // Live activity feed ("activity" SSE events): one row per tool call / phase, updated by id.
     let toolSeq = 0;
-    let currentTool: { id: string; input: unknown } | null = null;
+    const activeTools = new Map<string, { id: string; input: unknown; tool: string }>();
     let thinkId: string | null = null;
     let writing = false;
     const sendActivity = (event: ActivityEvent) => { if (!aborted) sendEvent(res, "activity", event); };
@@ -122,6 +138,7 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
       modelOverride: resolved.model === "auto" ? undefined : resolved.model,
       sensitiveRouting: resolved.sensitiveRouting,
       allowedTools: resolved.allowedTools,
+      signal: abortController.signal,
       onStream: (chunk) => {
         assistantContent += chunk;
         if (!aborted) {
@@ -129,19 +146,52 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
           sendEvent(res, "token", chunk);
         }
       },
-      onToolStart: (tool, input) => {
+      onReasoning: (delta) => {
         if (aborted) return;
-        currentTool = { id: `tool-${++toolSeq}`, input };
-        sendEvent(res, "tool_start", { tool, input });
-        sendEvent(res, "agent", true);
-        sendActivity(describeToolStart(currentTool.id, tool, input));
+        const isReasoningOff = (process.env.KEMMA_REASONING_EFFORT ?? "").trim().toLowerCase() === "off";
+        if (streamToolTurns && !isReasoningOff) {
+          sendEvent(res, "thinking", delta);
+        }
       },
-      onToolEnd: (tool, result, durationMs) => {
+      onSegmentEnd: (kind) => {
         if (aborted) return;
-        const started = currentTool ?? { id: `tool-${++toolSeq}`, input: {} };
-        currentTool = null;
-        sendEvent(res, "tool_end", { tool, input: started.input, output: result, step: 0, durationMs });
-        sendActivity(describeToolEnd(started.id, tool, started.input, result, durationMs));
+        if (streamToolTurns) {
+          sendEvent(res, "segment", { kind });
+        }
+      },
+      onToolStart: (tool, input, callId) => {
+        if (aborted) return;
+        const id = callId || `tool-${++toolSeq}`;
+        activeTools.set(id, { id, input, tool });
+        if (streamToolTurns) {
+          sendEvent(res, "tool_start", { id, tool, input });
+        } else {
+          sendEvent(res, "tool_start", { tool, input });
+        }
+        sendEvent(res, "agent", true);
+        sendActivity(describeToolStart(id, tool, input));
+      },
+      onToolEnd: (tool, result, durationMs, callId) => {
+        if (aborted) return;
+        let started = callId ? activeTools.get(callId) : undefined;
+        if (started && callId) {
+          activeTools.delete(callId);
+        } else if (!started) {
+          const fallbackEntry = [...activeTools.entries()].find(([_k, v]) => v.tool === tool) ?? [...activeTools.entries()][0];
+          if (fallbackEntry) {
+            started = fallbackEntry[1];
+            activeTools.delete(fallbackEntry[0]);
+          } else {
+            started = { id: callId || `tool-${++toolSeq}`, input: {}, tool };
+          }
+        }
+        const id = started.id;
+        if (streamToolTurns) {
+          sendEvent(res, "tool_end", { id, tool, input: started.input, output: result, step: 0, durationMs });
+        } else {
+          sendEvent(res, "tool_end", { tool, input: started.input, output: result, step: 0, durationMs });
+        }
+        sendActivity(describeToolEnd(id, tool, started.input, result, durationMs));
       },
       onStepStart: (step, model) => {
         if (aborted) return;
@@ -165,7 +215,7 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
     // (the client shows it and removes the blank assistant message) without persisting the
     // error text as an assistant message. Same for an answer that is entirely empty.
     if (!assistantContent && (output.isError || !output.response)) {
-      if (!aborted) sendEvent(res, "error", output.isError ? output.response : "Sutaeru returned an empty response. Please try again.");
+      if (!aborted && !output.cancelled) sendEvent(res, "error", output.isError ? output.response : "Sutaeru returned an empty response. Please try again.");
       return;
     }
 
@@ -173,18 +223,23 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
     // fallback): deliver and persist it like a streamed answer instead of leaving a blank chat.
     if (!assistantContent && output.response) {
       assistantContent = output.response;
-      if (!aborted) sendEvent(res, "token", assistantContent);
+      if (!aborted && !output.cancelled) sendEvent(res, "token", assistantContent);
     }
 
-    if (sessionId && assistantContent && !aborted) {
-      await addChatMessage(sessionId, user.id, assistantContent, "assistant", finalModels[finalModels.length - 1] ?? resolved.model ?? undefined);
+    if (sessionId && assistantContent) {
+      if (aborted || output.cancelled) {
+        await addChatMessage(sessionId, user.id, assistantContent, "assistant", finalModels[finalModels.length - 1] ?? resolved.model ?? undefined, undefined, { cancelled: true });
+      } else {
+        await addChatMessage(sessionId, user.id, assistantContent, "assistant", finalModels[finalModels.length - 1] ?? resolved.model ?? undefined);
+      }
+      assistantSaved = true;
     }
 
-    if (!aborted && output.sources.length > 0) {
+    if (!aborted && !output.cancelled && output.sources.length > 0) {
       sendEvent(res, "sources", output.sources);
     }
 
-    if (!aborted) {
+    if (!aborted && !output.cancelled) {
       sendEvent(res, "usage", {
         inputTokens: output.tokensUsed.input,
         outputTokens: output.tokensUsed.output,
@@ -192,8 +247,16 @@ export async function kemmaStreamRoute(req: Request, res: Response) {
       });
     }
 
-    if (!aborted) sendEvent(res, "done", finalModels[finalModels.length - 1] ?? "Sutaeru");
+    if (!aborted && !output.cancelled) sendEvent(res, "done", finalModels[finalModels.length - 1] ?? "Sutaeru");
   } catch (err) {
+    if (sessionId && assistantContent && !assistantSaved && (aborted || abortController.signal.aborted)) {
+      try {
+        await addChatMessage(sessionId, user.id, assistantContent, "assistant", finalModels[finalModels.length - 1] ?? resolved.model ?? undefined, undefined, { cancelled: true });
+        assistantSaved = true;
+      } catch {
+        // non-fatal
+      }
+    }
     if (!aborted) sendEvent(res, "error", (err as Error).message ?? "Unknown error");
   } finally {
     clearInterval(heartbeat);

@@ -56,6 +56,48 @@ export async function logUsage(record: UsageRecord): Promise<void> {
   }
 }
 
+export interface FixedCostUsageRecord {
+  userId: number;
+  sessionId?: string;
+  reportId?: string;
+  /** A provider id outside the ModelProvider union, e.g. a search or reader provider ("brave", "jina", ...). */
+  provider: string;
+  model: string;
+  estimatedCostUsd: number;
+  purpose?: string;
+}
+
+/**
+ * Logs one usage_logs row for a request priced per call rather than per token (search providers,
+ * P1-08; later the tiered reader, P1-09). `estimatedCostUsd` is taken as given, never derived from
+ * the token price table, since these providers aren't token-metered.
+ */
+export async function logFixedCostUsage(record: FixedCostUsageRecord): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  const values: InsertUsageLog = {
+    userId: record.userId,
+    sessionId: record.sessionId ?? null,
+    reportId: record.reportId ?? null,
+    provider: record.provider,
+    model: record.model,
+    inputTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+    cachedInputTokens: 0,
+    estimatedCostUsd: String(Math.max(0, record.estimatedCostUsd)),
+    purpose: record.purpose ?? null,
+  };
+
+  try {
+    await db.insert(usageLogs).values(values);
+  } catch (err) {
+    // Never fail the user request because of a logging hiccup.
+    console.warn("[usage] failed to log fixed-cost usage:", err);
+  }
+}
+
 export async function checkSpendCap(provider: ModelProvider): Promise<{ allowed: true } | { allowed: false; reason: string }> {
   const cap = monthlySpendCapUsd(provider);
   if (cap <= 0) return { allowed: true };

@@ -1,7 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { buildKemmaSystemPrompt, buildKemmaVoicePrompt } from "./personality";
-import { executeToolCall } from "./kemmaMax";
 import { isAdminUser } from "./executors/vpsFiles";
+import pLimit from "p-limit";
+import { registerBuiltinTools } from "./toolkit/builtin";
+import { getToolSpec, runTool, toOpenAiTools, toolsFor, type OpenAiToolDef } from "./toolkit/registry";
+import { SKILL_TOOL_NAMES } from "./toolkit/names";
+import type { ToolContext } from "./toolkit/types";
 import {
   chatRoute,
   reportRoute,
@@ -36,7 +40,9 @@ import {
 } from "../core/llmHttp";
 import { checkQuota, incrementQuota } from "../core/quotaCheck";
 import { logUsage, checkSpendCap } from "../core/usage";
-import { KEMMA_TOOLS, SKILL_TOOLS, VPS_FILES_TOOL, SKILL_TOOL_NAMES, type ToolDefinition } from "./tools";
+import { flag } from "../core/flags";
+import { readChatStream } from "../core/llmStream";
+import type { SegmentKind } from "./events";
 import { getMemoriesContext } from "./memory";
 import { type Source, extractSources, dedupeSources, annotateSearchResult, keepCitedSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
 
@@ -72,13 +78,16 @@ export interface EngineInput {
   sensitiveRouting?: "auto" | "off";
   skills?: Array<{ id: number; name: string; description?: string | null; content?: unknown }>;
   onStream?: (chunk: string) => void;
-  onToolStart?: (tool: string, input: unknown) => void;
-  onToolEnd?: (tool: string, result: unknown, durationMs: number) => void;
+  onReasoning?: (delta: string) => void;
+  onSegmentEnd?: (kind: SegmentKind) => void;
+  onToolStart?: (tool: string, input: unknown, callId?: string) => void;
+  onToolEnd?: (tool: string, result: unknown, durationMs: number, callId?: string) => void;
   onStepStart?: (step: number, model: string) => void;
   onStepEnd?: (step: number) => void;
   onQuotaWarn?: (message: string) => void;
   onNotice?: (message: string) => void;
   onSkillUsed?: (skill: { id: number; name: string }) => void;
+  signal?: AbortSignal;
 }
 
 export interface VisionEngineInput extends EngineInput {
@@ -97,6 +106,7 @@ export interface EngineOutput {
    * an assistant answer.
    */
   isError?: boolean;
+  cancelled?: boolean;
 }
 
 import { MAX_TOOL_CALLS } from "./kemmaMax";
@@ -104,6 +114,11 @@ import { buildSkillIndex, type FileSkill } from "./fileSkills";
 import { getEnabledSkills } from "./skillReviews";
 import { getMcpRegistry } from "./mcp/client";
 import { BLOCKED_MESSAGE, decideChatRouting, isBlockedPrompt } from "../lib/sensitive";
+
+/** P1-05 wires a real, run-scoped signal. Until then every run gets a signal that never aborts. */
+const NEVER_ABORTS: AbortSignal = new AbortController().signal;
+
+registerBuiltinTools();
 
 function selectRoute(input: EngineInput, currentMessages: KemmaMessage[], step: number, maxSteps: number): RouteConfig {
   const { isThinking, modelOverride } = input;
@@ -154,6 +169,7 @@ async function runParallelSubAgents(
 
   onStepStart?.(1, planCfg.label);
   const planStart = Date.now();
+  if (input.signal?.aborted) return null;
   let subQueries: string[] = [];
   try {
     const planResponse = await callLLM({
@@ -165,6 +181,7 @@ async function runParallelSubAgents(
       sessionId: input.sessionId,
       reportId: input.reportId,
       purpose: "planner",
+      signal: input.signal,
     });
     const cleaned = (planResponse.content ?? "").replace(/```json\n?|```\n?/g, "").trim();
     const parsed = JSON.parse(cleaned);
@@ -177,7 +194,7 @@ async function runParallelSubAgents(
   }
   onStepEnd?.(1);
 
-  if (subQueries.length === 0) return null;
+  if (subQueries.length === 0 || input.signal?.aborted) return null;
 
   onNotice?.(`Running ${subQueries.length} parallel research sub-agent${subQueries.length === 1 ? "" : "s"}...`);
   const perAgentBudget = Math.max(2, Math.floor(toolBudget / subQueries.length));
@@ -199,6 +216,8 @@ async function runParallelSubAgents(
       return { query, output };
     })
   );
+
+  if (input.signal?.aborted) return null;
 
   const collectedSources = dedupeSources(results.flatMap((r) => r.output.sources));
   const synthesisPrompt = [
@@ -223,6 +242,7 @@ async function runParallelSubAgents(
     sessionId: input.sessionId,
     reportId: input.reportId,
     purpose: "synthesis",
+    signal: input.signal,
   });
   onStepEnd?.(2);
 
@@ -233,8 +253,29 @@ async function runParallelSubAgents(
   };
 }
 
+function getToolConcurrency(): number {
+  const raw = process.env.KEMMA_TOOL_CONCURRENCY?.trim();
+  if (!raw) return 4;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 4;
+}
+
 export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   const startTime = Date.now();
+  if (input.signal?.aborted) {
+    return {
+      response: "",
+      toolCalls: [],
+      isAgentic: false,
+      tokensUsed: { input: 0, output: 0, total: 0 },
+      modelsUsed: [],
+      stepsUsed: 0,
+      durationMs: Date.now() - startTime,
+      sources: [],
+      isError: false,
+      cancelled: true,
+    };
+  }
   // Admin-only models are re-checked against the DB here, whatever the caller passed.
   if (input.modelOverride && isAdminOnlyModel(input.modelOverride) && !(await isAdminUser(input.userId))) {
     input = { ...input, modelOverride: undefined };
@@ -253,7 +294,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     if (decision.blocked) return makeErrorResponse(BLOCKED_MESSAGE, startTime);
     if (decision.venice && decision.model) input = { ...input, modelOverride: decision.model };
   }
-  const { userId, userName, messages, tier, isThinking, isVoice = false, sessionId, reportId, polish, onStream, onToolStart, onToolEnd, onStepStart, onStepEnd, onQuotaWarn, onNotice, onSkillUsed } = input;
+  const { userId, userName, messages, tier, isThinking, isVoice = false, sessionId, reportId, polish, onStream, onReasoning, onSegmentEnd, onToolStart, onToolEnd, onStepStart, onStepEnd, onQuotaWarn, onNotice, onSkillUsed } = input;
 
   const msgQuota = await checkQuota(userId, "message");
   if (!msgQuota.allowed) return makeErrorResponse(msgQuota.reason ?? "Daily message limit reached", startTime);
@@ -301,54 +342,49 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     ? (Number(process.env.KEMMA_TOOL_BUDGET) || 60)
     : MAX_TOOL_CALLS[tier];
   const maxToolCalls = input.toolBudget ?? defaultBudget;
-  let baseTools = input.allowedTools
-    ? KEMMA_TOOLS.filter((t) => input.allowedTools!.includes(t.name))
-    : KEMMA_TOOLS;
+  // The per-run tool context. `toolsFor`/`runTool` use this for availability checks (Drive
+  // connected, admin role) and for executing the tool itself. P1-05 gives `signal` a real,
+  // abortable value; P1-11 will populate `approvals`.
+  const runId = `${sessionId ?? "s"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const toolCtx: ToolContext = {
+    userId,
+    sessionId,
+    runId,
+    tier,
+    signal: input.signal ?? NEVER_ABORTS,
+    emit: () => {},
+    skillsEnabled: enabledSkills.length > 0,
+    isSubAgent: !!input.isSubAgent,
+  };
 
-  // Auto-register Google Drive tools when Drive is connected and no explicit allowlist is set.
-  if (!input.allowedTools) {
-    try {
-      const { getConnectionStatus } = await import("../services/google");
-      const driveStatus = await getConnectionStatus(userId);
-      if (driveStatus.connected) {
-        const { DRIVE_TOOLS } = await import("./tools");
-        const driveToolDefs = DRIVE_TOOLS.map((name) => KEMMA_TOOLS.find((t) => t.name === name)).filter((t): t is ToolDefinition => !!t);
-        baseTools = [...baseTools, ...driveToolDefs];
-      }
-    } catch {
-      // Ignore Drive status errors.
-    }
-  }
+  // The ordinary registered tools (safe_files, web_search, browse, run_code, generate_file,
+  // phone_scan, vps_files, drive_*, skill tools): allowedTools filtering, Drive auto-registration,
+  // admin vps_files and skill-tool inclusion all live inside toolsFor now (see its docstring).
+  const originalSpecs = await toolsFor(toolCtx, input.allowedTools);
 
-  // Admin-only host file access. The executor re-checks the role, this just keeps it out of other users' tool lists.
-  if (!input.isSubAgent && (!input.allowedTools || input.allowedTools.includes("vps_files"))) {
-    try {
-      if (await isAdminUser(userId)) baseTools = [...baseTools, VPS_FILES_TOOL];
-    } catch { /* non-admin path on any error */ }
-  }
-
-  // MCP tools join the same registry and the same per-run filter as built-in tools.
+  // MCP tools carry their own JSON Schema rather than a zod one, so they are merged into the wire
+  // list here instead of being represented as a ToolSpec. Same per-run filter as built-in tools.
+  let mcpDefs: OpenAiToolDef[] = [];
   if (!input.isSubAgent) {
     try {
-      const mcpTools = (await getMcpRegistry().tools()).filter((t) => !input.allowedTools || input.allowedTools.includes(t.name));
-      if (mcpTools.length > 0) baseTools = [...baseTools, ...mcpTools];
+      mcpDefs = (await getMcpRegistry().tools()).filter((t) => !input.allowedTools || input.allowedTools.includes(t.name));
     } catch { /* MCP is optional */ }
   }
 
-  if (enabledSkills.length > 0) {
-    const canRunScripts = baseTools.some((t) => t.name === "run_code");
-    baseTools = [...baseTools, ...SKILL_TOOLS.filter((t) => t.name !== "run_skill_script" || canRunScripts)];
-  }
+  let toolSpecs = originalSpecs;
+  let activeMcpDefs = mcpDefs;
 
   // A skill can only narrow the tool set. Recomputed from the original set each time a skill loads.
-  const originalTools = baseTools;
   const loadedSkillNarrowing = new Map<string, string[] | null>();
   const applySkillNarrowing = () => {
     const lists = [...loadedSkillNarrowing.values()];
-    if (lists.length === 0 || lists.some((l) => l === null)) { baseTools = originalTools; return; }
+    if (lists.length === 0 || lists.some((l) => l === null)) { toolSpecs = originalSpecs; activeMcpDefs = mcpDefs; return; }
     const allowed = new Set(lists.flatMap((l) => l as string[]));
-    baseTools = originalTools.filter((t) => allowed.has(t.name) || (SKILL_TOOL_NAMES as readonly string[]).includes(t.name));
+    toolSpecs = originalSpecs.filter((t) => allowed.has(t.name) || (SKILL_TOOL_NAMES as readonly string[]).includes(t.name));
+    activeMcpDefs = mcpDefs.filter((t) => allowed.has(t.name));
   };
+  const wireTools = (): OpenAiToolDef[] => [...toOpenAiTools(toolSpecs), ...activeMcpDefs];
+  const availableToolNames = (): Set<string> => new Set([...toolSpecs.map((t) => t.name), ...activeMcpDefs.map((t) => t.name)]);
 
   const toolExecutions: ToolExecution[] = [];
   const modelsUsed: string[] = [];
@@ -380,13 +416,31 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     }
   }
 
+  const streamToolTurns = flag("STREAM_TOOL_TURNS");
+  const parallelTools = flag("PARALLEL_TOOLS");
+
   while (step < maxSteps) {
+    if (input.signal?.aborted) {
+      return {
+        response: "",
+        toolCalls: toolExecutions,
+        isAgentic: toolExecutions.length >= 2,
+        tokensUsed: totalTokens,
+        modelsUsed: Array.from(new Set(modelsUsed)),
+        stepsUsed: step,
+        durationMs: Date.now() - startTime,
+        sources: dedupeSources(collectedSources),
+        isError: false,
+        cancelled: true,
+      };
+    }
     step++;
     const route = selectRoute(input, currentMessages, step, maxSteps);
     modelsUsed.push(route.label);
     onStepStart?.(step, route.label);
 
     const offerTools = totalToolCallCount < maxToolCalls && step < maxSteps;
+    const shouldStream = streamToolTurns ? !!onStream : (!!onStream && !offerTools);
 
     let llmResponse: Awaited<ReturnType<typeof callLLM>>;
     try {
@@ -396,16 +450,32 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
         dynamicContext: memories,
         cachePrefix: true,
         messages: currentMessages,
-        tools: offerTools ? baseTools : undefined,
-        stream: !!onStream && !offerTools,
+        tools: offerTools ? wireTools() : undefined,
+        stream: shouldStream,
         onStream,
+        onReasoning,
         onNotice,
         userId,
         sessionId,
         reportId,
         purpose: step === 1 ? "initial" : "follow-up",
+        signal: input.signal,
       });
     } catch (err) {
+      if (input.signal?.aborted) {
+        return {
+          response: "",
+          toolCalls: toolExecutions,
+          isAgentic: toolExecutions.length >= 2,
+          tokensUsed: totalTokens,
+          modelsUsed: Array.from(new Set(modelsUsed)),
+          stepsUsed: step,
+          durationMs: Date.now() - startTime,
+          sources: dedupeSources(collectedSources),
+          isError: false,
+          cancelled: true,
+        };
+      }
       const message = err instanceof Error ? err.message : "Sutaeru hit an error";
       return makeErrorResponse(message, startTime);
     }
@@ -416,21 +486,149 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     onStepEnd?.(step);
 
     if (llmResponse.toolCalls && llmResponse.toolCalls.length > 0) {
+      if (input.signal?.aborted) {
+        return {
+          response: "",
+          toolCalls: toolExecutions,
+          isAgentic: toolExecutions.length >= 2,
+          tokensUsed: totalTokens,
+          modelsUsed: Array.from(new Set(modelsUsed)),
+          stepsUsed: step,
+          durationMs: Date.now() - startTime,
+          sources: dedupeSources(collectedSources),
+          isError: false,
+          cancelled: true,
+        };
+      }
+      if (streamToolTurns) {
+        onSegmentEnd?.("narration");
+      }
       currentMessages.push({ role: "assistant", content: llmResponse.content ?? null, tool_calls: llmResponse.toolCalls });
 
-      for (const tc of llmResponse.toolCalls) {
-        totalToolCallCount++;
+      interface PreparedCall {
+        index: number;
+        tc: ToolCall;
+        parsedArgs: unknown;
+        parallelSafe: boolean;
+        budgetAllowed: boolean;
+      }
+
+      interface ExecutedCallOutcome {
+        index: number;
+        tc: ToolCall;
+        parsedArgs: unknown;
+        toolResult: unknown;
+        toolDuration: number;
+      }
+
+      const preparedCalls: PreparedCall[] = [];
+      for (let i = 0; i < llmResponse.toolCalls.length; i++) {
+        const tc = llmResponse.toolCalls[i];
         let parsedArgs: unknown;
         try { parsedArgs = JSON.parse(tc.function.arguments || "{}"); } catch { parsedArgs = {}; }
-        onToolStart?.(tc.function.name, parsedArgs);
+        const spec = toolSpecs.find((s) => s.name === tc.function.name) ?? getToolSpec(tc.function.name);
+        const parallelSafe = spec?.parallelSafe === true;
+
+        if (totalToolCallCount < maxToolCalls) {
+          totalToolCallCount++;
+          preparedCalls.push({ index: i, tc, parsedArgs, parallelSafe, budgetAllowed: true });
+        } else {
+          preparedCalls.push({ index: i, tc, parsedArgs, parallelSafe, budgetAllowed: false });
+        }
+      }
+
+      const executeCall = async (call: PreparedCall): Promise<ExecutedCallOutcome> => {
+        const { tc, parsedArgs, budgetAllowed } = call;
+        const callId = (streamToolTurns || parallelTools) ? (tc.id || `call_${call.index}`) : undefined;
+
+        if (callId) {
+          onToolStart?.(tc.function.name, parsedArgs, callId);
+        } else {
+          onToolStart?.(tc.function.name, parsedArgs);
+        }
+
+        if (!budgetAllowed) {
+          const toolResult = { ok: false, code: "NOT_ALLOWED" as const, error: "Tool budget for this run is used up." };
+          if (callId) {
+            onToolEnd?.(tc.function.name, toolResult, 0, callId);
+          } else {
+            onToolEnd?.(tc.function.name, toolResult, 0);
+          }
+          return {
+            index: call.index,
+            tc,
+            parsedArgs,
+            toolResult,
+            toolDuration: 0,
+          };
+        }
+
         const toolStart = Date.now();
         let toolResult: unknown;
-        if (!baseTools.some((t) => t.name === tc.function.name)) {
+        if (!availableToolNames().has(tc.function.name)) {
           toolResult = { success: false, error: `Tool ${tc.function.name} is not available in this run.`, code: "TOOL_NOT_ALLOWED" };
         } else {
-          try { toolResult = await executeToolCall(userId, tc.function.name, parsedArgs); }
-          catch (err) { toolResult = { error: `Tool ${tc.function.name} failed: ${(err as Error).message}` }; }
+          try {
+            const outcome = await runTool(tc.function.name, parsedArgs, toolCtx);
+            toolResult = outcome.ok ? outcome.data : { success: false, error: outcome.error, code: outcome.code };
+          } catch (err) {
+            toolResult = { error: `Tool ${tc.function.name} failed: ${(err as Error).message}` };
+          }
         }
+        const toolDuration = Date.now() - toolStart;
+        if (callId) {
+          onToolEnd?.(tc.function.name, toolResult, toolDuration, callId);
+        } else {
+          onToolEnd?.(tc.function.name, toolResult, toolDuration);
+        }
+
+        return {
+          index: call.index,
+          tc,
+          parsedArgs,
+          toolResult,
+          toolDuration,
+        };
+      };
+
+      if (input.signal?.aborted) {
+        return {
+          response: "",
+          toolCalls: toolExecutions,
+          isAgentic: toolExecutions.length >= 2,
+          tokensUsed: totalTokens,
+          modelsUsed: Array.from(new Set(modelsUsed)),
+          stepsUsed: step,
+          durationMs: Date.now() - startTime,
+          sources: dedupeSources(collectedSources),
+          isError: false,
+          cancelled: true,
+        };
+      }
+
+      let outcomes: ExecutedCallOutcome[];
+      if (parallelTools) {
+        const safeCalls = preparedCalls.filter((c) => c.parallelSafe);
+        const otherCalls = preparedCalls.filter((c) => !c.parallelSafe);
+
+        const limit = pLimit(getToolConcurrency());
+        const safeOutcomes = await Promise.all(safeCalls.map((c) => limit(() => executeCall(c))));
+
+        const otherOutcomes: ExecutedCallOutcome[] = [];
+        for (const c of otherCalls) {
+          otherOutcomes.push(await executeCall(c));
+        }
+
+        outcomes = [...safeOutcomes, ...otherOutcomes].sort((a, b) => a.index - b.index);
+      } else {
+        outcomes = [];
+        for (const c of preparedCalls) {
+          outcomes.push(await executeCall(c));
+        }
+      }
+
+      for (const item of outcomes) {
+        const { tc, parsedArgs, toolResult, toolDuration } = item;
         if (tc.function.name === "load_skill" && (toolResult as { success?: boolean })?.success) {
           const loaded = enabledSkills.find((sk) => sk.slug === (parsedArgs as { name?: string })?.name);
           if (loaded) {
@@ -439,13 +637,26 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
             onSkillUsed?.({ id: 0, name: loaded.slug });
           }
         }
-        const toolDuration = Date.now() - toolStart;
-        onToolEnd?.(tc.function.name, toolResult, toolDuration);
         toolExecutions.push({ tool: tc.function.name, input: parsedArgs, output: toolResult, step, durationMs: toolDuration });
         const newSources = extractSources(tc.function.name, toolResult);
         if (newSources.length > 0) collectedSources.push(...newSources);
         const forModel = tc.function.name === "web_search" ? annotateSearchResult(toolResult, dedupeSources(collectedSources)) : toolResult;
         currentMessages.push({ role: "tool", content: JSON.stringify(forModel), tool_call_id: tc.id, name: tc.function.name });
+      }
+
+      if (input.signal?.aborted) {
+        return {
+          response: "",
+          toolCalls: toolExecutions,
+          isAgentic: toolExecutions.length >= 2,
+          tokensUsed: totalTokens,
+          modelsUsed: Array.from(new Set(modelsUsed)),
+          stepsUsed: step,
+          durationMs: Date.now() - startTime,
+          sources: dedupeSources(collectedSources),
+          isError: false,
+          cancelled: true,
+        };
       }
 
       if (totalToolCallCount >= maxToolCalls) {
@@ -463,13 +674,30 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
 
     let finalContent = llmResponse.content ?? "Done.";
     // Calls that offered tools are not streamed, so the route would never see this text: emit it now.
-    if (onStream && offerTools && llmResponse.content) onStream(llmResponse.content);
+    if (!streamToolTurns && onStream && offerTools && llmResponse.content) onStream(llmResponse.content);
+    if (streamToolTurns) {
+      onSegmentEnd?.("answer");
+    }
 
     // Deduplicate sources collected during tool use
     let sources = dedupeSources(collectedSources);
 
     // Optional citation verification pass (only for research-style runs with sources)
     if (sources.length > 0 && isAgentic) {
+      if (input.signal?.aborted) {
+        return {
+          response: "",
+          toolCalls: toolExecutions,
+          isAgentic: toolExecutions.length >= 2,
+          tokensUsed: totalTokens,
+          modelsUsed: Array.from(new Set(modelsUsed)),
+          stepsUsed: step,
+          durationMs: Date.now() - startTime,
+          sources: dedupeSources(collectedSources),
+          isError: false,
+          cancelled: true,
+        };
+      }
       try {
         const verifyRouteConfig = verifyRoute();
         if (routeHasAuth(verifyRouteConfig)) {
@@ -487,13 +715,43 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
               sessionId,
               reportId,
               purpose: "verify",
+              signal: input.signal,
             });
             return res.content ?? "[]";
           });
         }
-      } catch {
+      } catch (err) {
+        if (input.signal?.aborted) {
+          return {
+            response: "",
+            toolCalls: toolExecutions,
+            isAgentic: toolExecutions.length >= 2,
+            tokensUsed: totalTokens,
+            modelsUsed: Array.from(new Set(modelsUsed)),
+            stepsUsed: step,
+            durationMs: Date.now() - startTime,
+            sources: dedupeSources(collectedSources),
+            isError: false,
+            cancelled: true,
+          };
+        }
         // Verification is best-effort; don't fail the answer.
       }
+    }
+
+    if (input.signal?.aborted) {
+      return {
+        response: "",
+        toolCalls: toolExecutions,
+        isAgentic: toolExecutions.length >= 2,
+        tokensUsed: totalTokens,
+        modelsUsed: Array.from(new Set(modelsUsed)),
+        stepsUsed: step,
+        durationMs: Date.now() - startTime,
+        sources: dedupeSources(collectedSources),
+        isError: false,
+        cancelled: true,
+      };
     }
 
     // Append numbered source cards
@@ -505,6 +763,20 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     }
 
     if (polish) {
+      if (input.signal?.aborted) {
+        return {
+          response: "",
+          toolCalls: toolExecutions,
+          isAgentic: toolExecutions.length >= 2,
+          tokensUsed: totalTokens,
+          modelsUsed: Array.from(new Set(modelsUsed)),
+          stepsUsed: step,
+          durationMs: Date.now() - startTime,
+          sources: dedupeSources(collectedSources),
+          isError: false,
+          cancelled: true,
+        };
+      }
       // Optional final polish (currently disabled: polishRoute() returns null).
       try {
         const { polishRoute } = await import("../core/kemmaRouter");
@@ -521,6 +793,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
             sessionId,
             reportId,
             purpose: "polish",
+            signal: input.signal,
           });
           finalContent = polishResponse.content ?? finalContent;
           totalTokens.input += polishResponse.usage?.input ?? 0;
@@ -528,6 +801,20 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
           totalTokens.total += polishResponse.usage?.total ?? 0;
         }
       } catch (err) {
+        if (input.signal?.aborted) {
+          return {
+            response: "",
+            toolCalls: toolExecutions,
+            isAgentic: toolExecutions.length >= 2,
+            tokensUsed: totalTokens,
+            modelsUsed: Array.from(new Set(modelsUsed)),
+            stepsUsed: step,
+            durationMs: Date.now() - startTime,
+            sources: dedupeSources(collectedSources),
+            isError: false,
+            cancelled: true,
+          };
+        }
         onNotice?.("Final polish step was skipped.");
       }
     }
@@ -542,6 +829,20 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
 
 export async function kemmaVisionExecute(input: VisionEngineInput): Promise<EngineOutput> {
   const startTime = Date.now();
+  if (input.signal?.aborted) {
+    return {
+      response: "",
+      toolCalls: [],
+      isAgentic: false,
+      tokensUsed: { input: 0, output: 0, total: 0 },
+      modelsUsed: [],
+      stepsUsed: 0,
+      durationMs: Date.now() - startTime,
+      sources: [],
+      isError: false,
+      cancelled: true,
+    };
+  }
   const { userId, userName, messages, tier, imageData, mimeType, onStream, sessionId, reportId, onNotice } = input;
 
   const msgQuota = await checkQuota(userId, "message");
@@ -591,6 +892,20 @@ export async function kemmaVisionExecute(input: VisionEngineInput): Promise<Engi
       sources: [],
     };
   } catch (err) {
+    if (input.signal?.aborted || (err instanceof Error && (err.name === "AbortError" || err.message === "Aborted"))) {
+      return {
+        response: "",
+        toolCalls: [],
+        isAgentic: false,
+        tokensUsed: { input: 0, output: 0, total: 0 },
+        modelsUsed: [],
+        stepsUsed: 0,
+        durationMs: Date.now() - startTime,
+        sources: [],
+        isError: false,
+        cancelled: true,
+      };
+    }
     console.error("[kemmaVisionExecute] Error:", err);
     return makeErrorResponse("I couldn't analyze that image. Please try again.", startTime);
   }
@@ -674,17 +989,23 @@ interface CallLLMOptions {
   tools?: any[];
   stream: boolean;
   onStream?: (chunk: string) => void;
+  onReasoning?: (delta: string) => void;
   onNotice?: (message: string) => void;
   userId: number;
   sessionId?: string;
   reportId?: string;
   purpose?: string;
+  signal?: AbortSignal;
 }
 
 interface LLMResult { content: string | null; toolCalls?: ToolCall[]; usage?: TokenUsage }
 
 async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
-  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onNotice, userId, sessionId, reportId, purpose } = input;
+  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onReasoning, onNotice, userId, sessionId, reportId, purpose, signal } = input;
+
+  if (signal?.aborted) {
+    throw signal.reason ?? new Error("Aborted");
+  }
 
   const cap = await checkSpendCap(route.provider);
   if (!cap.allowed) {
@@ -695,7 +1016,19 @@ async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
   // The chain includes KEMMA_MODEL_PRO_FALLBACK right after the pro slot (see callChainFor).
   const routesToTry = callChainFor(route);
 
+  let streamedChars = 0;
+  const wrappedOnStream = onStream
+    ? (chunk: string) => {
+        streamedChars += chunk.length;
+        onStream(chunk);
+      }
+    : undefined;
+
   for (let i = 0; i < routesToTry.length; i++) {
+    if (signal?.aborted) {
+      throw signal.reason ?? new Error("Aborted");
+    }
+
     const tryRoute = routesToTry[i];
 
     if (i > 0) {
@@ -704,7 +1037,7 @@ async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
     }
 
     try {
-      const result = await callSingleLLM({ route: tryRoute, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream });
+      const result = await callSingleLLM({ route: tryRoute, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream: wrappedOnStream, onReasoning, signal });
 
       await logUsage({
         userId,
@@ -724,6 +1057,31 @@ async function callLLM(input: CallLLMOptions): Promise<LLMResult> {
 
       return result;
     } catch (err) {
+      const isAborted = signal?.aborted || (err instanceof Error && (err.name === "AbortError" || err.message === "Aborted" || err.message.includes("abort")));
+      if (signal?.aborted || isAborted) {
+        // Usage on abort: log a usage row for a partially streamed call. Use provider usage if received; otherwise estimate output tokens as ceil(chars/4) and set purpose to "<purpose>:aborted".
+        const providerUsage = (err && typeof err === "object" ? (err as any).usage : undefined) as TokenUsage | undefined;
+        if (streamedChars > 0 || providerUsage) {
+          try {
+            await logUsage({
+              userId,
+              sessionId,
+              reportId,
+              provider: tryRoute.provider,
+              model: tryRoute.model,
+              inputTokens: providerUsage?.input ?? 0,
+              outputTokens: providerUsage?.output ?? Math.ceil(streamedChars / 4),
+              cachedInputTokens: providerUsage?.cachedInput ?? 0,
+              purpose: `${purpose ?? "chat"}:aborted`,
+            });
+          } catch {
+            // non-fatal
+          }
+        }
+        // Fallback chains stop on abort; they don't try the next model.
+        throw signal?.reason ?? (err instanceof Error ? err : new Error("Aborted"));
+      }
+
       const message = err instanceof Error ? err.message : String(err);
       // The per-route detail (with model labels) goes to the server log only;
       // the user sees the upstream reasons, which say what to do about it.
@@ -747,6 +1105,8 @@ interface SingleLLMOptions {
   tools?: any[];
   stream: boolean;
   onStream?: (chunk: string) => void;
+  onReasoning?: (delta: string) => void;
+  signal?: AbortSignal;
 }
 
 // Providers that rejected stream_options once; not sent again for the life of the process.
@@ -798,7 +1158,7 @@ export function reasoningEffortFor(route: { provider: string; model: string }, e
 }
 
 async function callSingleLLM(input: SingleLLMOptions): Promise<LLMResult> {
-  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream } = input;
+  const { route, systemPrompt, dynamicContext, cachePrefix, messages, tools, stream, onStream, onReasoning, signal } = input;
 
   if (!routeHasAuth(route)) {
     throw new Error(`${route.provider} API key is not configured.`);
@@ -835,6 +1195,7 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<LLMResult> {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${target.auth}` },
       body: JSON.stringify(buildBody(opts)),
+      signal,
     });
 
   let cacheMarkers = !!cachePrefix && usesExplicitCacheMarkers(route.provider);
@@ -866,47 +1227,22 @@ async function callSingleLLM(input: SingleLLMOptions): Promise<LLMResult> {
   }
 
   if (stream && onStream) {
-    let fullContent = "";
-    let streamedUsage: TokenUsage | undefined;
-    const reader = res.body?.getReader();
-    const decoder = new TextDecoder();
-    let sseBuffer = "";
-    let rawBody = "";
-    if (reader) {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        // SSE lines can be split across network chunks; only parse complete lines.
-        const text = decoder.decode(value, { stream: true });
-        rawBody += text;
-        sseBuffer += text;
-        const parts = sseBuffer.split("\n");
-        sseBuffer = parts.pop() ?? "";
-        const lines = parts.filter((l) => l.startsWith("data: "));
-        for (const line of lines) {
-          const data = line.replace("data: ", "").trim();
-          if (data === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(data);
-            const delta = parsed.choices?.[0]?.delta?.content;
-            if (delta) { fullContent += delta; onStream(delta); }
-            if (parsed.usage) streamedUsage = parseUsage(parsed.usage);
-          } catch { /* skip */ }
-        }
-      }
+    const isReasoningOff = (process.env.KEMMA_REASONING_EFFORT ?? "").trim().toLowerCase() === "off";
+    const resStream = await readChatStream(res, {
+      onText: onStream,
+      onReasoning: isReasoningOff ? undefined : onReasoning,
+      signal,
+    });
+    if (!flag("STREAM_TOOL_TURNS")) {
+      return {
+        ...resStream,
+        toolCalls: undefined,
+      };
     }
-    // Some OpenAI-compatible providers ignore stream=true and answer with a single plain JSON
-    // completion body. Without this fallback the client would get zero token events (blank chat).
-    if (!fullContent && rawBody.trimStart().startsWith("{")) {
-      try {
-        const parsed = parseCompletionJson(JSON.parse(rawBody));
-        if (parsed.content) onStream(parsed.content);
-        return parsed;
-      } catch { /* not a JSON completion either; keep the streamed result */ }
-    }
-    return { content: fullContent, toolCalls: undefined, usage: streamedUsage };
+    return resStream;
   }
 
+  if (signal?.aborted) throw signal.reason ?? new Error("Aborted");
   return parseCompletionJson(await res.json());
 }
 

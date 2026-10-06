@@ -41,6 +41,7 @@ import {
 import { bytesToText } from "../../lib/fnDocument";
 import { MAX_REFERENCE_FILES, fetchCapped } from "../../lib/fnFetch";
 import { FnError } from "../../lib/fnErrors";
+import { flag } from "../../core/flags";
 import { asRecord, sendError, startHeartbeat, startSse, writeSseEvent } from "./shared";
 
 export const MAX_RESEARCH_MESSAGES = 200;
@@ -74,6 +75,7 @@ export async function handleResearch(userId: number, req: Request, res: Response
   startSse(res);
   const stopHeartbeat = startHeartbeat(res);
   let aborted = false;
+  const abortController = new AbortController();
   // Node destroys the request stream once its body has been read, which happens while
   // this response is still open: a req "close" after a complete body says nothing about
   // the client. A response closed before our own res.end() does, and so does a request
@@ -81,6 +83,7 @@ export async function handleResearch(userId: number, req: Request, res: Response
   const clientGone = () => {
     aborted = true;
     stopHeartbeat();
+    if (!abortController.signal.aborted) abortController.abort();
   };
   req.on("close", () => {
     if (!req.readableEnded) clientGone();
@@ -110,6 +113,12 @@ export async function handleResearch(userId: number, req: Request, res: Response
     const fanOut = Number(process.env.KEMMA_MAX_SUBAGENTS ?? "1") > 1;
     let streamedChars = 0;
 
+    const streamToolTurns = flag("STREAM_TOOL_TURNS");
+    const runId = (typeof body?.runId === "string" && body.runId) ? body.runId : crypto.randomUUID();
+    if (streamToolTurns) {
+      send("meta", { protocol: 2, runId });
+    }
+
     const output = await kemmaExecute({
       userId,
       messages: prepared,
@@ -117,21 +126,46 @@ export async function handleResearch(userId: number, req: Request, res: Response
       isThinking: false,
       allowedTools: ["web_search", "browse", "run_code"],
       toolBudget,
+      signal: abortController.signal,
       onStream: fanOut
         ? undefined
         : (chunk) => {
             streamedChars += chunk.length;
             send("token", chunk);
           },
-      onToolStart: (tool, input) => {
-        send("tool_start", { tool, input });
+      onReasoning: (delta) => {
+        const isReasoningOff = (process.env.KEMMA_REASONING_EFFORT ?? "").trim().toLowerCase() === "off";
+        if (streamToolTurns && !isReasoningOff) {
+          send("thinking", delta);
+        }
+      },
+      onSegmentEnd: (kind) => {
+        if (streamToolTurns) {
+          send("segment", { kind });
+        }
+      },
+      onToolStart: (tool, input, callId) => {
+        if (streamToolTurns && callId) {
+          send("tool_start", { id: callId, tool, input });
+        } else {
+          send("tool_start", { tool, input });
+        }
         send("agent", true);
+      },
+      onToolEnd: (tool, result, durationMs, callId) => {
+        if (streamToolTurns) {
+          send("tool_end", { ...(callId ? { id: callId } : {}), tool, output: result, durationMs });
+        }
       },
       onStepStart: (step, model) => send("model", { step, label: model }),
       onNotice: (message) => send("notice", { message }),
       onQuotaWarn: (message) => send("notice", { message }),
       onSkillUsed: (skill) => send("skill", skill),
     });
+
+    if (aborted || output.cancelled) {
+      return;
+    }
 
     // The engine reports a refused or failed run as an answer with no model and
     // no step behind it. That is an error frame, not tokens.

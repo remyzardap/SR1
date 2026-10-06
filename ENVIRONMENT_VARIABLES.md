@@ -58,6 +58,18 @@ GEMINI_API_KEY=
 SONAR_API_KEY=
 ```
 
+### P1-08 search provider layer (only used when `FF_SEARCH_V2` is on)
+
+| Variable | Description |
+|----------|-------------|
+| `BRAVE_SEARCH_API_KEY` | Brave Search API key |
+| `TAVILY_API_KEY` | Tavily Search API key |
+| `EXA_API_KEY` | Exa Search API key |
+| `SEARXNG_URL` | Base URL of a self-hosted SearXNG instance (no trailing slash), e.g. a private one; most public instances disable the JSON API |
+| `KEMMA_SEARCH_PROVIDERS` | Comma-separated fast-path provider order, filtered to whichever are configured (default `brave,tavily,sonar`). The `perplexity` id is the results-only Perplexity Search API, reusing `PERPLEXITY_API_KEY`/`SONAR_API_KEY` above — a different endpoint from the Sonar chat-completions path the `sonar` id wraps |
+| `SEARCH_COST_<ID>` | Per-request cost override (USD) for provider `<ID>` in upper case, e.g. `SEARCH_COST_BRAVE=0.004`. Falls back to a built-in estimate per provider |
+| `KEMMA_SEARCH_RPM_<ID>` | Per-provider requests-per-minute override, e.g. `KEMMA_SEARCH_RPM_BRAVE=20`. Falls back to `KEMMA_SEARCH_RPM` |
+
 ### LiteLLM gateway (KoboiLLM)
 
 OpenAI-compatible gateway available as a fourth provider. Calls go to `{LITELLM_BASE_URL}/chat/completions` with `Authorization: Bearer <key>`.
@@ -207,8 +219,8 @@ rules: 3.x requires `VERTEX_LOCATION=global`. There is no `gemini-3.8-pro` on Ve
 | `MCP_CONFIG` | `./mcp.config.json` | MCP servers and their tool allowlists. Credentials come from env var names listed there, never from the file |
 | `JOBS_ENABLED` | on | Set `false` to turn off the pg-boss job runner |
 | `JOBS_TICK_SECRET` | empty | Enables `POST /api/jobs/tick` (header `x-jobs-secret`) for Cloud Run with Cloud Scheduler. Empty disables the endpoint |
-| `EVAL_USER_ID` | `199` | User id the research eval runs as |
-| `EVAL_DB_HOST` | empty | Replaces the host in `DATABASE_URL` when the eval runs on the VPS host outside docker |
+| `EVAL_USER_ID` | `199` | User id the research eval runs as. The chat bench (`npm run bench`) runs as this user too, but has no default: it refuses to start unless this or `--user <id>` is given |
+| `EVAL_DB_HOST` | empty | Replaces the host in `DATABASE_URL` when the eval or the bench runs on the VPS host outside docker |
 | `EVAL_JUDGE_MODEL` | `KEMMA_MODEL_VERIFY` | Model that scores eval answers; keep it different from the writer |
 | `KEMMA_MODEL_EMBEDDING` | `text-embedding-004` | Embeddings |
 | `KEMMA_MODEL_IMAGE` | `gemini-3.8-flash` | Image generation |
@@ -222,6 +234,7 @@ rules: 3.x requires `VERTEX_LOCATION=global`. There is no `gemini-3.8-pro` on Ve
 | `KEMMA_SEARCH_RPM` | `40` | Perplexity Sonar rate limit |
 | `KEMMA_MAX_SUBAGENTS` | `1` | Parallel research sub-agents (max 5) |
 | `KEMMA_TOOL_BUDGET` | `60` | Tool-call budget for Deep Research |
+| `KEMMA_TOOL_CONCURRENCY` | `4` | Concurrency limit for parallel-safe tool calls in one step (P1-04) |
 | `ATTACH_MAX_MB` | `10` | Decoded size ceiling for one attached file (chat, Deep Research, document brief) and for a Drive file the server downloads or exports for them. Set to `5` to halve it; a non-positive or unparsable value falls back to `10`. Reference photos for image generation keep their own fixed 8 MB ceiling |
 
 ---
@@ -341,6 +354,42 @@ front of the prompt, in any order. One job runs per chat at a time, and an engin
 that is not configured is answered as unavailable: the command never switches to
 another one. The picture is also stored under the account the WhatsApp bridge
 runs as (`WHATSAPP_KEMMA_USER_ID`, else the lowest admin id).
+
+---
+
+## Feature flags
+
+Behavior that ships dark is switched with `FF_<NAME>` variables, registered in
+`server/core/flags.ts` (one entry per flag, with its default and a description).
+They are read on every check, so a restart is enough to change one. `1`, `true`
+and `on` (any case) turn a flag on, any other non-empty value turns it off, and
+an unset or blank variable means the default.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `FF_STREAM_TOOL_TURNS` | off | Stream every model call, tool turns included, and emit `thinking` and `segment` events (P1-03) |
+| `FF_PARALLEL_TOOLS` | off | Run the parallel-safe tool calls of one step concurrently (P1-04) |
+| `FF_AUTO_CONTINUE` | off | Continue a final answer cut off by the output limit, at most twice (P1-06) |
+| `FF_SEARCH_V2` | off | Search through the provider layer instead of the Sonar path (P1-08) |
+| `FF_READER_V2` | off | Read pages with the tiered reader instead of a browser agent per URL (P1-09) |
+| `FF_UNTRUSTED_FENCING` | **on** | Fence content from outside sources in tool results so the model treats it as data (P1-10). Set `0` to turn it off |
+| `FF_APPROVALS` | off | Ask the user to approve write tools that act outside Sutaeru; off hides those tools (P1-11) |
+| `FF_ACTION_TOOLS` | off | Offer the email, calendar, image, video and monitor tools to the agent (P1-12) |
+| `FF_CONTEXT_MANAGER` | off | Keep each model call under its token budget with result handles and compaction (P1-13) |
+
+---
+
+## Tests and bench
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TEST_DATABASE_URL` | empty | Scratch Postgres for `npm run test:db` (`*.db.test.ts`). Those tests skip when it is empty. Migrate it first with `DATABASE_URL=$TEST_DATABASE_URL npm run migrate`. Never point it at a real database: the tests write and delete rows. CI sets it to its own service container |
+
+`npm run bench` (`scripts/bench-chat.ts`) reads the app's `.env` (the provider keys
+and `DATABASE_URL`, for the `usage_logs` cost rows), `EVAL_USER_ID` (or `--user`) and
+`EVAL_DB_HOST`. Put the bench user in `KEMMA_UNLIMITED_USER_IDS` so daily quotas do
+not stop a run. The bench sets `KEMMA_SEARCH_CACHE_TTL_SEC=0` for its own process
+unless `--cache` is passed.
 
 ---
 

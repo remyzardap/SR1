@@ -216,9 +216,11 @@ describe("kemma stream over a real connection", () => {
       process.off("unhandledRejection", onUnhandled);
     }
     expect(unhandled.map(String)).toEqual([]);
-    // The disconnect must actually be noticed: writes stop and nothing more is persisted.
+    // The disconnect must actually be noticed: writes stop and partial message is persisted with cancelled flag.
     const persisted = db.addChatMessage.mock.calls.map((c) => c[3]);
     expect(persisted).toContain("user");
-    expect(persisted, "the route kept streaming after the client hung up").not.toContain("assistant");
+    expect(persisted).toContain("assistant");
+    const assistantCall = db.addChatMessage.mock.calls.find((c) => c[3] === "assistant");
+    expect(assistantCall?.[6]).toEqual({ cancelled: true });
   });
 });
