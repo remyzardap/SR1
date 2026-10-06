@@ -12,6 +12,7 @@ import Generate from "./pages/Generate";
 import Files from "./pages/Files";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
+import Invites from "./pages/Invites";
 import AuditLogs from "./pages/AuditLogs";
 import Chat from "./pages/Chat";
 import Onboarding from "./pages/Onboarding";
@@ -105,6 +106,15 @@ function AppRoutes() {
           </DashboardLayout>
         ) : (
           <ProtectedRoute component={AuditLogs} />
+        )}
+      </Route>
+      <Route path="/admin/invites">
+        {isAuthenticated ? (
+          <DashboardLayout>
+            <Invites />
+          </DashboardLayout>
+        ) : (
+          <ProtectedRoute component={Invites} />
         )}
       </Route>
       <Route path="/admin">
