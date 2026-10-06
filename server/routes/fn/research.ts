@@ -75,6 +75,7 @@ export async function handleResearch(userId: number, req: Request, res: Response
   startSse(res);
   const stopHeartbeat = startHeartbeat(res);
   let aborted = false;
+  const abortController = new AbortController();
   // Node destroys the request stream once its body has been read, which happens while
   // this response is still open: a req "close" after a complete body says nothing about
   // the client. A response closed before our own res.end() does, and so does a request
@@ -82,6 +83,7 @@ export async function handleResearch(userId: number, req: Request, res: Response
   const clientGone = () => {
     aborted = true;
     stopHeartbeat();
+    if (!abortController.signal.aborted) abortController.abort();
   };
   req.on("close", () => {
     if (!req.readableEnded) clientGone();
@@ -124,6 +126,7 @@ export async function handleResearch(userId: number, req: Request, res: Response
       isThinking: false,
       allowedTools: ["web_search", "browse", "run_code"],
       toolBudget,
+      signal: abortController.signal,
       onStream: fanOut
         ? undefined
         : (chunk) => {
@@ -159,6 +162,10 @@ export async function handleResearch(userId: number, req: Request, res: Response
       onQuotaWarn: (message) => send("notice", { message }),
       onSkillUsed: (skill) => send("skill", skill),
     });
+
+    if (aborted || output.cancelled) {
+      return;
+    }
 
     // The engine reports a refused or failed run as an answer with no model and
     // no step behind it. That is an error frame, not tokens.

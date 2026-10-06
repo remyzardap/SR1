@@ -2,6 +2,7 @@ import { z } from "zod";
 import { registerTool } from "../registry";
 import { browse } from "../../kemmaMax";
 import { createErrorResult, createSuccessResult, type LegacyToolResult } from "./legacy";
+import type { ToolContext } from "../types";
 
 const BrowseArgs = z.object({
   url: z.string().describe("The URL of the web page to fetch"),
@@ -12,7 +13,7 @@ const BrowseArgs = z.object({
   waitForSelector: z.string().optional().describe("CSS selector to wait for before extracting (for dynamic content)"),
 });
 
-async function execute(args: z.infer<typeof BrowseArgs>): Promise<LegacyToolResult> {
+async function execute(args: z.infer<typeof BrowseArgs>, ctx: ToolContext): Promise<LegacyToolResult> {
   if (typeof args.url !== "string") return createErrorResult('Missing or invalid "url" parameter', "INVALID_PARAMS");
   return createSuccessResult(
     await browse(args.url, {
@@ -21,6 +22,7 @@ async function execute(args: z.infer<typeof BrowseArgs>): Promise<LegacyToolResu
       extractImages: args.extractImages,
       maxLength: args.maxLength,
       waitForSelector: args.waitForSelector,
+      signal: ctx.signal,
     }),
   );
 }

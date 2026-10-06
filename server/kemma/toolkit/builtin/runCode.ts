@@ -2,6 +2,7 @@ import { z } from "zod";
 import { registerTool } from "../registry";
 import { runCode } from "../../kemmaMax";
 import { createErrorResult, createSuccessResult, type LegacyToolResult } from "./legacy";
+import type { ToolContext } from "../types";
 
 const RunCodeArgs = z.object({
   language: z.enum(["python", "nodejs"]).optional().describe("Programming language to execute"),
@@ -12,11 +13,11 @@ const RunCodeArgs = z.object({
   environment: z.array(z.string().describe("Environment variable in KEY=VALUE format")).optional().describe("Environment variables as KEY=VALUE strings"),
 });
 
-async function execute(args: z.infer<typeof RunCodeArgs>): Promise<LegacyToolResult> {
+async function execute(args: z.infer<typeof RunCodeArgs>, ctx: ToolContext): Promise<LegacyToolResult> {
   if (typeof args.code !== "string") return createErrorResult('Missing or invalid "code" parameter', "INVALID_PARAMS");
   // FIX kept from kemmaMax.ts: runCode is (language, code); default language to "python" when omitted.
   const resolvedLanguage: "python" | "nodejs" = args.language === "nodejs" ? "nodejs" : "python";
-  return createSuccessResult(await runCode(resolvedLanguage, args.code));
+  return createSuccessResult(await runCode(resolvedLanguage, args.code, ctx.signal));
 }
 
 export function registerRunCode(): void {

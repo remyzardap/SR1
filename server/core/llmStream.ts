@@ -352,6 +352,11 @@ export async function readChatStream(res: Response, h: ChatStreamHandlers = {}):
       // Non-streaming response mock / body already consumed
       rawBody = await res.text();
     }
+  } catch (err) {
+    if (usage && err && typeof err === "object") {
+      (err as any).usage = usage;
+    }
+    throw err;
   } finally {
     h.signal?.removeEventListener("abort", onAbort);
   }
