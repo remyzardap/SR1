@@ -1,0 +1,5 @@
+data: {"id":"chatcmpl-gemini-test2","choices":[{"index":0,"delta":{"role":"assistant","content":null,"tool_calls":[{"index":0,"id":"call_gemini_456","type":"function","function":{"name":"browse","arguments":"{\"url\":\"https://example.com/doc\"}"},"extra_content":{"google":{"thought_signature":"gemini_thought_sig_xyz"}}}]}}]}
+
+data: {"id":"chatcmpl-gemini-test2","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":40,"completion_tokens":15,"total_tokens":55}}
+
+data: [DONE]
