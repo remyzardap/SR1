@@ -53,6 +53,11 @@ export interface ToolContext {
    * `toolsFor` reuse that single read instead of issuing its own. Defaults to false when omitted.
    */
   skillsEnabled?: boolean;
+  /**
+   * Whether this run is an internal sub-agent run (e.g. parallel research, sub-agent tree).
+   * Defense-in-depth: gates host filesystem tools like vps_files even if allowedTools is omitted.
+   */
+  isSubAgent?: boolean;
 }
 
 export interface ToolSpec<A extends z.ZodTypeAny = z.ZodTypeAny, R = unknown> {

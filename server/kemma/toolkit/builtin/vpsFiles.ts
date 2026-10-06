@@ -16,6 +16,7 @@ const VpsFilesArgs = z.object({
 });
 
 async function available(ctx: ToolContext): Promise<boolean> {
+  if (ctx.isSubAgent) return false;
   try {
     return await isAdminUser(ctx.userId);
   } catch {

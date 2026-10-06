@@ -120,12 +120,27 @@ export class McpRegistry {
     return [...this.conns.values()].flatMap((c) => c.tools.filter((t) => t.mode !== "confirm" || approvalsOn).map((t) => t.def));
   }
 
-  async call(fullName: string, args: Record<string, unknown>): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+  async modeOf(fullName: string): Promise<McpToolMode | undefined> {
+    await this.start();
+    for (const conn of this.conns.values()) {
+      const t = conn.tools.find((x) => x.fullName === fullName);
+      if (t) return t.mode;
+    }
+    return undefined;
+  }
+
+  async call(
+    fullName: string,
+    args: Record<string, unknown>,
+    options?: { confirmed?: boolean },
+  ): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
     await this.start();
     for (const conn of this.conns.values()) {
       const t = conn.tools.find((x) => x.fullName === fullName);
       if (!t) continue;
-      if (t.mode === "confirm") return { ok: false, error: "This tool needs user confirmation, which is not available yet." };
+      if (t.mode === "confirm" && !options?.confirmed) {
+        return { ok: false, error: "This tool needs user confirmation, which is not available yet." };
+      }
       try {
         const res = await conn.client.callTool({ name: t.tool, arguments: args }, undefined, { timeout: CALL_TIMEOUT_MS });
         const content = Array.isArray(res.content) ? res.content : [];

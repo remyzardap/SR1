@@ -320,6 +320,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     signal: NEVER_ABORTS,
     emit: () => {},
     skillsEnabled: enabledSkills.length > 0,
+    isSubAgent: !!input.isSubAgent,
   };
 
   // The ordinary registered tools (safe_files, web_search, browse, run_code, generate_file,

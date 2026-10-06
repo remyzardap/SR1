@@ -279,6 +279,13 @@ describe("(c) admin user (vps_files included)", () => {
     const specs = await toolsFor(baseCtx());
     expect(specs.map((s) => s.name)).not.toContain("vps_files");
   });
+
+  it("an admin running as a sub-agent is never offered vps_files, even without allowedTools", async () => {
+    admin.isAdminUser.mockResolvedValue(true);
+    const specs = await toolsFor(baseCtx({ isSubAgent: true }));
+    expect(specs.map((s) => s.name)).not.toContain("vps_files");
+    expectFrozenMatch(toOpenAiTools(specs), CORE_NAMES);
+  });
 });
 
 describe("(d) skills enabled, one skill loaded that narrows tools", () => {
@@ -308,6 +315,18 @@ describe("(e) explicit allowedTools list", () => {
     google.getConnectionStatus.mockResolvedValue({ connected: true });
     const specs = await toolsFor(baseCtx(), ["web_search"]);
     expectFrozenMatch(toOpenAiTools(specs), ["web_search"]);
+  });
+
+  it('allowlist naming Drive tools: offers them when connected, but drops them when disconnected', async () => {
+    // Connected: both allowed tools offered
+    google.getConnectionStatus.mockResolvedValue({ connected: true });
+    const connectedSpecs = await toolsFor(baseCtx(), ["web_search", "drive_search"]);
+    expectFrozenMatch(toOpenAiTools(connectedSpecs), ["web_search", "drive_search"]);
+
+    // Disconnected: drive_search dropped because Drive is not connected
+    google.getConnectionStatus.mockResolvedValue({ connected: false });
+    const disconnectedSpecs = await toolsFor(baseCtx(), ["web_search", "drive_search"]);
+    expectFrozenMatch(toOpenAiTools(disconnectedSpecs), ["web_search"]);
   });
 });
 

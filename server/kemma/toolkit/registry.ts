@@ -7,7 +7,7 @@ import { z } from "zod";
 import type { ToolContext, ToolOutcome, ToolOutcomeCode, ToolSpec } from "./types";
 import { TOOL_NAME_RE } from "./types";
 import { DRIVE_TOOL_NAMES, SKILL_TOOL_NAMES } from "./names";
-import { MCP_TOOL_PREFIX, getMcpRegistry } from "../mcp/client";
+import { MCP_TOOL_PREFIX, getMcpRegistry, riskForMcpMode } from "../mcp/client";
 
 /** OpenAI function-calling wire format, unchanged from the hand-written shape in the old tools.ts. */
 export interface OpenAiToolParam {
@@ -75,9 +75,9 @@ const SKILL_NAME_SET: ReadonlySet<string> = new Set(SKILL_TOOL_NAMES);
  *  - the ordinary registered tools (safe_files, web_search, browse, run_code, generate_file,
  *    phone_scan, vps_files): included unless `allow` is given and excludes them by name, then
  *    filtered by `available(ctx)`.
- *  - Drive tools: auto-registered only when NO explicit allowlist was given at all (an explicit
- *    `allow` — even one naming a Drive tool — turns Drive off entirely, same as before), and then
- *    only when Drive is connected.
+ *  - Drive tools: included when no explicit allowlist was given at all (auto-registration), or
+ *    when explicitly named in `allow`, and in both cases filtered by `available(ctx)` (connected).
+ *    Disconnected users are never offered Drive tools, preventing dead-ends.
  *  - skill tools (load_skill, read_skill_file, run_skill_script): included whenever
  *    `ctx.skillsEnabled` is set, independent of `allow` — same as the old unconditional append —
  *    except `run_skill_script` is dropped when `run_code` itself did not survive filtering.
@@ -90,10 +90,10 @@ export async function toolsFor(ctx: ToolContext, allow?: string[]): Promise<Tool
   );
   let result = await filterAvailable(ordinary, ctx);
 
-  if (!allowSet) {
-    const driveCandidates = DRIVE_TOOL_NAMES.map((n) => registry.get(n)).filter((s): s is ToolSpec<z.ZodTypeAny, unknown> => !!s);
-    result = [...result, ...(await filterAvailable(driveCandidates, ctx))];
-  }
+  const driveCandidates = (allowSet ? DRIVE_TOOL_NAMES.filter((n) => allowSet.has(n)) : DRIVE_TOOL_NAMES)
+    .map((n) => registry.get(n))
+    .filter((s): s is ToolSpec<z.ZodTypeAny, unknown> => !!s);
+  result = [...result, ...(await filterAvailable(driveCandidates, ctx))];
 
   if (ctx.skillsEnabled) {
     const canRunScripts = result.some((s) => s.name === "run_code");
@@ -184,9 +184,25 @@ export async function runTool(name: string, rawArgs: unknown, ctx: ToolContext):
   // dispatched directly through the MCP registry instead of being represented as a ToolSpec here.
   if (name.startsWith(MCP_TOOL_PREFIX)) {
     if (ctx.signal.aborted) return { ok: false, error: "Run was cancelled.", code: "ABORTED" };
+    const mcpRegistry = getMcpRegistry();
+    const mode = await mcpRegistry.modeOf(name);
+    if (!mode) return { ok: false, error: `Unknown tool: ${name}`, code: "NOT_ALLOWED" };
+
+    const { requiresApproval } = riskForMcpMode(mode);
     const args = typeof rawArgs === "object" && rawArgs !== null ? (rawArgs as Record<string, unknown>) : {};
+
+    if (requiresApproval) {
+      if (!ctx.approvals) {
+        return { ok: false, code: "NOT_ALLOWED", error: "This action needs your approval, which isn't available yet." };
+      }
+      const approved = await ctx.approvals.request(name, args);
+      if (!approved) {
+        return { ok: false, code: "REJECTED", error: "Action rejected by user approval." };
+      }
+    }
+
     try {
-      const r = await getMcpRegistry().call(name, args);
+      const r = await mcpRegistry.call(name, args, { confirmed: true });
       return { ok: true, data: r.ok ? { success: true, data: { output: r.text } } : { success: false, error: r.error, code: "MCP_ERROR" } };
     } catch (err) {
       const message = err instanceof Error ? err.message : "MCP tool failed.";
@@ -205,6 +221,9 @@ export async function runTool(name: string, rawArgs: unknown, ctx: ToolContext):
   const timeoutController = new AbortController();
   const timer = setTimeout(() => timeoutController.abort(), spec.timeoutMs);
   try {
+    // P1-05: runWithAbort stops waiting on timeout, but execute receives ctx.signal rather than the
+    // combined signal, so the underlying executor runs in the background until P1-05 wires unified
+    // cancellation propagation.
     const result = await runWithAbort(spec.execute(parsed.data, ctx), [ctx.signal, timeoutController.signal]);
     return { ok: true, data: result };
   } catch (err) {

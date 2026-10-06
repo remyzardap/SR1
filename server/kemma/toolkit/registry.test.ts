@@ -5,8 +5,9 @@
  * against small, self-contained test tools so it never depends on real executors, the network or
  * a database.
  */
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { z } from "zod";
+import * as mcpClient from "../mcp/client";
 import { __resetRegistryForTests, registerTool, runTool, toOpenAiTools, toolsFor } from "./registry";
 import type { ToolContext, ToolSpec } from "./types";
 
@@ -184,3 +185,93 @@ describe("toOpenAiTools", () => {
     });
   });
 });
+
+describe("runTool: MCP approval and mode handling", () => {
+  const mockCall = vi.fn();
+  const mockModeOf = vi.fn();
+
+  beforeEach(() => {
+    vi.spyOn(mcpClient, "getMcpRegistry").mockReturnValue({
+      modeOf: mockModeOf,
+      call: mockCall,
+    } as unknown as mcpClient.McpRegistry);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("confirm tool with no gate returns NOT_ALLOWED", async () => {
+    mockModeOf.mockResolvedValue("confirm");
+    const outcome = await runTool("mcp__test__confirm_tool", { arg: 1 }, ctx({ approvals: undefined }));
+    expect(outcome).toEqual({
+      ok: false,
+      code: "NOT_ALLOWED",
+      error: "This action needs your approval, which isn't available yet.",
+    });
+    expect(mockCall).not.toHaveBeenCalled();
+  });
+
+  it("confirm tool with gate saying no returns REJECTED", async () => {
+    mockModeOf.mockResolvedValue("confirm");
+    const request = vi.fn().mockResolvedValue(false);
+    const outcome = await runTool("mcp__test__confirm_tool", { arg: 1 }, ctx({ approvals: { request } }));
+    expect(outcome).toEqual({
+      ok: false,
+      code: "REJECTED",
+      error: "Action rejected by user approval.",
+    });
+    expect(request).toHaveBeenCalledWith("mcp__test__confirm_tool", { arg: 1 });
+    expect(mockCall).not.toHaveBeenCalled();
+  });
+
+  it("confirm tool with gate saying yes runs with confirmed: true", async () => {
+    mockModeOf.mockResolvedValue("confirm");
+    const request = vi.fn().mockResolvedValue(true);
+    mockCall.mockResolvedValue({ ok: true, text: "action performed" });
+    const outcome = await runTool("mcp__test__confirm_tool", { arg: 1 }, ctx({ approvals: { request } }));
+    expect(outcome).toEqual({
+      ok: true,
+      data: { success: true, data: { output: "action performed" } },
+    });
+    expect(request).toHaveBeenCalledWith("mcp__test__confirm_tool", { arg: 1 });
+    expect(mockCall).toHaveBeenCalledWith("mcp__test__confirm_tool", { arg: 1 }, { confirmed: true });
+  });
+
+  it("read tool runs without requiring approval", async () => {
+    mockModeOf.mockResolvedValue("read");
+    const request = vi.fn();
+    mockCall.mockResolvedValue({ ok: true, text: "read result" });
+    const outcome = await runTool("mcp__test__read_tool", {}, ctx({ approvals: { request } }));
+    expect(outcome).toEqual({
+      ok: true,
+      data: { success: true, data: { output: "read result" } },
+    });
+    expect(request).not.toHaveBeenCalled();
+    expect(mockCall).toHaveBeenCalledWith("mcp__test__read_tool", {}, { confirmed: true });
+  });
+
+  it("draft tool runs without requiring approval", async () => {
+    mockModeOf.mockResolvedValue("draft");
+    const request = vi.fn();
+    mockCall.mockResolvedValue({ ok: true, text: "draft staged" });
+    const outcome = await runTool("mcp__test__draft_tool", {}, ctx({ approvals: { request } }));
+    expect(outcome).toEqual({
+      ok: true,
+      data: { success: true, data: { output: "draft staged" } },
+    });
+    expect(request).not.toHaveBeenCalled();
+    expect(mockCall).toHaveBeenCalledWith("mcp__test__draft_tool", {}, { confirmed: true });
+  });
+
+  it("unknown MCP tool returns NOT_ALLOWED", async () => {
+    mockModeOf.mockResolvedValue(undefined);
+    const outcome = await runTool("mcp__test__unknown", {}, ctx());
+    expect(outcome).toEqual({
+      ok: false,
+      code: "NOT_ALLOWED",
+      error: "Unknown tool: mcp__test__unknown",
+    });
+  });
+});
+
