@@ -111,7 +111,12 @@ branch_for_wp() {
 }
 
 pr_for_branch() {
-  gh pr list --repo "$REPO_SLUG" --head "$1" --state open --json number -q '.[0].number'
+  # REST, not `gh pr list`: GraphQL PR queries can touch fields the repo-scoped token can't read
+  gh api "repos/$REPO_SLUG/pulls?head=${REPO_SLUG%%/*}:$1&state=open" --jq '.[0].number // empty'
+}
+
+pr_comment() {  # <file>: post a file as a comment on $PR (REST)
+  retry gh api "repos/$REPO_SLUG/issues/$PR/comments" -F body=@"$1" --jq .html_url
 }
 
 retry git -C "$CLONE" fetch --quiet origin develop
@@ -213,8 +218,8 @@ write that explanation to the same file instead and stop."
   fi
   gate "$WT" || { score red; die "gate red; nothing pushed. Worktree kept at $WT"; }
   retry git -C "$WT" push -q -u origin "$BRANCH"
-  retry gh pr create --repo "$REPO_SLUG" --base develop --head "$BRANCH" \
-    --title "[$WP] $TITLE" --body-file "$LOGDIR/$WP.pr.md"
+  retry gh api "repos/$REPO_SLUG/pulls" -f base=develop -f head="$BRANCH" \
+    -f title="[$WP] $TITLE" -F body=@"$LOGDIR/$WP.pr.md" --jq '"PR #\(.number): \(.html_url)"'
   score green; log "done: PR opened for $BRANCH"
   exit 0
 fi
@@ -223,12 +228,19 @@ fi
 BRANCH=$(branch_for_wp); [[ -n $BRANCH ]] || die "no wp/$WP-* branch on origin"
 PR=$(pr_for_branch "$BRANCH"); [[ -n $PR ]] || die "no open PR for $BRANCH"
 FEEDBACK="$LOGDIR/$WP.feedback.md"
+# REST only, each part best-effort: `gh pr view` also queries check status, which the token can't read
 {
   echo "# Review feedback on PR #$PR"
-  gh pr view "$PR" --repo "$REPO_SLUG" --comments
+  gh api "repos/$REPO_SLUG/pulls/$PR" --jq '"## \(.title)\n\n\(.body // "")"' || echo "(couldn't fetch the PR description)"
+  echo; echo "## Reviews"
+  gh api "repos/$REPO_SLUG/pulls/$PR/reviews" --paginate \
+    --jq '.[] | select((.body // "") != "") | "- \(.user.login) [\(.state)]: \(.body)"' || echo "(couldn't fetch reviews)"
+  echo; echo "## Conversation"
+  gh api "repos/$REPO_SLUG/issues/$PR/comments" --paginate \
+    --jq '.[] | "- \(.user.login): \(.body)"' || echo "(couldn't fetch comments)"
   echo; echo "## Inline review comments"
   gh api "repos/$REPO_SLUG/pulls/$PR/comments" --paginate \
-    --jq '.[] | "- \(.path):\(.line // .original_line // "?") — \(.user.login): \(.body)"'
+    --jq '.[] | "- \(.path):\(.line // .original_line // "?") — \(.user.login): \(.body)"' || echo "(couldn't fetch inline comments)"
 } > "$FEEDBACK"
 
 if [[ $MODE == fix ]]; then
@@ -255,7 +267,7 @@ to $LOGDIR/$WP.reply.md."
   [[ $(git -C "$WT" rev-parse HEAD) != "$before" ]] || { score no-commits; die "no new commits; nothing pushed"; }
   gate "$WT" || { score red; die "gate red; nothing pushed. Worktree kept at $WT"; }
   retry git -C "$WT" push -q origin "$BRANCH"
-  [[ -s $LOGDIR/$WP.reply.md ]] && gh pr comment "$PR" --repo "$REPO_SLUG" --body-file "$LOGDIR/$WP.reply.md"
+  [[ -s $LOGDIR/$WP.reply.md ]] && pr_comment "$LOGDIR/$WP.reply.md"
   score green; log "done: pushed fixes to $BRANCH"
   exit 0
 fi
@@ -280,6 +292,6 @@ run_agent "$WT" "$PROMPT" "$LOGDIR/$WP.$AGENT.review.jsonl"
 git -C "$WT" reset -q --hard && git -C "$WT" clean -qfd   # discard anything it touched
 [[ -s $OUT ]] || { score red; die "reviewer wrote nothing to $OUT"; }
 { echo "**Second-opinion review by $AGENT_NAME** (read-only, per docs/spec/AGENT_OPS.md §4.3)"; echo; cat "$OUT"; } \
-  | gh pr comment "$PR" --repo "$REPO_SLUG" --body-file -
+  > "$OUT.post" && pr_comment "$OUT.post"
 git -C "$CLONE" worktree remove --force "$WT"
 score green; log "done: review posted on PR #$PR"
