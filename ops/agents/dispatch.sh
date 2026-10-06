@@ -95,7 +95,8 @@ run_agent() {  # <workdir> <prompt> <logfile>
       --dangerously-skip-permissions --print-timeout "${AGENT_TIMEOUT}s") >"$out" 2>&1 || rc=$?
   fi
   # a CLI that lost its login often exits 0 after one error line, so check the end of the log either way
-  if tail -n 5 "$out" | grep -qiE "$AUTH_RE"; then
+  # only a short log can be a logged-out CLI; a real run's output can quote "401" etc. in its own text
+  if (( $(wc -c <"$out") < 3000 )) && ! grep -q '"status":"SUCCESS"' "$out" && tail -n 5 "$out" | grep -qiE "$AUTH_RE"; then
     score auth
     die "$AGENT is not signed in (or its login expired); nothing done. Owner: sudo -iu $(whoami) bash -c 'PATH=\$HOME/.local/bin:\$PATH $AGENT' and sign in again. Last line: $(tail -n 1 "$out" | cut -c1-200)"
   fi
