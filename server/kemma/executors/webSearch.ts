@@ -346,7 +346,7 @@ async function webSearchLegacy(
 // server/kemma/search/index.ts for the provider layer itself.
 
 import { flag } from "../../core/flags";
-import { searchV2, type SearchV2Options } from "../search";
+import { searchV2, SearchUnavailableError, type SearchV2Options } from "../search";
 
 export interface WebSearchCallOptions {
   recency?: "day" | "week" | "month" | "year";
@@ -378,5 +378,5 @@ export async function webSearch(query: string, opts: WebSearchCallOptions = {}):
   return webSearchLegacy(query);
 }
 
-export { PerplexityAPIError, PerplexityConfigError };
+export { PerplexityAPIError, PerplexityConfigError, SearchUnavailableError };
 export default webSearch;

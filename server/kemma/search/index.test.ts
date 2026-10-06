@@ -106,6 +106,42 @@ describe("searchV2 fast path", () => {
     expect(hits.map((h) => h.url)).toEqual(["https://b.example"]);
   });
 
+  it("throws SearchUnavailableError when all configured providers throw (all 500)", async () => {
+    providerState.brave.error = new Error("brave 500");
+    providerState.tavily.error = new Error("tavily 500");
+    providerState.sonar.error = new Error("sonar 500");
+    const { searchV2, SearchUnavailableError } = await import("./index");
+    await expect(searchV2("q", {}, { userId: 1 })).rejects.toThrow(SearchUnavailableError);
+    expect(providerState.brave.calls).toBe(1);
+    expect(providerState.tavily.calls).toBe(1);
+    expect(providerState.sonar.calls).toBe(1);
+    expect(logFixedCostUsage).toHaveBeenCalledTimes(3);
+  });
+
+  it("returns empty array when one provider 500s and the next provider returns empty results", async () => {
+    providerState.brave.error = new Error("brave 500");
+    providerState.tavily.hits = [];
+    providerState.sonar.hits = [];
+    const { searchV2 } = await import("./index");
+    const hits = await searchV2("q", {}, { userId: 1 });
+    expect(hits).toEqual([]);
+    expect(providerState.brave.calls).toBe(1);
+    expect(providerState.tavily.calls).toBe(1);
+    expect(providerState.sonar.calls).toBe(1);
+    expect(logFixedCostUsage).toHaveBeenCalledTimes(3);
+  });
+
+  it("returns hits when one provider 500s and the next provider returns hits", async () => {
+    providerState.brave.error = new Error("brave 500");
+    providerState.tavily.hits = [hit("https://hit.example", "tavily")];
+    const { searchV2 } = await import("./index");
+    const hits = await searchV2("q", {}, { userId: 1 });
+    expect(hits.map((h) => h.url)).toEqual(["https://hit.example"]);
+    expect(providerState.brave.calls).toBe(1);
+    expect(providerState.tavily.calls).toBe(1);
+    expect(providerState.sonar.calls).toBe(0);
+  });
+
   it("throws NoSearchProviderConfiguredError when nothing in the order is configured", async () => {
     process.env.KEMMA_SEARCH_PROVIDERS = "exa,searxng,perplexity";
     const { searchV2, NoSearchProviderConfiguredError } = await import("./index");
@@ -132,12 +168,29 @@ describe("searchV2 fan-out (depth: deep)", () => {
     expect(hits.map((h) => h.url)).toHaveLength(3); // deduped across the two lists
   });
 
-  it("keeps the other list's hits when one of the two fails", async () => {
+  it("keeps the other list's hits when one of the two fails (one 500 and one with hits)", async () => {
     providerState.brave.error = new Error("down");
     providerState.tavily.hits = [hit("https://b.example", "tavily")];
     const { searchV2 } = await import("./index");
     const hits = await searchV2("q", { depth: "deep" }, { userId: 1 });
     expect(hits.map((h) => h.url)).toEqual(["https://b.example"]);
+  });
+
+  it("returns empty array when one fan-out provider fails and the other returns empty (one 500 and one empty)", async () => {
+    providerState.brave.error = new Error("down");
+    providerState.tavily.hits = [];
+    const { searchV2 } = await import("./index");
+    const hits = await searchV2("q", { depth: "deep" }, { userId: 1 });
+    expect(hits).toEqual([]);
+    expect(logFixedCostUsage).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws SearchUnavailableError when all fan-out providers fail (all 500)", async () => {
+    providerState.brave.error = new Error("brave 500");
+    providerState.tavily.error = new Error("tavily 500");
+    const { searchV2, SearchUnavailableError } = await import("./index");
+    await expect(searchV2("q", { depth: "deep" }, { userId: 1 })).rejects.toThrow(SearchUnavailableError);
+    expect(logFixedCostUsage).toHaveBeenCalledTimes(2);
   });
 });
 

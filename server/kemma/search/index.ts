@@ -58,29 +58,33 @@ interface UpstreamRequest {
   costUsd: number;
 }
 
-async function runFastPath(query: string, options: SearchOptions, providers: SearchProvider[]): Promise<{ hits: SearchHit[]; requests: UpstreamRequest[] }> {
+async function runFastPath(query: string, options: SearchOptions, providers: SearchProvider[]): Promise<{ hits: SearchHit[]; requests: UpstreamRequest[]; anySucceeded: boolean }> {
   const requests: UpstreamRequest[] = [];
+  let anySucceeded = false;
   for (const provider of providers) {
     try {
       const hits = await provider.search(query, options);
       requests.push({ providerId: provider.id, costUsd: provider.costPerRequestUsd });
-      if (hits.length > 0) return { hits: dedupeByCanonicalUrl(hits), requests };
+      anySucceeded = true;
+      if (hits.length > 0) return { hits: dedupeByCanonicalUrl(hits), requests, anySucceeded };
     } catch {
       requests.push({ providerId: provider.id, costUsd: provider.costPerRequestUsd });
       // try the next configured provider
     }
   }
-  return { hits: [], requests };
+  return { hits: [], requests, anySucceeded };
 }
 
-async function runFanOut(query: string, options: SearchOptions, providers: SearchProvider[]): Promise<{ hits: SearchHit[]; requests: UpstreamRequest[] }> {
+async function runFanOut(query: string, options: SearchOptions, providers: SearchProvider[]): Promise<{ hits: SearchHit[]; requests: UpstreamRequest[]; anySucceeded: boolean }> {
   const chosen = providers.slice(0, 2);
   const requests: UpstreamRequest[] = [];
+  let anySucceeded = false;
   const lists = await Promise.all(
     chosen.map(async (provider) => {
       try {
         const hits = await provider.search(query, options);
         requests.push({ providerId: provider.id, costUsd: provider.costPerRequestUsd });
+        anySucceeded = true;
         return hits;
       } catch {
         requests.push({ providerId: provider.id, costUsd: provider.costPerRequestUsd });
@@ -89,7 +93,7 @@ async function runFanOut(query: string, options: SearchOptions, providers: Searc
     }),
   );
   const fused = reciprocalRankFusion(lists, 60);
-  return { hits: dedupeByCanonicalUrl(fused), requests };
+  return { hits: dedupeByCanonicalUrl(fused), requests, anySucceeded };
 }
 
 function cacheKeyFor(query: string, options: SearchV2Options, providerIds: string[]): string {
@@ -115,6 +119,14 @@ export class NoSearchProviderConfiguredError extends Error {
   }
 }
 
+/** Thrown when all attempted search providers throw an error (bad key, outage, etc.). */
+export class SearchUnavailableError extends Error {
+  constructor(message = "Search is currently unavailable.") {
+    super(message);
+    this.name = "SearchUnavailableError";
+  }
+}
+
 export async function searchV2(query: string, options: SearchV2Options, ctx: SearchV2Context): Promise<SearchHit[]> {
   if (typeof query !== "string" || query.trim() === "") throw new Error("Search query cannot be empty");
 
@@ -125,7 +137,8 @@ export async function searchV2(query: string, options: SearchV2Options, ctx: Sea
   const ttl = searchCacheTtlSecFor(query);
 
   return cachedSearch(key, ttl, async () => {
-    const { hits, requests } = options.depth === "deep" ? await runFanOut(query, options, providers) : await runFastPath(query, options, providers);
+    const { hits, requests, anySucceeded } =
+      options.depth === "deep" ? await runFanOut(query, options, providers) : await runFastPath(query, options, providers);
 
     for (const r of requests) {
       await logFixedCostUsage({
@@ -137,6 +150,10 @@ export async function searchV2(query: string, options: SearchV2Options, ctx: Sea
         estimatedCostUsd: r.costUsd,
         purpose: ctx.purpose ?? "search",
       });
+    }
+
+    if (!anySucceeded) {
+      throw new SearchUnavailableError();
     }
 
     return hits;
