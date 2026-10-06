@@ -192,8 +192,20 @@ function liveSse() {
   const stream = new ReadableStream<Uint8Array>({ start(c) { ctrl = c; } });
   return {
     stream,
-    push: (s: string) => ctrl.enqueue(enc.encode(s)),
-    close: () => ctrl.close(),
+    push: (s: string) => {
+      try {
+        ctrl.enqueue(enc.encode(s));
+      } catch {
+        // Stream may be cancelled by consumer
+      }
+    },
+    close: () => {
+      try {
+        ctrl.close();
+      } catch {
+        // Stream may be cancelled by consumer
+      }
+    },
   };
 }
 
@@ -449,9 +461,12 @@ describe("stream route: client abort", () => {
     const events = parseFrames(res.frames).map((f) => f.event);
     expect(events).not.toContain("usage");
     expect(events).not.toContain("done");
-    // the partially streamed assistant text is NOT persisted after abort
-    expect(db.addChatMessage).toHaveBeenCalledTimes(1);
+    // the partially streamed assistant text is persisted with cancelled: true after abort
+    expect(db.addChatMessage).toHaveBeenCalledTimes(2);
     expect(db.addChatMessage.mock.calls[0][3]).toBe("user");
+    expect(db.addChatMessage.mock.calls[1][3]).toBe("assistant");
+    expect(db.addChatMessage.mock.calls[1][2]).toBe("Hel");
+    expect(db.addChatMessage.mock.calls[1][6]).toEqual({ cancelled: true });
     // aborted responses are already gone; the route must not call end() on them
     expect(res.ended).toBe(false);
   });

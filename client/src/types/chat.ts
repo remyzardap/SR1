@@ -1,3 +1,6 @@
+import type { ActivityItem } from "@/components/ActivityFeed";
+import type { AgentStep } from "@/lib/streamReducer";
+
 export interface ChatSource {
   title: string;
   url: string;
@@ -30,4 +33,6 @@ export interface ChatMessageData {
   queued?: boolean;
   thinking?: string;
   segments?: Array<{ kind: "narration" | "answer"; end: number }>;
+  steps?: AgentStep[];
+  activity?: ActivityItem[];
 }

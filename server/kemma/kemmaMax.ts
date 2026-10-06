@@ -128,7 +128,11 @@ function truncateBytes(text: string, maxBytes: number): string {
   return Buffer.byteLength(text, "utf-8") <= maxBytes ? text : text.slice(0, maxBytes) + "\n... [truncated]";
 }
 
-export async function runCode(language: "python" | "nodejs", code: string): Promise<RunCodeResult> {
+export async function runCode(language: "python" | "nodejs", code: string, signal?: AbortSignal): Promise<RunCodeResult> {
+  if (signal?.aborted) {
+    return { stdout: "", stderr: "Execution was aborted", exitCode: 130, engine: "e2b", timedOut: false };
+  }
+
   if (!code.trim()) {
     return { stdout: "", stderr: "No code provided", exitCode: 1, engine: "e2b", timedOut: false };
   }
@@ -149,6 +153,19 @@ export async function runCode(language: "python" | "nodejs", code: string): Prom
   }
 
   let sbx: Sandbox | undefined;
+  const onAbort = () => {
+    if (sbx) {
+      try {
+        sbx.kill().catch(() => {});
+      } catch {
+        /* best-effort cleanup */
+      }
+    }
+  };
+  if (signal) {
+    signal.addEventListener("abort", onAbort, { once: true });
+  }
+
   try {
     // Build opts conditionally so `template: undefined` is never sent
     // explicitly when E2B_SANDBOX_TEMPLATE is unset.
@@ -158,6 +175,11 @@ export async function runCode(language: "python" | "nodejs", code: string): Prom
     };
     if (SANDBOX_TEMPLATE) sandboxOpts.template = SANDBOX_TEMPLATE;
     sbx = await Sandbox.create(sandboxOpts);
+
+    if (signal?.aborted) {
+      await sbx.kill().catch(() => {});
+      return { stdout: "", stderr: "Execution was aborted", exitCode: 130, engine: "e2b", timedOut: false };
+    }
 
     const execution =
       language === "python"
@@ -176,6 +198,9 @@ export async function runCode(language: "python" | "nodejs", code: string): Prom
       timedOut: false,
     };
   } catch (err) {
+    if (signal?.aborted) {
+      return { stdout: "", stderr: "Execution was aborted", exitCode: 130, engine: "e2b", timedOut: false };
+    }
     const message = (err as Error).message ?? "Unknown sandbox error";
     const timedOut = /timeout/i.test(message);
     return {
@@ -186,6 +211,9 @@ export async function runCode(language: "python" | "nodejs", code: string): Prom
       timedOut,
     };
   } finally {
+    if (signal) {
+      signal.removeEventListener("abort", onAbort);
+    }
     if (sbx) {
       try {
         await sbx.kill();
@@ -232,6 +260,7 @@ export interface BrowseOptions {
   extractImages?: boolean;
   maxLength?: number;
   waitForSelector?: string;
+  signal?: AbortSignal;
 }
 
 export interface BrowseResult {
@@ -297,7 +326,12 @@ export async function browse(url: string, options: BrowseOptions = {}): Promise<
     extractImages = false,
     maxLength = DEFAULT_MAX_LENGTH,
     waitForSelector,
+    signal,
   } = options;
+
+  if (signal?.aborted) {
+    throw createBrowseError("Request was aborted", "ABORTED");
+  }
 
   const instructions = [
     `Go to ${normalizedUrl}.`,
@@ -322,25 +356,61 @@ export async function browse(url: string, options: BrowseOptions = {}): Promise<
     // until the task is terminal and resolves to a TaskResult whose
     // `output` field holds the final answer. The SDK's native `timeout`
     // option (milliseconds) enforces BROWSE_TIMEOUT_MS.
-    const result = await client.run(instructions, { timeout: BROWSE_TIMEOUT_MS });
+    const taskRun = client.run(instructions, { timeout: BROWSE_TIMEOUT_MS });
 
-    const raw = (result as any)?.output ?? "";
-    let parsed: { title?: string; content?: string; links?: string[]; images?: string[] } = {};
-    try {
-      // Model may wrap the JSON in prose or a code fence despite instructions — extract the object.
-      const match = String(raw).match(/\{[\s\S]*\}/);
-      parsed = match ? JSON.parse(match[0]) : {};
-    } catch {
-      // Fall back to treating the raw output as page content if it isn't valid JSON.
-      parsed = { title: normalizedUrl, content: String(raw) };
+    const stopBrowserTask = () => {
+      try {
+        if (typeof (taskRun as any).stop === "function") {
+          (taskRun as any).stop();
+        } else if (typeof (taskRun as any).cancel === "function") {
+          (taskRun as any).cancel();
+        } else if (taskRun.taskId && typeof client.tasks?.stop === "function") {
+          client.tasks.stop(taskRun.taskId).catch(() => {});
+        }
+      } catch {
+        /* best effort */
+      }
+    };
+
+    let abortHandler: (() => void) | undefined;
+    let abortPromise: Promise<never> | undefined;
+    if (signal) {
+      abortPromise = new Promise<never>((_, reject) => {
+        abortHandler = () => {
+          stopBrowserTask();
+          reject(createBrowseError("Request was aborted", "ABORTED"));
+        };
+        signal.addEventListener("abort", abortHandler, { once: true });
+      });
     }
 
-    return {
-      title: parsed.title || "Untitled",
-      content: truncateChars(parsed.content || "", maxLength),
-      ...(extractLinks ? { links: parsed.links ?? [] } : {}),
-      ...(extractImages ? { images: parsed.images ?? [] } : {}),
-    };
+    try {
+      const result = abortPromise
+        ? await Promise.race([taskRun, abortPromise])
+        : await taskRun;
+
+      const raw = (result as any)?.output ?? "";
+      let parsed: { title?: string; content?: string; links?: string[]; images?: string[] } = {};
+      try {
+        // Model may wrap the JSON in prose or a code fence despite instructions — extract the object.
+        const match = String(raw).match(/\{[\s\S]*\}/);
+        parsed = match ? JSON.parse(match[0]) : {};
+      } catch {
+        // Fall back to treating the raw output as page content if it isn't valid JSON.
+        parsed = { title: normalizedUrl, content: String(raw) };
+      }
+
+      return {
+        title: parsed.title || "Untitled",
+        content: truncateChars(parsed.content || "", maxLength),
+        ...(extractLinks ? { links: parsed.links ?? [] } : {}),
+        ...(extractImages ? { images: parsed.images ?? [] } : {}),
+      };
+    } finally {
+      if (signal && abortHandler) {
+        signal.removeEventListener("abort", abortHandler);
+      }
+    }
   } catch (err) {
     if (err instanceof Error && (err as BrowseError).code) throw err;
     const message = err instanceof Error ? err.message : "Unknown error";

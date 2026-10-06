@@ -220,11 +220,23 @@ export async function runTool(name: string, rawArgs: unknown, ctx: ToolContext):
 
   const timeoutController = new AbortController();
   const timer = setTimeout(() => timeoutController.abort(), spec.timeoutMs);
+  const combinedController = new AbortController();
+  const forwardRunAbort = () => combinedController.abort(ctx.signal.reason);
+  const forwardTimeout = () => combinedController.abort(new Error("Tool timed out."));
+  if (ctx.signal.aborted) {
+    combinedController.abort(ctx.signal.reason);
+  } else {
+    ctx.signal.addEventListener("abort", forwardRunAbort, { once: true });
+  }
+  timeoutController.signal.addEventListener("abort", forwardTimeout, { once: true });
+
+  const toolCtx: ToolContext = {
+    ...ctx,
+    signal: combinedController.signal,
+  };
+
   try {
-    // P1-05: runWithAbort stops waiting on timeout, but execute receives ctx.signal rather than the
-    // combined signal, so the underlying executor runs in the background until P1-05 wires unified
-    // cancellation propagation.
-    const result = await runWithAbort(spec.execute(parsed.data, ctx), [ctx.signal, timeoutController.signal]);
+    const result = await runWithAbort(spec.execute(parsed.data, toolCtx), [ctx.signal, timeoutController.signal]);
     return { ok: true, data: result };
   } catch (err) {
     if (err instanceof AbortMarker) return { ok: false, error: err.message, code: err.code as ToolOutcomeCode };
@@ -232,5 +244,7 @@ export async function runTool(name: string, rawArgs: unknown, ctx: ToolContext):
     return { ok: false, error: message, code: "FAILED" };
   } finally {
     clearTimeout(timer);
+    ctx.signal.removeEventListener("abort", forwardRunAbort);
+    timeoutController.signal.removeEventListener("abort", forwardTimeout);
   }
 }

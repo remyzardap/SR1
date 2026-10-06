@@ -960,7 +960,15 @@ export async function updateChatSessionLastMessageAt(sessionId: string) {
     .where(eq(chatSessions.id, sessionId));
 }
 
-export async function addChatMessage(sessionId: string, userId: number, content: string, role: string, model?: string, settings?: Record<string, unknown>) {
+export async function addChatMessage(
+  sessionId: string,
+  userId: number,
+  content: string,
+  role: string,
+  model?: string,
+  settings?: Record<string, unknown>,
+  metadata?: Record<string, unknown>,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const { chatMessages } = await import("../drizzle/schema");
@@ -987,6 +995,7 @@ export async function addChatMessage(sessionId: string, userId: number, content:
     settings: settings ?? {},
     embedding,
     createdAt: new Date(),
+    metadata: metadata ?? {},
   });
   await updateChatSessionLastMessageAt(sessionId);
   return id;
