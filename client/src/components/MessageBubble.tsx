@@ -13,6 +13,7 @@ import { ThinkingBlock } from "./chat/ThinkingBlock";
 import { SutaeruIcon } from "./SutaeruIcon";
 import { FocusBrackets } from "@/components/art";
 import { ActivityFeed, type ActivityItem } from "./ActivityFeed";
+import { toolState, formatDuration, type AgentStep } from "@/lib/streamReducer";
 
 function renderAssistantContent(
   content: string,
@@ -65,7 +66,7 @@ function hostOf(url: string): string {
 interface MessageBubbleProps {
   message: ChatMessageData;
   onSave?: (content: string) => void;
-  tools?: Array<{ id: string; label: string; detail?: string }>;
+  tools?: AgentStep[];
   isRunning?: boolean;
   activity?: ActivityItem[];
   sources?: Array<{ title: string; url: string }>;
@@ -135,12 +136,30 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
       )}
       {!isUser && activity.length === 0 && tools.length > 0 && (
         <div className="sutaeru-message-tools">
-          {tools.map((tool) => (
-            <Tool key={tool.id} defaultOpen={false}>
-              <ToolHeader type="dynamic-tool" toolName={tool.detail ?? tool.label} title={tool.label} state={isRunning ? "input-available" : "output-available"} />
-              <ToolContent>{tool.detail && <p>{tool.detail}</p>}</ToolContent>
-            </Tool>
-          ))}
+          {tools.map((tool) => {
+            const headerState = toolState(tool, isRunning);
+            const duration = typeof tool.durationMs === "number" ? formatDuration(tool.durationMs) : undefined;
+            const headerTitle = duration ? (
+              <>
+                {tool.label}
+                <span className="text-muted-foreground font-normal ml-1.5">{duration}</span>
+              </>
+            ) : (
+              tool.label
+            );
+
+            return (
+              <Tool key={tool.id} defaultOpen={false}>
+                <ToolHeader
+                  type="dynamic-tool"
+                  toolName={tool.detail ?? tool.label}
+                  title={headerTitle}
+                  state={headerState}
+                />
+                <ToolContent>{tool.detail && <p>{tool.detail}</p>}</ToolContent>
+              </Tool>
+            );
+          })}
         </div>
       )}
       {!isUser && !message.streaming && message.content && (
