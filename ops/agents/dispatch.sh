@@ -27,7 +27,8 @@ max_agents() {  # the cap is re-read every time, so changing the file takes effe
   [[ $n =~ ^[1-9]$ ]] || n="${MAX_AGENTS:-4}"
   echo "$n"
 }
-FORBIDDEN_RE='^(\.env|secrets/|\.github/workflows/deploy\.yml$|ops/session-manager/)'
+FORBIDDEN_RE='(^|/)\.env($|\.)|^(secrets/|\.github/workflows/deploy\.yml$|ops/session-manager/)'
+ALLOWED_RE='(^|/)\.env\.example$'   # the documented list of env var names (no values); specs require new vars there
 AUTH_RE='api error: 40[13]|invalid access token|token expired|not (logged|signed) in|please (log|sign) in|authenticat(e|ion) (required|failed)|unauthori[sz]ed'
 LIMIT_RE='rate.?limit|usage limit|quota|insufficient|credit balance|too many requests|\b429\b|\b402\b'
 
@@ -129,7 +130,7 @@ gate() {  # <workdir>: forbidden paths, clean tree, checks
     git -C "$dir" status --short | head -20
     return 1
   fi
-  bad=$(git -C "$dir" diff --name-only origin/develop...HEAD | grep -E "$FORBIDDEN_RE" || true)
+  bad=$(git -C "$dir" diff --name-only origin/develop...HEAD | grep -E "$FORBIDDEN_RE" | grep -vE "$ALLOWED_RE" || true)
   if [[ -n $bad ]]; then echo "forbidden paths changed:"; echo "$bad"; return 1; fi
   checks "$dir" || { echo "check/test failed: see $LOGDIR/$WP.check.log and $WP.test.log"; return 1; }
 }
