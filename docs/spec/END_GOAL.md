@@ -9,21 +9,26 @@ How the work gets done by your agents on the VPS is in [`AGENT_OPS.md`](AGENT_OP
 
 ## 1. One sentence
 
-**Sutaeru is a phone-first AI workspace that answers fast, researches with sources it has checked,
+**Sutaeru is a private, phone-first AI workspace for you, your family and friends, that answers fast, researches with sources it has checked,
 makes finished work (documents, images, video, code), remembers you, and acts in your Google
 account only with your OK. It runs on one VPS you own, and you always know what it costs.**
 
-## 2. Who it is for, in order
+## 2. Who it is for
 
 | # | Who | What they need | Status |
 |---|---|---|---|
 | 1 | **The owner** (you), on a phone | One place for research, writing, images, inbox/calendar and code sessions, trusted with real accounts | the main user today |
-| 2 | **Invited members** (founders, family, a few clients) | The same app on their own account, with tier limits | beta invites exist (`server/db/betaInvites.ts`) |
-| 3 | **Paying users** | Self-serve sign-up, credits, BYOK | later; Stripe products exist (`server/stripeProducts.ts`) but sign-up is locked (PLAN A3) |
-
-> **Decision E1 (default assumed): 1.0 is "owner + invited members".** Public self-serve sign-up comes
-> after 1.0. Everything below is scoped that way. If you want paid public launch in 1.0, Phase 4's
-> P4-04 (credits) and an onboarding/billing track become blockers. Tell me and I'll re-cut the plan.
+| 2 | **Family and friends**, invited by the owner | The same app on their own private account, simple enough to use without help, within a monthly limit | beta invites exist (`server/db/betaInvites.ts`) |
+> **Decision E1 (owner, 2026-10-06): Sutaeru stays private, for the owner, family and friends.**
+> No public sign-up, no payments, no paying users, not in 1.0 and not planned after it.
+> What follows from that:
+> - **Access is by invitation only.** Sign-up stays locked (PLAN A3) and members join through beta
+>   invites. The owner can switch any account off.
+> - **Money is the owner's monthly spend, not billing.** Each person gets a monthly spending limit the owner
+>   sets, and per-provider caps (PLAN A14) protect the total. No credits, tiers or Stripe.
+> - **Trust is high, but accounts stay separate.** Each person's chats, memories, files and Google
+>   connection are private to them; the owner's admin view shows usage and cost, not content.
+> - **Small scale.** Up to about 20 people on one VPS. No multi-instance, no load-test targets beyond that.
 
 ## 3. What 1.0 does: seven promises
 
@@ -38,19 +43,21 @@ with the flags switched on.
 | P4 | **Remembers.** It knows your profile, past chats and files, and shows what it used | memory recall ≥ 85%, stale facts ≤ 5%; every injected memory listed in the UI | P2-01…P2-05, P2-07 |
 | P5 | **Acts safely.** Gmail, Calendar, Drive actions; nothing leaves without your tap | 0 write actions without an approval row; G1 holds (no delete, share or permission tools exist) | P1-10, P1-11, P1-12, P4-07 |
 | P6 | **Keeps working.** Long jobs run in the background, survive restarts and tell you when done | crash mid-run resumes with no duplicate tool calls; push or Telegram notice on completion | P3-01, P3-02, P3-03 |
-| P7 | **Honest about money.** Every billable call is logged; caps block before overspend | 100% of runs traced; cost drift vs. invoices ≤ 10%; per-provider monthly caps enforced | PLAN A14/A15, P4-01…P4-03 |
+| P7 | **Honest about money.** Every billable call is logged; you see what each person spends; limits block before overspend | 100% of runs traced; cost drift vs. invoices ≤ 10%; per-person monthly limits and per-provider caps enforced | PLAN A14/A15, P4-01…P4-03, F-10 |
 
 Also in 1.0, but not headline promises: realtime voice (P3-05), model picker and modes including
 Council and Private (P2-08, P2-09), Code mode from the phone (exists, `ops/session-manager`).
 
-## 4. Out of scope for 1.0
+## 4. Out of scope
 
-Out of scope so the finish line stays reachable. Each can come back after 1.0.
+Out because Sutaeru is private (E1), or to keep the finish line reachable.
 
-- Public self-serve sign-up, marketing site rework, app-store native apps (the PWA is the app)
-- Skill **marketplace** and public custom-agent sharing (P3-09 ships private custom agents only)
+- Public sign-up, payments, Stripe, pricing tiers, credits (P4-04 is dropped; `server/stripeProducts.ts` stays unused)
+- Bring-your-own-key (P3-10 is dropped; the owner's keys serve everyone, within each person's monthly limit)
+- Marketing landing page work, SEO, app-store native apps (the PWA is the app, installed from the home screen)
+- Skill **marketplace** and public custom-agent sharing (P3-09 ships custom agents shared only between members)
 - Slack, Discord and email-in channels (P3-12); Telegram and WhatsApp stay as they are
-- Multi-region or multi-VPS deployment (P4-08 covers backups and one-box resilience only)
+- Multi-region or multi-VPS deployment, and load tests beyond ~20 people (P4-08 covers backups and one-box resilience; P4-09 keeps prompt caching, drops the load test)
 - Self-hosted GPU models as the default path (Private mode can use them; nothing depends on them)
 
 ## 5. Tracks: what the specs cover, and the gaps
@@ -76,7 +83,8 @@ Each F package depends on the backend package named, ships behind the same flag 
 | F-07 | Background runs: run list, re-attach by `runId`, plan/to-do checklist, done notifications | P3-01…P3-03 | L |
 | F-08 | Library v2: file cards from sandbox/report outputs, previews, jump to source chat | P2-07, P2-11 | M |
 | F-09 | Voice: push-to-talk and duplex screen with barge-in | P3-05 | L |
-| F-10 | Cost view per run and per month; cap warnings | P4-03 | S |
+| F-10 | Owner's household view: spend per person and per month, set each person's limit, switch an account off; members see their own usage | P4-03 | S |
+| F-12 | Invite flow: owner sends an invite link from the phone; first-run screen that explains the app in plain words for non-technical family | none | S |
 | F-11 | PWA polish: offline shell, install prompt, safe areas, reduced motion; Lighthouse PWA pass | none | S |
 
 ## 6. Milestones to 1.0
@@ -88,8 +96,8 @@ owner merges `develop` → `main` and turns flags on one at a time in production
 |---|---|---|---|
 | **M1 "Fast and true"** | Phase 1 + F-01…F-04 | Phase 1 exit criteria met; promises P1, P2 (partly) and P5 met | ~2–3 weeks |
 | **M2 "Remembers and makes"** | Phase 2 + F-05, F-06, F-08 | Phase 2 exit criteria met; P3 and P4 met | ~3 weeks |
-| **M3 "Keeps working"** | Phase 3 (minus P3-12, private P3-09) + F-07, F-09 | Phase 3 exit criteria met; P6 met | ~4 weeks |
-| **M4 "1.0"** | Phase 4 + F-10, F-11 + ops hardening | Phase 4 exit criteria met; P7 met; all seven promises re-checked on production | ~2 weeks |
+| **M3 "Keeps working"** | Phase 3 (minus P3-10, P3-12; P3-09 members-only) + F-07, F-09 | Phase 3 exit criteria met; P6 met | ~4 weeks |
+| **M4 "1.0"** | Phase 4 (minus P4-04) + F-10, F-11, F-12 + ops hardening | Phase 4 exit criteria met; P7 met; all seven promises re-checked on production | ~2 weeks |
 
 **1.0 is declared** when all seven promises meet their bars on production for 7 days in a row,
 with no G1–G4 violation and no unrotated committed secret.
@@ -114,5 +122,6 @@ These come from `PLAN.md` and `docs/spec/README.md` §3 and are restated here be
 | PR #5 `[P1-08] Search provider layer` | open, CI green, **not yet reviewed** |
 | PR #6 `[P1-09] Tiered page reader` | open, **`check` failing** |
 | PR #2 batch image generation (into `main`) | open since 2026-09-28; stale against the reskin; decide close or rebase |
-| Owner to-dos | benchmark baseline (`HANDOVER.md` §9.1), decisions D2–D10 (`README.md` §6), E1 above, rotate committed secrets |
+| Decision E1 | **decided:** private, owner + family and friends (§2) |
+| Owner to-dos | benchmark baseline (`HANDOVER.md` §9.1), decisions D2–D10 (`README.md` §6), rotate committed secrets, decide the default monthly limit per person |
 | Next agent work | see `AGENT_OPS.md` §6 (wave 1) |

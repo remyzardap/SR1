@@ -191,8 +191,8 @@ reviews with a mutation spot-check on every gate.
 | P3-06 Meetings and recordings | **agy** | |
 | P3-07 Per-user MCP OAuth | **agy** | ⚠ token storage; kimi second review |
 | P3-08 Kemma as MCP server | **kimi** | ⚠ exposes data externally |
-| P3-09 Custom agents (private only for 1.0) | **kimi** | |
-| P3-10 BYOK | **kimi** | ⚠ encrypted keys, spend cap bypass |
+| P3-09 Custom agents (shared between members only) | **kimi** | |
+| P3-10 BYOK | n/a | dropped: private app (END_GOAL E1) |
 | P3-11 Media tools v2 | **agy** | |
 | P3-12 Channels | n/a | out of scope for 1.0 (END_GOAL §4) |
 | F-07, F-09 | **agy** | |
@@ -204,13 +204,13 @@ reviews with a mutation spot-check on every gate.
 | P4-01 Schema + structured logging (gate) | **kimi** | |
 | P4-02 Tracing | **kimi** | |
 | P4-03 Cost truth | **kimi** | ⚠ money |
-| P4-04 Credits + tiers | **kimi** | ⚠ money; needed only if E1 changes |
+| P4-04 Credits + tiers | **kimi** (reduced) | ⚠ replaced by per-person monthly limits set by the owner; Claude rewrites this WP's spec before dispatch |
 | P4-05 Evals in CI | **agy** | |
 | P4-06 Feedback loop | **agy** | |
 | P4-07 Safety: guard model, PII | **agy** | ⚠ kimi second review |
 | P4-08 Reliability | **kimi** | |
-| P4-09 Performance + load test | **kimi** | |
-| F-10, F-11 | **agy** | |
+| P4-09 Performance (prompt caching; no load test beyond ~20 people) | **kimi** | |
+| F-10, F-11, F-12 | **agy** | household view, PWA polish, invite flow |
 
 Why this split: kimi gets lane A of each phase (one long, ordered chain in the engine, where steady spec-following
 matters most). agy gets everything that talks to Google, everything visual, and a parallel lane, so the two
@@ -226,7 +226,7 @@ reds per agent (§7). Move packages toward whichever agent is doing better in th
 |---|---|---|
 | 1 | **Claude** | Review PR #7 (P1-02), PR #5 (P1-08), PR #6 (P1-09) against the rubric; post verdicts |
 | 2 | **kimi** | `dispatch.sh fix kimi P1-09` (red `check` on PR #6), plus any CHANGES REQUESTED from step 1 |
-| 3 | **Owner** | Merge approved PRs into `develop`; run the benchmark baseline (HANDOVER §9.1); answer E1 and D2–D10 |
+| 3 | **Owner** | Merge approved PRs into `develop`; run the benchmark baseline (HANDOVER §9.1); answer D2–D10; pick the default monthly limit per person |
 | 4 | **kimi** | `dispatch.sh kimi P1-03 streaming "Stream every turn, plus thinking and segment events"` once P1-02 is merged |
 | 5 | **agy** | `dispatch.sh agy P1-10 untrusted-fencing "Fencing for untrusted content"` once P1-02 is merged (parallel with 4) |
 | 6 | **Claude** | Write `docs/spec/FRONTEND.md` with full F-01…F-04 specs so agy has its next packages ready |
