@@ -3,7 +3,7 @@
 # Does everything in docs/spec/AGENT_OPS.md §3 and is safe to re-run (re-running also updates the scripts).
 #
 #   sudo bash ops/agents/install.sh          from a checkout that has this file, e.g. /root/sr1, or straight from git:
-#   git -C /root/sr1 fetch -q origin main && git -C /root/sr1 show origin/main:ops/agents/install.sh | sudo bash
+#   git -C /root/sr1 fetch -q origin main && git -C /root/sr1 show FETCH_HEAD:ops/agents/install.sh | sudo bash
 #
 # It asks once for a fine-grained GitHub token (this repo only; Contents + Pull requests + Issues: read/write),
 # unless GH_TOKEN is set or the agents user is already signed in to gh.
@@ -70,7 +70,9 @@ as_agents "
   [[ -d ~/sr1/.git ]] || gh repo clone '$REPO_SLUG' ~/sr1 -- --quiet
   git -C ~/sr1 config user.name  sutaeru-agents
   git -C ~/sr1 config user.email agents@sutaeru.invalid
-  git -C ~/sr1 fetch --quiet origin '$SCRIPTS_REF' develop
+  # explicit refspecs: a single-branch clone would otherwise leave origin/<ref> missing
+  git -C ~/sr1 fetch --quiet origin '+refs/heads/$SCRIPTS_REF:refs/remotes/origin/$SCRIPTS_REF' \\
+    '+refs/heads/develop:refs/remotes/origin/develop'
 "
 
 say "5/7 install dispatch.sh and watch.sh from '$SCRIPTS_REF' into $BIN_DIR"

@@ -52,7 +52,7 @@ Today the session daemon runs as root next to `/root/sr1/.env`. Auto-approve age
 `ops/agents/install.sh` sets up a separate `agents` user for them. As root on the VPS:
 
 ```bash
-git -C /root/sr1 fetch -q origin main && git -C /root/sr1 show origin/main:ops/agents/install.sh | bash
+git -C /root/sr1 fetch -q origin main && git -C /root/sr1 show FETCH_HEAD:ops/agents/install.sh | bash
 ```
 
 (Before this is merged to `main`, put the branch name in both places and add `SCRIPTS_REF=<branch>` before `bash`.)
