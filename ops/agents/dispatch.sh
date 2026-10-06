@@ -8,6 +8,8 @@
 #   dispatch.sh ask <agent> <T-ID> <file> [ref]       investigate / diagnose / answer questions on a throwaway
 #                                                      checkout of [ref] (default develop); report goes to
 #                                                      $LOGDIR/<T-ID>.report.md, nothing is committed or pushed
+#   dispatch.sh push <agent> <WP-ID>                   re-gate a kept worktree (agent already done) and push it,
+#                                                      opening the PR if there is none; no agent run
 #   dispatch.sh task <agent> <T-ID> <slug> "<title>" <file>
 #                                                      free-form task: instructions in <file> instead of a spec
 #                                                      section; T-ID is T-<issue number>. fix/review take T-IDs too.
@@ -39,7 +41,7 @@ log() { echo "[$(date +%H:%M:%S)] $*"; }
 mkdir -p "$WT_ROOT" "$LOGDIR/running"
 
 MODE=build
-case "${1:-}" in fix|review|task|ask) MODE=$1; shift ;; esac
+case "${1:-}" in fix|review|task|ask|push) MODE=$1; shift ;; esac
 AGENT="${1:-}"; WP="${2:-}"
 [[ $AGENT =~ ^(qwen|agy|kimi|opencode)$ ]] || die "agent must be qwen, agy, kimi or opencode"
 [[ $WP =~ ^(P[1-4]-[0-9]{2}|F-[0-9]{2}|T-[0-9]{1,6})$ ]] || die "WP id must look like P1-03, F-01 or T-12"
@@ -86,7 +88,7 @@ retry() {  # retry a network command with 2/4/8/16 s backoff
 }
 
 run_agent() {  # <workdir> <prompt> <logfile>
-  local dir=$1 prompt=$2 out=$3 rc=0
+  local dir=$1 prompt=$2 out=$3 rc=0 t0=$SECONDS
   log "running $AGENT in $dir (log: $out)"
   if [[ $AGENT == qwen ]]; then
     # Qwen Code headless: -p runs one prompt and exits; --yolo auto-approves its tools
@@ -105,6 +107,15 @@ run_agent() {  # <workdir> <prompt> <logfile>
   else
     (cd "$dir" && timeout "$((AGENT_TIMEOUT + 60))" agy -p "$prompt" --output-format stream-json \
       --dangerously-skip-permissions --print-timeout "${AGENT_TIMEOUT}s") >"$out" 2>&1 || rc=$?
+  fi
+  # a real run takes minutes; a CLI that isn't signed in or configured quits within seconds with a few lines
+  local wrote=""   # every mode deletes its output file before the run, so finding one means the agent did work
+  for f in "$LOGDIR/$WP.pr.md" "$LOGDIR/$WP.reply.md" "$LOGDIR/$WP.report.md" "$LOGDIR/$WP.review.$AGENT.md"; do
+    [[ -s $f ]] && wrote=1
+  done
+  if [[ -z $wrote ]] && (( SECONDS - t0 < 30 )) && (( $(wc -c <"$out") < 3000 )); then
+    score no-run
+    die "$AGENT stopped after $((SECONDS - t0))s without doing any work: probably not signed in or not configured. Owner: sudo -iu $(whoami) bash -c 'PATH=\$HOME/.local/bin:\$PATH $AGENT' and check it answers. Its output: $(tail -n 3 "$out" | tr '\n' ' ' | cut -c1-300)"
   fi
   # a CLI that lost its login often exits 0 after one error line, so check the end of the log either way
   # only a short log can be a logged-out CLI; a real run's output can quote "401" etc. in its own text
@@ -252,11 +263,41 @@ write that explanation to the same file instead and stop."
   if [[ $(git -C "$WT" rev-list --count origin/develop..HEAD) == 0 ]]; then
     score no-commits; cat "$LOGDIR/$WP.pr.md"; die "no commits; the agent's note is above"
   fi
-  gate "$WT" || { score red; die "gate red; nothing pushed. Worktree kept at $WT"; }
+  gate "$WT" || { score red; die "gate red; nothing pushed. Worktree kept at $WT (once the cause is fixed, mode: push publishes it without rerunning the agent)"; }
   retry git -C "$WT" push -q -u origin "$BRANCH"
   retry gh api "repos/$REPO_SLUG/pulls" -f base=develop -f head="$BRANCH" \
     -f title="[$WP] $TITLE" -F body=@"$LOGDIR/$WP.pr.md" --jq '"PR #\(.number): \(.html_url)"'
   score green; log "done: PR opened for $BRANCH"
+  exit 0
+fi
+
+# ---- push: the agent finished but the gate stopped it; re-gate and push without running it again ----
+if [[ $MODE == push ]]; then
+  WT="$WT_ROOT/$WP"
+  [[ -d $WT ]] || die "no kept worktree at $WT; nothing to push"
+  BRANCH=$(git -C "$WT" symbolic-ref --short HEAD) || die "$WT is not on a branch"
+  [[ $BRANCH == wp/$WP-* ]] || die "$WT is on $BRANCH, expected wp/$WP-*"
+  (( $(git -C "$WT" rev-list --count origin/develop..HEAD) > 0 )) || die "no commits on $BRANCH beyond develop; nothing to push"
+  [[ -d $WT/node_modules ]] || (cd "$WT" && npm ci --no-audit --no-fund >"$LOGDIR/$WP.npm.log" 2>&1)
+  if git -C "$CLONE" ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
+    retry git -C "$WT" fetch --quiet origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"
+    git -C "$WT" merge-base --is-ancestor "origin/$BRANCH" HEAD \
+      || die "origin/$BRANCH has commits this worktree lacks; rerun 'fix' instead"
+  fi
+  log "re-running the gate on $WT"
+  gate "$WT" || { score red; die "gate still red; nothing pushed. Worktree kept at $WT"; }
+  retry git -C "$WT" push -q -u origin "$BRANCH"
+  PR=$(pr_for_branch "$BRANCH")
+  if [[ -n $PR ]]; then
+    [[ -s $LOGDIR/$WP.reply.md ]] && pr_comment "$LOGDIR/$WP.reply.md"
+    log "done: pushed to $BRANCH (PR #$PR)"
+  else
+    [[ -s $LOGDIR/$WP.pr.md ]] || die "pushed $BRANCH, but there is no PR body at $LOGDIR/$WP.pr.md to open a PR with"
+    retry gh api "repos/$REPO_SLUG/pulls" -f base=develop -f head="$BRANCH" \
+      -f title="[$WP] ${BRANCH#wp/$WP-}" -F body=@"$LOGDIR/$WP.pr.md" --jq '"PR #\(.number): \(.html_url)"'
+    log "done: PR opened for $BRANCH"
+  fi
+  score green
   exit 0
 fi
 
@@ -301,7 +342,7 @@ to $LOGDIR/$WP.reply.md."
   before=$(git -C "$WT" rev-parse HEAD)
   run_agent "$WT" "$PROMPT" "$LOGDIR/$WP.$AGENT.fix.jsonl"
   [[ $(git -C "$WT" rev-parse HEAD) != "$before" ]] || { score no-commits; die "no new commits; nothing pushed"; }
-  gate "$WT" || { score red; die "gate red; nothing pushed. Worktree kept at $WT"; }
+  gate "$WT" || { score red; die "gate red; nothing pushed. Worktree kept at $WT (once the cause is fixed, mode: push publishes it without rerunning the agent)"; }
   retry git -C "$WT" push -q origin "$BRANCH"
   [[ -s $LOGDIR/$WP.reply.md ]] && pr_comment "$LOGDIR/$WP.reply.md"
   score green; log "done: pushed fixes to $BRANCH"
