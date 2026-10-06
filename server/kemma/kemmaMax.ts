@@ -87,33 +87,12 @@
 
 import { Sandbox, type SandboxOpts } from "@e2b/code-interpreter";
 
-import {
-  createFile,
-  readFile,
-  editFile,
-  listFiles,
-  listFileVersions,
-} from "./executors/safeFiles";
-import { webSearch } from "./executors/webSearch";
-import { generateAndSaveFile as generateFile } from "./executors/generateFile";
-import { phoneScan, type ScanAction, type ScanOptions } from "./executors/phoneScan";
-import { STYLE_DEFINITIONS, type StructuredContent, type StyleOption } from "../fileGenerator";
 import { BrowserUse } from "browser-use-sdk";
 import fsp from "fs/promises";
 import nodePath from "path";
-import { runVpsFiles, VpsFilesError } from "./executors/vpsFiles";
-import { getEnabledSkills } from "./skillReviews";
-import { getMcpRegistry, MCP_TOOL_PREFIX } from "./mcp/client";
-import { toLoadedSkill, readSkillFileContent, type FileSkill } from "./fileSkills";
-import {
-  listDriveFiles,
-  readDriveFile,
-  createDriveFolder,
-  uploadDriveFile,
-  moveDriveFile,
-  updateDriveFile,
-  getConnectionStatus,
-} from "../services/google";
+import { type FileSkill } from "./fileSkills";
+import { runTool } from "./toolkit/registry";
+import type { ToolContext } from "./toolkit/types";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 1. SANDBOXED CODE EXECUTION (E2B) — replaces executors/runCode.ts
@@ -238,47 +217,8 @@ const BROWSER_USE_API_KEY = process.env.BROWSER_USE_API_KEY;
 const BROWSE_TIMEOUT_MS = 60_000; // real browser navigation needs more headroom than a plain fetch
 const DEFAULT_MAX_LENGTH = 10_000;
 
-const driveFolderCache = new Map<string, string>();
-
-async function getDriveRootFolder(userId: number): Promise<string | undefined> {
-  const cacheKey = `root:${userId}`;
-  if (driveFolderCache.has(cacheKey)) return driveFolderCache.get(cacheKey);
-  const envRoot = process.env.DRIVE_ROOT_FOLDER_ID?.trim();
-  if (envRoot) {
-    driveFolderCache.set(cacheKey, envRoot);
-    return envRoot;
-  }
-  try {
-    const folder = await createDriveFolder(userId, "Sutaeru");
-    if (folder.id) driveFolderCache.set(cacheKey, folder.id);
-    return folder.id ?? undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-async function ensureDriveFolderPath(userId: number, folderPath: string): Promise<string | undefined> {
-  const rootId = await getDriveRootFolder(userId);
-  if (!rootId) return undefined;
-  const segments = folderPath.split("/").filter(Boolean);
-  let parentId = rootId;
-  for (const segment of segments) {
-    const cacheKey = `${userId}:${parentId}/${segment}`;
-    if (driveFolderCache.has(cacheKey)) {
-      parentId = driveFolderCache.get(cacheKey)!;
-      continue;
-    }
-    try {
-      const folder = await createDriveFolder(userId, segment, parentId);
-      const id = folder.id || parentId;
-      driveFolderCache.set(cacheKey, id);
-      parentId = id;
-    } catch {
-      // Keep parentId unchanged on error
-    }
-  }
-  return parentId;
-}
+// Drive root/folder resolution moved to server/kemma/toolkit/builtin/drive.ts with the
+// drive_create/drive_move tools that used it; nothing else in this file needs it.
 
 let browserUseClient: BrowserUse | null = null;
 function getBrowserUseClient(): BrowserUse {
@@ -482,295 +422,53 @@ export async function runSkillScript(skill: FileSkill, script: string, args: str
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 3. TOOL DISPATCHER — replaces executor.ts, with 3 bugs fixed
+// 3. TOOL DISPATCHER — compatibility wrapper over the toolkit registry (P1-02)
 // ═══════════════════════════════════════════════════════════════════════════
+// The per-tool dispatch logic that used to live in a big switch here now lives in
+// server/kemma/toolkit/builtin/*.ts, one ToolSpec per tool, registered once at import time.
+// The engine calls toolsFor()/runTool() directly and no longer calls this function; it stays
+// only so any other caller of the old (userId, toolName, args) -> ToolResult shape keeps working,
+// with no dispatch logic duplicated between here and the toolkit.
 
-type ToolName = "vps_files" | "load_skill" | "read_skill_file" | "run_skill_script" | "safe_files" | "web_search" | "browse" | "run_code" | "generate_file" | "phone_scan" | "drive_search" | "drive_read" | "drive_create" | "drive_edit" | "drive_move";
-
-type SafeFilesAction = "create" | "read" | "edit" | "list" | "versions";
-
-interface SuccessResult<T = unknown> {
+export interface SuccessResult<T = unknown> {
   success: true;
   data: T;
 }
-interface ErrorResult {
+export interface ErrorResult {
   success: false;
   error: string;
   code: string;
 }
-type ToolResult<T = unknown> = SuccessResult<T> | ErrorResult;
+export type ToolResult<T = unknown> = SuccessResult<T> | ErrorResult;
 
-function createSuccessResult<T>(data: T): SuccessResult<T> {
-  return { success: true, data };
-}
-function createErrorResult(error: string, code: string): ErrorResult {
-  return { success: false, error, code };
-}
-
-function isValidToolName(value: unknown): value is ToolName {
-  const valid: ToolName[] = ["vps_files", "load_skill", "read_skill_file", "run_skill_script", "safe_files", "web_search", "browse", "run_code", "generate_file", "phone_scan", "drive_search", "drive_read", "drive_create", "drive_edit", "drive_move"];
-  return typeof value === "string" && valid.includes(value as ToolName);
-}
-
-function isValidSafeFilesAction(value: unknown): value is SafeFilesAction {
-  const valid: SafeFilesAction[] = ["create", "read", "edit", "list", "versions"];
-  return typeof value === "string" && valid.includes(value as SafeFilesAction);
-}
-
-function coerceFileId(value: unknown): number | null {
-  if (typeof value === "number" && Number.isInteger(value)) return value;
-  if (typeof value === "string" && value.trim() !== "" && Number.isInteger(Number(value))) return Number(value);
-  return null;
-}
-
-async function routeSafeFilesAction(
-  userId: number,
-  action: SafeFilesAction,
-  args: Record<string, unknown>
-): Promise<ToolResult> {
-  switch (action) {
-    case "create": {
-      const { path, content, mimeType } = args;
-      if (typeof path !== "string") return createErrorResult('Missing or invalid "path" parameter', "INVALID_PARAMS");
-      if (typeof content !== "string")
-        return createErrorResult('Missing or invalid "content" parameter', "INVALID_PARAMS");
-      return createSuccessResult(
-        await createFile(userId, path, Buffer.from(content), typeof mimeType === "string" ? mimeType : "application/octet-stream")
-      );
-    }
-    case "read": {
-      const fileId = coerceFileId(args.fileId);
-      if (fileId === null) return createErrorResult('Missing or invalid "fileId" parameter', "INVALID_PARAMS");
-      return createSuccessResult(await readFile(userId, fileId));
-    }
-    case "edit": {
-      const fileId = coerceFileId(args.fileId);
-      if (fileId === null) return createErrorResult('Missing or invalid "fileId" parameter', "INVALID_PARAMS");
-      if (typeof args.newContent !== "string")
-        return createErrorResult('Missing or invalid "newContent" parameter', "INVALID_PARAMS");
-      return createSuccessResult(await editFile(userId, fileId, Buffer.from(args.newContent)));
-    }
-    case "list":
-      return createSuccessResult(await listFiles(userId));
-    case "versions": {
-      const fileId = coerceFileId(args.fileId);
-      if (fileId === null) return createErrorResult('Missing or invalid "fileId" parameter', "INVALID_PARAMS");
-      return createSuccessResult(await listFileVersions(userId, fileId));
-    }
-    default:
-      return createErrorResult(`Unknown safe_files action: ${action}`, "UNKNOWN_ACTION");
-  }
+/**
+ * This compatibility shim has no run (session, tier, cancellation) to inherit, since the old
+ * (userId, toolName, args) signature never carried one. "max" and a fresh run id are reasonable,
+ * harmless defaults for a wrapper nothing in this codebase calls at runtime any more (every real
+ * call site now goes through toolsFor()/runTool() with the run's own context).
+ */
+function legacyContext(userId: number): ToolContext {
+  return {
+    userId,
+    runId: `legacy-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    tier: "max",
+    signal: new AbortController().signal,
+    emit: () => {},
+  };
 }
 
 export async function executeToolCall(userId: number, toolName: string, args: unknown): Promise<ToolResult> {
-  try {
-    if (toolName.startsWith(MCP_TOOL_PREFIX)) {
-      const r = await getMcpRegistry().call(toolName, typeof args === "object" && args !== null ? (args as Record<string, unknown>) : {});
-      return r.ok ? createSuccessResult({ output: r.text }) : createErrorResult(r.error, "MCP_ERROR");
-    }
-    if (!isValidToolName(toolName)) return createErrorResult(`Unknown tool: ${toolName}`, "UNKNOWN_TOOL");
-    const safeArgs = typeof args === "object" && args !== null ? (args as Record<string, unknown>) : {};
-
-    switch (toolName) {
-      case "vps_files": {
-        try {
-          return createSuccessResult(await runVpsFiles(userId, safeArgs.action, safeArgs));
-        } catch (err) {
-          if (err instanceof VpsFilesError) return createErrorResult(err.message, err.code);
-          throw err;
-        }
-      }
-
-      case "load_skill":
-      case "read_skill_file":
-      case "run_skill_script": {
-        const name = safeArgs.name;
-        if (typeof name !== "string") return createErrorResult('Missing or invalid "name" parameter', "INVALID_PARAMS");
-        const skill = (await getEnabledSkills()).find((s) => s.slug === name);
-        if (!skill) return createErrorResult(`Skill "${name}" is not enabled.`, "SKILL_NOT_ENABLED");
-        if (toolName === "load_skill") return createSuccessResult(toLoadedSkill(skill));
-        if (toolName === "read_skill_file") {
-          const r = await readSkillFileContent(skill, String(safeArgs.path ?? ""));
-          return "error" in r ? createErrorResult(r.error, "INVALID_PARAMS") : createSuccessResult(r);
-        }
-        if (typeof safeArgs.script !== "string") return createErrorResult('Missing or invalid "script" parameter', "INVALID_PARAMS");
-        const args = Array.isArray(safeArgs.args) ? safeArgs.args.filter((a): a is string => typeof a === "string") : [];
-        return createSuccessResult(await runSkillScript(skill, safeArgs.script, args));
-      }
-
-      case "safe_files": {
-        const { action } = safeArgs;
-        if (!isValidSafeFilesAction(action)) {
-          return createErrorResult('Missing or invalid "action" parameter for safe_files tool', "INVALID_PARAMS");
-        }
-        return await routeSafeFilesAction(userId, action, safeArgs);
-      }
-
-      case "web_search": {
-        const { query } = safeArgs;
-        if (typeof query !== "string") return createErrorResult('Missing or invalid "query" parameter', "INVALID_PARAMS");
-        return createSuccessResult(await webSearch(query));
-      }
-
-      case "browse": {
-        // FIX: previously only `url` was forwarded — extractLinks,
-        // extractImages, maxLength, waitForSelector were silently dropped.
-        const { url, extractText, extractLinks, extractImages, maxLength, waitForSelector } = safeArgs;
-        if (typeof url !== "string") return createErrorResult('Missing or invalid "url" parameter', "INVALID_PARAMS");
-        return createSuccessResult(
-          await browse(url, {
-            extractText: typeof extractText === "boolean" ? extractText : undefined,
-            extractLinks: typeof extractLinks === "boolean" ? extractLinks : undefined,
-            extractImages: typeof extractImages === "boolean" ? extractImages : undefined,
-            maxLength: typeof maxLength === "number" ? maxLength : undefined,
-            waitForSelector: typeof waitForSelector === "string" ? waitForSelector : undefined,
-          })
-        );
-      }
-
-      case "run_code": {
-        // FIX: runCode is (language, code) — the original call passed
-        // (code, language), swapped. Default language to "python" since
-        // the tool schema allows omitting it.
-        const { code, language } = safeArgs;
-        if (typeof code !== "string") return createErrorResult('Missing or invalid "code" parameter', "INVALID_PARAMS");
-        const resolvedLanguage: "python" | "nodejs" = language === "nodejs" ? "nodejs" : "python";
-        return createSuccessResult(await runCode(resolvedLanguage, code));
-      }
-
-      case "generate_file": {
-        // FIX: generateAndSaveFile needs (userId, name, content, format,
-        // style) — the original call passed (description, outputPath,
-        // options), missing userId entirely. Bridged from the tool schema's
-        // real fields below, using the CONFIRMED real types from
-        // fileGenerator.ts (StructuredContent / StyleOption) — not
-        // DocumentContent/StyleDef, which executors/generateFile.ts
-        // imports but which don't actually exist in fileGenerator.ts (a
-        // 4th bug — see the one-line fix noted in the file header).
-        const { format, content, filename, styling } = safeArgs;
-        if (typeof format !== "string") return createErrorResult('Missing or invalid "format" parameter', "INVALID_PARAMS");
-        if (typeof content !== "string")
-          return createErrorResult('Missing or invalid "content" parameter', "INVALID_PARAMS");
-        const name = typeof filename === "string" ? filename : `document-${Date.now()}`;
-
-        // Build a real StructuredContent. If the model passed pre-structured
-        // JSON (title + sections[]), use it as-is; otherwise wrap plain text
-        // into a single section so the tool still works with a bare string.
-        let structuredContent: StructuredContent;
-        try {
-          const parsed = JSON.parse(content);
-          structuredContent =
-            parsed && typeof parsed === "object" && Array.isArray(parsed.sections)
-              ? (parsed as StructuredContent)
-              : { title: name, sections: [{ heading: "Content", body: content }] };
-        } catch {
-          structuredContent = { title: name, sections: [{ heading: "Content", body: content }] };
-        }
-
-        // Resolve style: accept a style id (e.g. "corporate") matching
-        // STYLE_DEFINITIONS, a full StyleOption JSON object, or fall back
-        // to the first defined style.
-        let resolvedStyle: StyleOption = STYLE_DEFINITIONS[0];
-        if (typeof styling === "string") {
-          const byId = STYLE_DEFINITIONS.find((s) => s.id === styling);
-          if (byId) {
-            resolvedStyle = byId;
-          } else {
-            try {
-              const parsedStyle = JSON.parse(styling);
-              if (parsedStyle && typeof parsedStyle === "object") {
-                resolvedStyle = { ...STYLE_DEFINITIONS[0], ...parsedStyle };
-              }
-            } catch {
-              /* fall back to default style */
-            }
-          }
-        }
-
-        return createSuccessResult(
-          await generateFile(userId, name, structuredContent, format, resolvedStyle)
-        );
-      }
-
-      case "phone_scan": {
-        // SR1's phoneScan(action: ScanAction, options?: { path?, categories? })
-        // generates platform-specific scan instructions. Map the tool schema's
-        // target/scanType onto it: target -> options.path, scanType -> action
-        // when it names a valid ScanAction.
-        const { target, scanType } = safeArgs;
-        const validActions: ScanAction[] = ["scan", "categorize", "duplicates", "suggest_cleanup"];
-        const action: ScanAction =
-          typeof scanType === "string" && (validActions as string[]).includes(scanType)
-            ? (scanType as ScanAction)
-            : "scan";
-        const options: ScanOptions | undefined = typeof target === "string" ? { path: target } : undefined;
-        return createSuccessResult(await phoneScan(action, options));
-      }
-
-      case "drive_search": {
-        const { query, maxResults } = safeArgs;
-        if (typeof query !== "string") return createErrorResult('Missing or invalid "query" parameter', "INVALID_PARAMS");
-        const results = await listDriveFiles(userId, typeof maxResults === "number" ? maxResults : 10, query);
-        return createSuccessResult(results);
-      }
-
-      case "drive_read": {
-        const { fileId } = safeArgs;
-        if (typeof fileId !== "string") return createErrorResult('Missing or invalid "fileId" parameter', "INVALID_PARAMS");
-        const content = await readDriveFile(userId, fileId);
-        return createSuccessResult(content);
-      }
-
-      case "drive_create": {
-        const { name, content, mimeType, folderPath } = safeArgs;
-        if (typeof name !== "string") return createErrorResult('Missing or invalid "name" parameter', "INVALID_PARAMS");
-        if (typeof content !== "string") return createErrorResult('Missing or invalid "content" parameter', "INVALID_PARAMS");
-        const parentId = typeof folderPath === "string" && folderPath.trim()
-          ? await ensureDriveFolderPath(userId, folderPath.trim())
-          : (await getDriveRootFolder(userId));
-        const uploaded = await uploadDriveFile(userId, name, typeof mimeType === "string" ? mimeType : "text/plain", Buffer.from(content), parentId);
-        return createSuccessResult(uploaded);
-      }
-
-      case "drive_edit": {
-        const { fileId, newContent, reason } = safeArgs;
-        if (typeof fileId !== "string") return createErrorResult('Missing or invalid "fileId" parameter', "INVALID_PARAMS");
-        if (typeof newContent !== "string") return createErrorResult('Missing or invalid "newContent" parameter', "INVALID_PARAMS");
-        if (typeof reason !== "string") return createErrorResult('Missing or invalid "reason" parameter', "INVALID_PARAMS");
-        const current = await readDriveFile(userId, fileId);
-        // Stage E: edits require UI confirmation. We stage the change and do not apply it.
-        return createSuccessResult({
-          pending: true,
-          fileId,
-          currentPreview: current.text.slice(0, 500),
-          proposedPreview: newContent.slice(0, 500),
-          reason,
-          message: "Edit is staged and waiting for your confirmation in the UI. It has not been applied yet.",
-        });
-      }
-
-      case "drive_move": {
-        const { fileId, folderPath } = safeArgs;
-        if (typeof fileId !== "string") return createErrorResult('Missing or invalid "fileId" parameter', "INVALID_PARAMS");
-        if (typeof folderPath !== "string") return createErrorResult('Missing or invalid "folderPath" parameter', "INVALID_PARAMS");
-        const newParentId = await ensureDriveFolderPath(userId, folderPath.trim());
-        if (!newParentId) return createErrorResult("Could not resolve Drive folder", "DRIVE_FOLDER_ERROR");
-        await moveDriveFile(userId, fileId, newParentId);
-        return createSuccessResult({ success: true, folderPath });
-      }
-
-      default:
-        return createErrorResult(`Unhandled tool: ${toolName}`, "INTERNAL_ERROR");
-    }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    const errorCode =
-      error instanceof Error && "code" in error ? String((error as Error & { code: unknown }).code) : "EXECUTION_ERROR";
-    return createErrorResult(errorMessage, errorCode);
-  }
+  const outcome = await runTool(toolName, args, legacyContext(userId));
+  if (!outcome.ok) return { success: false, error: outcome.error, code: outcome.code };
+  // Builtin tools resolve with the legacy { success, data } / { success, error, code } shape
+  // already, so unwrapping outcome.data here reproduces the exact old return value. An MCP tool
+  // or a future tool that resolves with something else is wrapped as a successful result instead
+  // of silently reshaping it.
+  const data = outcome.data;
+  if (data && typeof data === "object" && "success" in data) return data as ToolResult;
+  return { success: true, data };
 }
 
-export type { ToolResult, SuccessResult, ErrorResult, ToolName, SafeFilesAction };
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 4. PERSONAL-USE BUDGET — no other tenant to rate-limit against
