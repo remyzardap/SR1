@@ -767,12 +767,13 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
 
     if (isStreaming) {
       if (subset.unknownIds.length > 0) {
-        const lastModel = modelsUsed[modelsUsed.length - 1] ?? resolved.model ?? "unknown";
+        const lastRoute = chatRoute();
+        const lastModel = modelsUsed[modelsUsed.length - 1] ?? lastRoute.model;
         await logUsage({
           userId,
           sessionId,
           reportId,
-          provider: route.provider,
+          provider: lastRoute.provider,
           model: lastModel,
           inputTokens: 0,
           outputTokens: 0,
