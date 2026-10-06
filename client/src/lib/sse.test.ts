@@ -233,4 +233,46 @@ describe("SSE wire format parser", () => {
       sources: [{ title: "valid", url: "https://example.com" }],
     });
   });
+
+  it("sources event keeps the stable ids P1-07 sends, even when they skip numbers", () => {
+    expect(
+      decodeEvent({
+        event: "sources",
+        data: JSON.stringify([
+          { id: 2, title: "Second", url: "https://b.example.com", snippet: "a quote" },
+          { id: 5, title: "Fifth", url: "https://e.example.com" },
+          { id: 9, title: "Ninth", url: "https://i.example.com" },
+        ]),
+      })
+    ).toEqual({
+      type: "sources",
+      sources: [
+        { id: 2, title: "Second", url: "https://b.example.com", snippet: "a quote" },
+        { id: 5, title: "Fifth", url: "https://e.example.com" },
+        { id: 9, title: "Ninth", url: "https://i.example.com" },
+      ],
+    });
+  });
+
+  it("sources event still decodes an item that has no id", () => {
+    const decoded = decodeEvent({
+      event: "sources",
+      data: JSON.stringify([
+        { title: "No id", url: "https://a.example.com" },
+        { id: 4, title: "With id", url: "https://d.example.com" },
+      ]),
+    });
+
+    expect(decoded).toEqual({
+      type: "sources",
+      sources: [
+        { title: "No id", url: "https://a.example.com" },
+        { id: 4, title: "With id", url: "https://d.example.com" },
+      ],
+    });
+    // A missing id must stay missing: numbering falls back to position, so an `id: undefined`
+    // key would be indistinguishable from a real id downstream.
+    if (decoded?.type !== "sources") throw new Error("expected a sources event");
+    expect(Object.keys(decoded.sources[0])).toEqual(["title", "url"]);
+  });
 });

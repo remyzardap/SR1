@@ -330,6 +330,10 @@ export function decodeEvent(raw: RawSseEvent): StreamEvent | null {
             sources.push({
               title: typeof item.title === "string" ? item.title : "",
               url: item.url,
+              // P1-07 sends stable ids (and sometimes a short quote). Spread conditionally so
+              // payloads without them keep today's shape and numbering stays positional.
+              ...(typeof item.id === "number" ? { id: item.id } : {}),
+              ...(typeof item.snippet === "string" && item.snippet ? { snippet: item.snippet } : {}),
             });
           }
         }
