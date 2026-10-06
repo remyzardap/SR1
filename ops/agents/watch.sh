@@ -74,7 +74,7 @@ run_task() {  # <issue> <agent> <mode> <wp> <slug> <title>
   local body
   body=$(printf '%s %s **%s** with `%s` on the VPS: **%s** (exit %s)\n\n```\n%s\n```\n' \
     "$([[ $rc == 0 ]] && echo ✅ || echo ❌)" "$wp" "$mode" "$agent" \
-    "$([[ $rc == 0 ]] && echo done || echo failed)" "$rc" "$(tail -n 25 "$out")")
+    "$([[ $rc == 0 ]] && echo done || echo failed)" "$rc" "$(tail -n 45 "$out")")
   gh issue comment "$n" --repo "$REPO_SLUG" --body "$body" >/dev/null
   if [[ $rc == 0 ]]; then
     gh issue edit "$n" --repo "$REPO_SLUG" --remove-label agent-running --add-label agent-done >/dev/null

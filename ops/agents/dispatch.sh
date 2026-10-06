@@ -126,7 +126,14 @@ if [[ $MODE == build || $MODE == task ]]; then
   git -C "$CLONE" worktree add -q -B "$BRANCH" "$WT" origin/develop
   log "npm ci"; (cd "$WT" && npm ci --no-audit --no-fund >"$LOGDIR/$WP.npm.log" 2>&1)
   log "baseline check on develop"
-  checks "$WT" || { score baseline-red; die "develop is red before any change; fix develop first (logs in $LOGDIR)"; }
+  if ! checks "$WT"; then
+    # nothing was built yet: drop the worktree and branch so a retry starts clean
+    git -C "$CLONE" worktree remove --force "$WT"; git -C "$CLONE" branch -q -D "$BRANCH" || true
+    score baseline-red
+    echo "--- last lines of $WP.check.log / $WP.test.log:"
+    tail -n 15 "$LOGDIR/$WP.check.log" "$LOGDIR/$WP.test.log" 2>/dev/null | sed 's/^/  /'
+    die "develop is red before any change; fix develop first (logs in $LOGDIR)"
+  fi
 
   if [[ $MODE == task ]]; then
     WHAT="Read first, fully: docs/spec/HANDOVER.md, docs/spec/README.md, then $SPEC_REF.
