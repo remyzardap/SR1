@@ -5,6 +5,9 @@
 #   dispatch.sh <qwen|agy> <WP-ID> <slug> "<title>"   build a WP, gate it, push, open PR into develop
 #   dispatch.sh fix <qwen|agy> <WP-ID>                 feed PR review comments back, gate, push same branch
 #   dispatch.sh review <qwen|agy> <WP-ID>              read-only second-opinion review, posted as a PR comment
+#   dispatch.sh ask <qwen|agy> <T-ID> <file> [ref]       investigate / diagnose / answer questions on a throwaway
+#                                                      checkout of [ref] (default develop); report goes to
+#                                                      $LOGDIR/<T-ID>.report.md, nothing is committed or pushed
 #   dispatch.sh task <qwen|agy> <T-ID> <slug> "<title>" <file>
 #                                                      free-form task: instructions in <file> instead of a spec
 #                                                      section; T-ID is T-<issue number>. fix/review take T-IDs too.
@@ -28,11 +31,12 @@ log() { echo "[$(date +%H:%M:%S)] $*"; }
 mkdir -p "$WT_ROOT" "$LOGDIR/running"
 
 MODE=build
-case "${1:-}" in fix|review|task) MODE=$1; shift ;; esac
+case "${1:-}" in fix|review|task|ask) MODE=$1; shift ;; esac
 AGENT="${1:-}"; WP="${2:-}"
 [[ $AGENT =~ ^(qwen|agy)$ ]] || die "agent must be qwen or agy"
 [[ $WP =~ ^(P[1-4]-[0-9]{2}|F-[0-9]{2}|T-[0-9]{1,6})$ ]] || die "WP id must look like P1-03, F-01 or T-12"
-[[ $MODE != task || $WP == T-* ]] || die "task mode needs a T-<issue> id"
+[[ ( $MODE != task && $MODE != ask ) || $WP == T-* ]] || die "$MODE mode needs a T-<issue> id"
+[[ $MODE != ask || -s ${3:-} ]] || die "ask mode needs a non-empty instructions file"
 [[ $MODE != build || $WP != T-* ]] || die "T- ids are built with 'task', not as a WP"
 [[ $MODE != task || -s ${5:-} ]] || die "task mode needs a non-empty instructions file"
 command -v "$AGENT" >/dev/null || die "$AGENT is not installed for user $(whoami)"
@@ -112,6 +116,51 @@ pr_for_branch() {
 
 retry git -C "$CLONE" fetch --quiet origin develop
 git -C "$CLONE" worktree prune
+
+# ---- ask: read-only investigation, report back ---------------------------
+if [[ $MODE == ask ]]; then
+  REF="${4:-develop}"
+  [[ $REF =~ ^[A-Za-z0-9._/-]{1,100}$ ]] || die "bad ref: $REF"
+  [[ $3 -ef $TASKFILE ]] || cp "$3" "$TASKFILE"
+  REPORT="$LOGDIR/$WP.report.md"; rm -f "$REPORT"
+  WT="$WT_ROOT/$WP-ask"
+  [[ ! -e $WT ]] || git -C "$CLONE" worktree remove --force "$WT"
+  retry git -C "$CLONE" fetch --quiet origin "+refs/heads/$REF:refs/remotes/origin/$REF" || die "can't fetch $REF"
+  git -C "$CLONE" worktree add -q --detach "$WT" "origin/$REF"
+  log "npm ci (failures are left for the agent to look at)"
+  (cd "$WT" && npm ci --no-audit --no-fund >"$LOGDIR/$WP.npm.log" 2>&1) || log "npm ci failed (see $WP.npm.log)"
+  ENVINFO=$(
+    echo "host: $(uname -srm) · cpus: $(nproc) · node $(node -v 2>/dev/null) · npm $(npm -v 2>/dev/null)"
+    free -h 2>/dev/null | sed -n '1,2p'
+    df -h "$HOME" 2>/dev/null | tail -1 | awk '{print "disk ("$6"): "$4" free of "$2}'
+    echo "checkout: origin/$REF @ $(git -C "$WT" rev-parse --short HEAD)"
+  )
+  PROMPT="You are the on-site investigator on the Sutaeru VPS. Claude, the project's reviewer, can't reach this machine,
+so it sends you questions and diagnostic jobs and reads your report. Be its eyes and hands, and be exact.
+The job is in $TASKFILE. Read it first.
+Your working directory $WT is a throwaway detached checkout of origin/$REF; npm ci has run (its log:
+$LOGDIR/$WP.npm.log). Logs of earlier agent runs are in $LOGDIR (for example <id>.check.log, <id>.test.log,
+<id>.npm.log, <id>.<agent>.jsonl). Machine facts:
+$ENVINFO
+You may read any file you can and run any command you need: builds, tests, single test files, git log/diff, node -e,
+free, df, ps. Prefer narrowing things down (rerun one failing test, bisect) over guessing.
+Do NOT commit, push, open PRs or issues, use sudo, change anything outside $WT, or install global packages.
+Edits inside $WT are allowed for experiments and are thrown away afterwards.
+Never print or copy secrets: tokens, keys, passwords, .env contents, auth files under ~/.config or ~/.gemini.
+Write your report to $REPORT in Markdown, under 300 lines, in this order:
+1. Answer / root cause, in a few plain sentences, and how sure you are.
+2. Evidence: the exact commands you ran and the relevant lines of output (trimmed).
+3. Suggested fix or next step, as concrete as possible (file, change, command).
+If you could not finish, say what you tried and what you would try next."
+  run_agent "$WT" "$PROMPT" "$LOGDIR/$WP.$AGENT.ask.jsonl"
+  git -C "$CLONE" worktree remove --force "$WT" || true
+  { echo "<details><summary>Machine</summary>"; echo; echo '```'; echo "$ENVINFO"; echo '```'; echo "</details>"; echo
+    if [[ -s $REPORT ]]; then cat "$REPORT"; else echo "**The agent wrote no report.** Last lines of its log:"; echo '```'
+      tail -n 30 "$LOGDIR/$WP.$AGENT.ask.jsonl" 2>/dev/null; echo '```'; fi
+  } > "$REPORT.tmp" && mv "$REPORT.tmp" "$REPORT"
+  score report; log "done: report at $REPORT"
+  exit 0
+fi
 
 # ---- build / task ----------------------------------------------------------
 if [[ $MODE == build || $MODE == task ]]; then

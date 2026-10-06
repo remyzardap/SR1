@@ -172,6 +172,29 @@ What happens: label `agent-running` → "picked up" comment → the run → a co
 and add `agent-task` again. You can open these issues yourself from the GitHub app too.
 At most `MAX_AGENTS` (2) run at once; extra issues wait for the next free slot.
 
+### 4.6 Asking the agents to investigate (`mode: ask`)
+
+Claude can't log in to the VPS. When it needs something checked, diagnosed or measured there, it doesn't ask the
+owner to run commands. It opens an `ask` issue, and an agent does the work on the VPS and reports back:
+
+```
+agent: qwen
+mode: ask
+ref: develop          (optional: which branch to check out; default develop)
+---
+develop passes check and test in CI and in Claude's sandbox, but the baseline check fails here.
+Find out why: look at ~/agent-logs/T-9.check.log and T-9.test.log, rerun the failing step, narrow it down.
+```
+
+The agent gets a throwaway checkout of `ref` (after `npm ci`), the logs of earlier runs in `~/agent-logs`, and the
+machine facts (CPUs, memory, disk, Node). It may run any command as the `agents` user. It may not commit, push,
+use sudo, install global packages or print secrets. Its Markdown report (root cause, evidence, suggested fix)
+is posted on the issue, with obvious credentials blanked, and the issue is closed. Nothing is pushed.
+
+**The division of labour this gives:** Claude plans, writes specs, opens `task`/`ask` issues, reads reports and
+reviews every PR. The agents build, test and investigate. The owner only does what needs a person: logins and
+keys, money, `sudo`-level machine changes an agent reports as needed, and merging `develop` → `main`.
+
 ## 5. Who builds what
 
 Lanes come from `README.md` §8. Within a lane, packages run in order. Different lanes run in parallel.

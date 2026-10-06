@@ -12,6 +12,8 @@
 #       slug:  streaming            (build and task)
 #       title: Stream every turn    (build and task)
 #   for mode task, the coding instructions are everything below the first line that is exactly ---
+#   mode ask: the questions / diagnostic job go below the --- line; optional "ref: <branch>" (default develop).
+#     The agent investigates on a throwaway checkout and its report is posted as a comment. Nothing is pushed.
 # The watcher labels it `agent-running`, runs dispatch.sh, comments the outcome, then labels it
 # `agent-done` (and closes it) or `agent-failed`. Re-add `agent-task` after removing `agent-failed` to retry.
 set -uo pipefail
@@ -61,12 +63,19 @@ field() {  # <name> <body>: value of a "name: value" line
   sed -n "s/^[[:space:]]*$1:[[:space:]]*//p" <<<"$2" | head -1 | tr -d '\r' | sed 's/[[:space:]]*$//'
 }
 
-run_task() {  # <issue> <agent> <mode> <wp> <slug> <title>
+scrub() {  # best-effort: blank anything that looks like a credential before it reaches GitHub
+  sed -E -e 's/(github_pat_|ghp_|gho_|ghs_|sk-|AIza)[A-Za-z0-9_-]{10,}/[redacted]/g' \
+         -e 's/(^|[^A-Za-z])((API|SECRET|TOKEN|PASSWORD|PASS|KEY)[A-Z_]*[[:space:]]*[=:][[:space:]]*)[^[:space:]]+/\1\2[redacted]/Ig'
+}
+
+run_task() {  # <issue> <agent> <mode> <wp> <slug> <title> [ref]
   local n=$1 agent=$2 mode=$3 wp=$4 slug=$5 title=$6 out="$LOGDIR/tasks/issue-$1.log" rc=0
   if [[ $mode == build ]]; then
     "$DISPATCH" "$agent" "$wp" "$slug" "$title" >"$out" 2>&1 || rc=$?
   elif [[ $mode == task ]]; then
     "$DISPATCH" task "$agent" "$wp" "$slug" "$title" "$LOGDIR/tasks/issue-$n.task.md" >"$out" 2>&1 || rc=$?
+  elif [[ $mode == ask ]]; then
+    "$DISPATCH" ask "$agent" "$wp" "$LOGDIR/tasks/issue-$n.task.md" "${7:-develop}" >"$out" 2>&1 || rc=$?
   else
     "$DISPATCH" "$mode" "$agent" "$wp" >"$out" 2>&1 || rc=$?
   fi
@@ -74,7 +83,10 @@ run_task() {  # <issue> <agent> <mode> <wp> <slug> <title>
   local body
   body=$(printf '%s %s **%s** with `%s` on the VPS: **%s** (exit %s)\n\n```\n%s\n```\n' \
     "$([[ $rc == 0 ]] && echo ✅ || echo ❌)" "$wp" "$mode" "$agent" \
-    "$([[ $rc == 0 ]] && echo done || echo failed)" "$rc" "$(tail -n 45 "$out")")
+    "$([[ $rc == 0 ]] && echo done || echo failed)" "$rc" "$(tail -n 45 "$out" | scrub)")
+  if [[ $mode == ask && $rc == 0 && -s $LOGDIR/$wp.report.md ]]; then
+    body=$(printf '📋 **Report** from `%s` (%s, ask)\n\n%s\n' "$agent" "$wp" "$(scrub <"$LOGDIR/$wp.report.md" | head -c 60000)")
+  fi
   gh issue comment "$n" --repo "$REPO_SLUG" --body "$body" >/dev/null
   if [[ $rc == 0 ]]; then
     gh issue edit "$n" --repo "$REPO_SLUG" --remove-label agent-running --add-label agent-done >/dev/null
@@ -92,7 +104,7 @@ reject() {  # <issue> <reason>
 }
 
 tick() {
-  local free issues n body agent mode wp slug title
+  local free issues n body agent mode wp slug title ref
   free=$(( MAX_AGENTS - $(running_count) ))
   (( free > 0 )) || return 0
   issues=$(gh issue list --repo "$REPO_SLUG" --state open --label agent-task \
@@ -105,8 +117,10 @@ tick() {
     agent=$(field agent "$body"); mode=$(field mode "$body"); wp=$(field wp "$body")
     slug=$(field slug "$body");   title=$(field title "$body")
     [[ $agent =~ ^(qwen|agy)$ ]] || { reject "$n" "agent must be qwen or agy"; continue; }
-    [[ $mode =~ ^(build|fix|review|task)$ ]] || { reject "$n" "mode must be build, fix, review or task"; continue; }
-    if [[ $mode == task ]]; then
+    [[ $mode =~ ^(build|fix|review|task|ask)$ ]] || { reject "$n" "mode must be build, fix, review, task or ask"; continue; }
+    ref=$(field ref "$body"); ref=${ref:-develop}
+    [[ $ref =~ ^[A-Za-z0-9._/-]{1,100}$ ]] || { reject "$n" "ref must be a branch name"; continue; }
+    if [[ $mode == task || $mode == ask ]]; then
       wp="T-$n"
       awk 'f; /^---[[:space:]]*$/ && !f {f=1}' <<<"$body" | tr -d '\r' >"$LOGDIR/tasks/issue-$n.task.md"
       [[ -n $(tr -d '[:space:]' <"$LOGDIR/tasks/issue-$n.task.md") ]] \
@@ -121,7 +135,7 @@ tick() {
     gh issue edit "$n" --repo "$REPO_SLUG" --add-label agent-running >/dev/null || continue
     gh issue comment "$n" --repo "$REPO_SLUG" --body "🛠️ Picked up: $wp $mode with \`$agent\`. I'll comment here when it finishes." >/dev/null
     log "issue #$n: $agent $mode $wp"
-    run_task "$n" "$agent" "$mode" "$wp" "$slug" "$title" &
+    run_task "$n" "$agent" "$mode" "$wp" "$slug" "$title" "$ref" &
     free=$((free - 1))
     sleep 5   # let dispatch.sh register its pid before the next count
   done
