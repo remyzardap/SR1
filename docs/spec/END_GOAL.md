@@ -3,7 +3,7 @@
 Date: 2026-10-06. This is the target every plan in this repo should serve. `PLAN.md` (stages A–G) is
 mostly built; `BACKEND_UPGRADE_PLAN.md` and `docs/spec/PHASE-1…4.md` describe the backend route.
 This file says **where that route ends**, what "done" means, and which tracks the specs don't cover yet.
-How the work gets done by your agents on the VPS is in [`AGENT_OPS.md`](AGENT_OPS.md).
+How the work gets done: two Claude sessions plan and review (one owns the backend, one the frontend and the agent tooling); the coding agents qwen and agy build on the VPS, commanded through GitHub issues. Their playbook is `AGENT_OPS.md`, added with the agent tooling in `ops/agents/`.
 
 ---
 
@@ -70,7 +70,7 @@ Out because Sutaeru is private (E1), or to keep the finish line reachable.
 |---|---|---|
 | **B: backend** (engine, tools, memory, files, runs, quality) | `PHASE-1…4.md`, 46 WPs | none: the spec is complete and agent-ready |
 | **F: frontend** (the app people touch) | `DESIGN.md`, `design/sutaeru-app/` prototype, reskin already merged | **no work-package spec.** New backend events (`thinking`, `approval_request`, `plan`, `segment`, file/image cards) have no UI. `client/src/pages/Chat.tsx:529-592` handles only today's events. |
-| **O: ops** (VPS, deploy, secrets, agents) | `.github/workflows/deploy.yml`, `ops/session-manager`, `AGENT_OPS.md` | secrets committed in old docs (PLAN §10.1) still need rotating; agents need their own user on the VPS (AGENT_OPS §3) |
+| **O: ops** (VPS, deploy, secrets, agents) | `.github/workflows/deploy.yml`, `ops/session-manager`, `ops/agents/` + `AGENT_OPS.md` | secrets committed in old docs (PLAN §10.1) still need rotating |
 
 ### Track F work packages (outline; I write each full spec before it is dispatched)
 
@@ -117,15 +117,16 @@ These come from `PLAN.md` and `docs/spec/README.md` §3 and are restated here be
 5. Nobody but the owner touches `.env`, secrets, `deploy.yml`, containers or the production checkout.
 6. Every billable call writes a `usage_logs` row.
 
-## 8. Where we are today (2026-10-06)
+## 8. Where we are today (2026-10-06, 08:30 UTC)
 
 | Item | State |
 |---|---|
-| `develop` | `5daabdb`; P1-01 merged |
-| PR #7 `[P1-02] Tool runtime` | open, CI green, **not yet reviewed** |
-| PR #5 `[P1-08] Search provider layer` | open, CI green, **not yet reviewed** |
-| PR #6 `[P1-09] Tiered page reader` | open, **`check` failing** |
+| Agent pipeline | live: watcher on the VPS runs qwen and agy from `agent-task` issues; `develop` passes on the VPS since PR #14 (15 s test timeout) |
+| `develop` | `bcf2428`; P1-01 merged |
+| PR #7 `[P1-02] Tool runtime` | changes requested (MCP confirm tools without approval; Drive allowlist); agy fixing (#10) |
+| PR #5 `[P1-08] Search provider layer` | changes requested; port onto P1-02 after #7 merges |
+| PR #6 `[P1-09] Tiered page reader` | changes requested (tier-3 recursion, SSRF escalation, abort, cache key, CI heap); agy fixing (#15) |
 | PR #2 batch image generation (into `main`) | open since 2026-09-28; stale against the reskin; decide close or rebase |
 | Decision E1 | **decided:** private, owner + family and friends (§2) |
-| Owner to-dos | benchmark baseline (`HANDOVER.md` §9.1), decisions D2–D10 (`README.md` §6), rotate committed secrets, install the agent watcher (`AGENT_OPS.md` §3) |
-| Next agent work | see `AGENT_OPS.md` §6 (wave 1) |
+| Merging | owner delegated merges: Claude merges approved PRs into `develop`, and `develop` → `main` at phase gates, reporting after |
+| Owner to-dos | benchmark baseline (`HANDOVER.md` §9.1), decisions D2–D10 (`README.md` §6), rotate committed secrets, protect `main` and `develop` |

@@ -1,6 +1,6 @@
 # Handover: how to continue this build
 
-Read this file first, all of it, before touching anything. The end goal is in `END_GOAL.md`; how agents are dispatched on the VPS is in `AGENT_OPS.md`. It is written for a coding agent picking up work with no memory of what came before.
+Read this file first, all of it, before touching anything. It is written for a coding agent picking up work with no memory of what came before.
 
 If you only remember three things:
 
@@ -35,6 +35,7 @@ Nothing else is in flight. Three agents were working on P1-02, P1-08 and P1-09 a
 |---|---|
 | What are the rules I must follow? | `docs/spec/README.md` §3 |
 | What exactly do I build for my work package? | `docs/spec/PHASE-1.md` … `PHASE-4.md`, find your ID |
+| **What do I start next, and what comes after, all the way to the end?** | **`docs/spec/RUNBOOK.md`** (waves, tracker, owner actions, phase gates) |
 | Which packages can run at the same time? | `docs/spec/README.md` §8 |
 | How will my pull request be judged? | `docs/spec/README.md` §5 |
 | What did the test suite look like before? | `docs/spec/BASELINE.md` |
@@ -158,7 +159,7 @@ Breaking any of these gets the pull request rejected, however good the rest is.
 8. **New behavior ships switched off.** Add a flag to `server/core/flags.ts` with `default: false`, and read it with `flag("MY_FLAG")`. With the flag off, behavior must be exactly what it is today.
 9. **The agent must never be able to delete, trash, share, or change permissions on a file.** Not through a tool, not through a tool parameter, ever. If a spec line seems to ask for it, you misread it — stop and ask.
 10. **Anything that costs money writes a usage row.** Every model call, search, page fetch, sandbox run or image generation calls `logUsage` from `server/core/usage.ts`. This is how the project knows what it spends.
-11. **Attribution.** Claude sessions end every commit message with the two lines below. Kimi and Antigravity CLI runs instead end each commit with the single trailer `Agent: kimi-cli` or `Agent: antigravity-cli` (see `AGENT_OPS.md` §4.4) and add no Claude line:
+11. **Attribution.** End every commit message with these two lines, exactly:
     ```
     Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
     Claude-Session: https://claude.ai/code/session_01Mqk5k9PeC8BmygaaMdpFFb

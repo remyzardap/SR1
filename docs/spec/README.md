@@ -5,8 +5,7 @@ Coding agents implement it **one work package (WP) at a time**. Claude reviews e
 
 | File | Contents |
 |---|---|
-| **`END_GOAL.md`** | **What 1.0 is:** the seven promises and their bars, scope, the frontend track, milestones M1–M4, where things stand |
-| **`AGENT_OPS.md`** | **How the work gets done:** kimi and agy on the VPS, who builds which WP, `ops/agents/dispatch.sh`, review loop, scoreboard |
+| **`RUNBOOK.md`** | **The master schedule from today to the end of Phase 4:** waves, who runs in parallel, the tracker, owner actions and phase gates |
 | **`HANDOVER.md`** | **Start here if you are a coding agent picking this up fresh:** current state, the exact steps to follow, the order of work, the traps in this codebase |
 | `README.md` (this file) | Roles, workflow, rules for agents, the agent prompt template, the review rubric, decisions needed, the dependency map |
 | `PHASE-1.md` | Fix the fundamentals: streaming, parallel tools, cancellation, context, search, reader, approvals, new tools |
