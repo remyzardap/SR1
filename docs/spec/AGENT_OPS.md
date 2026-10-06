@@ -47,6 +47,17 @@ merges and turns flags on one at a time.
 
 ## 3. One-time VPS setup (owner, ~20 minutes)
 
+**Fast path: one command.** On the VPS as root, paste:
+
+```bash
+read -rsp "GitHub token: " T; echo; curl -fsSL -H "Authorization: Bearer $T" -H "Accept: application/vnd.github.raw" "https://api.github.com/repos/remyzardap/SR1/contents/ops/agents/setup.sh?ref=claude/festive-curie-cta8mm" | GH_TOKEN_FOR_AGENTS="$T" bash; unset T
+```
+
+The token is a fine-grained one from github.com/settings/personal-access-tokens/new, for the SR1 repository only,
+with Contents, Issues and Pull requests set to read and write. `ops/agents/setup.sh` then does everything below
+(steps 1–6), asks you to sign in to kimi and agy once, and starts the watcher. It is safe to run again.
+The manual steps below are what it does, for reference.
+
 Today the session daemon runs as root next to `/root/sr1/.env`. Auto-approve agents must **not** run like that.
 `--print` / `--dangerously-skip-permissions` means the agent's shell can read anything its user can read.
 
