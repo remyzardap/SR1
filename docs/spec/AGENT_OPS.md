@@ -45,61 +45,36 @@ and fix `ops/agents/dispatch.sh` if anything changed. Google has said publicly t
 At a phase gate, Claude writes the gate report on the `develop` → `main` PR (README §7). Then the owner
 merges and turns flags on one at a time.
 
-## 3. One-time VPS setup (owner, ~20 minutes)
+## 3. One-time VPS setup (owner, one command)
 
 Today the session daemon runs as root next to `/root/sr1/.env`. Auto-approve agents must **not** run like that.
 `--print` / `--dangerously-skip-permissions` means the agent's shell can read anything its user can read.
+`ops/agents/install.sh` sets up a separate `agents` user for them. As root on the VPS:
 
 ```bash
-# 1. A user with no access to /root, secrets or docker
-sudo useradd -m -s /bin/bash agents
-sudo chmod 700 /root                       # likely already the case; confirm
-id agents | grep -q docker && echo "REMOVE agents FROM docker GROUP"   # docker group == root
-
-# 2. Its own clone (not /root/sr1, which is production)
-sudo -iu agents bash -c '
-  git clone https://github.com/remyzardap/SR1.git ~/sr1
-  mkdir -p ~/wt ~/agent-logs
-  git -C ~/sr1 config user.name  "sutaeru-agents"
-  git -C ~/sr1 config user.email "agents@sutaeru.invalid"
-'
-
-# 3. Push access: a fine-grained GitHub token for this repo only,
-#    permissions Contents:read/write + Pull requests:read/write, nothing else.
-#    Store it for the agents user only, e.g. gh auth login as that user.
-sudo -iu agents gh auth login --with-token < /path/to/token   # then delete the file
-
-# 4. Sign each CLI in once, interactively, as the agents user
-sudo -iu agents kimi      # complete login, then /exit
-sudo -iu agents agy       # complete login, then exit
-
-# 5. Install the dispatcher and the GitHub watcher
-sudo install -m 755 /root/sr1/ops/agents/dispatch.sh /home/agents/dispatch.sh
-sudo install -m 755 /root/sr1/ops/agents/watch.sh    /home/agents/watch.sh
-
-# 6. Run the watcher as a service, so Claude can command the agents through GitHub issues (§4.5)
-sudo tee /etc/systemd/system/sutaeru-agents.service >/dev/null <<'UNIT'
-[Unit]
-Description=Sutaeru agent watcher (GitHub issues -> kimi/agy)
-After=network-online.target
-[Service]
-User=agents
-WorkingDirectory=/home/agents
-Environment=PATH=/home/agents/.local/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/home/agents/watch.sh
-Restart=always
-RestartSec=30
-[Install]
-WantedBy=multi-user.target
-UNIT
-sudo systemctl daemon-reload && sudo systemctl enable --now sutaeru-agents
-journalctl -u sutaeru-agents -f        # watch it pick up tasks
+git -C /root/sr1 fetch -q origin main && git -C /root/sr1 show origin/main:ops/agents/install.sh | bash
 ```
 
-If `kimi` or `agy` live somewhere else (`which kimi` as the agents user), add that folder to the `PATH` line.
+(Before this is merged to `main`, put the branch name in both places and add `SCRIPTS_REF=<branch>` before `bash`.)
+It asks once for a GitHub token: a fine-grained token for this repo only, with **Contents, Pull requests and
+Issues: read and write** and nothing else. Then it:
+
+1. creates the `agents` user, takes it out of the `docker` group (docker = root) and makes sure `/root` is `700`
+2. signs that user in to `gh` with the token, and clones the repo to `~agents/sr1` (not `/root/sr1`, which is production)
+3. installs `dispatch.sh` and `watch.sh` root-owned in `/opt/sutaeru-agents/`, so an agent can't rewrite its own gate
+4. finds `kimi` and `agy` on that user's `PATH`, and runs the watcher as the `sutaeru-agents` systemd service
+
+It's safe to re-run. Re-running is also how you update the scripts after they change on `main`.
+Two things it can't do for you, once each:
+
+```bash
+sudo -iu agents kimi      # finish the login, then /exit
+sudo -iu agents agy       # finish the login, then exit
+```
 
 On GitHub (Settings → Branches), protect `main` and `develop`: require a PR, require the `check`, `test`
 and `db-tests` checks, and block force-push. Then even a confused agent with the token cannot touch either branch.
+Follow the watcher with `journalctl -u sutaeru-agents -f`.
 
 Resource note: each worktree runs its own `npm ci` (≈1 GB with `node_modules`). Run **at most 2 agents at once**
 on the VPS, alongside production. `npm` shares its download cache, so the second install is fast.
@@ -174,7 +149,21 @@ slug: streaming
 title: Stream every turn, plus thinking and segment events
 ```
 
-`mode` is `build`, `fix` or `review`; `slug` and `title` are only needed for `build`.
+`mode` is `build`, `fix`, `review` or `task`; `slug` and `title` are only needed for `build` and `task`.
+
+**`task`: any coding job, not only spec work packages.** Put the instructions below a line that is exactly `---`.
+The task's id is `T-<issue number>`, so it builds on branch `wp/T-<n>-<slug>` and opens a PR into `develop`
+through the same gate. Send review fixes later with `mode: fix` and `wp: T-<n>`.
+
+```
+agent: agy
+mode: task
+slug: sse-client
+title: Typed SSE client for the chat page
+---
+Replace the if-chain in client/src/pages/Chat.tsx (the SSE handling) with one typed parser and
+reducer in client/src/lib/sse.ts. Ignore unknown events. Keep today's events working. Add tests.
+```
 What happens: label `agent-running` → "picked up" comment → the run → a comment with the result
 → `agent-done` and closed, or `agent-failed` and left open. To retry, fix the body, remove `agent-failed`
 and add `agent-task` again. You can open these issues yourself from the GitHub app too.

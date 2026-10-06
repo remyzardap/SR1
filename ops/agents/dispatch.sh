@@ -5,6 +5,9 @@
 #   dispatch.sh <kimi|agy> <WP-ID> <slug> "<title>"   build a WP, gate it, push, open PR into develop
 #   dispatch.sh fix <kimi|agy> <WP-ID>                 feed PR review comments back, gate, push same branch
 #   dispatch.sh review <kimi|agy> <WP-ID>              read-only second-opinion review, posted as a PR comment
+#   dispatch.sh task <kimi|agy> <T-ID> <slug> "<title>" <file>
+#                                                      free-form task: instructions in <file> instead of a spec
+#                                                      section; T-ID is T-<issue number>. fix/review take T-IDs too.
 #
 # Nothing is pushed unless `npm run check` and `npm test` pass and no forbidden path changed.
 set -euo pipefail
@@ -25,14 +28,20 @@ log() { echo "[$(date +%H:%M:%S)] $*"; }
 mkdir -p "$WT_ROOT" "$LOGDIR/running"
 
 MODE=build
-case "${1:-}" in fix|review) MODE=$1; shift ;; esac
+case "${1:-}" in fix|review|task) MODE=$1; shift ;; esac
 AGENT="${1:-}"; WP="${2:-}"
 [[ $AGENT == kimi || $AGENT == agy ]] || die "agent must be kimi or agy"
-[[ $WP =~ ^(P[1-4]-[0-9]{2}|F-[0-9]{2})$ ]] || die "WP id must look like P1-03 or F-01"
+[[ $WP =~ ^(P[1-4]-[0-9]{2}|F-[0-9]{2}|T-[0-9]{1,6})$ ]] || die "WP id must look like P1-03, F-01 or T-12"
+[[ $MODE != task || $WP == T-* ]] || die "task mode needs a T-<issue> id"
+[[ $MODE != build || $WP != T-* ]] || die "T- ids are built with 'task', not as a WP"
+[[ $MODE != task || -s ${5:-} ]] || die "task mode needs a non-empty instructions file"
 command -v "$AGENT" >/dev/null || die "$AGENT is not installed for user $(whoami)"
 command -v gh >/dev/null || die "gh is not installed"
 
-if [[ $WP == F-* ]]; then SPEC="docs/spec/FRONTEND.md"; else SPEC="docs/spec/PHASE-${WP:1:1}.md"; fi
+TASKFILE="$LOGDIR/$WP.task.md"   # T- tasks: the instructions, kept for later fix/review runs
+if [[ $WP == T-* ]]; then SPEC_REF="the task instructions in $TASKFILE"
+elif [[ $WP == F-* ]]; then SPEC_REF="docs/spec/FRONTEND.md section $WP"
+else SPEC_REF="docs/spec/PHASE-${WP:1:1}.md section $WP"; fi
 AGENT_NAME=$([[ $AGENT == kimi ]] && echo kimi-cli || echo antigravity-cli)
 START=$(date +%s)
 
@@ -104,10 +113,13 @@ pr_for_branch() {
 retry git -C "$CLONE" fetch --quiet origin develop
 git -C "$CLONE" worktree prune
 
-# ---- build -----------------------------------------------------------------
-if [[ $MODE == build ]]; then
+# ---- build / task ----------------------------------------------------------
+if [[ $MODE == build || $MODE == task ]]; then
   SLUG="${3:-}"; TITLE="${4:-}"
-  [[ $SLUG =~ ^[a-z0-9-]+$ && -n $TITLE ]] || die "usage: $0 <kimi|agy> <WP> <slug> \"<title>\""
+  [[ $SLUG =~ ^[a-z0-9-]+$ && -n $TITLE ]] || die "usage: $0 [task] <kimi|agy> <id> <slug> \"<title>\" [file]"
+  if [[ $MODE == task ]]; then
+    [[ $5 -ef $TASKFILE ]] || cp "$5" "$TASKFILE"
+  fi
   BRANCH="wp/$WP-$SLUG"; WT="$WT_ROOT/$WP"
   [[ ! -e $WT ]] || die "$WT already exists; use 'fix', or remove it with: git -C $CLONE worktree remove $WT"
   [[ -z $(branch_for_wp) ]] || die "a wp/$WP-* branch already exists on origin; use 'fix'"
@@ -116,19 +128,26 @@ if [[ $MODE == build ]]; then
   log "baseline check on develop"
   checks "$WT" || { score baseline-red; die "develop is red before any change; fix develop first (logs in $LOGDIR)"; }
 
-  PROMPT="You are implementing work package $WP ($TITLE) in the Sutaeru repository. Your working tree is already on
+  if [[ $MODE == task ]]; then
+    WHAT="Read first, fully: docs/spec/HANDOVER.md, docs/spec/README.md, then $SPEC_REF.
+Do exactly what those instructions ask, no more, with tests for the new behaviour including failure paths.
+Read the existing code and tests you change before changing them. Commit in small commits."
+  else
+    WHAT="Read first, fully: docs/spec/HANDOVER.md, docs/spec/README.md, docs/spec/END_GOAL.md section 7,
+$SPEC_REF, and every file listed under \"Files\" in that section, plus their existing tests.
+Implement exactly that section, with the tests it names and failure-path tests. Commit in small commits."
+  fi
+  PROMPT="You are implementing $WP ($TITLE) in the Sutaeru repository. Your working tree is already on
 branch $BRANCH from origin/develop and npm ci has run; npm run check and npm test pass right now.
-Read first, fully: docs/spec/HANDOVER.md, docs/spec/README.md, docs/spec/END_GOAL.md section 7,
-$SPEC section $WP, and every file listed under \"Files\" in that section, plus their existing tests.
-Implement exactly that section, with the tests it names and failure-path tests. Commit in small commits.
+$WHAT
 Every commit message ends with the trailer line:  Agent: $AGENT_NAME
 (this replaces HANDOVER rule 11 for you; do not add a Claude co-author line).
 Run npm run check and npm test until both pass, and leave no uncommitted changes.
 Do NOT push, do NOT open a PR, do NOT touch .env, secrets/, .github/workflows/deploy.yml,
 ops/session-manager/ or any container.
-When done, write the PR body (docs/spec/README.md section 5.3 template, every acceptance criterion with
-evidence) to $LOGDIR/$WP.pr.md. If the spec is wrong or impossible, write that explanation to the same
-file instead and stop."
+When done, write the PR body (docs/spec/README.md section 5.3 template, every acceptance criterion or
+instruction with evidence) to $LOGDIR/$WP.pr.md. If the spec or instructions are wrong or impossible,
+write that explanation to the same file instead and stop."
   rm -f "$LOGDIR/$WP.pr.md"
   run_agent "$WT" "$PROMPT" "$LOGDIR/$WP.$AGENT.jsonl"
 
@@ -166,7 +185,7 @@ if [[ $MODE == fix ]]; then
   fi
   [[ -d $WT/node_modules ]] || (cd "$WT" && npm ci --no-audit --no-fund >"$LOGDIR/$WP.npm.log" 2>&1)
   PROMPT="You are fixing work package $WP in the Sutaeru repository, on branch $BRANCH (PR #$PR into develop).
-Read docs/spec/HANDOVER.md, docs/spec/README.md, $SPEC section $WP, then the review feedback in $FEEDBACK.
+Read docs/spec/HANDOVER.md, docs/spec/README.md, $SPEC_REF, then the review feedback in $FEEDBACK.
 Address every must-fix item and every CI failure. If the feedback asks you to merge origin/develop, use
 git merge (never rebase, never force-push). For any item you disagree with, explain why instead of changing code.
 Commit with the trailer line:  Agent: $AGENT_NAME
@@ -194,7 +213,7 @@ git -C "$CLONE" worktree add -q --detach "$WT" "origin/$BRANCH"
 OUT="$LOGDIR/$WP.review.$AGENT.md"; rm -f "$OUT"
 PROMPT="You are a read-only second reviewer for work package $WP in the Sutaeru repository (PR #$PR into develop).
 Do NOT edit, commit or push anything. Read docs/spec/README.md (rules and the section 5 review rubric),
-docs/spec/END_GOAL.md section 7, $SPEC section $WP, the existing feedback in $FEEDBACK, and the diff:
+docs/spec/END_GOAL.md section 7, $SPEC_REF, the existing feedback in $FEEDBACK, and the diff:
 git diff origin/develop...HEAD
 Run npm run check and npm test. Hunt for real defects: spec acceptance criteria not met, missing failure-path
 tests, safety rule breaks (G1 to G4, approvals, secrets or user content in logs), env vars read at import time,

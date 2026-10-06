@@ -6,10 +6,11 @@
 #   - it is open, labelled `agent-task`, and opened by OWNER_LOGIN (default remyzardap)
 #   - its body has these lines (anything else in the body is ignored):
 #       agent: kimi | agy
-#       mode:  build | fix | review
-#       wp:    P1-03
-#       slug:  streaming            (build only)
-#       title: Stream every turn    (build only)
+#       mode:  build | fix | review | task
+#       wp:    P1-03                (not for task: a task's id is T-<issue number>; fix/review take T-ids)
+#       slug:  streaming            (build and task)
+#       title: Stream every turn    (build and task)
+#   for mode task, the coding instructions are everything below the first line that is exactly ---
 # The watcher labels it `agent-running`, runs dispatch.sh, comments the outcome, then labels it
 # `agent-done` (and closes it) or `agent-failed`. Re-add `agent-task` after removing `agent-failed` to retry.
 set -uo pipefail
@@ -49,6 +50,8 @@ run_task() {  # <issue> <agent> <mode> <wp> <slug> <title>
   local n=$1 agent=$2 mode=$3 wp=$4 slug=$5 title=$6 out="$LOGDIR/tasks/issue-$1.log" rc=0
   if [[ $mode == build ]]; then
     "$DISPATCH" "$agent" "$wp" "$slug" "$title" >"$out" 2>&1 || rc=$?
+  elif [[ $mode == task ]]; then
+    "$DISPATCH" task "$agent" "$wp" "$slug" "$title" "$LOGDIR/tasks/issue-$n.task.md" >"$out" 2>&1 || rc=$?
   else
     "$DISPATCH" "$mode" "$agent" "$wp" >"$out" 2>&1 || rc=$?
   fi
@@ -87,9 +90,16 @@ tick() {
     agent=$(field agent "$body"); mode=$(field mode "$body"); wp=$(field wp "$body")
     slug=$(field slug "$body");   title=$(field title "$body")
     [[ $agent == kimi || $agent == agy ]] || { reject "$n" "agent must be kimi or agy"; continue; }
-    [[ $mode == build || $mode == fix || $mode == review ]] || { reject "$n" "mode must be build, fix or review"; continue; }
-    [[ $wp =~ ^(P[1-4]-[0-9]{2}|F-[0-9]{2})$ ]] || { reject "$n" "wp must look like P1-03 or F-01"; continue; }
-    if [[ $mode == build ]]; then
+    [[ $mode =~ ^(build|fix|review|task)$ ]] || { reject "$n" "mode must be build, fix, review or task"; continue; }
+    if [[ $mode == task ]]; then
+      wp="T-$n"
+      awk 'f; /^---[[:space:]]*$/ && !f {f=1}' <<<"$body" | tr -d '\r' >"$LOGDIR/tasks/issue-$n.task.md"
+      [[ -n $(tr -d '[:space:]' <"$LOGDIR/tasks/issue-$n.task.md") ]] \
+        || { reject "$n" "task instructions missing: put them below a line that is exactly ---"; continue; }
+    fi
+    [[ $wp =~ ^(P[1-4]-[0-9]{2}|F-[0-9]{2}|T-[0-9]{1,6})$ ]] || { reject "$n" "wp must look like P1-03, F-01 or T-12"; continue; }
+    [[ $mode != build || $wp != T-* ]] || { reject "$n" "T- ids are started with mode: task"; continue; }
+    if [[ $mode == build || $mode == task ]]; then
       [[ $slug =~ ^[a-z0-9-]{1,40}$ ]] || { reject "$n" "slug must be lowercase letters, digits and dashes"; continue; }
       [[ -n $title && ${#title} -le 120 ]] || { reject "$n" "title is missing or too long"; continue; }
     fi
