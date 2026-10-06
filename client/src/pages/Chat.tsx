@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/select";
 
 import { createSseParser, decodeEvent, type RawSseEvent } from "@/lib/sse";
-import { initialStreamState, reduceStream, type AgentStep, type Source } from "@/lib/streamReducer";
+import { initialStreamState, reduceStream, stepStatusPrefix, type AgentStep, type Source } from "@/lib/streamReducer";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface StreamSettings {
@@ -461,6 +461,7 @@ export default function Chat() {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
+      let streamState = initialStreamState();
 
       try {
         const apiOrigin = import.meta.env.VITE_SR1_API_ORIGIN || "";
@@ -487,7 +488,6 @@ export default function Chat() {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         const parser = createSseParser();
-        let streamState = initialStreamState();
 
         const processRawEvents = (rawEvents: RawSseEvent[]) => {
           for (const raw of rawEvents) {
@@ -567,10 +567,12 @@ export default function Chat() {
                   ...m,
                   streaming: false,
                   model: finalModel,
-                  skills: assistantSkills,
+                  skills: assistantSkills.length > 0 ? assistantSkills : undefined,
                   question: mode === "deep" ? messageText : undefined,
                   thinking: streamState.thinking || undefined,
                   segments: streamState.segments.length > 0 ? streamState.segments : undefined,
+                  ...(streamState.steps.length > 0 ? { steps: streamState.steps } : {}),
+                  ...(streamState.activity.length > 0 ? { activity: streamState.activity } : {}),
                 }
               : m
           )
@@ -597,7 +599,21 @@ export default function Chat() {
           }
         })();
       } catch (err) {
-        if ((err as Error).name === "AbortError") return;
+        if ((err as Error).name === "AbortError") {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId
+                ? {
+                    ...m,
+                    streaming: false,
+                    ...(streamState.steps.length > 0 ? { steps: streamState.steps } : {}),
+                    ...(streamState.activity.length > 0 ? { activity: streamState.activity } : {}),
+                  }
+                : m
+            )
+          );
+          return;
+        }
         const raw = (err as Error).message ?? "";
         // The connection dropped mid-run: the question stays on screen as waiting
         // and the offline banner explains it, so no second error message.
@@ -609,7 +625,26 @@ export default function Chat() {
         }
         const errMsg = err instanceof TypeError ? "Couldn't reach Sutaeru. Check your connection and retry." : raw || "Something went wrong. Please retry.";
         setError(errMsg);
-        setMessages((prev) => prev.filter((m) => m.id !== assistantId && m.id !== userMsg.id));
+        if (streamState.content || streamState.steps.length > 0 || streamState.activity.length > 0) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId
+                ? {
+                    ...m,
+                    streaming: false,
+                    model: streamState.model,
+                    skills: streamState.skills.length > 0 ? streamState.skills : undefined,
+                    thinking: streamState.thinking || undefined,
+                    segments: streamState.segments.length > 0 ? streamState.segments : undefined,
+                    ...(streamState.steps.length > 0 ? { steps: streamState.steps } : {}),
+                    ...(streamState.activity.length > 0 ? { activity: streamState.activity } : {}),
+                  }
+                : m
+            )
+          );
+        } else {
+          setMessages((prev) => prev.filter((m) => m.id !== assistantId && m.id !== userMsg.id));
+        }
       } finally {
         setIsStreaming(false);
         setStartedAt(null);
@@ -903,7 +938,7 @@ export default function Chat() {
                 <Button size="icon" variant="outline" onClick={exportThread} disabled={messages.length === 0} aria-label="Export conversation" title="Export conversation"><SutaeruIcon name="download" className="h-5 w-5" /></Button>
                 {isStreaming && <Button variant="outline" className="sutaeru-stop-run" onClick={stopRun}>Stop run</Button>}
               </div>
-              {mobileDetailsOpen && <div className="sutaeru-mobile-details"><strong>Run details</strong><p>{isStreaming ? currentStep || "Thinking…" : error ? "Run failed" : "No active run"}</p>{agentSteps.map(step => <p key={step.id}>{step.label}</p>)}{sources.length > 0 && <div className="sutaeru-inline-sources"><strong>Sources</strong>{sources.map((source, index) => <a key={`${source.url}-${index}`} href={source.url} target="_blank" rel="noreferrer"><span>{index + 1}. {source.title}</span><ExternalLink size={14} /></a>)}</div>}</div>}
+              {mobileDetailsOpen && <div className="sutaeru-mobile-details"><strong>Run details</strong><p>{isStreaming ? currentStep || "Thinking…" : error ? "Run failed" : "No active run"}</p>{agentSteps.map(step => <p key={step.id}>{stepStatusPrefix(step)} {step.label}</p>)}{sources.length > 0 && <div className="sutaeru-inline-sources"><strong>Sources</strong>{sources.map((source, index) => <a key={`${source.url}-${index}`} href={source.url} target="_blank" rel="noreferrer"><span>{index + 1}. {source.title}</span><ExternalLink size={14} /></a>)}</div>}</div>}
               <div className="sutaeru-run-composer">
               <div className="sutaeru-composer-row mx-auto flex max-w-2xl items-center gap-2">
                 <div className="flex-1 min-w-0">
