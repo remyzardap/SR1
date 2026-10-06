@@ -42,6 +42,7 @@ vi.mock("./mcp/client", () => mcp);
 vi.mock("../services/google", () => google);
 
 import { kemmaExecute, type EngineInput, type EngineOutput } from "./engine";
+import { unwrapUntrustedContent } from "./untrusted";
 
 // ── env handling ─────────────────────────────────────────────────────────────
 const ENV_NAMES = [
@@ -423,7 +424,11 @@ describe("tool-call loop with web_search", () => {
     const toolMsg = net.calls[1].body.messages.find((m: any) => m.role === "tool");
     expect(toolMsg.tool_call_id).toBe("tc1");
     expect(toolMsg.name).toBe("web_search");
-    const parsed = JSON.parse(toolMsg.content);
+    expect(toolMsg.content).toMatch(/^<untrusted_content/);
+    const unwrapped = unwrapUntrustedContent(toolMsg.content);
+    expect(unwrapped.isFenced).toBe(true);
+    expect(unwrapped.tool).toBe("web_search");
+    const parsed = JSON.parse(unwrapped.content);
     expect(parsed.success).toBe(true);
     expect(parsed.data.map((d: any) => d.id)).toEqual([1, 2]);
     const assistantMsg = net.calls[1].body.messages.find((m: any) => m.role === "assistant" && m.tool_calls);
