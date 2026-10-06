@@ -7,7 +7,7 @@
 #     (default remyzardap,claude[bot]); a name ending in [bot] only matches a GitHub App bot, never a person
 #   - its body has these lines (anything else in the body is ignored):
 #       agent: qwen | agy | kimi | opencode
-#       mode:  build | fix | review | task
+#       mode:  build | fix | review | task | ask | push
 #       wp:    P1-03                (not for task: a task's id is T-<issue number>; fix/review take T-ids)
 #       slug:  streaming            (build and task)
 #       title: Stream every turn    (build and task)
@@ -124,7 +124,7 @@ tick() {
     agent=$(field agent "$body"); mode=$(field mode "$body"); wp=$(field wp "$body")
     slug=$(field slug "$body");   title=$(field title "$body")
     [[ $agent =~ ^(qwen|agy|kimi|opencode)$ ]] || { reject "$n" "agent must be qwen, agy, kimi or opencode"; continue; }
-    [[ $mode =~ ^(build|fix|review|task|ask)$ ]] || { reject "$n" "mode must be build, fix, review, task or ask"; continue; }
+    [[ $mode =~ ^(build|fix|review|task|ask|push)$ ]] || { reject "$n" "mode must be build, fix, review, task, ask or push"; continue; }
     ref=$(field ref "$body"); ref=${ref:-develop}
     [[ $ref =~ ^[A-Za-z0-9._/-]{1,100}$ ]] || { reject "$n" "ref must be a branch name"; continue; }
     if [[ $mode == task || $mode == ask ]]; then
