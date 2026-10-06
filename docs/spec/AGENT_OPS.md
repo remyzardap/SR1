@@ -137,7 +137,9 @@ to <logdir>/<WP>.pr.md. If the spec is wrong or impossible, write that to the sa
 
 Claude's cloud sessions can't reach the VPS, but they can open GitHub issues. The watcher
 (`ops/agents/watch.sh`, installed in §3 step 6) checks every 60 s for open issues that are labelled
-`agent-task` **and opened by `remyzardap`**, and runs each one with `dispatch.sh`. Anyone else's issues are ignored.
+`agent-task` **and opened by `remyzardap` or the Claude GitHub App (`claude[bot]`)**, and runs each one with
+`dispatch.sh`. Anyone else's issues are ignored, including a person whose username happens to be `claude`.
+The list is `OWNER_LOGIN` in the service (re-run `install.sh` with `OWNER_LOGIN=a,b[bot]` to change it).
 
 Issue body format (other text in the body is ignored, so Claude adds context above it):
 

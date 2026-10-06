@@ -3,7 +3,8 @@
 # kimi and agy by opening an issue. Playbook: docs/spec/AGENT_OPS.md §4.5. Run as the `agents` user.
 #
 # An issue is a task only if ALL of these hold:
-#   - it is open, labelled `agent-task`, and opened by OWNER_LOGIN (default remyzardap)
+#   - it is open, labelled `agent-task`, and opened by one of OWNER_LOGIN, a comma-separated list
+#     (default remyzardap,claude[bot]); a name ending in [bot] only matches a GitHub App bot, never a person
 #   - its body has these lines (anything else in the body is ignored):
 #       agent: kimi | agy
 #       mode:  build | fix | review | task
@@ -16,7 +17,7 @@
 set -uo pipefail
 
 REPO_SLUG="${REPO_SLUG:-remyzardap/SR1}"
-OWNER_LOGIN="${OWNER_LOGIN:-remyzardap}"
+OWNER_LOGIN="${OWNER_LOGIN:-remyzardap,claude[bot]}"
 DISPATCH="${DISPATCH:-$HOME/dispatch.sh}"
 LOGDIR="${AGENTS_LOGS:-$HOME/agent-logs}"
 MAX_AGENTS="${MAX_AGENTS:-2}"
@@ -25,6 +26,20 @@ INTERVAL="${WATCH_INTERVAL:-60}"
 log() { echo "[$(date '+%F %T')] $*"; }
 [[ $EUID -ne 0 ]] || { echo "refusing to run as root" >&2; exit 1; }
 mkdir -p "$LOGDIR/running" "$LOGDIR/tasks"
+
+# OWNER_LOGIN as a jq array literal; names are checked so nothing odd reaches the jq program
+ALLOW_JSON=""
+IFS=, read -ra _owners <<<"$OWNER_LOGIN"
+for o in "${_owners[@]}"; do
+  o="${o// /}"; [[ -n $o ]] || continue
+  [[ $o =~ ^[A-Za-z0-9-]+(\[bot\])?$ ]] || { echo "bad name in OWNER_LOGIN: $o" >&2; exit 1; }
+  ALLOW_JSON+="${ALLOW_JSON:+,}\"$o\""
+done
+[[ -n $ALLOW_JSON ]] || { echo "OWNER_LOGIN is empty" >&2; exit 1; }
+# gh reports bots as login "app/<name>" or "<name>[bot]" with is_bot true; people never match a [bot] entry
+AUTHOR_OK="(.author // {}) as \$a | ((\$a.login // \"\") | sub(\"^app/\"; \"\") | sub(\"\\\\[bot\\\\]\$\"; \"\")) as \$l
+  | any([$ALLOW_JSON][]; if endswith(\"[bot]\") then ((\$a.is_bot // false) and .[:-5] == \$l)
+                         else ((\$a.is_bot // false) | not) and . == \$l end)"
 
 ensure_labels() {
   gh label create agent-task    --repo "$REPO_SLUG" --color 1D76DB --description "Task for kimi/agy on the VPS" --force >/dev/null
@@ -80,9 +95,9 @@ tick() {
   local free issues n body agent mode wp slug title
   free=$(( MAX_AGENTS - $(running_count) ))
   (( free > 0 )) || return 0
-  issues=$(gh issue list --repo "$REPO_SLUG" --state open --label agent-task --author "$OWNER_LOGIN" \
-    --limit 20 --json number,labels \
-    --jq '[.[] | select([.labels[].name] | index("agent-running") or index("agent-done") or index("agent-failed") | not)] | sort_by(.number) | .[].number') \
+  issues=$(gh issue list --repo "$REPO_SLUG" --state open --label agent-task \
+    --limit 50 --json number,labels,author \
+    --jq "[.[] | select($AUTHOR_OK) | select([.labels[].name] | index(\"agent-running\") or index(\"agent-done\") or index(\"agent-failed\") | not)] | sort_by(.number) | .[].number") \
     || { log "gh issue list failed"; return 0; }
   for n in $issues; do
     (( free > 0 )) || break

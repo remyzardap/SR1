@@ -8,12 +8,13 @@
 # It asks once for a fine-grained GitHub token (this repo only; Contents + Pull requests + Issues: read/write),
 # unless GH_TOKEN is set or the agents user is already signed in to gh.
 # Options (env): AGENTS_USER=agents  REPO_SLUG=remyzardap/SR1  SCRIPTS_REF=<branch the scripts come from>
+#                OWNER_LOGIN=remyzardap,claude[bot]  (comma list of who may open tasks; [bot] names match only bots)
 set -euo pipefail
 
 AGENTS_USER="${AGENTS_USER:-agents}"
 REPO_SLUG="${REPO_SLUG:-remyzardap/SR1}"
 SCRIPTS_REF="${SCRIPTS_REF:-main}"
-OWNER_LOGIN="${OWNER_LOGIN:-${REPO_SLUG%%/*}}"
+OWNER_LOGIN="${OWNER_LOGIN:-${REPO_SLUG%%/*},claude[bot]}"   # who may open agent-task issues
 BIN_DIR=/opt/sutaeru-agents          # root-owned, so an agent can't rewrite its own gate
 UNIT=/etc/systemd/system/sutaeru-agents.service
 
