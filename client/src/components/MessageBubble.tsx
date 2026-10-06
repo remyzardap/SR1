@@ -140,12 +140,10 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
             const headerState = toolState(tool, isRunning);
             const duration = typeof tool.durationMs === "number" ? formatDuration(tool.durationMs) : undefined;
             const headerTitle = duration ? (
-              (
-                <>
-                  {tool.label}
-                  <span className="text-muted-foreground font-normal ml-1.5">{duration}</span>
-                </>
-              ) as unknown as string
+              <>
+                {tool.label}
+                <span className="text-muted-foreground font-normal ml-1.5">{duration}</span>
+              </>
             ) : (
               tool.label
             );

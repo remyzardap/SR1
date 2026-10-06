@@ -625,26 +625,8 @@ export default function Chat() {
         }
         const errMsg = err instanceof TypeError ? "Couldn't reach Sutaeru. Check your connection and retry." : raw || "Something went wrong. Please retry.";
         setError(errMsg);
-        if (streamState.content || streamState.steps.length > 0 || streamState.activity.length > 0) {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantId
-                ? {
-                    ...m,
-                    streaming: false,
-                    model: streamState.model,
-                    skills: streamState.skills.length > 0 ? streamState.skills : undefined,
-                    thinking: streamState.thinking || undefined,
-                    segments: streamState.segments.length > 0 ? streamState.segments : undefined,
-                    ...(streamState.steps.length > 0 ? { steps: streamState.steps } : {}),
-                    ...(streamState.activity.length > 0 ? { activity: streamState.activity } : {}),
-                  }
-                : m
-            )
-          );
-        } else {
-          setMessages((prev) => prev.filter((m) => m.id !== assistantId && m.id !== userMsg.id));
-        }
+        // Unchanged on purpose: Retry re-sends the question as a new message, so the failed pair is removed.
+        setMessages((prev) => prev.filter((m) => m.id !== assistantId && m.id !== userMsg.id));
       } finally {
         setIsStreaming(false);
         setStartedAt(null);
