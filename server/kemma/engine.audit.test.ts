@@ -404,13 +404,26 @@ describe("tool-call loop with web_search", () => {
     expect(output.toolCalls).toHaveLength(1);
     expect(output.toolCalls[0]).toMatchObject({ tool: "web_search", step: 1, input: { query: "best routers" } });
 
-    // Only the cited source survives, renumbered, and a Sources section is appended.
+    // Only the cited source survives (stable id); in streaming mode the Sources card is not appended (P1-07).
     expect(output.sources).toHaveLength(1);
     expect(output.sources[0]).toMatchObject({ id: 1, url: "https://a.example", title: "Alpha" });
-    expect(output.response).toBe("Sunny day [1].\n\nSources:\n[1] Alpha: https://a.example");
+    expect(output.response).toBe("Sunny day [1].");
     // The streamed text is the pre-citation content (the Sources card is not re-streamed).
     expect(onStream).toHaveBeenCalledTimes(1);
     expect(onStream).toHaveBeenCalledWith("Sunny day [1].");
+  });
+
+  it("non-streamed callers get the appended Sources list", async () => {
+    registryMock.runTool.mockResolvedValue({ ok: true, data: searchResults });
+    stubFetch((i) =>
+      i === 0
+        ? jsonRes(completion(null, { toolCalls: [toolCall] }))
+        : jsonRes(completion("Sunny day [1].")));
+    const output = await kemmaExecute(baseInput()); // no onStream
+
+    expect(output.sources).toHaveLength(1);
+    expect(output.sources[0]).toMatchObject({ id: 1, url: "https://a.example", title: "Alpha" });
+    expect(output.response).toBe("Sunny day [1].\n\nSources:\n[1] Alpha: https://a.example");
   });
 
   it("annotates the web_search tool message with global source ids for the model", async () => {
