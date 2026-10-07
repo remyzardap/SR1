@@ -1,5 +1,5 @@
 import {
-  and, desc, eq, gte, inArray, lte, sql
+  and, desc, eq, gte, inArray, isNull, lte, sql
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import {
@@ -118,6 +118,101 @@ export async function getAllUsers() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(users).orderBy(desc(users.createdAt));
+}
+
+// ─── Admin-managed accounts ──────────────────────────────────────────────────
+// Callers pass a bcrypt hash, never a password. These helpers are the only writers of
+// mustChangePassword / disabledAt so the admin surface stays a subset of the row.
+
+export async function createManagedUser(input: {
+  openId: string;
+  email: string;
+  name: string | null;
+  passwordHash: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const now = new Date();
+  const [row] = await db
+    .insert(users)
+    .values({
+      openId: input.openId,
+      email: input.email,
+      name: input.name,
+      loginMethod: "local",
+      role: "user",
+      passwordHash: input.passwordHash,
+      mustChangePassword: true,
+      createdAt: now,
+      updatedAt: now,
+      lastSignedIn: now,
+    })
+    .returning();
+  return row;
+}
+
+// Explicit projection on purpose: passwordHash and totpSecret live on this same row and must
+// never leave it. (getAllUsersWithStats below does select-all and is the counter-example.)
+export async function listManagedUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt,
+      lastSignedIn: users.lastSignedIn,
+      mustChangePassword: users.mustChangePassword,
+      disabledAt: users.disabledAt,
+    })
+    .from(users)
+    .orderBy(desc(users.createdAt));
+}
+
+// Emails are stored verbatim (OAuth rows are not normalised) and the column has no unique
+// index, so a create has to check for an existing account case-insensitively first.
+export async function getUserByEmailIgnoreCase(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(sql`lower(${users.email}) = lower(${email})`)
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+// A new hash and the flag that forces its replacement must land in the same write: two
+// statements would let a client see a fresh one-time password that is still usable forever.
+export async function updateUserPassword(userId: number, passwordHash: string, mustChangePassword: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(users)
+    .set({ passwordHash, mustChangePassword, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+}
+
+export async function setUserDisabledAt(userId: number, disabledAt: Date | null) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(users)
+    .set({ disabledAt, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+}
+
+// Guards against switching off the last admin who can still sign in.
+export async function countActiveAdmins() {
+  const db = await getDb();
+  if (!db) return 0;
+  const [row] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(users)
+    .where(and(eq(users.role, "admin"), isNull(users.disabledAt)));
+  return Number(row?.count ?? 0);
 }
 
 // ─── Files ────────────────────────────────────────────────────────────────────

@@ -522,6 +522,8 @@ CREATE TABLE IF NOT EXISTS "users" (
 	"emailVerified" boolean DEFAULT false NOT NULL,
 	"totpSecret" varchar(255),
 	"totpEnabled" boolean DEFAULT false NOT NULL,
+	"mustChangePassword" boolean DEFAULT false NOT NULL,
+	"disabledAt" timestamp,
 	CONSTRAINT "users_openId_unique" UNIQUE("openId")
 );
 --> statement-breakpoint

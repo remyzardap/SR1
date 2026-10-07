@@ -1,4 +1,4 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { COOKIE_NAME, DISABLED_LOGIN_MESSAGE, ONE_YEAR_MS } from "@shared/const";
 import { ForbiddenError } from "@shared/_core/errors";
 import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express";
@@ -118,6 +118,16 @@ class SDKServer {
 
     if (!user) {
       throw ForbiddenError("User not found");
+    }
+
+    // A session that was issued before an administrator switched this account off stops working
+    // here, on its very next request. This is the one place every request type passes through -
+    // the tRPC context, requireSession, the file/export routes and the WebSocket upgrade - so the
+    // revocation cannot be dodged by calling an endpoint that is not a tRPC procedure. The
+    // lastSignedIn touch below is skipped deliberately: a switched-off account must not keep
+    // looking active in the administrator's list.
+    if (user.disabledAt) {
+      throw ForbiddenError(DISABLED_LOGIN_MESSAGE);
     }
 
     await db.upsertUser({
