@@ -1,7 +1,8 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
-import { identities } from "../drizzle/schema";
+import { AuditActions, identities } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { getDb } from "./db";
+import { logAuditEvent } from "./middleware/audit-logging";
 import speakeasy from "speakeasy";
 import qrcode from "qrcode";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -56,6 +57,7 @@ import {
   getEmailVerificationToken,
   deleteEmailVerificationToken,
   markEmailVerified,
+  updateUserPassword,
   listChatSessions,
   getChatSessionMessages,
   createChatSession,
@@ -225,7 +227,9 @@ export const appRouter = router({
         const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name || "", expiresInMs: ONE_YEAR_MS });
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-        return { success: true, token: sessionToken } as const;
+        // The client needs the lock flag to know it must send the user to a change-password
+        // screen; anything else it tries is refused with the same message (see _core/trpc.ts).
+        return { success: true, token: sessionToken, mustChangePassword: !!user.mustChangePassword } as const;
       }),
     requestPasswordReset: publicProcedure
       .input(z.object({ email: z.string().email() }))
@@ -270,6 +274,51 @@ export const appRouter = router({
         await setUserPasswordHash(user.openId, passwordHash);
         await deletePasswordResetToken(input.token);
         return { success: true };
+      }),
+
+    // The way out of the change-password lock. It has to work for an account whose password is
+    // still the one an administrator pasted into chat, so it is rate-limited like the login path
+    // and is the only procedure the lock in _core/trpc.ts lets through.
+    changePassword: protectedProcedure
+      .input(z.object({
+        currentPassword: z.string().min(1),
+        newPassword: z.string().min(10, "Use at least 10 characters.").max(128),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        rateLimitAuth(`change-password:${getClientIp(ctx.req)}`);
+        // Read the row again instead of trusting the session copy: the current hash and the lock
+        // flag are exactly the things an administrator may have changed since this token was issued.
+        const user = await getUserById(ctx.user.id);
+        if (!user) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
+        }
+        if (!user.passwordHash) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "This sign-in method has no password to change. Use the password reset link instead.",
+          });
+        }
+        const valid = await bcrypt.compare(input.currentPassword, user.passwordHash);
+        if (!valid) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Current password is incorrect." });
+        }
+        // Only compared once the current password is known to be right, so a wrong guess cannot
+        // learn anything about the stored one.
+        if (input.newPassword === input.currentPassword) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "The new password must be different from the current password." });
+        }
+        const passwordHash = await bcrypt.hash(input.newPassword, 12);
+        // One write: the new hash and clearing the lock land together, so there is no window where
+        // the old password is gone but the lock is still on.
+        await updateUserPassword(user.id, passwordHash, false);
+        await logAuditEvent({
+          userId: String(user.id),
+          action: AuditActions.USER_PASSWORD_CHANGE,
+          resourceType: "user",
+          resourceId: String(user.id),
+          changes: { mustChangePassword: false },
+        });
+        return { success: true } as const;
       }),
 
     // ─── 2FA / TOTP ────────────────────────────────────────────────────────
@@ -342,7 +391,7 @@ export const appRouter = router({
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
         // The token is returned as well as set on the cookie, so the client can store it
         // exactly like the password path does (auth.login) instead of going cookie-only.
-        return { success: true, token: sessionToken } as const;
+        return { success: true, token: sessionToken, mustChangePassword: !!user.mustChangePassword } as const;
       }),
 
     check2faRequired: publicProcedure
