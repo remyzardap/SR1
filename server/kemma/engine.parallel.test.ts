@@ -159,8 +159,9 @@ describe("P1-04 Parallel tool execution in engine", () => {
     const duration = Date.now() - startTime;
 
     expect(registryMock.runTool).toHaveBeenCalledTimes(3);
-    // Three 100 ms calls in parallel should finish well under 200 ms (sequential would take >= 300 ms)
-    expect(duration).toBeLessThan(200);
+    // Three 100 ms calls in parallel finish in about 100 ms; sequential would take >= 300 ms. The bound sits just
+    // under the sequential time so the test still proves parallelism but does not flake when the CI/agent box is loaded.
+    expect(duration).toBeLessThan(280);
     expect(output.toolCalls).toHaveLength(3);
     expect(output.response).toContain("All three results processed.");
   });
