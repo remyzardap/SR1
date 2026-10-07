@@ -157,9 +157,9 @@ export interface SandboxFsEntry {
 }
 
 export interface MinimalSandboxFiles {
-  list(path: string): Promise<SandboxFsEntry[]>;
-  read(path: string, opts?: { format?: "bytes" | "text" }): Promise<Uint8Array | string>;
-  write?(path: string, data: Uint8Array | Buffer | string): Promise<unknown>;
+  list(path: string): Promise<SandboxFsEntry[] | any[]>;
+  read(path: string, opts?: { format?: "bytes" | "text" }): Promise<Uint8Array | string | any>;
+  write?(path: string, data: any): Promise<unknown>;
 }
 
 export interface CollectOutputsOptions {
@@ -434,7 +434,10 @@ export async function uploadSessionFiles(
     try {
       const data = await adapter.get(row.storage_key);
       if (sbxFiles.write) {
-        await sbxFiles.write(`/home/user/data/${row.filename}`, data);
+        const payload = Buffer.isBuffer(data)
+          ? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
+          : data;
+        await sbxFiles.write(`/home/user/data/${row.filename}`, payload as any);
         uploadedCount++;
       }
     } catch (err) {
