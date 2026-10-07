@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useState } from "react";
 
 import { FocusBrackets } from "@/components/art/FocusBrackets";
 import type { AgentPlan, AgentSelection, AgentNotice, AgentDepthId, AgentOutputId, AgentSourceId } from "@/lib/agentBuilder";
@@ -53,6 +54,7 @@ export function AgentScreen({
 }: AgentScreenProps) {
   const submitting = status === "submitting";
   const invalid = notice?.kind === "validation";
+  const [briefFocused, setBriefFocused] = useState(false);
 
   return (
     <section className="view view-enter wide">
@@ -80,9 +82,12 @@ export function AgentScreen({
               aria-invalid={invalid || undefined}
               aria-describedby={invalid ? BRIEF_ERROR_ID : undefined}
               disabled={submitting}
+              onFocus={() => setBriefFocused(true)}
+              onBlur={() => setBriefFocused(false)}
               onChange={(e) => onBrief(e.target.value)}
             />
-            {invalid && <FocusBrackets className="show alert" />}
+            {/* The textarea cannot carry an outline of its own (.brief textarea sets outline: 0). */}
+            {(briefFocused || invalid) && <FocusBrackets className={invalid ? "show alert" : "show"} />}
           </div>
 
           <DepthPicker

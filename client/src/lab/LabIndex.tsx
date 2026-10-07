@@ -39,6 +39,16 @@ export default function LabIndex() {
             HalftoneRamp, ConvergeBar, LinearDitherBar, SteppedMeter, Toggle, Chip, FocusBrackets, Sheet.
           </p>
         </Link>
+        <Link
+          href="/__lab/agent"
+          className="card"
+          style={{ padding: 24, textDecoration: "none", color: "inherit", borderRadius: 20, display: "block" }}
+        >
+          <b style={{ font: "700 18px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Agent — task builder</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 14 }}>
+            Every output card, the plan redrawing, validation, insufficient credits and the submitting draft.
+          </p>
+        </Link>
       </div>
     </LabLayout>
   );

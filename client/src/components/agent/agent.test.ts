@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { Router } from "wouter";
 
 import { DocMini } from "@/components/DocMini";
 import { DEFAULT_SHOT, compose, photoTile } from "@/lib/studio";
+import { AGENT_LAB_STATES } from "@/lab/fixtures/agent";
+import LabAgent from "@/lab/LabAgent";
 import { planFor, BRIEF_SAMPLES, IMAGE_BRIEF, CREDITS_MESSAGE, BLANK_BRIEF_MESSAGE, AGENT_DEFAULTS, type AgentSelection, type AgentNotice } from "@/lib/agentBuilder";
 import { AgentBuilder } from "./AgentBuilder";
 import { AgentGoBar } from "./AgentGoBar";
@@ -328,5 +331,50 @@ describe("AgentBuilder container", () => {
     expect(html).toContain(BRIEF_SAMPLES.report.brief);
     expect(html).toContain("Report · Standard · Web, My files");
     expect(html).toContain(">Start");
+  });
+});
+
+describe("Design lab fixtures", () => {
+  it("render every state the reviewer has to check", () => {
+    expect(AGENT_LAB_STATES.map((s) => s.id)).toEqual([
+      "report",
+      "deck",
+      "sheet",
+      "image",
+      "brief",
+      "monitor",
+      "deep",
+      "no-sources",
+      "redraw",
+      "validation",
+      "credits",
+      "submitting",
+    ]);
+    for (const state of AGENT_LAB_STATES) {
+      const html = screenMarkup({
+        agent: state.agent,
+        plan: planFor(state.agent.out, state.agent.depth),
+        status: state.status,
+        notice: state.notice,
+        redrawing: state.redrawing,
+      });
+      expect(html, state.id).toContain('class="go-bar"');
+      expect(html, state.id).toContain(`class="out is-on"`);
+    }
+  });
+
+  it("the lab route renders the fixed state and the live one", () => {
+    const fixed = renderToStaticMarkup(
+      React.createElement(Router, { ssrPath: "/__lab/agent?state=sheet" }, React.createElement(LabAgent))
+    );
+    expect(fixed).toContain("Agent — task builder");
+    expect(fixed).toContain("Villa BOQ and budget");
+    expect(fixed).toContain("Spreadsheet miniature");
+
+    const live = renderToStaticMarkup(
+      React.createElement(Router, { ssrPath: "/__lab/agent?state=live" }, React.createElement(LabAgent))
+    );
+    expect(live).toContain("sessionStorage");
+    expect(live).toContain('class="go-bar"');
   });
 });
