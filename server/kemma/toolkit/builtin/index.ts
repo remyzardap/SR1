@@ -12,6 +12,8 @@ import { registerPhoneScan } from "./phoneScan";
 import { registerDriveTools } from "./drive";
 import { registerSkillTools } from "./skills";
 import { registerVpsFiles } from "./vpsFiles";
+import { registerEmailTools } from "./email";
+import { flag } from "../../../core/flags";
 
 let registered = false;
 
@@ -27,6 +29,12 @@ export function registerBuiltinTools(): void {
   registerDriveTools();
   registerSkillTools();
   registerVpsFiles();
+  // P1-12: these are registered only while ACTION_TOOLS is on. Registering nothing is the strongest
+  // form of the flag — a name that is not in the registry cannot be offered, however a caller sets
+  // its `allowedTools`.
+  if (flag("ACTION_TOOLS")) {
+    registerEmailTools();
+  }
   // Last: it is gated on flag("CONTEXT_MANAGER"), so the default tool list is unaffected.
   registerReadResult();
 }
