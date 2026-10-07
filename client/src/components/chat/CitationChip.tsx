@@ -2,6 +2,7 @@ import type { MouseEvent, ReactNode } from "react";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { CitationChipProps } from "@/lib/citations";
+import { prefersReducedMotion } from "@/components/art/useMotion";
 
 /**
  * An inline `[n]` citation, rendered by Streamdown from the `<citationchip>` nodes that
@@ -23,7 +24,7 @@ export function CitationChip({
     // Modifier keys keep the browser's own behaviour (open in a new tab).
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
     event.preventDefault();
-    document.getElementById(anchor)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById(anchor)?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
   };
 
   return (

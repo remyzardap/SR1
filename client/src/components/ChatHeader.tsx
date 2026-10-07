@@ -68,7 +68,7 @@ export function ChatHeader({
   return (
     <>
        <div
-         className="sutaeru-chat-header flex-none px-3 sm:px-5 py-3 flex items-center justify-between gap-3 min-w-0"
+         className="sutaeru-chat-header flex-none px-3 sm:px-5 py-3 flex items-center justify-between gap-3 min-w-0 safe-area-top"
         style={{
           background: "rgba(255,255,255,0.55)",
           backdropFilter: "blur(28px)",

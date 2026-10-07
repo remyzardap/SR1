@@ -33,6 +33,8 @@ import { IntelligenceProvider } from "./_core/hooks/useSutaeruIntelligence";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { captureInviteFromWindow } from "./lib/inviteCapture";
+import { SWUpdateHandler } from "./components/SWUpdateHandler";
+import { InstallPrompt } from "./components/InstallPrompt";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, loading } = useAuth();
@@ -239,6 +241,8 @@ function App() {
           <IntelligenceProvider>
             <TooltipProvider>
               <Toaster richColors position="top-right" />
+              <SWUpdateHandler />
+              <InstallPrompt />
               <AppRoutes />
               {/* The greeting is a sibling of the router, not a route: a new person can be
                   redirected to any page after signing in, and must be greeted regardless. */}

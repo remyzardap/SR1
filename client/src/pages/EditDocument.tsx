@@ -4,6 +4,7 @@ import { SutaeruIcon } from "@/components/SutaeruIcon";
 import { ConvergeBar, FocusBrackets } from "@/components/art";
 import { useTimedProgress } from "@/hooks/useTimedProgress";
 import { PageTitle } from "@/components/chrome/PageTitle";
+import { prefersReducedMotion } from "@/components/art/useMotion";
 import "@/styles/documents-start.css";
 import "@/styles/atelier-reskin.css";
 import "@/styles/edit-document.css";
@@ -320,7 +321,7 @@ export default function EditDocument({ embedded = false, onBack }: EditDocumentP
   // Auto-scroll progress card into view when generation starts
   useEffect(() => {
     if (isStarted && progressCardRef.current) {
-      progressCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      progressCardRef.current.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
     }
   }, [isStarted]);
 

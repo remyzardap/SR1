@@ -16,6 +16,7 @@ import { Search, LayoutDashboard, MessageSquare, Zap, FolderOpen, Layers, Rss, L
 import { Brain, Sparkles } from "@/components/brandIcons";
 import { F, FM, MOCHA, AMBER, TEXT_PRIMARY, TEXT_MUTED, TEXT_SOFT } from "@/lib/design";
 import type { BlockData } from "@/components/Block";
+import { prefersReducedMotion } from "@/components/art/useMotion";
 
 // ─── Navigation Items ─────────────────────────────────────────────────────────
 
@@ -276,7 +277,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     
     const selectedEl = container.querySelector(`[data-index="${selected}"]`);
     if (selectedEl) {
-      selectedEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      selectedEl.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
     }
   }, [selected]);
 

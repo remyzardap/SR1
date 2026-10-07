@@ -20,6 +20,7 @@ import { callFunction } from "@/lib/kemmaCloud";
 import { AttachMenu } from "@/components/AttachMenu";
 import { FocusBrackets } from "@/components/art";
 import { useOnline } from "@/hooks/useAppearance";
+import { beginStream, type StreamHandle } from "@/lib/activeStreams";
 import { CodeAccessBar, CodeThreadView, rememberCodeSession, storedCodeSession, useCodeThread, type CodeAccess } from "@/components/CodeThread";
 import { MAX_FILES, attachmentName, type Attachment } from "@/lib/attachments";
 import { NEON_PAGE_BG, NOISE_OVERLAY, NEON, NEON_FD, NEON_FM } from "@/lib/design";
@@ -221,6 +222,10 @@ export default function Chat() {
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // The run currently in flight. Held in a ref so both the `finally` of
+  // handleSend and the Stop button can release it; closing twice is harmless
+  // because a stream handle ignores repeat calls.
+  const streamRef = useRef<StreamHandle | null>(null);
   const messagesRef = useRef<Message[]>([]);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
   const createMemoryMutation = trpc.memories.create.useMutation();
@@ -405,8 +410,14 @@ export default function Chat() {
           toast.error("Enter the 6-digit authenticator code for full access.");
           return;
         }
-        const ok = await code.send(messageText, { access: codeAccess, totp: codeTotp, attachments: sent });
-        if (ok) { setInput(""); setAttachments([]); setCodeTotp(""); }
+        const stream = beginStream("code-run");
+        streamRef.current = stream;
+        try {
+          const ok = await code.send(messageText, { access: codeAccess, totp: codeTotp, attachments: sent });
+          if (ok) { setInput(""); setAttachments([]); setCodeTotp(""); }
+        } finally {
+          stream.end();
+        }
         return;
       }
 
@@ -450,6 +461,10 @@ export default function Chat() {
       }
 
       const assistantId = crypto.randomUUID();
+      // Opened after the plan-card shortcut, which returns without streaming, and
+      // before the try below - its finally is what releases this handle.
+      const stream = beginStream("answer");
+      streamRef.current = stream;
       setMessages((prev) => [
         ...prev,
         {
@@ -644,6 +659,10 @@ export default function Chat() {
         setIsStreaming(false);
         setStartedAt(null);
         setCurrentStep("");
+        // Every exit lands here - finished answer, Stop, the offline queueing
+        // branch, a failed request - so this is what releases the pending update.
+        stream.end();
+        if (streamRef.current === stream) streamRef.current = null;
       }
     },
     [input, isStreaming, messages, sessionId, mode, messageModel, taggedSkills, attachments, isCode, code, codeAccess, codeTotp]
@@ -669,6 +688,10 @@ export default function Chat() {
     setStartedAt(null);
     setCurrentStep("");
     setMessages((prev) => prev.map((m) => m.streaming ? { ...m, streaming: false } : m));
+    // Stop is the user's intent, so the update guard is released here rather than
+    // waiting for the aborted fetch to unwind. handleSend's finally ends the same
+    // handle afterwards; a second end() is a no-op, unlike the old double decrement.
+    streamRef.current?.end();
   };
 
   const exportThread = useCallback(() => {
