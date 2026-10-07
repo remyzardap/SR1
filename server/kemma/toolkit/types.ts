@@ -20,12 +20,35 @@ export type ToolRisk = "read" | "write" | "destructive";
 import type { EngineEvent } from "../events";
 export type { EngineEvent };
 
+export type ApprovalDecision = "approved" | "rejected" | "expired" | "cancelled";
+
+export interface ApprovalRequestParams {
+  tool: string;
+  risk: ToolRisk;
+  args: unknown;
+  preview?: unknown;
+  targetRef?: string;
+  targetRevision?: string;
+}
+
+export interface ApprovalRequestOutcome {
+  decision: "approved" | "rejected" | "expired";
+  args: any;
+  approvalId: string;
+}
+
 /**
- * Placeholder for the human-in-the-loop gate P1-11 wires up. A ToolSpec may read
- * `requiresApproval` and thread it through today; nothing enforces it until P1-11 lands.
+ * Human-in-the-loop gate P1-11 wires up. Write tools acting outside Sutaeru
+ * wait for the user's okay before execution.
  */
 export interface ApprovalGate {
-  request: (toolName: string, args: unknown) => Promise<boolean>;
+  /**
+   * One shape for everything (P1-11): the caller proposes, the gate returns the decision plus the
+   * approval id that later state transitions and audit rows are keyed on. There is deliberately no
+   * `(name, args) => boolean` overload — a bare yes/no cannot carry an approval id, so an approved
+   * action could never be claimed, recorded or replayed.
+   */
+  request(params: ApprovalRequestParams): Promise<ApprovalRequestOutcome>;
 }
 
 export interface ToolContext {
@@ -61,6 +84,12 @@ export interface ToolSpec<A extends z.ZodTypeAny = z.ZodTypeAny, R = unknown> {
   args: A;
   risk: ToolRisk;
   requiresApproval?: boolean | ((args: z.infer<A>, ctx: ToolContext) => boolean);
+  /** Human-readable preview of what will run (P1-11). */
+  preview?: (args: z.infer<A>, ctx: ToolContext) => Promise<unknown> | unknown;
+  /** Target resource reference (e.g. drive:<fileId>) for edits of existing resources (P1-11). */
+  targetRef?: (args: z.infer<A>, ctx: ToolContext) => Promise<string | undefined> | string | undefined;
+  /** Revision, etag or content hash captured at request time to prevent conflicting concurrent writes (P1-11). */
+  targetRevision?: (args: z.infer<A>, ctx: ToolContext) => Promise<string | undefined> | string | undefined;
   /** true for pure reads (search, browse, drive_read) — safe to run alongside other tools (P1-04). */
   parallelSafe: boolean;
   /** Enforced by the registry with a combined abort of `ctx.signal` and a per-call timer. */
@@ -74,7 +103,7 @@ export interface ToolSpec<A extends z.ZodTypeAny = z.ZodTypeAny, R = unknown> {
   execute: (args: z.infer<A>, ctx: ToolContext) => Promise<R>;
 }
 
-export type ToolOutcomeCode = "INVALID_ARGS" | "TIMEOUT" | "ABORTED" | "NOT_ALLOWED" | "FAILED" | "REJECTED";
+export type ToolOutcomeCode = "INVALID_ARGS" | "TIMEOUT" | "ABORTED" | "NOT_ALLOWED" | "FAILED" | "REJECTED" | "CONFLICT";
 
 export type ToolOutcome =
   | { ok: true; data: unknown; display?: unknown }

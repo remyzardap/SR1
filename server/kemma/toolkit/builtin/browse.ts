@@ -11,6 +11,11 @@ const BrowseArgs = z.object({
   extractImages: z.boolean().optional().describe("Extract image URLs from the page (default: false)"),
   maxLength: z.number().optional().describe("Maximum character length for extracted text (default: 10000)"),
   waitForSelector: z.string().optional().describe("CSS selector to wait for before extracting (for dynamic content)"),
+  query: z.string().optional().describe("What you're looking for on this page. When the page is long, the most relevant sections are returned instead of the whole thing."),
+  interactive: z.boolean().optional().describe("Use a real browser to render the page (slower). Only set this when the page needs JavaScript or a login/click to show its content."),
+  // `max_chars` is the reader's cap (P1-09 spec schema); `maxLength` above stays the knob the
+  // browser-use path understands, so `max_chars` wins when both are given.
+  max_chars: z.number().optional().describe("Maximum characters of page content to return (default: 10000)"),
 });
 
 async function execute(args: z.infer<typeof BrowseArgs>, ctx: ToolContext): Promise<LegacyToolResult> {
@@ -20,9 +25,12 @@ async function execute(args: z.infer<typeof BrowseArgs>, ctx: ToolContext): Prom
       extractText: args.extractText,
       extractLinks: args.extractLinks,
       extractImages: args.extractImages,
-      maxLength: args.maxLength,
+      maxLength: args.max_chars ?? args.maxLength,
       waitForSelector: args.waitForSelector,
       signal: ctx.signal,
+      query: args.query,
+      interactive: args.interactive,
+      userId: ctx.userId,
     }),
   );
 }

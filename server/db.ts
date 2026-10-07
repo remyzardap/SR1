@@ -881,6 +881,39 @@ export async function updateChatSessionTitle(sessionId: string, title: string) {
     .where(eq(chatSessions.id, sessionId));
 }
 
+/**
+ * The context manager's cached conversation summary (P1-13), as stored in
+ * `chat_sessions.context_cache`, or null when the session has none. Returned raw: the caller
+ * validates it, because a jsonb column can hold anything an older version wrote.
+ */
+export async function getSessionContextCache(sessionId: string): Promise<unknown> {
+  const db = await getDb();
+  if (!db) return null;
+  const { chatSessions } = await import("../drizzle/schema");
+  const rows = await db
+    .select({ contextCache: chatSessions.contextCache })
+    .from(chatSessions)
+    .where(eq(chatSessions.id, sessionId))
+    .limit(1);
+  return rows.length > 0 ? rows[0].contextCache ?? null : null;
+}
+
+/**
+ * Stores the summary so the next turn of the same chat can reuse it. Best-effort on purpose: a
+ * missing database, or a failed write, must not fail the request that just paid for the summary.
+ */
+export async function saveSessionContextCache(
+  sessionId: string,
+  entry: { prefixHash: string; upToIndex: number; summary: string; model: string; createdAt: number } | null,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const { chatSessions } = await import("../drizzle/schema");
+  await db.update(chatSessions)
+    .set({ contextCache: entry })
+    .where(eq(chatSessions.id, sessionId));
+}
+
 export async function deleteChatSession(sessionId: string, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

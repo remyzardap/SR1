@@ -1,0 +1,178 @@
+/*
+ * Invite links (T-74 / F-12): the owner's phone-first screen for making a link and
+ * sending it to someone. Shared surfaces come from pages-reskin.css; everything here
+ * is scoped under .sk-invites.
+ *
+ * Phone first: the tap targets are thumb sized (56px for Share), the link is shown in
+ * full and breaks anywhere, and the list reads as one line per link.
+ */
+
+/* ── Make a link ───────────────────────────────────────────────────────────── */
+.sk-invites .skx-inv-make {
+  display: grid;
+  gap: 14px;
+}
+.sk-invites .skx-inv-plain {
+  margin: 0;
+  color: var(--r-quiet);
+  font: 400 15px/1.5 var(--r-font-body);
+}
+.sk-invites .skx-inv-make-btn {
+  width: 100%;
+  min-height: 52px;
+  font-size: 16px;
+}
+.sk-invites .skx-inv-error {
+  margin: 0;
+  color: var(--r-alert);
+  font: 500 14px/1.45 var(--r-font-body);
+}
+.sk-invites .skx-inv-btn-icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+/* ── The link, and the one big tap that sends it ───────────────────────────── */
+.sk-invites .skx-inv-link {
+  display: grid;
+  gap: 16px;
+  animation: skxInvRise var(--r-motion) var(--r-ease-out) both;
+}
+.sk-invites .skx-inv-link-url {
+  margin: 0;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: var(--r-panel);
+  color: var(--r-ink);
+  font: 500 15px/1.5 var(--r-font-mono);
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  user-select: all;
+}
+.sk-invites .skx-inv-send {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.sk-invites .skx-inv-share {
+  min-height: 56px;
+  font-size: 17px;
+}
+.sk-invites .skx-inv-copy {
+  min-height: 52px;
+  font-size: 16px;
+}
+.sk-invites .skx-inv-note {
+  margin: 0;
+  color: var(--r-quiet);
+  font: 500 15px/1.4 var(--r-font-body);
+}
+
+/* ── Links you made ────────────────────────────────────────────────────────── */
+.sk-invites .skx-inv-list-label {
+  display: block;
+  margin: 0 0 12px;
+}
+.sk-invites .skx-inv-list {
+  padding: 8px 20px;
+}
+.sk-invites .skx-inv-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 16px 0;
+  border-top: 1px solid var(--r-stroke);
+}
+.sk-invites .skx-inv-row.is-first {
+  border-top: 0;
+}
+.sk-invites .skx-inv-row-main {
+  min-width: 0;
+}
+.sk-invites .skx-inv-row-code {
+  margin: 0;
+  color: var(--r-ink);
+  font: 500 15px/1.3 var(--r-font-mono);
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+.sk-invites .skx-inv-row-meta {
+  margin: 6px 0 0;
+  color: var(--r-ink);
+  font: 600 15px/1.4 var(--r-font-body);
+}
+.sk-invites .skx-inv-row-when {
+  margin: 4px 0 0;
+  color: var(--r-quiet);
+  font: 500 12px/1.4 var(--r-font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.sk-invites .skx-inv-row-side {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+.sk-invites .skx-inv-off {
+  min-height: 44px;
+}
+
+/* The one word an admin reads, coloured by what it means. */
+.sk-invites .skx-inv-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border: 1px solid var(--r-stroke);
+  border-radius: var(--r-radius-pill);
+  background: var(--r-card);
+  color: var(--r-ink);
+  font: 600 13px/1 var(--r-font-body);
+  white-space: nowrap;
+}
+.sk-invites .skx-inv-status[data-state="open"] {
+  border-color: color-mix(in srgb, var(--r-accent) 38%, var(--r-stroke));
+  background: color-mix(in srgb, var(--r-accent) 12%, var(--r-card));
+}
+.sk-invites .skx-inv-status[data-state="used"] {
+  background: var(--r-panel);
+  color: var(--r-quiet);
+}
+.sk-invites .skx-inv-status[data-state="expired"] {
+  border-color: color-mix(in srgb, var(--r-alert) 35%, var(--r-stroke));
+  color: var(--r-alert);
+}
+.sk-invites .skx-inv-status[data-state="switchedOff"] {
+  background: var(--r-panel);
+  color: var(--r-quiet);
+  border-style: dashed;
+}
+
+/* Wider than a phone: send buttons sit side by side, make button keeps its own line. */
+@media (min-width: 760px) {
+  .sk-invites .skx-inv-send {
+    grid-template-columns: minmax(0, 260px) auto;
+  }
+  .sk-invites .skx-inv-make-btn {
+    width: auto;
+    justify-self: start;
+  }
+}
+
+@keyframes skxInvRise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-invites .skx-inv-link {
+    animation: none;
+  }
+}
