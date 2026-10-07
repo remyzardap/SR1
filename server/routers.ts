@@ -70,6 +70,7 @@ import { tasksRouter } from "./routers/tasks";
 import { agentRouter } from "./routers/agent";
 import { businessesRouter } from "./routers/businesses";
 import { betaInvitesRouter } from "./routers/betaInvites";
+import { adminUsersRouter } from "./routers/adminUsers";
 import { blocksRouter } from "./routers/blocks";
 import { googleRouter } from "./routers/google";
 import { telegramRouter } from "./routers/telegramRouter";
@@ -893,6 +894,8 @@ export const appRouter = router({
       return users;
     }),
     betaInvites: betaInvitesRouter,
+    // admin.users.* — create / list / resetPassword / setDisabled (T-84)
+    users: adminUsersRouter,
   }),
 });
 
