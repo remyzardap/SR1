@@ -45,8 +45,13 @@ export function readThemeChoice(): ThemeChoice {
 /** Put the choice on <html>. Does not touch storage. */
 export function applyThemeChoice(choice: ThemeChoice): void {
   const root = document.documentElement;
-  if (choice === "system") delete root.dataset.mode;
-  else root.dataset.mode = choice;
+  if (choice === "system") {
+    delete root.dataset.mode;
+    delete root.dataset.theme;
+  } else {
+    root.dataset.mode = choice;
+    root.dataset.theme = choice;
+  }
   syncThemeColor();
 }
 
