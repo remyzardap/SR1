@@ -1,8 +1,7 @@
 import * as React from "react";
 import { useState, useEffect, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { SutaeruGlyph } from "./SutaeruGlyph";
-import { SutaeruSeal } from "./SutaeruSeal";
+import { BrandIntro as BrandIntroComponent, type BrandIntroProps } from "@/components/redo/BrandIntro";
 
 export const INTRO_STORAGE_KEY = "sutaeru.intro-seen";
 
@@ -18,7 +17,6 @@ export function shouldPlayIntro(): boolean {
     const seen = window.localStorage?.getItem(INTRO_STORAGE_KEY);
     return !seen;
   } catch {
-    // Private browsing or restricted access
     return false;
   }
 }
@@ -28,7 +26,6 @@ export function markIntroSeen(): void {
   try {
     window.localStorage?.setItem(INTRO_STORAGE_KEY, "1");
   } catch {
-    // Safari private browsing mode or quota exceeded
   }
 }
 
@@ -37,22 +34,10 @@ export function resetIntroSeen(): void {
   try {
     window.localStorage?.removeItem(INTRO_STORAGE_KEY);
   } catch {
-    // Ignore storage errors
   }
 }
 
-export interface BrandIntroProps {
-  className?: string;
-  forceIntro?: boolean;
-  children?: ReactNode;
-}
-
-/**
- * BrandIntro plays the brand reveal sequence on first visit:
- * the loop draws, the torii gate settles, the sun rises, and the rakkan seal presses.
- * Subsequent visits or users preferring reduced motion skip directly to the settled lockup.
- */
-export function BrandIntro({ className, forceIntro, children }: BrandIntroProps) {
+export function BrandIntroWrapper({ className, forceIntro, children }: BrandIntroProps) {
   const [isIntro, setIsIntro] = useState<boolean>(() => {
     if (forceIntro !== undefined) return forceIntro;
     return shouldPlayIntro();
@@ -71,19 +56,13 @@ export function BrandIntro({ className, forceIntro, children }: BrandIntroProps)
   }, [forceIntro]);
 
   return (
-    <div className={cn("home-hero lockup", isIntro ? "intro" : "no-intro", className)}>
-      {children ?? (
-        <>
-          <SutaeruGlyph className="mark glyph" detail="full" />
-          <div className="word-row">
-            <h1 className="word">Sutaeru</h1>
-            <SutaeruSeal className="seal hero-seal" />
-          </div>
-          <p className="mono tagline">Ask once. We do the rest.</p>
-        </>
-      )}
-    </div>
+    <BrandIntroComponent
+      className={cn("home-hero lockup", isIntro ? "intro" : "no-intro", className)}
+      forceIntro={forceIntro}
+    >
+      {children}
+    </BrandIntroComponent>
   );
 }
 
-export default BrandIntro;
+export default BrandIntroWrapper;

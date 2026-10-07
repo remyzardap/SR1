@@ -17,7 +17,7 @@ const INDEX_CSS = readFileSync(new URL("../index.css", import.meta.url), "utf8")
 const PREVIEW_CSS = readFileSync(new URL("../styles/preview.css", import.meta.url), "utf8");
 const CHAT_RESKIN_CSS = readFileSync(new URL("../styles/chat-reskin.css", import.meta.url), "utf8");
 const INSTALL_PROMPT_TSX = readFileSync(
-  new URL("../components/InstallPrompt.tsx", import.meta.url),
+  new URL("../components/redo/InstallPrompt.tsx", import.meta.url),
   "utf8"
 );
 
