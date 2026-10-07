@@ -39,6 +39,16 @@ export default function LabIndex() {
             HalftoneRamp, ConvergeBar, LinearDitherBar, SteppedMeter, Toggle, Chip, FocusBrackets, Sheet.
           </p>
         </Link>
+        <Link
+          href="/__lab/files"
+          className="card"
+          style={{ padding: 24, textDecoration: "none", color: "inherit", borderRadius: 20, display: "block" }}
+        >
+          <b style={{ font: "700 18px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Files</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 14 }}>
+            Files screen with storage meter, pill search, filters, miniature documents, live writing bar, and empty states.
+          </p>
+        </Link>
       </div>
     </LabLayout>
   );
