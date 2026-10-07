@@ -4,6 +4,7 @@ import LabIndex from "./LabIndex";
 import LabShell from "./LabShell";
 import LabBrand from "./LabBrand";
 import LabArt from "./LabArt";
+import LabSettings from "./LabSettings";
 
 export function LabRouter() {
   return (
@@ -12,6 +13,7 @@ export function LabRouter() {
       <Route path="/__lab/shell" component={LabShell} />
       <Route path="/__lab/brand" component={LabBrand} />
       <Route path="/__lab/art" component={LabArt} />
+      <Route path="/__lab/settings" component={LabSettings} />
     </Switch>
   );
 }
