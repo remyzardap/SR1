@@ -5,7 +5,7 @@ import { createErrorResult, createSuccessResult, type LegacyToolResult } from ".
 import type { ToolContext } from "../types";
 
 const RunCodeArgs = z.object({
-  language: z.enum(["python", "nodejs", "javascript", "bash", "r"]).optional().describe("Programming language to execute (python, javascript/nodejs, bash, r)"),
+  language: z.enum(["python", "nodejs", "javascript", "bash", "r"]).optional().describe("Programming language to execute"),
   code: z.string().describe("The code to execute"),
   timeout: z.number().optional().describe("Execution timeout in seconds (default: 30, max: 300)"),
   dependencies: z.array(z.string().describe("Package name (e.g., 'requests', 'lodash')")).optional().describe("List of npm/pip packages to install before execution"),

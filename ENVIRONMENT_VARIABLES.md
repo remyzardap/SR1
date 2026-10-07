@@ -392,7 +392,6 @@ an unset or blank variable means the default.
 | `FF_APPROVALS` | off | Ask the user to approve write tools that act outside Sutaeru; off hides those tools (P1-11) |
 | `FF_ACTION_TOOLS` | off | Offer the email, calendar, image, video and monitor tools to the agent (P1-12) |
 | `FF_CONTEXT_MANAGER` | off | Keep each model call under its token budget with result handles and compaction (P1-13) |
-| `FF_PERSISTENT_SANDBOX` | off | Keep persistent sandboxes per session and collect output files (P2-11) |
 
 ---
 

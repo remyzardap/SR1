@@ -169,7 +169,7 @@ export async function runCode(
     return { stdout: "", stderr: `Blocked: ${danger}`, exitCode: 1, engine: "e2b", timedOut: false };
   }
 
-  if (flag("PERSISTENT_SANDBOX") && options?.userId && options?.sessionId) {
+  if (options?.userId && options?.sessionId) {
     return executeInSandbox({
       userId: options.userId,
       sessionId: options.sessionId,
