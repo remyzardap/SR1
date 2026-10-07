@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import { createExpressMiddleware } from '@trpc/server/adapters/express';
+import { PASSWORD_CHANGE_REQUIRED_MESSAGE } from '@shared/const';
 import { appRouter } from '../routers';
 import { createContext } from './context';
 import { registerChatStreamRoute } from '../routers/chat';
@@ -50,7 +51,14 @@ app.set("trust proxy", 1);
 // Webhooks and OAuth callbacks are registered before this middleware so they stay public.
 async function requireSession(req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
-    (req as any).user = await sdk.authenticateRequest(req);
+    const user = await sdk.authenticateRequest(req);
+    // tRPC middleware cannot cover these routes, so the change-your-password lock is repeated here:
+    // an account whose password was issued by an admin may sign in, but may not generate documents.
+    if (user.mustChangePassword) {
+      res.status(403).json({ error: PASSWORD_CHANGE_REQUIRED_MESSAGE });
+      return;
+    }
+    (req as any).user = user;
     next();
   } catch {
     res.status(401).json({ error: "Unauthorized" });
