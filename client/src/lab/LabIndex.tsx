@@ -39,6 +39,17 @@ export default function LabIndex() {
             HalftoneRamp, ConvergeBar, LinearDitherBar, SteppedMeter, Toggle, Chip, FocusBrackets, Sheet.
           </p>
         </Link>
+        <Link
+          href="/__lab/home"
+          className="card"
+          style={{ padding: 24, textDecoration: "none", color: "inherit", borderRadius: 20, display: "block" }}
+        >
+          <b style={{ font: "700 18px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Home</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 14 }}>
+            The ask screen in every state: typing, files uploading, recording, stopped, waiting to send,
+            private, no recent items, loading and offline. Add ?state= to jump straight to one.
+          </p>
+        </Link>
       </div>
     </LabLayout>
   );
