@@ -78,6 +78,13 @@
       "when": 1790337176670,
       "tag": "0025_phase1_core",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790340776670,
+      "tag": "0026_admin_user_accounts",
+      "breakpoints": true
     }
   ]
 }

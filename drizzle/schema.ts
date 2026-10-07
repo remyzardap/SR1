@@ -55,6 +55,12 @@ export const users = pgTable("users", {
   emailVerified: boolean("emailVerified").default(false).notNull(),
   totpSecret: varchar("totpSecret", { length: 255 }),
   totpEnabled: boolean("totpEnabled").default(false).notNull(),
+  // Set while the password was chosen by an admin (new account or reset) rather than by
+  // the user. The holder must pick their own password before any other procedure runs.
+  mustChangePassword: boolean("mustChangePassword").default(false).notNull(),
+  // Non-null while an admin has switched the account off. Sessions are stateless JWTs, so
+  // the switch takes effect when a session is loaded, not by revoking a stored token.
+  disabledAt: timestamp("disabledAt"),
 });
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
