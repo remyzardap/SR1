@@ -3,9 +3,9 @@ import { buildKemmaSystemPrompt, buildKemmaVoicePrompt } from "./personality";
 import { isAdminUser } from "./executors/vpsFiles";
 import pLimit from "p-limit";
 import { registerBuiltinTools } from "./toolkit/builtin";
-import { getToolSpec, runTool, toOpenAiTools, toolsFor, type OpenAiToolDef } from "./toolkit/registry";
+import { filterMcpDefs, getToolSpec, runTool, toOpenAiTools, toolsFor, type OpenAiToolDef } from "./toolkit/registry";
 import { SKILL_TOOL_NAMES } from "./toolkit/names";
-import type { ToolContext } from "./toolkit/types";
+import type { ApprovalGate, ToolContext } from "./toolkit/types";
 import {
   chatRoute,
   reportRoute,
@@ -47,6 +47,16 @@ import type { SegmentKind } from "./events";
 import { getMemoriesContext } from "./memory";
 import { type Source, extractSources, dedupeSources, annotateSearchResult, citedSubset, keepCitedSources, appendCitations, verifyClaimsAgainstSources } from "./sources";
 import { isUntrustedTool, extractToolSource, detectInjection, wrapUntrustedContent } from "./untrusted";
+import {
+  COMPACTION_SYSTEM_PROMPT,
+  handleFreshResult,
+  manageContext,
+  normalizeCacheEntry,
+  releaseResultStore,
+  resultStoreFor,
+  type CompactionCacheEntry,
+} from "./context";
+import { getSessionContextCache, saveSessionContextCache } from "../db";
 
 export interface KemmaMessage {
   role: "user" | "assistant" | "system" | "tool";
@@ -89,6 +99,7 @@ export interface EngineInput {
   onQuotaWarn?: (message: string) => void;
   onNotice?: (message: string) => void;
   onSkillUsed?: (skill: { id: number; name: string }) => void;
+  approvals?: ApprovalGate;
   signal?: AbortSignal;
 }
 
@@ -276,6 +287,10 @@ async function runParallelSubAgents(
         toolBudget: perAgentBudget,
         allowedTools: restrictedTools,
         isSubAgent: true,
+        // A sub-agent run has nobody watching its stream, so it must not inherit the parent's
+        // approver (P1-11): it would block the whole research fan-out on a card no one can see.
+        // With no gate, `toolsFor` withholds approval tools and `runTool` refuses one outright.
+        approvals: undefined,
         onStream: undefined,
         onNotice,
       });
@@ -410,7 +425,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   const maxToolCalls = input.toolBudget ?? defaultBudget;
   // The per-run tool context. `toolsFor`/`runTool` use this for availability checks (Drive
   // connected, admin role) and for executing the tool itself. P1-05 gives `signal` a real,
-  // abortable value; P1-11 will populate `approvals`.
+  // abortable value; P1-11 populates `approvals` from the caller that owns the run.
   const runId = `${sessionId ?? "s"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const toolCtx: ToolContext = {
     userId,
@@ -419,6 +434,11 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     tier,
     signal: input.signal ?? NEVER_ABORTS,
     emit: () => {},
+    // Only the caller can supply a gate (P1-11): a gate built here would push its approval card to
+    // nowhere, so the run would block on a TTL and then report a misleading `expired`. With no gate
+    // the approval tools are not offered at all, and `runTool` refuses one immediately if it is
+    // nevertheless asked for.
+    approvals: input.approvals,
     skillsEnabled: enabledSkills.length > 0,
     isSubAgent: !!input.isSubAgent,
   };
@@ -433,7 +453,12 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   let mcpDefs: OpenAiToolDef[] = [];
   if (!input.isSubAgent) {
     try {
-      mcpDefs = (await getMcpRegistry().tools()).filter((t) => !input.allowedTools || input.allowedTools.includes(t.name));
+      // `filterMcpDefs` closes the other half of the P1-11 listing rule: an MCP `confirm` tool is not
+      // offered to a run that has no approver to ask, exactly like a built-in one.
+      mcpDefs = await filterMcpDefs(
+        (await getMcpRegistry().tools()).filter((t) => !input.allowedTools || input.allowedTools.includes(t.name)),
+        toolCtx,
+      );
     } catch { /* MCP is optional */ }
   }
 
@@ -485,6 +510,63 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   const streamToolTurns = flag("STREAM_TOOL_TURNS");
   const parallelTools = flag("PARALLEL_TOOLS");
 
+  // Context manager (P1-13), dark behind flag("CONTEXT_MANAGER"). The run's full tool results and
+  // this chat's cached summary live here so every request can be fitted to its budget before it is sent.
+  const contextStore = resultStoreFor(runId);
+  let contextCache: CompactionCacheEntry | null = null;
+  if (sessionId && flag("CONTEXT_MANAGER")) {
+    try {
+      contextCache = normalizeCacheEntry(await getSessionContextCache(sessionId));
+    } catch { /* non-fatal: at worst the summary is recomputed */ }
+  }
+
+  /**
+   * Rewrites `currentMessages` so the call about to be made fits its model's input budget. It never
+   * throws: a manager that cannot fit the request logs a warning and lets the request go as it was,
+   * which is kinder than failing the user's turn over an estimate.
+   */
+  const fitContext = async (route: RouteConfig, tools: OpenAiToolDef[] | undefined, purpose: string): Promise<void> => {
+    const cheapRoute = plannerRoute();
+    const managed = await manageContext({
+      messages: currentMessages,
+      model: route.model,
+      maxTokens: resolveMaxTokens(route.model, purpose),
+      tools,
+      store: contextStore,
+      cache: contextCache,
+      summaryModel: cheapRoute.model,
+      saveCache: async (entry) => {
+        contextCache = entry;
+        if (!sessionId) return;
+        try {
+          await saveSessionContextCache(sessionId, entry);
+        } catch (err) {
+          console.error("[context] could not store the summary:", err instanceof Error ? err.message : err);
+        }
+      },
+      summarizeCalls: async (transcript) => {
+        const result = await callLLM({
+          route: cheapRoute,
+          systemPrompt: COMPACTION_SYSTEM_PROMPT,
+          messages: [{ role: "user", content: transcript }],
+          stream: false,
+          userId,
+          sessionId,
+          reportId,
+          purpose: "compaction",
+          signal: input.signal,
+        });
+        return result.content ?? "";
+      },
+    });
+    currentMessages = managed.messages;
+    if (managed.overBudget) {
+      console.error(
+        `[context] over budget after ${managed.applied.join("+") || "nothing"}: ${managed.estimatedTokens}/${managed.budget} tokens`,
+      );
+    }
+  };
+
   while (step < maxSteps) {
     if (input.signal?.aborted) {
       return {
@@ -519,6 +601,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
 
     let llmResponse: Awaited<ReturnType<typeof callLLM>>;
     try {
+      await fitContext(route, offerTools ? wireTools() : undefined, stepPurpose);
       llmResponse = await callLLM({
         route,
         systemPrompt,
@@ -730,6 +813,8 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
             injectionSuspected: detection.injectionSuspected,
           });
         }
+        // A result too big to keep whole enters the transcript as its head plus a handle (P1-13).
+        toolMessageContent = handleFreshResult({ content: toolMessageContent, toolName: tc.function.name, store: contextStore }) ?? toolMessageContent;
         currentMessages.push({ role: "tool", content: toolMessageContent, tool_call_id: tc.id, name: tc.function.name });
       }
 
@@ -812,6 +897,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
           : undefined;
 
         try {
+          await fitContext(route, undefined, stepPurpose);
           llmResponse = await callLLM({
             route,
             systemPrompt,
@@ -1038,6 +1124,8 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
       }
     }
 
+    // The run is over: its stashed full results are no longer reachable by `read_result`.
+    releaseResultStore(runId);
     return {
       response: finalContent,
       toolCalls: toolExecutions,
@@ -1059,6 +1147,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     fallbackSources,
     { dropUnknown: !onStream }
   );
+  releaseResultStore(runId);
   return {
     response: "I have completed the available steps. Let me know if you need anything else.",
     toolCalls: toolExecutions,

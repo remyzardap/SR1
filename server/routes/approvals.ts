@@ -1,0 +1,335 @@
+import { Router } from "express";
+import { and, asc, eq, gt } from "drizzle-orm";
+import {
+  getApprovalById,
+  hashArgs,
+  resolveWaiter,
+  transitionApprovalStatus,
+} from "../kemma/approvals";
+import { getDb } from "../db";
+import { approvals, type ApprovalRow } from "../../drizzle/schema";
+import { getToolSpec } from "../kemma/toolkit/registry";
+import { getMcpRegistry, MCP_TOOL_PREFIX, type ToolDefinition } from "../kemma/mcp/client";
+import { logAuditEvent } from "../middleware/audit-logging";
+
+export const approvalsRouter = Router();
+
+/** Top-level JSON-Schema type check. Unknown/absent declared types pass: an MCP server is allowed to
+ * describe less than it accepts, and refusing a decision over a description we do not trust would
+ * block an action the human can still take by hand. */
+function matchesJsonType(value: unknown, type: string): boolean {
+  switch (type) {
+    case "string":
+      return typeof value === "string";
+    case "number":
+      return typeof value === "number" && Number.isFinite(value);
+    case "integer":
+      return typeof value === "number" && Number.isInteger(value);
+    case "boolean":
+      return typeof value === "boolean";
+    case "array":
+      return Array.isArray(value);
+    case "object":
+      return !!value && typeof value === "object" && !Array.isArray(value);
+    default:
+      return true;
+  }
+}
+
+/**
+ * Edits to an MCP tool's arguments are checked against the schema that server declared: an MCP tool
+ * is not a registered spec, so it has no zod schema here and would otherwise have its edited
+ * arguments accepted unexamined (P1-11). Deliberately shallow (required keys and top-level types) and
+ * deliberately fail-open when the registry cannot answer or no longer lists the tool — the alternative
+ * is a card that cannot be answered because of a lookup failure.
+ */
+async function checkMcpArgs(
+  tool: string,
+  args: unknown,
+): Promise<{ ok: true; value: Record<string, unknown> } | { ok: false; error: string }> {
+  if (typeof args !== "object" || args === null || Array.isArray(args)) {
+    return { ok: false, error: "Edited arguments must be an object" };
+  }
+  const value = args as Record<string, unknown>;
+
+  let defs: ToolDefinition[];
+  try {
+    defs = await getMcpRegistry().tools();
+  } catch {
+    return { ok: true, value };
+  }
+  const def = defs.find((d) => d.name === tool);
+  if (!def) return { ok: true, value };
+
+  const required = Array.isArray(def.parameters?.required) ? def.parameters.required : [];
+  const missing = required.filter((key) => value[key] === undefined || value[key] === null);
+  if (missing.length > 0) {
+    return { ok: false, error: `Invalid edited arguments: missing ${missing.join(", ")}` };
+  }
+
+  const properties = def.parameters?.properties ?? {};
+  const wrong = Object.keys(value).filter((key) => {
+    const declared = properties[key]?.type;
+    return declared ? !matchesJsonType(value[key], declared) : false;
+  });
+  if (wrong.length > 0) {
+    return { ok: false, error: `Invalid edited arguments: ${wrong.join(", ")} has the wrong type` };
+  }
+
+  return { ok: true, value };
+}
+
+/**
+ * POST /api/kemma/approvals/:id
+ * Body: { decision: "approve" | "reject", args?: Record<string, unknown> }
+ *
+ * Approves or rejects a pending human-in-the-loop tool execution (P1-11).
+ */
+approvalsRouter.post("/:id", async (req, res) => {
+  const user = (req as any).user;
+  if (!user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const { id } = req.params;
+  const { decision, args } = req.body ?? {};
+
+  if (decision !== "approve" && decision !== "reject") {
+    return res.status(400).json({ error: "Invalid decision: must be 'approve' or 'reject'" });
+  }
+
+  const row = await getApprovalById(id);
+  if (!row) {
+    return res.status(404).json({ error: "Approval not found" });
+  }
+
+  if (row.userId !== user.id) {
+    return res.status(403).json({ error: "Forbidden: approval belongs to another user" });
+  }
+
+  if (row.status !== "pending") {
+    return res.status(409).json({ error: `Approval is already ${row.status}`, status: row.status });
+  }
+
+  if (new Date() > row.expiresAt) {
+    await transitionApprovalStatus(id, "pending", "expired");
+    return res.status(409).json({ error: "Approval has expired", status: "expired" });
+  }
+
+  if (decision === "approve") {
+    let finalArgs = row.args;
+    let finalArgsHash = row.argsHash;
+    let finalPreview = row.preview;
+
+    if (args !== undefined && args !== null) {
+      const spec = getToolSpec(row.tool);
+      if (spec) {
+        const parsed = spec.args.safeParse(args);
+        if (!parsed.success) {
+          return res.status(400).json({
+            error: "Invalid edited arguments",
+            issues: parsed.error.issues,
+          });
+        }
+        finalArgs = parsed.data;
+      } else if (row.tool.startsWith(MCP_TOOL_PREFIX)) {
+        const checked = await checkMcpArgs(row.tool, args);
+        if (!checked.ok) {
+          return res.status(400).json({ error: checked.error });
+        }
+        finalArgs = checked.value;
+      } else {
+        finalArgs = args;
+      }
+
+      // The card the human read names a target resource. Editing the arguments so they point
+      // somewhere else would approve a different action than the one displayed, so the target is not
+      // allowed to move (P1-11). Fail closed: a target that cannot be re-read cannot be written to.
+      if (spec?.targetRef) {
+        let moved: string | undefined;
+        try {
+          moved = (await spec.targetRef(finalArgs, { userId: user.id } as any)) ?? undefined;
+        } catch {
+          return res.status(400).json({ error: "Could not re-read the target of the edited action" });
+        }
+        if (moved !== (row.targetRef ?? undefined)) {
+          return res.status(400).json({ error: "Cannot change the target of an approved action" });
+        }
+      }
+
+      finalArgsHash = hashArgs(finalArgs);
+      if (spec?.preview) {
+        try {
+          finalPreview = (await spec.preview(finalArgs, { userId: user.id } as any)) as any;
+        } catch {
+          // Keep existing preview if preview generation throws
+        }
+      }
+    }
+
+    const updated = await transitionApprovalStatus(id, "pending", "approved", {
+      decidedArgs: finalArgs as any,
+      decidedAt: new Date(),
+      argsHash: finalArgsHash,
+      preview: finalPreview as any,
+    });
+
+    if (!updated) {
+      return res.status(409).json({ error: "Conflict: approval status changed concurrently" });
+    }
+
+    await logAuditEvent({
+      userId: String(user.id),
+      action: "approval.approve",
+      resourceType: "tool",
+      resourceId: row.tool,
+      metadata: { approvalId: id, argsHash: finalArgsHash },
+      sessionId: row.sessionId ?? undefined,
+      severity: "info",
+      status: "success",
+    });
+
+    resolveWaiter(id, { decision: "approved", args: finalArgs });
+
+    return res.status(200).json({ ok: true, status: "approved" });
+  } else {
+    // decision === "reject"
+    const updated = await transitionApprovalStatus(id, "pending", "rejected", {
+      decidedAt: new Date(),
+    });
+
+    if (!updated) {
+      return res.status(409).json({ error: "Conflict: approval status changed concurrently" });
+    }
+
+    await logAuditEvent({
+      userId: String(user.id),
+      action: "approval.reject",
+      resourceType: "tool",
+      resourceId: row.tool,
+      metadata: { approvalId: id },
+      sessionId: row.sessionId ?? undefined,
+      severity: "info",
+      status: "success",
+    });
+
+    resolveWaiter(id, { decision: "rejected", args: row.args });
+
+    return res.status(200).json({ ok: true, status: "rejected" });
+  }
+});
+
+/**
+ * GET /api/kemma/approvals/?sessionId=&status=pending
+ * Lists the approvals a chat card can be rebuilt from. The SSE `approval.requested` event is
+ * one-shot, so a reload or a phone that slept through the event leaves a run blocking on a request
+ * the human can no longer see. Same six fields the event carries — see `toCardPayload` — so the
+ * card cannot tell which route it came from.
+ *
+ * Only the requester's own approvals are returned, and `sessionId` is required rather than
+ * optional: without it a session id from another conversation would leak this user's pending
+ * actions into it. `status` accepts only `pending`, which is additionally filtered to rows that
+ * still have time left — an expired request has nothing to restore, and its card says so.
+ */
+approvalsRouter.get("/", async (req, res) => {
+  const user = (req as any).user;
+  if (!user?.id) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const sessionId = req.query.sessionId;
+  if (typeof sessionId !== "string" || sessionId.trim() === "") {
+    return res.status(400).json({ error: "sessionId is required" });
+  }
+
+  const status = req.query.status ?? "pending";
+  if (status !== "pending") {
+    return res.status(400).json({ error: "Only status=pending is available here." });
+  }
+
+  try {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+
+    const rows = await db
+      .select()
+      .from(approvals)
+      .where(
+        and(
+          eq(approvals.userId, user.id),
+          eq(approvals.sessionId, sessionId),
+          eq(approvals.status, "pending"),
+          gt(approvals.expiresAt, new Date()),
+        ),
+      )
+      .orderBy(asc(approvals.createdAt));
+
+    return res.json({ approvals: (rows as ApprovalRow[]).map(toCardPayload) });
+  } catch (err) {
+    console.error("[Approvals] Failed to list pending approvals:", err);
+    return res.status(500).json({ error: "Internal server error", detail: String(err) });
+  }
+});
+
+/** A stored row -> the card payload, deliberately identical to the `approval.requested` SSE event.
+ *
+ * Only these six fields leave the server. `argsHash` and `targetRevision` are how the gate proves
+ * the human approved what was shown, and `decidedArgs`/`result` hold values the run has not agreed
+ * to yet — none of them belong in a browser. The headline is re-derived from the preview the same
+ * way `requestToolApproval` derives it, so a restored card reads exactly like the one that streamed
+ * first, and `preview` is flattened to a string for the same reason the event does it: the card
+ * renders text, not an object. */
+function toCardPayload(row: ApprovalRow): {
+  id: string;
+  tool: string;
+  title: string;
+  preview: string;
+  args: unknown;
+  expiresAt: string;
+} {
+  const preview = row.preview as unknown;
+  const previewTitle =
+    preview !== null && typeof preview === "object" && !Array.isArray(preview)
+      ? (preview as Record<string, unknown>).title
+      : undefined;
+  return {
+    id: row.id,
+    tool: row.tool,
+    title: typeof previewTitle === "string" ? previewTitle : `Approve ${row.tool}`,
+    preview: typeof preview === "string" ? preview : preview ? JSON.stringify(preview) : "",
+    args: row.args,
+    expiresAt: row.expiresAt.toISOString(),
+  };
+}
+
+/**
+ * GET /api/kemma/approvals/:id
+ * Fetches the status and preview of an approval row.
+ */
+approvalsRouter.get("/:id", async (req, res) => {
+  const user = (req as any).user;
+  if (!user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const { id } = req.params;
+  const row = await getApprovalById(id);
+  if (!row) {
+    return res.status(404).json({ error: "Approval not found" });
+  }
+
+  if (row.userId !== user.id) {
+    return res.status(403).json({ error: "Forbidden: approval belongs to another user" });
+  }
+
+  return res.json({
+    id: row.id,
+    tool: row.tool,
+    risk: row.risk,
+    args: row.args,
+    preview: row.preview,
+    status: row.status,
+    expiresAt: row.expiresAt,
+    createdAt: row.createdAt,
+  });
+});

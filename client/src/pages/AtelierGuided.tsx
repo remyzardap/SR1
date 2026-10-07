@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
 import { ConvergeBar, FocusBrackets } from "@/components/art";
 import { useTimedProgress } from "@/hooks/useTimedProgress";
+import { prefersReducedMotion } from "@/components/art/useMotion";
 import "@/styles/atelier-reskin.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -361,7 +362,7 @@ export default function AtelierGuided({ embedded = false, entry, initialPhase, o
   const run = useTimedProgress(phase === "generating", 60);
 
   // Auto-scroll
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, streaming]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth" }); }, [messages, streaming]);
 
   // ── Send interview message ──────────────────────────────────────────────────
   const sendMessage = useCallback(async (text?: string) => {

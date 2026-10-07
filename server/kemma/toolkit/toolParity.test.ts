@@ -84,6 +84,9 @@ const FROZEN: Record<string, OpenAiToolDef> = {
         extractImages: { type: "boolean", description: "Extract image URLs from the page (default: false)" },
         maxLength: { type: "number", description: "Maximum character length for extracted text (default: 10000)" },
         waitForSelector: { type: "string", description: "CSS selector to wait for before extracting (for dynamic content)" },
+        query: { type: "string", description: "What you're looking for on this page. When the page is long, the most relevant sections are returned instead of the whole thing." },
+        interactive: { type: "boolean", description: "Use a real browser to render the page (slower). Only set this when the page needs JavaScript or a login/click to show its content." },
+        max_chars: { type: "number", description: "Maximum characters of page content to return (default: 10000)" },
       },
       required: ["url"],
     },
@@ -279,16 +282,37 @@ describe("(a) default user, no allowlist", () => {
 });
 
 describe("(b) Drive-connected user", () => {
-  it("adds exactly the 5 Drive tools, with no duplicates", async () => {
+  it("adds the 4 Drive tools that need no approval, with no duplicates", async () => {
     google.getConnectionStatus.mockResolvedValue({ connected: true });
     const specs = await toolsFor(baseCtx());
     // DELIBERATE FIX vs. pre-refactor: the old KEMMA_TOOLS array baked the 5 Drive tool
     // definitions in statically, so every user — connected or not — was offered them, and a
     // connected user got a second, duplicate copy appended on top (11 or 16 entries sent to the
-    // model). toolsFor now gates Drive tools on connection status with no duplicates: 11 unique
-    // tools when connected, 6 when not (scenario a). See the PR's "Deviations from spec".
-    expectFrozenMatch(toOpenAiTools(specs), [...CORE_NAMES, ...DRIVE_NAMES]);
+    // model). toolsFor now gates Drive tools on connection status with no duplicates: 6 when not
+    // connected (scenario a). See the PR's "Deviations from spec".
+    //
+    // DELIBERATE P1-11 CHANGE: that count is 10, not 11, when this run has nobody to ask.
+    // drive_edit declares `requiresApproval`, so a run without an approval gate must not be offered
+    // it at all — the listing rule applies to the Drive group like every other group. With an
+    // approver present (next test) all 11 come back.
+    expectFrozenMatch(toOpenAiTools(specs), [
+      ...CORE_NAMES,
+      "drive_search",
+      "drive_read",
+      "drive_create",
+      "drive_move",
+    ]);
     expect(specs.length).toBe(new Set(specs.map((s) => s.name)).size); // no duplicate names
+  });
+
+  it("restores drive_edit once the run can actually approve it", async () => {
+    process.env.FF_APPROVALS = "1";
+    google.getConnectionStatus.mockResolvedValue({ connected: true });
+    const specs = await toolsFor(
+      baseCtx({ approvals: { request: async () => ({ decision: "approved" as const, args: {}, approvalId: "ap-1" }) } }),
+    );
+    delete process.env.FF_APPROVALS;
+    expectFrozenMatch(toOpenAiTools(specs), [...CORE_NAMES, ...DRIVE_NAMES]);
   });
 });
 

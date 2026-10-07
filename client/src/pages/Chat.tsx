@@ -13,11 +13,15 @@ import { ChatInsightsDialog } from "@/components/ChatInsightsDialog";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/authSession";
+import { ApprovalCard } from "@/components/chat/ApprovalCard";
+import { mergeApprovals } from "@/lib/approvalForm";
+import type { ApprovalRequest } from "@/lib/sse";
 import { applyHistoryMetadata, type HistoryMetadata } from "@/lib/citations";
 import { callFunction } from "@/lib/kemmaCloud";
 import { AttachMenu } from "@/components/AttachMenu";
 import { FocusBrackets } from "@/components/art";
 import { useOnline } from "@/hooks/useAppearance";
+import { beginStream, type StreamHandle } from "@/lib/activeStreams";
 import { CodeAccessBar, CodeThreadView, rememberCodeSession, storedCodeSession, useCodeThread, type CodeAccess } from "@/components/CodeThread";
 import { MAX_FILES, attachmentName, type Attachment } from "@/lib/attachments";
 import { NEON_PAGE_BG, NOISE_OVERLAY, NEON, NEON_FD, NEON_FM } from "@/lib/design";
@@ -168,6 +172,10 @@ export default function Chat() {
   const [usedSkills, setUsedSkills] = useState<Array<{ id: number; name: string }>>([]);
   const [usage, setUsage] = useState<{ inputTokens: number; outputTokens: number; totalTokens: number } | null>(null);
   const [sources, setSources] = useState<Source[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<ApprovalRequest[]>([]);
+  // Approval ids the person already decided or dismissed. The stream reducer only ever appends, so
+  // without this its next update would put a card the human has just answered back on screen.
+  const decidedApprovals = useRef<Set<string>>(new Set());
 
   // ─── Connection ─────────────────────────────────────────────────────────────
   // Offline is a visual state only: nothing is queued in the backend, the composer
@@ -218,6 +226,10 @@ export default function Chat() {
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // The run currently in flight. Held in a ref so both the `finally` of
+  // handleSend and the Stop button can release it; closing twice is harmless
+  // because a stream handle ignores repeat calls.
+  const streamRef = useRef<StreamHandle | null>(null);
   const messagesRef = useRef<Message[]>([]);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
   const createMemoryMutation = trpc.memories.create.useMutation();
@@ -294,6 +306,10 @@ export default function Chat() {
       setUsedSkills([]);
       setUsage(null);
       setSources([]);
+      // A card belongs to the conversation that raised it. Moving on drops it here, and the restore
+      // effect asks for the pending ones of the conversation being entered.
+      setPendingApprovals([]);
+      decidedApprovals.current.clear();
     },
     [isStreaming]
   );
@@ -320,6 +336,8 @@ export default function Chat() {
     setUsedSkills([]);
     setUsage(null);
     setSources([]);
+    setPendingApprovals([]);
+    decidedApprovals.current.clear();
   }, [isStreaming]);
 
   // ─── Load persisted history on mount ───────────────────────────────────────
@@ -362,6 +380,33 @@ export default function Chat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, historyAttempt, hasPersistedHistory]);
 
+  // ─── Restore an approval that outlived the page ────────────────────────────
+  // The approval event is streamed once. Reload the tab, or let a phone sleep through it, and the
+  // card disappears while the run behind it keeps waiting for a decision nobody can see any more.
+  // So ask what is still pending for this conversation and put those cards back — the list returns
+  // the same fields the event carried, so a restored card is not a different kind of card.
+  //
+  // Only a conversation with saved history can have a card waiting; a fresh one cannot. And a
+  // request that fails is swallowed on purpose: the thread still works, the run still waits, and
+  // an error banner over a card that merely did not come back would be the worse outcome.
+  useEffect(() => {
+    if (!hasPersistedHistory) return;
+    let cancelled = false;
+    const origin = import.meta.env.VITE_SR1_API_ORIGIN || "";
+    fetch(`${origin}/api/kemma/approvals?sessionId=${encodeURIComponent(sessionId)}&status=pending`, {
+      credentials: "include",
+      headers: getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {},
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { approvals?: ApprovalRequest[] } | null) => {
+        if (cancelled) return;
+        const restored = data && Array.isArray(data.approvals) ? data.approvals : [];
+        setPendingApprovals((prev) => mergeApprovals(prev, restored));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [sessionId, hasPersistedHistory]);
+
   // ─── Send message ─────────────────────────────────────────────────────────
   const handleSend = useCallback(
     async (submission?: string | { text: string; files?: FileUIPart[]; attachments?: Attachment[] }) => {
@@ -402,8 +447,14 @@ export default function Chat() {
           toast.error("Enter the 6-digit authenticator code for full access.");
           return;
         }
-        const ok = await code.send(messageText, { access: codeAccess, totp: codeTotp, attachments: sent });
-        if (ok) { setInput(""); setAttachments([]); setCodeTotp(""); }
+        const stream = beginStream("code-run");
+        streamRef.current = stream;
+        try {
+          const ok = await code.send(messageText, { access: codeAccess, totp: codeTotp, attachments: sent });
+          if (ok) { setInput(""); setAttachments([]); setCodeTotp(""); }
+        } finally {
+          stream.end();
+        }
         return;
       }
 
@@ -447,6 +498,10 @@ export default function Chat() {
       }
 
       const assistantId = crypto.randomUUID();
+      // Opened after the plan-card shortcut, which returns without streaming, and
+      // before the try below - its finally is what releases this handle.
+      const stream = beginStream("answer");
+      streamRef.current = stream;
       setMessages((prev) => [
         ...prev,
         {
@@ -467,6 +522,7 @@ export default function Chat() {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
+      setPendingApprovals([]);
       let streamState = initialStreamState();
 
       try {
@@ -539,6 +595,10 @@ export default function Chat() {
             }
             if (next.currentStep !== streamState.currentStep && next.currentStep !== null) {
               setCurrentStep(next.currentStep);
+            }
+            if (next.approvals !== streamState.approvals) {
+              const fresh = next.approvals.filter((a) => !decidedApprovals.current.has(a.id));
+              setPendingApprovals((prev) => mergeApprovals(prev, fresh));
             }
 
             streamState = next;
@@ -637,6 +697,10 @@ export default function Chat() {
         setIsStreaming(false);
         setStartedAt(null);
         setCurrentStep("");
+        // Every exit lands here - finished answer, Stop, the offline queueing
+        // branch, a failed request - so this is what releases the pending update.
+        stream.end();
+        if (streamRef.current === stream) streamRef.current = null;
       }
     },
     [input, isStreaming, messages, sessionId, mode, messageModel, taggedSkills, attachments, isCode, code, codeAccess, codeTotp]
@@ -662,6 +726,10 @@ export default function Chat() {
     setStartedAt(null);
     setCurrentStep("");
     setMessages((prev) => prev.map((m) => m.streaming ? { ...m, streaming: false } : m));
+    // Stop is the user's intent, so the update guard is released here rather than
+    // waiting for the aborted fetch to unwind. handleSend's finally ends the same
+    // handle afterwards; a second end() is a no-op, unlike the old double decrement.
+    streamRef.current?.end();
   };
 
   const exportThread = useCallback(() => {
@@ -786,6 +854,21 @@ export default function Chat() {
               offline={!online}
               onSelectPlan={handleSelectPlan}
             />}
+
+            {pendingApprovals.length > 0 && (
+              <div className="mx-auto w-full max-w-[800px] px-3 sm:px-6">
+                {pendingApprovals.map((approval) => (
+                  <ApprovalCard
+                    key={approval.id}
+                    approval={approval}
+                    onDecision={(id) => {
+                      decidedApprovals.current.add(id);
+                      setPendingApprovals((prev) => prev.filter((a) => a.id !== id));
+                    }}
+                  />
+                ))}
+              </div>
+            )}
 
             {historyState === "loading" && messages.length === 0 && (
               <div role="status" className="flex-none mx-3 sm:mx-6 mb-3 text-center text-xs text-muted-foreground">Loading conversation…</div>
