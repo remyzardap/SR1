@@ -86,8 +86,10 @@ export function AgentScreen({
               onBlur={() => setBriefFocused(false)}
               onChange={(e) => onBrief(e.target.value)}
             />
-            {/* The textarea cannot carry an outline of its own (.brief textarea sets outline: 0). */}
-            {(briefFocused || invalid) && <FocusBrackets className={invalid ? "show alert" : "show"} />}
+            {/* The textarea cannot carry an outline of its own (.brief textarea sets outline: 0).
+                The rewritten FocusBrackets draws whenever it is mounted and takes its colour from
+                tone, not from the dead .brk.alert class, so the alert case is a tone here. */}
+            {(briefFocused || invalid) && <FocusBrackets tone={invalid ? "alert" : "ink"} />}
           </div>
 
           <DepthPicker

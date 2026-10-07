@@ -119,8 +119,15 @@ describe("AgentScreen", () => {
     const onSheet = html.match(/<button[^>]*class="out is-on"[^>]*>.*?<\/button>/s)?.[0] ?? "";
     expect(onSheet).toContain("Villa BOQ and budget");
     expect(onSheet).toContain('aria-checked="true"');
-    expect(onSheet).toContain('class="brk art-brackets"');
+    expect(onSheet).toContain('class="brk art-brackets" data-tone="ink"');
     expect(onSheet).toContain('class="check-badge"');
+    // FocusBrackets draws as soon as it is mounted, so the other five must not carry it.
+    // (The check badge stays CSS-driven — .is-on > .check-badge — as the prototype has it.)
+    const offCards = html.match(/<button[^>]*class="out"[^>]*>.*?<\/button>/gs) ?? [];
+    expect(offCards).toHaveLength(5);
+    for (const card of offCards) {
+      expect(card).not.toContain("art-brackets");
+    }
   });
 
   it("keeps the brief field wired to its label", () => {
@@ -148,7 +155,10 @@ describe("AgentScreen", () => {
     expect(html).toContain("6 sources · 2 min");
     expect(html).toContain("14 sources · 6 min");
     expect(html).toContain("40+ sources · 20 min");
-    expect(html).toContain('class="brk art-brackets tight"');
+    // .brk.tight's geometry travels as props now: one bracket, on the chosen chip only.
+    expect(count(html, /brk art-brackets/g)).toBe(1);
+    expect(html).toContain('data-tone="ink" style="inset:-6px;opacity:0.55"');
+    expect(html).toContain('viewBox="0 0 9 9"');
   });
 
   it("keeps the source pills and the Telegram switch pressable", () => {
@@ -197,7 +207,7 @@ describe("AgentScreen", () => {
     expect(html).toContain('aria-invalid="true"');
     expect(html).toContain('aria-describedby="agent-brief-error"');
     expect(html).toContain('id="agent-brief-error"');
-    expect(html).toContain('class="brk art-brackets show alert"');
+    expect(html).toContain('class="brk art-brackets" data-tone="alert"');
   });
 
   it("says why Start is blocked when the workspace is out of credits", () => {

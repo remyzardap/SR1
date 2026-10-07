@@ -30,7 +30,9 @@ export function DepthPicker({ selected, onSelect, hidden, disabled }: DepthPicke
             disabled={disabled}
             onClick={() => onSelect(d.id)}
           >
-            <FocusBrackets className="tight" />
+            {/* .brk.tight's 9px legs / -6px inset passed as props: the rewritten
+                FocusBrackets sets its geometry inline, so the class no longer wins. */}
+            {d.id === selected ? <FocusBrackets legLength={9} offset={6} /> : null}
             <b>{d.label}</b>
             <span className="dots-field" aria-hidden="true">
               {Array.from({ length: DOTS }, (_, i) => (

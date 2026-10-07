@@ -28,7 +28,8 @@ export function OutputPicker({ selected, onSelect, disabled }: OutputPickerProps
           disabled={disabled}
           onClick={() => onSelect(o.id)}
         >
-          <FocusBrackets />
+          {/* Brackets mark the chosen card only (FocusBrackets draws when mounted). */}
+          {o.id === selected ? <FocusBrackets /> : null}
           <span className="prev">
             {o.id === "image" ? (
               <StudioFrame shot={DEFAULT_SHOT} width={200} aspect={1.9} />
