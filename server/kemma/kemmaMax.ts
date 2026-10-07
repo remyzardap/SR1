@@ -95,19 +95,37 @@ import { readPage } from "./reader";
 import { type FileSkill } from "./fileSkills";
 import { runTool } from "./toolkit/registry";
 import type { ToolContext } from "./toolkit/types";
+import type { EngineEvent } from "./events";
+
+import { executeInSandbox } from "./sandbox/manager";
+import type { OutputFile } from "./sandbox/files";
+export type { OutputFile };
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 1. SANDBOXED CODE EXECUTION (E2B) — replaces executors/runCode.ts
 // ═══════════════════════════════════════════════════════════════════════════
 
-const E2B_API_KEY = process.env.E2B_API_KEY;
+function e2bApiKey(): string | undefined {
+  return process.env.E2B_API_KEY;
+}
 const CODE_TIMEOUT_MS = 30_000;
 // Sandbox lifetime, NOT the execution timeout: a freshly created sandbox
 // needs boot headroom on top of the 30s execution budget, or the sandbox
 // itself expires before the code finishes running.
 const SANDBOX_LIFETIME_MS = 120_000;
 const CODE_MAX_OUTPUT_BYTES = 50_000;
-const SANDBOX_TEMPLATE = process.env.E2B_SANDBOX_TEMPLATE || undefined;
+function sandboxTemplate(): string | undefined {
+  return process.env.E2B_SANDBOX_TEMPLATE || undefined;
+}
+
+export type SupportedCodeLanguage = "python" | "nodejs" | "javascript" | "bash" | "r";
+
+export interface RunCodeOptions {
+  userId?: number;
+  sessionId?: string;
+  emit?: (event: EngineEvent) => void;
+  timeoutMs?: number;
+}
 
 export interface RunCodeResult {
   stdout: string;
@@ -115,6 +133,8 @@ export interface RunCodeResult {
   exitCode: number;
   engine: "e2b";
   timedOut: boolean;
+  files?: OutputFile[];
+  images?: Array<{ url: string; mime: string; size: number }>;
 }
 
 function detectDangerousCode(code: string): string | null {
@@ -130,7 +150,12 @@ function truncateBytes(text: string, maxBytes: number): string {
   return Buffer.byteLength(text, "utf-8") <= maxBytes ? text : text.slice(0, maxBytes) + "\n... [truncated]";
 }
 
-export async function runCode(language: "python" | "nodejs", code: string, signal?: AbortSignal): Promise<RunCodeResult> {
+export async function runCode(
+  language: SupportedCodeLanguage | string,
+  code: string,
+  signal?: AbortSignal,
+  options?: RunCodeOptions
+): Promise<RunCodeResult> {
   if (signal?.aborted) {
     return { stdout: "", stderr: "Execution was aborted", exitCode: 130, engine: "e2b", timedOut: false };
   }
@@ -144,7 +169,20 @@ export async function runCode(language: "python" | "nodejs", code: string, signa
     return { stdout: "", stderr: `Blocked: ${danger}`, exitCode: 1, engine: "e2b", timedOut: false };
   }
 
-  if (!E2B_API_KEY) {
+  if (options?.userId && options?.sessionId) {
+    return executeInSandbox({
+      userId: options.userId,
+      sessionId: options.sessionId,
+      language,
+      code,
+      signal,
+      emit: options.emit,
+      timeoutMs: options.timeoutMs,
+    });
+  }
+
+  const apiKey = e2bApiKey();
+  if (!apiKey) {
     return {
       stdout: "",
       stderr: "E2B_API_KEY is not configured. Code execution is unavailable until it is set.",
@@ -172,10 +210,11 @@ export async function runCode(language: "python" | "nodejs", code: string, signa
     // Build opts conditionally so `template: undefined` is never sent
     // explicitly when E2B_SANDBOX_TEMPLATE is unset.
     const sandboxOpts: SandboxOpts = {
-      apiKey: E2B_API_KEY,
+      apiKey,
       timeoutMs: SANDBOX_LIFETIME_MS,
     };
-    if (SANDBOX_TEMPLATE) sandboxOpts.template = SANDBOX_TEMPLATE;
+    const tpl = sandboxTemplate();
+    if (tpl) sandboxOpts.template = tpl;
     sbx = await Sandbox.create(sandboxOpts);
 
     if (signal?.aborted) {
@@ -183,10 +222,19 @@ export async function runCode(language: "python" | "nodejs", code: string, signa
       return { stdout: "", stderr: "Execution was aborted", exitCode: 130, engine: "e2b", timedOut: false };
     }
 
-    const execution =
-      language === "python"
-        ? await sbx.runCode(code, { timeoutMs: CODE_TIMEOUT_MS })
-        : await sbx.runCode(code, { language: "javascript", timeoutMs: CODE_TIMEOUT_MS });
+    const runLang =
+      language === "nodejs" || language === "javascript"
+        ? "javascript"
+        : language === "bash"
+        ? "bash"
+        : language === "r"
+        ? "r"
+        : "python";
+
+    const execution = await sbx.runCode(code, {
+      language: runLang as any,
+      timeoutMs: options?.timeoutMs ?? CODE_TIMEOUT_MS,
+    });
 
     const stdout = truncateBytes((execution.logs?.stdout ?? []).join("\n"), CODE_MAX_OUTPUT_BYTES);
     const stderr = truncateBytes((execution.logs?.stderr ?? []).join("\n"), CODE_MAX_OUTPUT_BYTES);
@@ -496,7 +544,8 @@ export async function runSkillScript(skill: FileSkill, script: string, args: str
   const ext = nodePath.posix.extname(rel);
   const runner = ext === ".py" ? "python3" : ext === ".js" ? "node" : ext === ".sh" ? "bash" : null;
   if (!runner) return fail("Only .py, .js and .sh scripts can run.");
-  if (!E2B_API_KEY) return fail("E2B_API_KEY is not configured. Skill scripts are unavailable until it is set.");
+  const apiKey = e2bApiKey();
+  if (!apiKey) return fail("E2B_API_KEY is not configured. Skill scripts are unavailable until it is set.");
 
   const uploads: Array<{ path: string; data: ArrayBuffer }> = [];
   let total = 0;
@@ -509,8 +558,9 @@ export async function runSkillScript(skill: FileSkill, script: string, args: str
 
   let sbx: Sandbox | undefined;
   try {
-    const opts: SandboxOpts = { apiKey: E2B_API_KEY, timeoutMs: SKILL_SANDBOX_LIFETIME_MS };
-    if (SANDBOX_TEMPLATE) opts.template = SANDBOX_TEMPLATE;
+    const opts: SandboxOpts = { apiKey, timeoutMs: SKILL_SANDBOX_LIFETIME_MS };
+    const tpl = sandboxTemplate();
+    if (tpl) opts.template = tpl;
     sbx = await Sandbox.create(opts);
     await sbx.files.write(uploads);
     await sbx.commands.run("mkdir -p /output");
