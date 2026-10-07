@@ -337,7 +337,17 @@ CREATE TABLE IF NOT EXISTS "memories" (
 	"sourceApp" varchar(128),
 	"tags" json,
 	"createdAt" timestamp DEFAULT now() NOT NULL,
-	"updatedAt" timestamp DEFAULT now() NOT NULL
+	"updatedAt" timestamp DEFAULT now() NOT NULL,
+	"status" varchar(16) DEFAULT 'active' NOT NULL,
+	"tier" varchar(16) DEFAULT 'episodic' NOT NULL,
+	"superseded_by" integer,
+	"confidence" real,
+	"space_id" varchar(36),
+	"last_used_at" timestamp,
+	"use_count" integer DEFAULT 0 NOT NULL,
+	"embedding_json" jsonb,
+	"embedding_model" varchar(96),
+	"tsv" tsvector GENERATED ALWAYS AS (to_tsvector('simple', coalesce(title,'') || ' ' || content)) STORED
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "message_logs" (

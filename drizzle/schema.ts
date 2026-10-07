@@ -1,4 +1,5 @@
 
+import { sql } from "drizzle-orm";
 import {
   boolean,
   numeric,
@@ -16,7 +17,20 @@ import {
   index,
   primaryKey,
   foreignKey,
+  real,
+  customType,
+  unique,
 } from "drizzle-orm/pg-core";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+// drizzle-orm 0.44 has no tsvector column type. Declaring it here keeps the STORED
+// generated columns of 0026_phase2_knowledge.sql visible in the row types; nothing in
+// the app writes them - Postgres does. Retrieval (P2-03) matches on them with raw SQL.
+const tsvector = customType<{ data: string }>({
+  dataType() {
+    return "tsvector";
+  },
+});
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 export const roleEnum = pgEnum("role", ["user", "admin"]);
@@ -248,6 +262,9 @@ export type Skill = typeof skills.$inferSelect;
 export type InsertSkill = typeof skills.$inferInsert;
 
 // ─── EYVA: Memories ───────────────────────────────────────────────────────────
+export type MemoryStatus = "active" | "superseded" | "deleted";
+export type MemoryTier = "core" | "episodic";
+
 export const memories = pgTable("memories", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   identityId: integer("identityId").notNull(),
@@ -260,7 +277,25 @@ export const memories = pgTable("memories", {
   tags: json("tags"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-});
+  // P2-01 (0026_phase2_knowledge.sql). The pgvector column `embedding vector(1024)` is
+  // deliberately NOT declared here - it exists only in drizzle/optional/pgvector.sql, which
+  // plain Postgres skips, so it cannot be part of the schema the app derives from.
+  status: varchar("status", { length: 16 }).$type<MemoryStatus>().notNull().default("active"),
+  tier: varchar("tier", { length: 16 }).$type<MemoryTier>().notNull().default("episodic"),
+  supersededBy: integer("superseded_by"),
+  confidence: real("confidence"),
+  spaceId: varchar("space_id", { length: 36 }),
+  lastUsedAt: timestamp("last_used_at"),
+  useCount: integer("use_count").notNull().default(0),
+  embeddingJson: jsonb("embedding_json"),
+  embeddingModel: varchar("embedding_model", { length: 96 }),
+  tsv: tsvector("tsv").generatedAlwaysAs(() =>
+    sql`to_tsvector('simple', coalesce(title,'') || ' ' || content)`,
+  ),
+}, (t) => [
+  index("memories_tsv_idx").using("gin", t.tsv),
+  index("memories_identity_status_idx").on(t.identityId, t.status),
+]);
 export type Memory = typeof memories.$inferSelect;
 export type InsertMemory = typeof memories.$inferInsert;
 
@@ -661,3 +696,114 @@ export const approvals = pgTable(
 );
 export type ApprovalRow = typeof approvals.$inferSelect;
 export type InsertApproval = typeof approvals.$inferInsert;
+
+// ─── Phase 2 knowledge store: chunks of everything the agent has read (P2-01) ──
+export type KnowledgeScope = "file" | "chat" | "space" | "run" | "agent";
+
+export const knowledgeChunks = pgTable(
+  "knowledge_chunks",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+    userId: integer("user_id").notNull(),
+    scopeType: varchar("scope_type", { length: 16 }).$type<KnowledgeScope>().notNull(),
+    scopeId: varchar("scope_id", { length: 64 }).notNull(),
+    // sha256 of a parsed document, a message id, or a url
+    sourceRef: varchar("source_ref", { length: 256 }).notNull(),
+    sourceTitle: text("source_title"),
+    chunkIndex: integer("chunk_index").notNull(),
+    content: text("content").notNull(),
+    tokenCount: integer("token_count").notNull(),
+    // JSON fallback for when the pgvector extension is absent; `embedding vector(1024)`
+    // exists only in drizzle/optional/pgvector.sql and is never declared here.
+    embeddingJson: jsonb("embedding_json"),
+    embeddingModel: varchar("embedding_model", { length: 96 }),
+    tsv: tsvector("tsv").generatedAlwaysAs(() => sql`to_tsvector('simple', content)`),
+    // page, heading, url, published_at
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      name: "knowledge_chunks_user_id_fkey",
+      columns: [t.userId],
+      foreignColumns: [users.id],
+    }),
+    // Unnamed in 0026_phase2_knowledge.sql, like the inline PRIMARY KEY there: Postgres
+    // derives knowledge_chunks_user_id_scope_type_scope_id_source_ref_chunk_in.
+    unique().on(t.userId, t.scopeType, t.scopeId, t.sourceRef, t.chunkIndex),
+    index("kc_scope_idx").on(t.userId, t.scopeType, t.scopeId),
+    index("kc_tsv_idx").using("gin", t.tsv),
+  ],
+);
+export type KnowledgeChunkRow = typeof knowledgeChunks.$inferSelect;
+export type InsertKnowledgeChunk = typeof knowledgeChunks.$inferInsert;
+
+// ─── Parser cache: one document, many chunks; keyed by content hash ───────────
+export const parsedDocuments = pgTable("parsed_documents", {
+  sha256: char("sha256", { length: 64 }).primaryKey(),
+  mime: varchar("mime", { length: 128 }).notNull(),
+  parser: varchar("parser", { length: 32 }).notNull(),
+  pageCount: integer("page_count"),
+  markdown: text("markdown").notNull(),
+  // [{ n, chars, ocr }]
+  pages: jsonb("pages").$type<Array<Record<string, unknown>>>(),
+  meta: jsonb("meta").$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export type ParsedDocumentRow = typeof parsedDocuments.$inferSelect;
+export type InsertParsedDocument = typeof parsedDocuments.$inferInsert;
+
+// ─── Files uploaded in a chat session (sandbox handoff for P2-11) ─────────────
+export const sessionFiles = pgTable(
+  "session_files",
+  {
+    sessionId: varchar("session_id", { length: 36 }).notNull(),
+    userId: integer("user_id").notNull(),
+    sha256: char("sha256", { length: 64 }).notNull(),
+    filename: text("filename").notNull(),
+    mime: varchar("mime", { length: 128 }).notNull(),
+    // where the original bytes live
+    storageKey: text("storage_key"),
+    indexed: boolean("indexed").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ name: "session_files_pkey", columns: [t.sessionId, t.sha256] }),
+    foreignKey({
+      name: "session_files_user_id_fkey",
+      columns: [t.userId],
+      foreignColumns: [users.id],
+    }),
+  ],
+);
+export type SessionFileRow = typeof sessionFiles.$inferSelect;
+export type InsertSessionFile = typeof sessionFiles.$inferInsert;
+
+// ─── Memory audit trail: every add/update/delete/noop/used on a memory ────────
+export type MemoryEventOp = "add" | "update" | "delete" | "noop" | "used";
+export type MemoryEventSource = "auto" | "tool" | "user";
+
+export const memoryEvents = pgTable(
+  "memory_events",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+    userId: integer("user_id").notNull(),
+    // Plain integer, not a foreign key: soft-deleted memories must keep their history.
+    memoryId: integer("memory_id"),
+    op: varchar("op", { length: 16 }).$type<MemoryEventOp>().notNull(),
+    before: text("before"),
+    after: text("after"),
+    source: varchar("source", { length: 32 }).$type<MemoryEventSource>().notNull(),
+    sessionId: varchar("session_id", { length: 36 }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      name: "memory_events_user_id_fkey",
+      columns: [t.userId],
+      foreignColumns: [users.id],
+    }),
+  ],
+);
+export type MemoryEventRow = typeof memoryEvents.$inferSelect;
+export type InsertMemoryEvent = typeof memoryEvents.$inferInsert;
