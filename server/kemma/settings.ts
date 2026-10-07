@@ -23,7 +23,7 @@ export interface MessageSettings {
 }
 
 const MODE_DEFAULT_TOOLS: Record<ChatMode, string[]> = {
-  fast: ["web_search"],
+  fast: ["web_search", "generate_image"],
   deep: ["web_search", "browse", "run_code"],
   document: ["safe_files", "generate_file"],
   image: ["generate_file"],
