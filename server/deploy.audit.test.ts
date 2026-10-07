@@ -156,12 +156,13 @@ describe("schema vs bootstrap coverage", () => {
   });
 
   it("documents which tables live only in journaled migrations", () => {
-    // These six are intentionally NOT in bootstrap.sql: each is created by a
+    // These ten are intentionally NOT in bootstrap.sql: each is created by a
     // journaled migration (skill_reviews by 0022, user_settings/monitors/
-    // monitor_runs by 0023, kv_cache/approvals by 0025). If bootstrap gains or
-    // loses one, update this list.
+    // monitor_runs by 0023, kv_cache/approvals by 0025, knowledge_chunks/
+    // parsed_documents/session_files/memory_events by 0026). If bootstrap gains
+    // or loses one, update this list.
     const onlyInMigrations = [...schema.keys()].filter((t) => !boot.has(t)).sort();
-    expect(onlyInMigrations).toEqual(["approvals", "kv_cache", "monitor_runs", "monitors", "skill_reviews", "user_settings"]);
+    expect(onlyInMigrations).toEqual(["approvals", "knowledge_chunks", "kv_cache", "memory_events", "monitor_runs", "monitors", "parsed_documents", "session_files", "skill_reviews", "user_settings"]);
   });
 });
 
