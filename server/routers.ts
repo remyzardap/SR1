@@ -1,4 +1,4 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS, DISABLED_LOGIN_MESSAGE } from "@shared/const";
 import { AuditActions, identities } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { getDb } from "./db";
@@ -218,6 +218,12 @@ export const appRouter = router({
         if (!valid) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email/handle or password." });
         }
+        // Checked after the password so a wrong guess never reveals that the account is
+        // switched off. An operator can switch an account back on; only a password reset takes
+        // the lock off, so the two states stay independent.
+        if (user.disabledAt) {
+          throw new TRPCError({ code: "FORBIDDEN", message: DISABLED_LOGIN_MESSAGE });
+        }
         if (user.totpEnabled) {
           // Password-only sessions must not bypass an enabled second factor;
           // the 2FA-capable client path is auth.login2fa. This message is the signal the
@@ -378,6 +384,11 @@ export const appRouter = router({
         const valid = await bcrypt.compare(input.password, user.passwordHash);
         if (!valid) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password." });
+        }
+        // Same rule as auth.login: the second factor does not outrank a switch-off, and the
+        // check comes after the password so a wrong guess reveals nothing.
+        if (user.disabledAt) {
+          throw new TRPCError({ code: "FORBIDDEN", message: DISABLED_LOGIN_MESSAGE });
         }
         if (!user.totpSecret) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "2FA not configured." });
