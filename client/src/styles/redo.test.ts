@@ -72,4 +72,15 @@ describe("Redo stylesheets and tokens", () => {
       expect(bundleContent, `Expected selector ${sel} to be present in redo CSS`).toMatch(regex);
     }
   });
+
+  it("shared card class includes hairline top highlight (.7 light, .04 dark)", () => {
+    const baseCssPath = path.join(redoDir, "base.css");
+    expect(fs.existsSync(baseCssPath)).toBe(true);
+    const baseContent = fs.readFileSync(baseCssPath, "utf8");
+
+    // Light mode highlight
+    expect(baseContent).toMatch(/inset\s+0\s+1px\s+0\s+rgba\(255,\s*255,\s*255,\s*\.?7\)/);
+    // Dark mode highlight
+    expect(baseContent).toMatch(/inset\s+0\s+1px\s+0\s+rgba\(255,\s*255,\s*255,\s*\.?04\)/);
+  });
 });
