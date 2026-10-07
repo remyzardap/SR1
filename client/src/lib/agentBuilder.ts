@@ -411,7 +411,7 @@ export function parseSelection(raw: string | null | undefined): AgentSelection |
   } catch {
     return null;
   }
-  if (!data || typeof data !== "object") return null;
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
   const d = data as Record<string, unknown>;
   const srcs = (d.srcs ?? {}) as Record<string, unknown>;
   const out = typeof d.out === "string" && isOutputId(d.out) ? d.out : AGENT_DEFAULTS.out;
