@@ -26,6 +26,9 @@ main:focus { outline: none; }
 .mono { font: 500 11px/1.4 var(--mono); letter-spacing: 1.54px; text-transform: uppercase; color: var(--quiet); }
 .mono.ink { color: var(--ink); }
 .mono.tnum { font-variant-numeric: tabular-nums; }
+.title { font-family: var(--disp); font-weight: 800; letter-spacing: -.035em; line-height: 1.02; text-wrap: balance; margin: 0; }
+.lede { color: var(--quiet); font-size: 16px; line-height: 1.55; max-width: 34em; margin: 0; text-wrap: pretty; }
+@media (min-width: 760px) { .lede { font-size: 18px; } }
 .link { color: var(--quiet); text-decoration: underline; text-underline-offset: 3px; }
 .link:hover { color: var(--ink); }
 .ico { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; display: inline-block; vertical-align: -2px; }
