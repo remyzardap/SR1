@@ -531,6 +531,37 @@ describe("an account an administrator creates, end to end", () => {
     expect(status).toEqual({ enabled: false });
   });
 
+  it("invalidates the handed-out password when an administrator resets it, and the new one works", async () => {
+    const created: any = await createAccount();
+    const row = state.users.find((u) => u.email === CREATED_EMAIL)!;
+
+    // The task's "reset invalidates" only means something on the sign-in path: a reset that left
+    // the pasted-around password working would be a second password, not a replacement.
+    const admin = makeCtx(
+      account({ id: 1, openId: "local:admin-issuer", email: "issuer@example.com", role: "admin" })
+    );
+    const reset: any = await caller(admin.ctx).admin.users.resetPassword({ id: row.id });
+    expect(reset.oneTimePassword).not.toBe(created.oneTimePassword);
+    expect(reset.oneTimePassword.length).toBeGreaterThanOrEqual(16);
+
+    const spentCtx = makeCtx();
+    const spent = await caller(spentCtx.ctx)
+      .auth.login({ email: CREATED_EMAIL, password: created.oneTimePassword })
+      .then(() => null)
+      .catch((e) => e);
+    expect(spent!.message).toBe("Invalid email/handle or password.");
+
+    const freshCtx = makeCtx();
+    const fresh: any = await caller(freshCtx.ctx).auth.login({
+      email: CREATED_EMAIL,
+      password: reset.oneTimePassword,
+    });
+    expect(fresh.success).toBe(true);
+    // The reset re-arms the lock, so the new holder is pushed to the change screen too.
+    expect(fresh.mustChangePassword).toBe(true);
+    expect(JSON.stringify(fresh)).not.toContain("passwordHash");
+  });
+
   it("stops the round trip dead when an administrator switches the account off", async () => {
     const created: any = await createAccount();
     const row = state.users.find((u) => u.email === CREATED_EMAIL)!;
