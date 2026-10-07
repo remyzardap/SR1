@@ -5,6 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "NODE_ENV=development tsx watch server/_core/index.ts",
+    "lab": "VITE_DESIGN_LAB=1 vite",
     "build": "vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "node --import tsx/esm server/migrate.ts && node dist/index.js",
     "migrate": "tsx server/migrate.ts",
