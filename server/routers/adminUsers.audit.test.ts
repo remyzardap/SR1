@@ -299,7 +299,7 @@ describe("admin.users.resetPassword", () => {
     });
   });
 
-  it("refuses to reset the caller's own password and writes nothing", async () => {
+  it("refuses to reset the caller's own password and writes no hash", async () => {
     state.users.set(2, { id: 2, email: "admin@example.com", role: "admin", openId: "local:adminactor" });
     const c = await adminCaller();
     await expect(c.resetPassword({ id: 2 })).rejects.toMatchObject({
@@ -307,6 +307,15 @@ describe("admin.users.resetPassword", () => {
       message: "You cannot reset your own password",
     });
     expect(state.passwordWrites).toHaveLength(0);
+    // The attempt is still journaled: an admin reaching for the wrong reset button is worth a row.
+    expect(state.audit).toHaveLength(1);
+    expect(state.audit[0]).toMatchObject({
+      userId: "2",
+      action: "user.password_reset",
+      resourceId: "2",
+      status: "failure",
+      severity: "warn",
+    });
   });
 
   it("refuses an unknown account id", async () => {
@@ -366,7 +375,15 @@ describe("admin.users.setDisabled", () => {
       message: "You cannot switch off your own account",
     });
     expect(state.disabledWrites).toHaveLength(0);
-    expect(state.audit).toHaveLength(0);
+    expect(state.audit).toHaveLength(1);
+    expect(state.audit[0]).toMatchObject({
+      userId: "2",
+      action: "user.disable",
+      resourceId: "2",
+      status: "failure",
+      severity: "warn",
+    });
+    expect(JSON.stringify(state.audit)).not.toContain("passwordHash");
   });
 
   it("refuses to switch off the last active administrator", async () => {
@@ -377,6 +394,13 @@ describe("admin.users.setDisabled", () => {
       message: /last active administrator/,
     });
     expect(state.disabledWrites).toHaveLength(0);
+    expect(state.audit).toHaveLength(1);
+    expect(state.audit[0]).toMatchObject({
+      userId: "2",
+      action: "user.disable",
+      resourceId: "61",
+      status: "failure",
+    });
   });
 
   it("allows switching off an administrator while another active one remains", async () => {

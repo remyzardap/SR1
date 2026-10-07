@@ -476,6 +476,18 @@ describe("an account an administrator creates, end to end", () => {
     expect(JSON.stringify(result)).not.toContain("passwordHash");
   });
 
+  it("tells the client through auth.me as well, which is what a page reads on load", async () => {
+    const created: any = await createAccount();
+    const row = state.users.find((u) => u.email === CREATED_EMAIL)!;
+    const { ctx } = makeCtx(row);
+    const me: any = await caller(ctx).auth.me();
+    expect(me.mustChangePassword).toBe(true);
+    expect(me.id).toBe(row.id);
+    // The strip-list still works with two more sensitive columns in play.
+    expect(me).not.toHaveProperty("passwordHash");
+    expect(me).not.toHaveProperty("totpSecret");
+  });
+
   it("refuses the new account any protected procedure until it changes that password", async () => {
     const created: any = await createAccount();
     const row = state.users.find((u) => u.email === CREATED_EMAIL)!;

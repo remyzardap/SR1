@@ -164,7 +164,18 @@ export const adminUsersRouter = router({
       assertAdmin(ctx);
       const target = await requireTargetUser(input.id);
 
+      // Both guards are journaled like the refused reset above: an admin poking at the switch-off
+      // button for their own or the last admin account is exactly the thing an auditor wants to see.
       if (target.id === ctx.user.id) {
+        await logAuditEvent({
+          userId: String(ctx.user.id),
+          action: input.disabled ? AuditActions.USER_DISABLE : AuditActions.USER_ENABLE,
+          resourceType: "user",
+          resourceId: String(target.id),
+          severity: "warn",
+          status: "failure",
+          errorMessage: "Cannot switch off your own account",
+        });
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "You cannot switch off your own account",
@@ -172,6 +183,15 @@ export const adminUsersRouter = router({
       }
 
       if (input.disabled && target.role === "admin" && (await countActiveAdmins()) <= 1) {
+        await logAuditEvent({
+          userId: String(ctx.user.id),
+          action: AuditActions.USER_DISABLE,
+          resourceType: "user",
+          resourceId: String(target.id),
+          severity: "warn",
+          status: "failure",
+          errorMessage: "Cannot switch off the last active administrator",
+        });
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "You cannot switch off the last active administrator",

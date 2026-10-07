@@ -34,6 +34,7 @@ const suite = router({
     changePassword: protectedProcedure.mutation(async () => "changed"),
     // Public in the real router, so the lock never sees them.
     me: publicProcedure.query(async () => "public"),
+    logout: publicProcedure.mutation(async () => "logged out"),
   }),
   skills: router({
     list: protectedProcedure.query(async () => "skills"),
@@ -81,6 +82,8 @@ describe("the change-password lock on tRPC procedures", () => {
 
   it("does not touch public procedures", async () => {
     await expect(callerFor(LOCKED).auth.me()).resolves.toBe("public");
+    // A locked account must still be able to leave: refusing logout would strand the session.
+    await expect(callerFor(LOCKED).auth.logout()).resolves.toBe("logged out");
   });
 
   it("keeps the existing refusals for anonymous and non-admin callers ahead of the lock", async () => {
@@ -144,5 +147,36 @@ describe("the change-password lock outside tRPC", () => {
     // The switch-off message belongs to the sign-in path; reusing it here would tell a signed-in
     // user they have been disabled when all they need to do is set a password.
     expect(text).not.toMatch(/switched off/);
+  });
+});
+
+describe("one middleware, not a check per procedure", () => {
+  // The task asks for a single gate. Every one of these is a shape check on the two files that own
+  // it: the exemption list, the procedure builders, and the absence of any per-procedure copy.
+  const trpcSource = () => readFileSync("server/_core/trpc.ts", "utf8");
+  const routersSource = () => readFileSync("server/routers.ts", "utf8");
+
+  it("exemptions are only the procedures that read or clear the flag", () => {
+    const list = trpcSource().match(/const PASSWORD_CHANGE_EXEMPT_PATHS = new Set\(\[([^\]]*)\]\)/);
+    expect(list).toBeTruthy();
+    expect(list![1].match(/["'][^"']+["']/g)).toEqual(['"auth.changePassword"']);
+  });
+
+  it("hangs the gate on both procedure builders so nothing can be added without it", () => {
+    const text = trpcSource();
+    expect(text).toMatch(/export const protectedProcedure = t\.procedure\.use\(requireUser\)\.use\(requireNewPassword\)/);
+    expect(text).toMatch(/export const adminProcedure = t\.procedure\.use\(requireAdmin\)\.use\(requireNewPassword\)/);
+  });
+
+  it("leaves the routers free of any private copy of the check", () => {
+    const text = routersSource();
+    expect(text).not.toMatch(/PASSWORD_CHANGE_REQUIRED/);
+    expect(text).not.toMatch(/mustChangePassword\s*(?:===|!==)\s*(?:true|false)/);
+  });
+
+  it("keeps auth.me and auth.logout public, which is why they need no exemption", () => {
+    const text = routersSource();
+    expect(text).toMatch(/^\s+me: publicProcedure/m);
+    expect(text).toMatch(/^\s+logout: publicProcedure/m);
   });
 });
