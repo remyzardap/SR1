@@ -14,6 +14,7 @@ import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/authSession";
 import { ApprovalCard } from "@/components/chat/ApprovalCard";
+import { mergeApprovals } from "@/lib/approvalForm";
 import type { ApprovalRequest } from "@/lib/sse";
 import { applyHistoryMetadata, type HistoryMetadata } from "@/lib/citations";
 import { callFunction } from "@/lib/kemmaCloud";
@@ -171,6 +172,9 @@ export default function Chat() {
   const [usage, setUsage] = useState<{ inputTokens: number; outputTokens: number; totalTokens: number } | null>(null);
   const [sources, setSources] = useState<Source[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<ApprovalRequest[]>([]);
+  // Approval ids the person already decided or dismissed. The stream reducer only ever appends, so
+  // without this its next update would put a card the human has just answered back on screen.
+  const decidedApprovals = useRef<Set<string>>(new Set());
 
   // ─── Connection ─────────────────────────────────────────────────────────────
   // Offline is a visual state only: nothing is queued in the backend, the composer
@@ -297,6 +301,10 @@ export default function Chat() {
       setUsedSkills([]);
       setUsage(null);
       setSources([]);
+      // A card belongs to the conversation that raised it. Moving on drops it here, and the restore
+      // effect asks for the pending ones of the conversation being entered.
+      setPendingApprovals([]);
+      decidedApprovals.current.clear();
     },
     [isStreaming]
   );
@@ -323,6 +331,8 @@ export default function Chat() {
     setUsedSkills([]);
     setUsage(null);
     setSources([]);
+    setPendingApprovals([]);
+    decidedApprovals.current.clear();
   }, [isStreaming]);
 
   // ─── Load persisted history on mount ───────────────────────────────────────
@@ -364,6 +374,33 @@ export default function Chat() {
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, historyAttempt, hasPersistedHistory]);
+
+  // ─── Restore an approval that outlived the page ────────────────────────────
+  // The approval event is streamed once. Reload the tab, or let a phone sleep through it, and the
+  // card disappears while the run behind it keeps waiting for a decision nobody can see any more.
+  // So ask what is still pending for this conversation and put those cards back — the list returns
+  // the same fields the event carried, so a restored card is not a different kind of card.
+  //
+  // Only a conversation with saved history can have a card waiting; a fresh one cannot. And a
+  // request that fails is swallowed on purpose: the thread still works, the run still waits, and
+  // an error banner over a card that merely did not come back would be the worse outcome.
+  useEffect(() => {
+    if (!hasPersistedHistory) return;
+    let cancelled = false;
+    const origin = import.meta.env.VITE_SR1_API_ORIGIN || "";
+    fetch(`${origin}/api/kemma/approvals?sessionId=${encodeURIComponent(sessionId)}&status=pending`, {
+      credentials: "include",
+      headers: getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {},
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { approvals?: ApprovalRequest[] } | null) => {
+        if (cancelled) return;
+        const restored = data && Array.isArray(data.approvals) ? data.approvals : [];
+        setPendingApprovals((prev) => mergeApprovals(prev, restored));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [sessionId, hasPersistedHistory]);
 
   // ─── Send message ─────────────────────────────────────────────────────────
   const handleSend = useCallback(
@@ -545,7 +582,8 @@ export default function Chat() {
               setCurrentStep(next.currentStep);
             }
             if (next.approvals !== streamState.approvals) {
-              setPendingApprovals(next.approvals);
+              const fresh = next.approvals.filter((a) => !decidedApprovals.current.has(a.id));
+              setPendingApprovals((prev) => mergeApprovals(prev, fresh));
             }
 
             streamState = next;
@@ -801,6 +839,7 @@ export default function Chat() {
                     key={approval.id}
                     approval={approval}
                     onDecision={(id) => {
+                      decidedApprovals.current.add(id);
                       setPendingApprovals((prev) => prev.filter((a) => a.id !== id));
                     }}
                   />
