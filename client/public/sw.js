@@ -1,5 +1,16 @@
-// Sutaeru Service Worker — v3
-const CACHE_NAME = 'sutaeru-v3';
+// Sutaeru Service Worker — v4
+//
+// Offline policy:
+//   - API traffic (/api/..., /trpc/...) never touches the cache. The streaming
+//     chat endpoints are /api/kemma/stream and /api/fn/research; caching or
+//     buffering a response there breaks SSE.
+//   - Navigations are network-first with the cached shell as the offline answer.
+//   - Other same-origin GETs are cache-first, and only successful same-origin
+//     static assets are stored.
+//
+// The cache name carries the version, so `activate` drops every other cache and
+// an update can never serve a shell asset from the previous build.
+const CACHE_NAME = 'sutaeru-v4';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -12,8 +23,7 @@ const APP_SHELL = [
   '/favicon.png',
 ];
 
-// Track if a stream/SSE connection is active
-let activeStreams = 0;
+const STATIC_DESTINATIONS = ['script', 'style', 'image', 'font', 'worker'];
 
 function isApiRequest(url) {
   return url.pathname.startsWith('/api/') || url.pathname.startsWith('/trpc/');
@@ -23,72 +33,120 @@ function isNavigationRequest(request) {
   return request.mode === 'navigate';
 }
 
+function isStaticAsset(request) {
+  return STATIC_DESTINATIONS.includes(request.destination);
+}
+
+// A settled answer for "offline and nothing cached". Letting respondWith() reject
+// would hand the browser an error page instead of something the UI can show.
+function offlineResponse() {
+  return new Response('Offline', {
+    status: 504,
+    statusText: 'Offline',
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
+}
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
-  );
-  // Do NOT skipWaiting here - wait for activate to avoid breaking in-progress streams
+  event.waitUntil(cacheAppShell());
+  // Deliberately no skipWaiting(): a new worker must not replace the one a live
+  // stream is running on. The page posts `skip-waiting` once it decides it is
+  // safe for the update to take effect.
 });
+
+// One entry at a time. `cache.addAll()` rejects as soon as a single URL 404s,
+// which aborts installation and leaves the worker redundant with no offline shell
+// at all; a partial shell still answers navigations.
+async function cacheAppShell() {
+  const cache = await caches.open(CACHE_NAME);
+  await Promise.all(
+    APP_SHELL.map(async (url) => {
+      try {
+        const response = await fetch(url);
+        if (response && response.ok) {
+          await cache.put(url, response);
+        }
+      } catch {
+        /* keep the entries that did resolve */
+      }
+    })
+  );
+}
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
+      )
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Only handle same-origin GET requests
+  // Only same-origin GETs are ours to intercept.
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  // Never cache API requests or SSE streams - always go to network
-  if (isApiRequest(url)) {
-    return;
-  }
+  // Never cache API requests or SSE streams - always go to network.
+  if (isApiRequest(url)) return;
 
-  // For navigation requests, try network first, fall back to cached index.html
+  // Navigations: fresh shell when online, cached index.html when not.
   if (isNavigationRequest(request)) {
-    event.respondWith(
-      fetch(request).catch(() => caches.match('/index.html'))
-    );
+    event.respondWith(networkFirstShell(request));
     return;
   }
 
-  // For app shell assets: cache-first strategy
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
-        // Cache successful responses for static assets
-        if (response.ok && (request.destination === 'script' || request.destination === 'style' || request.destination === 'image' || request.destination === 'font')) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
-        }
-        return response;
-      });
-    })
-  );
+  event.respondWith(cacheFirstAsset(request));
 });
 
-// Listen for messages from the client
+async function networkFirstShell(request) {
+  try {
+    return await fetch(request);
+  } catch {
+    const cached = await caches.match('/index.html');
+    return cached || offlineResponse();
+  }
+}
+
+async function cacheFirstAsset(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
+  let response;
+  try {
+    response = await fetch(request);
+  } catch {
+    return offlineResponse();
+  }
+
+  // Store a clean copy only: clone before the page consumes the body, and accept
+  // same-origin successes so a 404 or an opaque reply cannot be replayed forever
+  // once the device is offline.
+  if (response.ok && response.type === 'basic' && isStaticAsset(request)) {
+    const copy = response.clone();
+    caches
+      .open(CACHE_NAME)
+      .then((target) => target.put(request, copy))
+      .catch(() => undefined);
+  }
+
+  return response;
+}
+
+// The page asks this worker to take effect now. The "no stream in flight" guard
+// lives on the page side (client/src/lib/activeStreams.ts): postMessage() reaches
+// the *controlling* worker while skipWaiting() has to run in the *waiting* one, so
+// a counter kept here could never gate itself.
 self.addEventListener('message', (event) => {
-  if (event.data === 'stream-start') {
-    activeStreams++;
-  } else if (event.data === 'stream-end') {
-    activeStreams = Math.max(0, activeStreams - 1);
-    // If a new SW is waiting and no streams are active, tell it to skipWaiting
-    if (activeStreams === 0) {
-      self.clients.matchAll().then((clients) => {
-        clients.forEach((client) => client.postMessage({ type: 'check-update' }));
-      });
-    }
-  } else if (event.data === 'skip-waiting') {
-    self.skipWaiting();
+  const data = event.data;
+  if (!data || typeof data !== 'object') return;
+  if (data.type === 'skip-waiting') {
+    event.waitUntil(self.skipWaiting());
   }
 });
 
@@ -107,12 +165,13 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
+    self.clients.matchAll({ type: 'window' }).then((clientList) => {
       const url = event.notification.data?.url ?? '/';
       for (const client of clientList) {
         if (client.url === url && 'focus' in client) return client.focus();
       }
-      if (clients.openWindow) return clients.openWindow(url);
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+      return undefined;
     })
   );
 });
