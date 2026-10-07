@@ -246,6 +246,9 @@ describe("InstallPromptController install and close", () => {
 
     await expect(controller.install()).resolves.toBe(false);
     expect(controller.getState().canInstall).toBe(false);
+    // A browser failure is not a decision by the user, so nothing is recorded and
+    // the card is offered again on the next visit.
+    expect(win.stored.get(DISMISSAL_KEY)).toBeUndefined();
   });
 });
 
