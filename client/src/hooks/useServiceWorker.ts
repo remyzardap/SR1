@@ -1,106 +1,121 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { getActiveStreamCount, subscribeActiveStreams } from "@/lib/activeStreams";
+
+const UPDATE_TOAST_ID = "sutaeru-sw-update";
 
 /**
- * Register the service worker and handle update notifications.
- * - Does not skipWaiting while a stream is active
- * - Shows "Update ready, tap to refresh" toast when a new SW is waiting
+ * Registers the service worker and makes its update flow explicit.
+ *
+ * `sw.js` never skips waiting on its own: it installs a *waiting* worker and obeys a
+ * single message, `{ type: "skip-waiting" }`. Everything that decides **when** an
+ * update may be applied therefore lives here on the page, because a counter inside
+ * the worker could not gate itself - `postMessage` reaches the *controlling* worker
+ * while `skipWaiting()` runs in the *waiting* one (see `lib/activeStreams.ts`).
+ *
+ * The flow is: worker waits -> toast appears -> Refresh posts `skip-waiting` while no
+ * stream is active -> the worker activates and calls `clients.claim()` -> reload.
+ * While a stream is active the button stays honest: it explains the deferral instead
+ * of pretending nothing happened, and becomes actionable the moment the count drops.
  */
 export function useServiceWorker() {
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !import.meta.env.PROD) return;
 
-    let registration: ServiceWorkerRegistration | null = null;
-    let refreshing = false;
+    let disposed = false;
+    let toastClosed = false;
+    let waitingWorker: ServiceWorker | null = null;
+    let unsubscribeStreams: (() => void) | null = null;
+
+    const stopWatchingStreams = () => {
+      toastClosed = true;
+      unsubscribeStreams?.();
+      unsubscribeStreams = null;
+    };
+
+    /** Re-renders the persistent toast for the current stream state. */
+    const renderToast = () => {
+      if (!waitingWorker || toastClosed || disposed) return;
+      const pending = getActiveStreamCount();
+      toast("Update ready", {
+        id: UPDATE_TOAST_ID,
+        description: pending > 0
+          ? `Waiting for ${pending} stream${pending > 1 ? "s" : ""} to finish before applying the update.`
+          : "Tap to refresh and get the latest version",
+        action: {
+          label: "Refresh",
+          onClick: () => {
+            if (pending > 0) {
+              // Feedback rather than a silent no-op: an update held back for a
+              // stream can look like a broken button without this.
+              renderToast();
+              return;
+            }
+            applyUpdate();
+          },
+        },
+        duration: Infinity,
+        onDismiss: stopWatchingStreams,
+      });
+      if (!unsubscribeStreams) unsubscribeStreams = subscribeActiveStreams(renderToast);
+    };
+
+    const applyUpdate = () => {
+      const worker = waitingWorker;
+      if (!worker || disposed) return;
+      stopWatchingStreams();
+      toast.dismiss(UPDATE_TOAST_ID);
+      worker.postMessage({ type: "skip-waiting" });
+      worker.addEventListener("statechange", () => {
+        if (worker.state === "activated") window.location.reload();
+      });
+    };
+
+    const trackWaiting = (worker: ServiceWorker) => {
+      waitingWorker = worker;
+      renderToast();
+    };
 
     const registerSW = async () => {
       try {
-        registration = await navigator.serviceWorker.register("/sw.js");
-        
-        // Check for waiting SW (update ready)
-        if (registration.waiting) {
-          showUpdateToast(registration.waiting);
-        }
+        const registration = await navigator.serviceWorker.register("/sw.js");
+        if (disposed) return;
 
-        // Listen for new SW installing
+        // A worker that installed before this tab opened is still waiting for us.
+        if (registration.waiting) trackWaiting(registration.waiting);
+
         registration.addEventListener("updatefound", () => {
-          const newWorker = registration?.installing;
+          const newWorker = registration.installing;
           if (!newWorker) return;
-          
-          newWorker.addEventListener("statechange", () => {
+          const onStateChange = () => {
+            if (disposed || toastClosed) return;
+            // `controller` is non-null only when an older worker still holds the
+            // page, which is what makes a newly installed worker "waiting".
             if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-              showUpdateToast(newWorker);
+              trackWaiting(newWorker);
             }
-          });
+          };
+          newWorker.addEventListener("statechange", onStateChange);
+          onStateChange();
         });
 
-        // Listen for messages from SW
-        navigator.serviceWorker.addEventListener("message", (event) => {
-          if (event.data?.type === "check-update" && registration?.waiting) {
-            showUpdateToast(registration.waiting);
-          }
-        });
-
+        // The browser only re-checks on navigation, so an update published while this
+        // tab stayed open would otherwise never be noticed.
+        await registration.update().catch(() => undefined);
       } catch (err) {
         console.warn("[PWA] service worker registration failed", err);
       }
     };
 
-    const showUpdateToast = (worker: ServiceWorker) => {
-      if (refreshing) return;
-      
-      toast("Update ready", {
-        description: "Tap to refresh and get the latest version",
-        action: {
-          label: "Refresh",
-          onClick: () => {
-            refreshing = true;
-            worker.postMessage({ type: "skip-waiting" });
-            worker.addEventListener("statechange", () => {
-              if (worker.state === "activated") {
-                window.location.reload();
-              }
-            });
-          },
-        },
-        duration: Infinity,
-      });
-    };
-
-    // Notify SW when a stream starts/ends so it can delay skipWaiting
-    const handleStreamStart = () => {
-      navigator.serviceWorker.controller?.postMessage("stream-start");
-    };
-    const handleStreamEnd = () => {
-      navigator.serviceWorker.controller?.postMessage("stream-end");
-    };
-
-    window.addEventListener("sutaeru:stream-start", handleStreamStart);
-    window.addEventListener("sutaeru:stream-end", handleStreamEnd);
-
     if (document.readyState === "complete") {
-      registerSW();
+      void registerSW();
     } else {
       window.addEventListener("load", registerSW, { once: true });
     }
 
     return () => {
-      window.removeEventListener("sutaeru:stream-start", handleStreamStart);
-      window.removeEventListener("sutaeru:stream-end", handleStreamEnd);
+      disposed = true;
+      stopWatchingStreams();
     };
   }, []);
-}
-
-/**
- * Call this when an SSE/streaming connection opens
- */
-export function notifyStreamStart() {
-  window.dispatchEvent(new Event("sutaeru:stream-start"));
-}
-
-/**
- * Call this when an SSE/streaming connection closes
- */
-export function notifyStreamEnd() {
-  window.dispatchEvent(new Event("sutaeru:stream-end"));
 }
