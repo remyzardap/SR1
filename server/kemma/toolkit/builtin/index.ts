@@ -13,6 +13,7 @@ import { registerDriveTools } from "./drive";
 import { registerSkillTools } from "./skills";
 import { registerVpsFiles } from "./vpsFiles";
 import { registerEmailTools } from "./email";
+import { registerCalendarTools } from "./calendar";
 import { flag } from "../../../core/flags";
 
 let registered = false;
@@ -34,6 +35,7 @@ export function registerBuiltinTools(): void {
   // its `allowedTools`.
   if (flag("ACTION_TOOLS")) {
     registerEmailTools();
+    registerCalendarTools();
   }
   // Last: it is gated on flag("CONTEXT_MANAGER"), so the default tool list is unaffected.
   registerReadResult();
