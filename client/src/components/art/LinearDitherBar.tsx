@@ -1,3 +1,4 @@
+import * as React from "react";
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import { clampProgress, etaLabel } from "./useMotion";
@@ -12,6 +13,10 @@ export interface LinearDitherBarProps {
   /** Shows the big percent instead of the step label. */
   showPercent?: boolean;
   state?: "running" | "done" | "error";
+  /** Render pure canvas element directly */
+  asCanvas?: boolean;
+  width?: number;
+  height?: number;
   ariaLabel?: string;
   className?: string;
 }
@@ -23,6 +28,9 @@ export function LinearDitherBar({
   stepLabel,
   showPercent = false,
   state = "running",
+  asCanvas = false,
+  width = 300,
+  height = 14,
   ariaLabel,
   className,
 }: LinearDitherBarProps) {
@@ -31,6 +39,21 @@ export function LinearDitherBar({
   const style = { "--pw": `${p * 100}%` } as CSSProperties;
   const eta = state === "done" ? null : etaLabel(etaSeconds);
   const left = stepLabel ?? (showPercent ? `${pct}%` : null);
+
+  if (asCanvas) {
+    return (
+      <canvas
+        className={cn("bar art-ditherbar-canvas", className)}
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={ariaLabel ?? stepLabel}
+        width={width}
+        height={height}
+      />
+    );
+  }
 
   return (
     <div className={cn("art-ditherbar", state !== "running" && `is-${state}`, className)} style={style}>
@@ -42,6 +65,7 @@ export function LinearDitherBar({
         aria-valuemax={100}
         aria-label={ariaLabel ?? stepLabel}
       >
+        <canvas className="bar art-bar-canvas" width={width} height={height} aria-hidden="true" />
         <span className="art-dotrow" aria-hidden="true" />
         <span className="art-ditherbar-pill" aria-hidden="true" />
         <span className="art-ditherbar-trail" aria-hidden="true" />

@@ -1,3 +1,4 @@
+import * as React from "react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -9,22 +10,65 @@ export interface ChipProps {
   onClick?: () => void;
   /** Mono 11px chip instead of the body-size one. */
   small?: boolean;
+  variant?: "default" | "quiet" | "alert";
   disabled?: boolean;
   className?: string;
 }
 
-/** Filter chip / selectable pill. */
-export function Chip({ children, active = false, onClick, small = false, disabled, className }: ChipProps) {
-  const cls = cn("art-chip", small && "art-chip-sm", className);
+/** Filter chip / selectable pill / tag. */
+export function Chip({
+  children,
+  active = false,
+  onClick,
+  small = false,
+  variant,
+  disabled,
+  className,
+}: ChipProps) {
+  const cls = cn(
+    "pill tag art-chip",
+    small && "art-chip-sm",
+    variant === "quiet" && "quiet",
+    variant === "alert" && "alert",
+    className
+  );
   if (onClick) {
     return (
-      <button type="button" className={cls} data-active={active ? "true" : "false"} onClick={onClick} disabled={disabled}>
+      <button
+        type="button"
+        className={cls}
+        data-active={active ? "true" : "false"}
+        onClick={onClick}
+        disabled={disabled}
+      >
         {children}
       </button>
     );
   }
   return (
     <span className={cls} data-active={active ? "true" : "false"}>
+      {children}
+    </span>
+  );
+}
+
+export interface TagProps {
+  children: ReactNode;
+  variant?: "default" | "quiet" | "alert";
+  className?: string;
+}
+
+/** Prototype tag matching .tag, .tag.quiet, .tag.alert */
+export function Tag({ children, variant = "default", className }: TagProps) {
+  return (
+    <span
+      className={cn(
+        "tag",
+        variant === "quiet" && "quiet",
+        variant === "alert" && "alert",
+        className
+      )}
+    >
       {children}
     </span>
   );
@@ -50,7 +94,5 @@ export function StatusPill({ status, className }: { status: StatusPillStatus; cl
   );
 }
 
-/** Alias kept for call sites that say "pill". */
 export const Pill = Chip;
-
 export default Chip;
