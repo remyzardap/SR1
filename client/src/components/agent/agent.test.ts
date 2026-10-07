@@ -207,7 +207,8 @@ describe("AgentScreen", () => {
     expect(html).toContain('aria-invalid="true"');
     expect(html).toContain('aria-describedby="agent-brief-error"');
     expect(html).toContain('id="agent-brief-error"');
-    expect(html).toContain('class="brk art-brackets" data-tone="alert"');
+    // .show is what rests the bracket: base.css keeps it at scale(1.04) without a .is-on parent.
+    expect(html).toContain('class="brk art-brackets show" data-tone="alert"');
   });
 
   it("says why Start is blocked when the workspace is out of credits", () => {

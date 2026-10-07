@@ -88,8 +88,12 @@ export function AgentScreen({
             />
             {/* The textarea cannot carry an outline of its own (.brief textarea sets outline: 0).
                 The rewritten FocusBrackets draws whenever it is mounted and takes its colour from
-                tone, not from the dead .brk.alert class, so the alert case is a tone here. */}
-            {(briefFocused || invalid) && <FocusBrackets tone={invalid ? "alert" : "ink"} />}
+                tone, not from .brk.alert, so the alert case is a tone here. .show is kept because
+                base.css still uses it to rest a bracket: unlike the cards and chips there is no
+                .is-on parent, so without it this bracket would sit frozen at scale(1.04). */}
+            {(briefFocused || invalid) && (
+              <FocusBrackets tone={invalid ? "alert" : "ink"} className="show" />
+            )}
           </div>
 
           <DepthPicker
