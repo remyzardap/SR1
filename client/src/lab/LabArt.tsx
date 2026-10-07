@@ -234,10 +234,10 @@ export default function LabArt() {
         {/* 3. DitherEdge & HalftoneFade */}
         <section className="card" style={{ padding: 24, borderRadius: 20 }}>
           <h2 style={{ font: "700 18px/1 var(--disp)", marginBottom: 16 }}>3. DitherEdge & HalftoneFade</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
+          <div className="lab-grid" style={{ gap: 20 }}>
             <div>
               <span className="mono" style={{ fontSize: 12, display: "block", marginBottom: 8, color: "var(--quiet)" }}>
-                DitherEdge (direction="bottom", fine & coarse radial-dot layers)
+                DitherEdge (direction="bottom", 3 graded bands: fine dots growing coarse inward)
               </span>
               <div style={{ position: "relative", height: 110, background: "var(--panel)", borderRadius: 14, overflow: "hidden" }}>
                 <DitherEdge direction="bottom" opacity={0.85} />
@@ -262,7 +262,7 @@ export default function LabArt() {
         {/* 4. RegistrationMarks & FocusBrackets */}
         <section className="card" style={{ padding: 24, borderRadius: 20 }}>
           <h2 style={{ font: "700 18px/1 var(--disp)", marginBottom: 16 }}>4. RegistrationMarks & FocusBrackets</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
+          <div className="lab-grid" style={{ gap: 20 }}>
             <div>
               <span className="mono" style={{ fontSize: 12, display: "block", marginBottom: 8, color: "var(--quiet)" }}>
                 RegistrationMarks (two 11 px crosses, 1 px stroke, --rule at .45)
@@ -294,7 +294,7 @@ export default function LabArt() {
         {/* 5. Slider & Toggle */}
         <section className="card" style={{ padding: 24, borderRadius: 20 }}>
           <h2 style={{ font: "700 18px/1 var(--disp)", marginBottom: 16 }}>5. Themed Slider & Toggle</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
+          <div className="lab-grid" style={{ gap: 24 }}>
             <div>
               <span className="mono" style={{ fontSize: 12, display: "block", marginBottom: 8, color: "var(--quiet)" }}>
                 Themed Slider (28px thumb with ink border, keyboard accessible, no blue)
@@ -342,7 +342,7 @@ export default function LabArt() {
             The shared <code>.card</code> class carries a hairline top highlight:{" "}
             <code>inset 0 1px 0 rgba(255,255,255,.7)</code> in light mode, and <code>.04</code> in dark mode.
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+          <div className="lab-grid lab-grid-sm" style={{ gap: 16 }}>
             <div className="card" style={{ padding: 18, borderRadius: 14 }}>
               <b style={{ display: "block", fontSize: 14, marginBottom: 4 }}>Standard Card</b>
               <span style={{ fontSize: 12, color: "var(--quiet)" }}>Inspect top border for hairline light</span>

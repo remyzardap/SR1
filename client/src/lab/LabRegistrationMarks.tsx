@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useState } from "react";
 import { LabLayout } from "./LabLayout";
+import { LabSliderRow } from "./LabSliderRow";
 import { RegistrationMarks } from "@/components/art";
 
 export default function LabRegistrationMarks() {
@@ -46,35 +47,27 @@ export default function LabRegistrationMarks() {
               </div>
             </div>
 
-            <div>
-              <span className="mono" style={{ fontSize: 11, display: "block", marginBottom: 4, color: "var(--quiet)" }}>
-                Opacity: {opacity}
-              </span>
-              <input
-                type="range"
-                min="0.1"
-                max="1"
-                step="0.05"
-                value={opacity}
-                onChange={(e) => setOpacity(parseFloat(e.target.value))}
-                style={{ width: 100 }}
-              />
-            </div>
+            <LabSliderRow
+              label="Opacity"
+              ariaLabel="Marks opacity"
+              value={opacity}
+              min={0.1}
+              max={1}
+              step={0.05}
+              onChange={setOpacity}
+            />
 
-            <div>
-              <span className="mono" style={{ fontSize: 11, display: "block", marginBottom: 4, color: "var(--quiet)" }}>
-                Edge Inset: {offset}px
-              </span>
-              <input
-                type="range"
-                min="4"
-                max="24"
-                step="2"
-                value={offset}
-                onChange={(e) => setOffset(parseInt(e.target.value, 10))}
-                style={{ width: 100 }}
-              />
-            </div>
+            <LabSliderRow
+              label="Edge Inset"
+              ariaLabel="Edge inset"
+              value={offset}
+              min={4}
+              max={24}
+              step={2}
+              unit=" px"
+              decimals={0}
+              onChange={setOffset}
+            />
           </div>
         </section>
 

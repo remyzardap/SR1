@@ -2,6 +2,7 @@ import * as React from "react";
 import { useEffect, type ReactNode } from "react";
 import { Link, useSearch } from "wouter";
 import { cn } from "@/lib/utils";
+import "./lab.css";
 
 export function useLabSettings() {
   const search = useSearch();

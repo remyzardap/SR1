@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useState } from "react";
 import { LabLayout } from "./LabLayout";
+import { LabSliderRow } from "./LabSliderRow";
 import { HalftoneFade } from "@/components/art";
 
 export default function LabHalftoneFade() {
@@ -47,50 +48,38 @@ export default function LabHalftoneFade() {
               </div>
             </div>
 
-            <div>
-              <span className="mono" style={{ fontSize: 11, display: "block", marginBottom: 4, color: "var(--quiet)" }}>
-                Grid Size: {gridSize}px
-              </span>
-              <input
-                type="range"
-                min="4"
-                max="12"
-                step="1"
-                value={gridSize}
-                onChange={(e) => setGridSize(parseInt(e.target.value, 10))}
-                style={{ width: 100 }}
-              />
-            </div>
+            <LabSliderRow
+              label="Grid Size"
+              ariaLabel="Grid size"
+              value={gridSize}
+              min={4}
+              max={12}
+              step={1}
+              unit=" px"
+              decimals={0}
+              onChange={setGridSize}
+            />
 
-            <div>
-              <span className="mono" style={{ fontSize: 11, display: "block", marginBottom: 4, color: "var(--quiet)" }}>
-                Dot Radius: {dotRadius}px
-              </span>
-              <input
-                type="range"
-                min="0.6"
-                max="2.5"
-                step="0.1"
-                value={dotRadius}
-                onChange={(e) => setDotRadius(parseFloat(e.target.value))}
-                style={{ width: 100 }}
-              />
-            </div>
+            <LabSliderRow
+              label="Dot Radius"
+              ariaLabel="Dot radius"
+              value={dotRadius}
+              min={0.6}
+              max={2.5}
+              step={0.1}
+              unit=" px"
+              onChange={setDotRadius}
+            />
 
-            <div>
-              <span className="mono" style={{ fontSize: 11, display: "block", marginBottom: 4, color: "var(--quiet)" }}>
-                Opacity: {opacity}
-              </span>
-              <input
-                type="range"
-                min="0.1"
-                max="1"
-                step="0.05"
-                value={opacity}
-                onChange={(e) => setOpacity(parseFloat(e.target.value))}
-                style={{ width: 100 }}
-              />
-            </div>
+            <LabSliderRow
+              label="Opacity"
+              ariaLabel="Layer opacity"
+              value={opacity}
+              min={0.1}
+              max={1}
+              step={0.05}
+              onChange={setOpacity}
+            />
           </div>
         </section>
 

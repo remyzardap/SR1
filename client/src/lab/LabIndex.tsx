@@ -12,7 +12,7 @@ export default function LabIndex() {
       <h2 style={{ font: "700 16px/1 var(--disp)", margin: "0 0 14px", color: "var(--quiet)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
         Foundations & Shell
       </h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 32 }}>
+      <div className="lab-grid" style={{ gap: 16, marginBottom: 32 }}>
         <Link
           href="/__lab/shell"
           className="card"
@@ -48,7 +48,7 @@ export default function LabIndex() {
       <h2 style={{ font: "700 16px/1 var(--disp)", margin: "0 0 14px", color: "var(--quiet)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
         Refined Art Primitives (F0b)
       </h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+      <div className="lab-grid lab-grid-sm" style={{ gap: 14 }}>
         <Link
           href="/__lab/art/dither-edge"
           className="card"
@@ -56,7 +56,7 @@ export default function LabIndex() {
         >
           <b style={{ font: "700 15px/1.2 var(--disp)", display: "block", marginBottom: 4 }}>DitherEdge</b>
           <p style={{ margin: 0, color: "var(--quiet)", fontSize: 12 }}>
-            Stacked radial-dot layers with graded masks (directions, grids, tokens).
+            Graded dot bands with masked ramps (directions, grids, tokens).
           </p>
         </Link>
         <Link

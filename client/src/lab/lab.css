@@ -1,0 +1,56 @@
+/**
+ * Design-lab layout guards (T-129).
+ *
+ * Imported by LabLayout only, so these rules travel in the lazy lab chunk and can never reach a
+ * production screen. They fix the two things the lab pages kept hitting at 360-390 px: long
+ * uppercase mono captions cut off mid-glyph, and auto-fit demo grids whose minimum track was
+ * wider than a phone viewport — with `body { overflow-x: hidden }` the page then clipped the
+ * cards instead of scrolling them.
+ */
+
+/* One responsive card grid for the whole lab. The number is the widest *comfortable* card;
+   min() clamps it to the container so a track can never exceed the viewport. */
+.lab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+}
+
+.lab-grid-sm {
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+}
+
+/* Lab captions are sentences, not single glyphs: let them wrap and break long tokens.
+ * `.art-meta` is `text-align: right; white-space: nowrap` in art.css; overriding it here is
+ * scoped to `.lab-wrap`, so search/ask keep their own one-line readouts. */
+.lab-wrap .mono,
+.lab-wrap .art-mono,
+.lab-wrap .art-meta {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Readout rows put an eta ("ABOUT 8 S LEFT") to the right of a label; nowrap made that pair
+   wider than the card. Wrapping stacks the eta under the label instead of clipping it. */
+.lab-wrap .art-readout,
+.lab-wrap .art-ditherbar-meta {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+/* Flex and grid children refuse to shrink below their min-content unless asked. */
+.lab-wrap .lab-header > div,
+.lab-wrap .lab-controls > div,
+.lab-wrap .card {
+  min-width: 0;
+}
+
+@media (max-width: 400px) {
+  /* LabLayout puts its page padding inline, so narrowing it has to win over that. */
+  .lab-wrap {
+    padding: 16px 12px !important;
+  }
+
+  .lab-wrap .card {
+    padding: 16px !important;
+  }
+}
