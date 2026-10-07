@@ -1,0 +1,21 @@
+/* Reduced Motion and View Transitions */
+
+/* ── Reduced motion ───────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+}
+[data-reduce-motion="true"] *, [data-reduce-motion="true"] *::before, [data-reduce-motion="true"] *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+
+/* Reduced motion skips the intro. Only the animated parts are reset: SVG transforms that place the gate and the seal's kana must survive. */
+[data-reduce-motion="true"] .intro :is(.loop, .gate, .sea, .glint, .sun, .word, .hero-seal, .tagline, .ramp) { animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; }
+[data-reduce-motion="true"] .intro :is(.sun, .word, .hero-seal) { transform: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .intro :is(.loop, .gate, .sea, .glint, .sun, .word, .hero-seal, .tagline, .ramp) { animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; }
+  .intro :is(.sun, .word, .hero-seal) { transform: none !important; }
+}
+
+/* View transitions between screens (supported browsers), with the picture gliding from studio to run */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 360ms; animation-timing-function: cubic-bezier(.16,1,.3,1); }
+::view-transition-group(shot) { animation-duration: 560ms; animation-timing-function: cubic-bezier(.16,1,.3,1); }
+.top { view-transition-name: topbar; }
+.vt .view-enter { animation: none; }

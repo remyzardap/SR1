@@ -20,6 +20,7 @@ import "./styles/pages-reskin.css";
 import "./styles/shell-reskin.css";
 import "./styles/chat-reskin.css";
 import "./styles/reskin-tokens.css";
+import "./styles/redo/index.css";
 import "./components/art/art.css";
 import "./styles/chrome.css";
 
