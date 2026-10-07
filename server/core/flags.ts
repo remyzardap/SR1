@@ -52,6 +52,10 @@ export const FLAGS = {
     default: false,
     description: "Keep each model call under its token budget with result handles and compaction (P1-13).",
   },
+  PERSISTENT_SANDBOX: {
+    default: false,
+    description: "Keep persistent sandboxes per session and collect output files (P2-11).",
+  },
 } as const satisfies Record<string, FlagSpec>;
 
 export type FlagName = keyof typeof FLAGS;

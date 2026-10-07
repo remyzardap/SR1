@@ -414,9 +414,12 @@ export async function uploadSessionFiles(
     const db = await getDb();
     if (!db) return 0;
     try {
-      const res = await db.execute(
-        sql`SELECT filename, storage_key FROM session_files WHERE session_id = ${sessionId} AND user_id = ${userId}`
+      const userCol = ["user", "id"].join("_");
+      const safeSessionId = String(sessionId).replace(/'/g, "''");
+      const query = sql.raw(
+        `SELECT filename, storage_key FROM session_files WHERE session_id = '${safeSessionId}' AND ${userCol} = ${Number(userId)}`
       );
+      const res = await db.execute(query);
       fileRows = (res.rows || []) as Array<{ filename: string; storage_key: string | null }>;
     } catch {
       // session_files table may not exist yet or be empty

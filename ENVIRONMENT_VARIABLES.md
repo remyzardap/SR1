@@ -392,6 +392,18 @@ an unset or blank variable means the default.
 | `FF_APPROVALS` | off | Ask the user to approve write tools that act outside Sutaeru; off hides those tools (P1-11) |
 | `FF_ACTION_TOOLS` | off | Offer the email, calendar, image, video and monitor tools to the agent (P1-12) |
 | `FF_CONTEXT_MANAGER` | off | Keep each model call under its token budget with result handles and compaction (P1-13) |
+| `FF_PERSISTENT_SANDBOX` | off | Keep persistent sandboxes per session and collect output files (P2-11) |
+
+---
+
+## 📦 E2B Code Sandbox (P2-11)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `E2B_API_KEY` | empty | API key for E2B isolated code execution sandbox |
+| `E2B_SANDBOX_TEMPLATE` | empty | Optional custom E2B sandbox template ID |
+| `SANDBOX_IDLE_MIN` | `15` | Idle timeout in minutes for persistent session sandboxes |
+| `SANDBOX_COST_PER_MIN` | `0.03` | Sandbox cost estimate per minute (USD), logged to `usage_logs` |
 
 ---
 
