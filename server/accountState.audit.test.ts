@@ -183,6 +183,25 @@ beforeEach(async () => {
   state.audit = [];
 });
 
+/**
+ * A failing assertion prints `actual`, so comparing a credential head-on — `expect(hash).not.toBe(otp)`,
+ * `expect(dump).not.toContain(passphrase)` — would put a live one-time password or a real bcrypt hash in
+ * the test output the moment it failed, which T-84 forbids. These helpers turn those comparisons into
+ * booleans: a failure then says "expected true to be false" and names where it looked, never what it saw.
+ */
+function expectAbsent(dump: string, secret: string, where: string) {
+  expect(dump.includes(secret), `${where} carries the credential`).toBe(false);
+}
+
+const SECRET_COLUMNS = ["passwordHash", "password", "totpSecret", "oneTimePassword"];
+
+/** Only the *names* of credential-bearing columns are compared, never their values. */
+function secretColumnsIn(value: unknown): string[] {
+  return Object.keys((value ?? {}) as Record<string, unknown>).filter((key) =>
+    SECRET_COLUMNS.includes(key)
+  );
+}
+
 describe("auth.login against a switched-off account", () => {
   // bcrypt cost 4 keeps the fixtures quick; the production cost is pinned in the admin tests.
   const hashFor = (text: string) => bcrypt.hash(text, 4);
@@ -239,7 +258,7 @@ describe("auth.login against a switched-off account", () => {
     expect(free.mustChangePassword).toBe(false);
 
     // The result must never carry the stored hash along with the flag.
-    expect(JSON.stringify(locked)).not.toContain("passwordHash");
+    expect(secretColumnsIn(locked)).toEqual([]);
   });
 
   it("refuses a switched-off account on the 2FA path as well, before the authenticator code is checked", async () => {
@@ -336,7 +355,7 @@ describe("auth.changePassword", () => {
     const write = state.passwordWrites[0];
     expect(write.userId).toBe(user.id);
     expect(write.mustChangePassword).toBe(false);
-    expect(write.hash).not.toContain("a brand new passphrase");
+    expect(write.hash === "a brand new passphrase").toBe(false);
     expect((await bcrypt.compare("a brand new passphrase", write.hash)) || (await bcrypt.compare("a brand new passphrase", user.passwordHash))).toBe(true);
   });
 
@@ -412,10 +431,10 @@ describe("auth.changePassword", () => {
       resourceId: String(user.id),
     });
     const dumped = JSON.stringify(state.audit).toLowerCase();
-    expect(dumped).not.toContain("correct horse battery staple");
-    expect(dumped).not.toContain("a brand new passphrase");
-    expect(dumped).not.toContain("$2a$");
-    expect(dumped).not.toContain("passwordhash");
+    expectAbsent(dumped, PASSWORD, "auth.changePassword's audit rows");
+    expectAbsent(dumped, "a brand new passphrase", "auth.changePassword's audit rows");
+    expectAbsent(dumped, "$2a$", "auth.changePassword's audit rows");
+    expectAbsent(dumped, "passwordhash", "auth.changePassword's audit rows");
   });
 
   it("refuses an anonymous caller, so the route cannot be used to overwrite a password", async () => {
@@ -455,7 +474,7 @@ describe("an account an administrator creates, end to end", () => {
     expect(created.oneTimePassword.length).toBeGreaterThanOrEqual(16);
 
     const stored = state.users.find((u) => u.email === CREATED_EMAIL)!;
-    expect(stored.passwordHash).not.toBe(created.oneTimePassword);
+    expect(stored.passwordHash === created.oneTimePassword).toBe(false);
     expect(stored.name).toBe("New Team Member");
     expect(stored.role).toBe("user");
     // What auth.login will compare against: the issued string verifies, anything else does not.
@@ -473,7 +492,7 @@ describe("an account an administrator creates, end to end", () => {
     expect(result.success).toBe(true);
     expect(result.mustChangePassword).toBe(true);
     expect(cookies.map((c) => c.name)).toEqual(["app_session_id"]);
-    expect(JSON.stringify(result)).not.toContain("passwordHash");
+    expect(secretColumnsIn(result)).toEqual([]);
   });
 
   it("tells the client through auth.me as well, which is what a page reads on load", async () => {
@@ -484,8 +503,7 @@ describe("an account an administrator creates, end to end", () => {
     expect(me.mustChangePassword).toBe(true);
     expect(me.id).toBe(row.id);
     // The strip-list still works with two more sensitive columns in play.
-    expect(me).not.toHaveProperty("passwordHash");
-    expect(me).not.toHaveProperty("totpSecret");
+    expect(secretColumnsIn(me)).toEqual([]);
   });
 
   it("refuses the new account any protected procedure until it changes that password", async () => {
@@ -541,7 +559,7 @@ describe("an account an administrator creates, end to end", () => {
       account({ id: 1, openId: "local:admin-issuer", email: "issuer@example.com", role: "admin" })
     );
     const reset: any = await caller(admin.ctx).admin.users.resetPassword({ id: row.id });
-    expect(reset.oneTimePassword).not.toBe(created.oneTimePassword);
+    expect(reset.oneTimePassword === created.oneTimePassword).toBe(false);
     expect(reset.oneTimePassword.length).toBeGreaterThanOrEqual(16);
 
     const spentCtx = makeCtx();
@@ -559,7 +577,7 @@ describe("an account an administrator creates, end to end", () => {
     expect(fresh.success).toBe(true);
     // The reset re-arms the lock, so the new holder is pushed to the change screen too.
     expect(fresh.mustChangePassword).toBe(true);
-    expect(JSON.stringify(fresh)).not.toContain("passwordHash");
+    expect(secretColumnsIn(fresh)).toEqual([]);
   });
 
   it("stops the round trip dead when an administrator switches the account off", async () => {

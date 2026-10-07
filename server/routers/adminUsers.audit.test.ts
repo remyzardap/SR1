@@ -95,6 +95,16 @@ async function caller(user: any) {
 const adminCaller = () => caller(makeActor());
 const userCaller = () => caller(makeActor({ id: 3, role: "user", email: "user@example.com" }));
 
+/**
+ * Asserts that a dump carries no trace of a credential. Compared as a boolean on purpose: vitest
+ * repeats the expected substring when `not.toContain` fails, so an assertion that fails precisely
+ * because a password leaked would print that password. The task forbids printing passwords, and a
+ * test failure is a print.
+ */
+function expectAbsent(dump: string, secret: string, where: string) {
+  expect(dump.includes(secret), `${where} carries a credential`).toBe(false);
+}
+
 beforeEach(() => {
   state.inserts.length = 0;
   state.passwordWrites.length = 0;
@@ -116,11 +126,14 @@ describe("admin.users.create", () => {
 
     expect(state.inserts).toHaveLength(1);
     const inserted = state.inserts[0];
-    expect(result.oneTimePassword).toMatch(/^[A-Za-z\d]{16,}$/); // printable, look-alike-free OTP
-    expect(inserted.passwordHash).toMatch(/^\$2[aby]\$/); // a bcrypt hash, not the password
-    expect(inserted.passwordHash).not.toBe(result.oneTimePassword);
+    // Credential checks compare to a boolean rather than with toMatch / not.toBe / not.toContain:
+    // vitest repeats the offending value in the failure message, and a test that fails because a
+    // password leaked must not print it.
+    expect(/^[A-Za-z\d]{16,}$/.test(result.oneTimePassword)).toBe(true); // printable, look-alike-free
+    expect(/^\$2[aby]\$/.test(inserted.passwordHash as string)).toBe(true); // bcrypt hash, not plaintext
+    expect(inserted.passwordHash === result.oneTimePassword).toBe(false);
     expect(Object.keys(inserted)).not.toContain("password");
-    expect(JSON.stringify(state.inserts)).not.toContain(result.oneTimePassword);
+    expectAbsent(JSON.stringify(state.inserts), result.oneTimePassword, "the insert payload");
   });
 
   it("hashes at bcrypt cost 12, the cost the rest of the password paths use", async () => {
@@ -134,7 +147,7 @@ describe("admin.users.create", () => {
     const c = await adminCaller();
     const result = await c.create({ email: "otp@example.com" });
     expect(result.oneTimePassword.length).toBeGreaterThanOrEqual(16);
-    expect(result.oneTimePassword).not.toMatch(/[0Oo1lI]/);
+    expect(/[0Oo1lI]/.test(result.oneTimePassword)).toBe(false);
   });
 
   it("creates a locked, non-admin local account with a lower-cased email", async () => {
@@ -197,8 +210,8 @@ describe("admin.users.create", () => {
       resourceId: String(result.id),
     });
     expect(state.audit[0].changes).toMatchObject({ role: "user", mustChangePassword: true });
-    expect(JSON.stringify(state.audit)).not.toContain(result.oneTimePassword);
-    expect(JSON.stringify(state.audit)).not.toContain(state.inserts[0].passwordHash);
+    expectAbsent(JSON.stringify(state.audit), result.oneTimePassword, "the audit rows");
+    expectAbsent(JSON.stringify(state.audit), state.inserts[0].passwordHash as string, "the audit rows");
   });
 
   it("refuses a non-admin before touching the database", async () => {
@@ -255,11 +268,12 @@ describe("admin.users.list", () => {
     expect(rows[1].disabled).toBe(true);
     expect(rows[1].disabledAt).toBeInstanceOf(Date);
     for (const row of rows) {
+      // Compared on the key set, so a failure names the columns it found instead of printing values.
       expect(Object.keys(row).sort()).toEqual(
         ["createdAt", "disabled", "disabledAt", "email", "id", "lastSignedIn", "mustChangePassword", "name", "role"],
       );
-      expect(row).not.toHaveProperty("passwordHash");
-      expect(row).not.toHaveProperty("totpSecret");
+      expect(Object.keys(row)).not.toContain("passwordHash");
+      expect(Object.keys(row)).not.toContain("totpSecret");
     }
   });
 
@@ -280,11 +294,13 @@ describe("admin.users.resetPassword", () => {
 
     expect(state.passwordWrites).toHaveLength(1);
     expect(state.passwordWrites[0]).toMatchObject({ userId: 50, mustChangePassword: true });
-    expect(state.passwordWrites[0].passwordHash).toMatch(/^\$2[aby]\$12\$/);
-    expect(state.passwordWrites[0].passwordHash).not.toBe(result.oneTimePassword);
-    expect(result).toEqual({ id: 50, oneTimePassword: result.oneTimePassword });
+    // Boolean comparisons: the failure message must not repeat a hash or the one-time password.
+    expect(/^\$2[aby]\$12\$/.test(state.passwordWrites[0].passwordHash)).toBe(true);
+    expect(state.passwordWrites[0].passwordHash === result.oneTimePassword).toBe(false);
+    // The result carries nothing but the id and the one-time password, and nothing hashes back.
+    expect(Object.keys(result).sort()).toEqual(["id", "oneTimePassword"]);
     expect(result.oneTimePassword.length).toBeGreaterThanOrEqual(16);
-    expect(JSON.stringify(state.audit)).not.toContain(result.oneTimePassword);
+    expectAbsent(JSON.stringify(state.audit), result.oneTimePassword, "the audit rows");
   });
 
   it("audits the reset against the target account", async () => {
@@ -383,7 +399,12 @@ describe("admin.users.setDisabled", () => {
       status: "failure",
       severity: "warn",
     });
-    expect(JSON.stringify(state.audit)).not.toContain("passwordHash");
+    // A lock writes no credential, so the journal must not name or carry one. Compared as booleans:
+    // not.toContain would print the whole dump — the thing to redact — when it fails.
+    const dump = JSON.stringify(state.audit);
+    for (const credential of ["passwordHash", "password", "totpSecret", "$2a$"]) {
+      expect(dump.includes(credential), `the audit rows mention ${credential}`).toBe(false);
+    }
   });
 
   it("refuses to switch off the last active administrator", async () => {
