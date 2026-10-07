@@ -28,6 +28,7 @@ import whatsappWebhookRouter from '../routes/webhooks/whatsapp';
 import { adminMessagingRouter } from '../routes/adminMessaging';
 import { codeSessionsRouter } from '../routes/codeSessions';
 import { registerExportRoutes } from '../routes/export';
+import { approvalsRouter } from '../routes/approvals';
 
 // Load secrets from Secret Manager before starting
 await loadSecretsFromSecretManager();
@@ -133,6 +134,7 @@ app.get('/api/admin/whatsapp', requireSession, (req, res) => {
   res.send(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="4"><title>WhatsApp link</title><body style="font-family:system-ui;padding:32px;max-width:520px;margin:auto">${body}</body>`);
 });
 app.post('/api/kemma/stream', requireSession, kemmaStreamRoute);
+app.use('/api/kemma/approvals', requireSession, approvalsRouter);
 app.use('/api/fn', requireSession, fnRouter);
 registerJobsTick(app);
 registerFileRoutes(app);

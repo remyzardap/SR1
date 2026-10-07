@@ -3,9 +3,9 @@ import { buildKemmaSystemPrompt, buildKemmaVoicePrompt } from "./personality";
 import { isAdminUser } from "./executors/vpsFiles";
 import pLimit from "p-limit";
 import { registerBuiltinTools } from "./toolkit/builtin";
-import { getToolSpec, runTool, toOpenAiTools, toolsFor, type OpenAiToolDef } from "./toolkit/registry";
+import { filterMcpDefs, getToolSpec, runTool, toOpenAiTools, toolsFor, type OpenAiToolDef } from "./toolkit/registry";
 import { SKILL_TOOL_NAMES } from "./toolkit/names";
-import type { ToolContext } from "./toolkit/types";
+import type { ApprovalGate, ToolContext } from "./toolkit/types";
 import {
   chatRoute,
   reportRoute,
@@ -89,6 +89,7 @@ export interface EngineInput {
   onQuotaWarn?: (message: string) => void;
   onNotice?: (message: string) => void;
   onSkillUsed?: (skill: { id: number; name: string }) => void;
+  approvals?: ApprovalGate;
   signal?: AbortSignal;
 }
 
@@ -276,6 +277,10 @@ async function runParallelSubAgents(
         toolBudget: perAgentBudget,
         allowedTools: restrictedTools,
         isSubAgent: true,
+        // A sub-agent run has nobody watching its stream, so it must not inherit the parent's
+        // approver (P1-11): it would block the whole research fan-out on a card no one can see.
+        // With no gate, `toolsFor` withholds approval tools and `runTool` refuses one outright.
+        approvals: undefined,
         onStream: undefined,
         onNotice,
       });
@@ -410,7 +415,7 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   const maxToolCalls = input.toolBudget ?? defaultBudget;
   // The per-run tool context. `toolsFor`/`runTool` use this for availability checks (Drive
   // connected, admin role) and for executing the tool itself. P1-05 gives `signal` a real,
-  // abortable value; P1-11 will populate `approvals`.
+  // abortable value; P1-11 populates `approvals` from the caller that owns the run.
   const runId = `${sessionId ?? "s"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const toolCtx: ToolContext = {
     userId,
@@ -419,6 +424,11 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
     tier,
     signal: input.signal ?? NEVER_ABORTS,
     emit: () => {},
+    // Only the caller can supply a gate (P1-11): a gate built here would push its approval card to
+    // nowhere, so the run would block on a TTL and then report a misleading `expired`. With no gate
+    // the approval tools are not offered at all, and `runTool` refuses one immediately if it is
+    // nevertheless asked for.
+    approvals: input.approvals,
     skillsEnabled: enabledSkills.length > 0,
     isSubAgent: !!input.isSubAgent,
   };
@@ -433,7 +443,12 @@ export async function kemmaExecute(input: EngineInput): Promise<EngineOutput> {
   let mcpDefs: OpenAiToolDef[] = [];
   if (!input.isSubAgent) {
     try {
-      mcpDefs = (await getMcpRegistry().tools()).filter((t) => !input.allowedTools || input.allowedTools.includes(t.name));
+      // `filterMcpDefs` closes the other half of the P1-11 listing rule: an MCP `confirm` tool is not
+      // offered to a run that has no approver to ask, exactly like a built-in one.
+      mcpDefs = await filterMcpDefs(
+        (await getMcpRegistry().tools()).filter((t) => !input.allowedTools || input.allowedTools.includes(t.name)),
+        toolCtx,
+      );
     } catch { /* MCP is optional */ }
   }
 
