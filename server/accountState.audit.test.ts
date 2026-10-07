@@ -34,6 +34,30 @@ vi.mock("./db", async () => {
     ),
     getUserById: vi.fn(async (id: number) => state.users.find((u) => u.id === id)),
     getUserByOpenId: vi.fn(async (openId: string) => state.users.find((u) => u.openId === openId)),
+    // admin.users.create reaches for these two; the fake keeps the row in state.users so the
+    // sign-in path below finds the account the administrator just made.
+    setUserDisabledAt: vi.fn(async (id: number, disabledAt: Date | null) => {
+      const u = state.users.find((x) => x.id === id);
+      if (u) u.disabledAt = disabledAt;
+      return true;
+    }),
+    countActiveAdmins: vi.fn(async () => 3),
+    getUserByEmailIgnoreCase: vi.fn(async (email: string) => {
+      const u = state.users.find((x) => x.email === email);
+      return u ? { id: u.id } : undefined;
+    }),
+    createManagedUser: vi.fn(async (row: Record<string, unknown>) => {
+      // The router does not name the flag: db.createManagedUser sets it, because the column
+      // default is false so nobody else - existing accounts included - is locked out.
+      const created = account({
+        openId: `local:${row.email}`,
+        mustChangePassword: true,
+        ...row,
+        id: 900 + state.users.length,
+      });
+      state.users.push(created);
+      return created;
+    }),
     upsertUser: vi.fn(async (user: { openId: string; lastSignedIn?: Date }) => {
       state.upserts.push(user);
     }),
@@ -405,5 +429,112 @@ describe("auth.changePassword", () => {
     // requireUser refuses before the lock's exemption list is ever consulted.
     expect(error!.code).toBe("UNAUTHORIZED");
     expect(state.passwordWrites).toEqual([]);
+  });
+});
+
+// ─── Round trip: the password an admin hands out is the password the account signs in with ─────
+
+describe("an account an administrator creates, end to end", () => {
+  const CREATED_EMAIL = "newmember@example.com";
+
+  beforeEach(() => {
+    // The closed allowlist is a separate wall in front of the password check, so the new address
+    // has to be on it before this test can say anything about the password.
+    process.env.ALLOWED_LOGIN = `member@example.com,${CREATED_EMAIL}`;
+  });
+
+  async function createAccount() {
+    const admin = makeCtx(
+      account({ id: 1, openId: "local:admin-issuer", email: "issuer@example.com", role: "admin" })
+    );
+    return caller(admin.ctx).admin.users.create({ email: CREATED_EMAIL, name: "New Team Member" });
+  }
+
+  it("stores a bcrypt hash of the very password it hands back once", async () => {
+    const created: any = await createAccount();
+    expect(created.oneTimePassword.length).toBeGreaterThanOrEqual(16);
+
+    const stored = state.users.find((u) => u.email === CREATED_EMAIL)!;
+    expect(stored.passwordHash).not.toBe(created.oneTimePassword);
+    expect(stored.name).toBe("New Team Member");
+    expect(stored.role).toBe("user");
+    // What auth.login will compare against: the issued string verifies, anything else does not.
+    expect(await bcrypt.compare(created.oneTimePassword, stored.passwordHash)).toBe(true);
+    expect(await bcrypt.compare("something else entirely", stored.passwordHash)).toBe(false);
+  });
+
+  it("signs in through the real login path with that password, and is told to change it", async () => {
+    const created: any = await createAccount();
+    const { ctx, cookies } = makeCtx();
+    const result: any = await caller(ctx).auth.login({
+      email: CREATED_EMAIL,
+      password: created.oneTimePassword,
+    });
+    expect(result.success).toBe(true);
+    expect(result.mustChangePassword).toBe(true);
+    expect(cookies.map((c) => c.name)).toEqual(["app_session_id"]);
+    expect(JSON.stringify(result)).not.toContain("passwordHash");
+  });
+
+  it("refuses the new account any protected procedure until it changes that password", async () => {
+    const created: any = await createAccount();
+    const row = state.users.find((u) => u.email === CREATED_EMAIL)!;
+    const { ctx } = makeCtx(row);
+    const error = await caller(ctx)
+      .auth.get2faStatus()
+      .then(() => null)
+      .catch((e) => e);
+    expect(error!.code).toBe("FORBIDDEN");
+    expect(error!.message).toBe(PASSWORD_CHANGE_REQUIRED_MESSAGE);
+  });
+
+  it("changes the issued password, which then stops working and unlocks the account", async () => {
+    const created: any = await createAccount();
+    const row = state.users.find((u) => u.email === CREATED_EMAIL)!;
+    const own = "a password of my own choosing";
+
+    const changeCtx = makeCtx(row);
+    const result: any = await caller(changeCtx.ctx).auth.changePassword({
+      currentPassword: created.oneTimePassword,
+      newPassword: own,
+    });
+    expect(result).toEqual({ success: true });
+    expect(state.users.find((u) => u.email === CREATED_EMAIL)!.mustChangePassword).toBe(false);
+
+    // The one-time password is spent: it no longer signs in, the new one does, and the lock is off.
+    const spentCtx = makeCtx();
+    const spent = await caller(spentCtx.ctx)
+      .auth.login({ email: CREATED_EMAIL, password: created.oneTimePassword })
+      .then(() => null)
+      .catch((e) => e);
+    expect(spent!.message).toBe("Invalid email/handle or password.");
+
+    const freshCtx = makeCtx();
+    const fresh: any = await caller(freshCtx.ctx).auth.login({ email: CREATED_EMAIL, password: own });
+    expect(fresh.mustChangePassword).toBe(false);
+
+    // And a protected procedure now answers for that account.
+    const after = state.users.find((u) => u.email === CREATED_EMAIL)!;
+    const status = await caller(makeCtx(after).ctx).auth.get2faStatus();
+    expect(status).toEqual({ enabled: false });
+  });
+
+  it("stops the round trip dead when an administrator switches the account off", async () => {
+    const created: any = await createAccount();
+    const row = state.users.find((u) => u.email === CREATED_EMAIL)!;
+
+    const admin = makeCtx(
+      account({ id: 1, openId: "local:admin-issuer", email: "issuer@example.com", role: "admin" })
+    );
+    await caller(admin.ctx).admin.users.setDisabled({ id: row.id, disabled: true });
+
+    const { ctx, cookies } = makeCtx();
+    const error = await caller(ctx)
+      .auth.login({ email: CREATED_EMAIL, password: created.oneTimePassword })
+      .then(() => null)
+      .catch((e) => e);
+    expect(error!.code).toBe("FORBIDDEN");
+    expect(error!.message).toBe(DISABLED_LOGIN_MESSAGE);
+    expect(cookies).toEqual([]);
   });
 });
