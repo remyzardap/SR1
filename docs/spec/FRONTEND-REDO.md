@@ -41,3 +41,15 @@
 - `npm run check`, `npm test` and `npm run build` pass; production bundle contains no lab code.
 - Behaviour preserved: the container still works with real data (existing tests keep passing; add tests for new logic).
 - PR body: what was ported, what was polished beyond the prototype, and anything NOT RUN.
+
+## Art touches: considered, quiet, blended (owner direction 2026-10-07)
+
+The small art pieces (halftone dots, dither edges, registration marks, focus brackets, grain) must be refined and considerate: they belong to the paper and fade into it. Nothing may end in a hard edge or sit on top of the surface like a sticker. The reference design canvas was built to these recipes; match them, then polish further.
+
+1. **Paper grain.** One overlay per screen: an inline SVG `feTurbulence` (fractalNoise, baseFrequency .8, 2 octaves, stitchTiles) through a greyscale `feColorMatrix`, `mix-blend-mode: overlay`, opacity .09, pointer-events none, above content. Works in light and dark without tokens. Off under the "Background art" setting; scaled by "Art intensity".
+2. **Dot ramp** (under the tagline): 27 dots, size `1.6 + 11.4 * sin(pi*i/26)^1.7` px, opacity `0.10 + 0.78 * sin(...)^1.1`, gap 6 px. Both ends fade to almost nothing. It reacts to typing by shifting its peak, never by popping.
+3. **Dither and halftone edges** are graded, never a single hard band. Build with stacked `radial-gradient` dot layers of increasing dot size (about 1.1, 2, 3 px on 5/6/7 px grids) each with a `mask-image: linear-gradient(90deg, transparent, #000 ...)` so density rises smoothly, then a solid area with a faint dot texture that itself fades in. Examples: the image-run reveal (fine to coarse into paper, a 1.5 px accent scan line with a soft vertical fade and a 22 px warm glow on its trailing side), the result card corner (two radial-masked layers, fine 5 px grid at .42 opacity plus a coarse 9 px grid at .5 near the corner), the settings sample (fine plus coarse layers, top and bottom faded into the card), the hand-off card (a 130 px wide 6 px-grid halftone at .2 opacity masked transparent at both ends, behind the content, no separate dot matrix).
+4. **Registration marks** (the two "+" under the header): 11 px, 1 px lines in `--rule` at .45 opacity, inset 16 px.
+5. **Focus brackets**: 10 to 13 px legs, 1.5 px stroke in `--ink` at .55 opacity, `border-radius` 5 to 6 px on the outer corner only, 6 to 9 px outside the element, decorative (`aria-hidden`, pointer-events none). On real focus they snap in over 120 ms; under reduced motion they appear without animation.
+6. **Everything blends**: no art element may have a visible rectangular boundary. If one does, add a mask or a gradient fade. Check every lab screenshot at 2x for hard edges, banding and moire.
+7. **Card finish**: hairline top highlight (`inset 0 1px 0 rgba(255,255,255,.7)` in light, `.04` in dark) plus the layered shadow from the tokens.
