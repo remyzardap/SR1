@@ -1,3 +1,4 @@
+import * as React from "react";
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import { clampProgress, etaLabel } from "./useMotion";
@@ -17,6 +18,10 @@ export interface ConvergeBarProps {
   showPercent?: boolean;
   /** Scattered dither dots per side (design default 5; the Documents bar uses 7 for a bolder trail). */
   dots?: number;
+  /** Render pure canvas element directly */
+  asCanvas?: boolean;
+  width?: number;
+  height?: number;
   ariaLabel?: string;
   className?: string;
 }
@@ -30,6 +35,9 @@ export function ConvergeBar({
   etaOverride,
   showPercent = true,
   dots = 5,
+  asCanvas = false,
+  width = 300,
+  height = 14,
   ariaLabel,
   className,
 }: ConvergeBarProps) {
@@ -39,6 +47,21 @@ export function ConvergeBar({
   const right = etaOverride ?? (state === "error" ? "STOPPED" : state === "done" ? null : etaLabel(etaSeconds));
   const bold = dots >= 7;
   const dotList = Array.from({ length: bold ? 7 : 5 });
+
+  if (asCanvas) {
+    return (
+      <canvas
+        className={cn("bar art-converge-canvas", className)}
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={ariaLabel ?? label}
+        width={width}
+        height={height}
+      />
+    );
+  }
 
   return (
     <div className={cn("art-converge", `is-${state}`, className)} style={style}>
@@ -51,6 +74,7 @@ export function ConvergeBar({
         aria-valuemax={100}
         aria-label={ariaLabel ?? label}
       >
+        <canvas className="bar art-bar-canvas" width={width} height={height} aria-hidden="true" />
         <span className="art-dotrow" aria-hidden="true" />
         <span className="art-pill art-pill-l" aria-hidden="true" />
         <span className="art-pill art-pill-r" aria-hidden="true" />

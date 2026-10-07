@@ -1,10 +1,11 @@
+import * as React from "react";
 import { cn } from "@/lib/utils";
 import { clampProgress } from "./useMotion";
 
 export interface SteppedMeterProps {
   /** 0..1 of the segments that are filled. */
   value: number;
-  /** Segment count (design spec: 10 or 20). */
+  /** Segment count (design spec: 5, 10 or 20). */
   segments?: number;
   /** row: 9x8 blocks for horizontal meters; col: 10x22 bars for stat cards. */
   variant?: "row" | "col";
@@ -23,7 +24,7 @@ export function SteppedMeter({ value, segments = 10, variant = "row", ariaLabel,
       aria-valuetext={`${filled} of ${segments}`}
     >
       {Array.from({ length: segments }, (_, i) => (
-        <i key={i} className={i < filled ? "is-filled" : undefined} />
+        <i key={i} className={cn(i < filled ? "is-filled on" : "off")} />
       ))}
     </div>
   );

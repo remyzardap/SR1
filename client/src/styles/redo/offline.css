@@ -1,0 +1,50 @@
+/* Offline and PWA Install */
+
+/* Install card and iPhone guide */
+.install { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; padding: 14px; margin-top: 14px; border-radius: 24px; }
+.install-ico { width: 56px; height: 56px; border-radius: 15px; background: var(--paper); display: grid; place-items: center; box-shadow: inset 0 0 0 1px var(--stroke); grid-row: span 2; }
+.install-ico .glyph { width: 40px; height: 22px; color: var(--ink); }
+.install b { display: block; font: 700 16px/1.2 var(--disp); }
+.install small { display: block; color: var(--quiet); font-size: 13px; margin-top: 2px; }
+.install-acts { display: flex; gap: 6px; grid-column: 2; }
+.install-acts .btn { min-height: 40px; padding: 0 16px; font-size: 14px; }
+.ios-phone { margin: 6px auto 16px; width: 200px; height: 150px; border-radius: 26px 26px 0 0; background: linear-gradient(160deg, var(--panel), var(--paper)); border: 1px solid var(--stroke); border-bottom: 0; padding: 18px 16px 0; overflow: hidden; }
+.ios-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 10px; }
+.ios-grid i { aspect-ratio: 1; border-radius: 10px; background: var(--seg-off); opacity: .7; }
+.ios-app { display: flex; flex-direction: column; align-items: center; gap: 4px; animation: appear 1.2s var(--ease) .3s both; }
+.ios-app .glyph { width: 100%; aspect-ratio: 1; border-radius: 10px; background: var(--card); padding: 9px 5px; box-shadow: 0 6px 14px -8px rgba(0,0,0,.4); color: var(--ink); }
+.ios-app small { font-size: 9px; color: var(--quiet); }
+@keyframes appear { from { opacity: 0; transform: scale(.6); } }
+.ios-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ios-steps li { display: grid; grid-template-columns: 22px 40px 1fr; gap: 10px; align-items: center; padding: 12px 8px; border-top: 1px solid var(--hair); font-size: 15px; }
+.ios-steps .n { font: 500 12px/1 var(--mono); color: var(--quiet); }
+.ios-steps .step-ico { width: 40px; height: 40px; border-radius: 12px; background: var(--panel); display: grid; place-items: center; }
+.ios-steps .step-ico .ico { width: 20px; height: 20px; }
+
+/* Offline */
+.offline-bar {
+  position: fixed; z-index: 29; left: 50%; top: calc(env(safe-area-inset-top, 0px) + var(--top-h) + 10px); transform: translate(-50%, -12px); opacity: 0; pointer-events: none;
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px 10px 12px; border-radius: 18px; background: var(--hero); color: var(--hero-ink); box-shadow: var(--lift);
+  transition: opacity 300ms var(--ease), transform 420ms var(--ease); width: max-content; max-width: calc(100vw - 32px);
+}
+[data-offline] .offline-bar { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.offline-bar .dots { display: grid; grid-template-columns: repeat(3, 5px); gap: 3px; }
+.offline-bar .dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--hero-ink); opacity: .35; }
+.offline-bar .dots i:nth-child(3n) { opacity: .9; } .offline-bar .dots i:nth-child(3n+2) { opacity: .6; }
+.offline-bar b { font: 700 14px/1.2 var(--disp); display: block; }
+.offline-bar small { display: block; font-size: 12px; color: var(--hero-quiet); }
+.recent-row.queued { opacity: .85; }
+.recent-row .dotline { flex: 1; height: 2px; min-width: 40px; background-image: radial-gradient(circle, var(--rule) 1px, transparent 1.2px); background-size: 6px 2px; }
+
+/* Edge swipe back (installed iPhone app) */
+.edge-back { position: fixed; left: 0; top: 0; z-index: 95; width: 44px; height: 44px; border-radius: 50%; background: var(--ink); color: var(--paper); display: grid; place-items: center; opacity: 0; pointer-events: none; transition: opacity 160ms, background 160ms; }
+.edge-back svg { width: 22px; height: 22px; }
+.edge-back.armed { box-shadow: 0 0 0 6px color-mix(in srgb, var(--ink) 18%, transparent); }
+
+/* Installed app: a touch more room under the status bar */
+.standalone .top { padding-top: 2px; }
+@media (display-mode: standalone) { .xhair { top: calc(env(safe-area-inset-top, 0px) + var(--top-h) + 10px) !important; } }
+
+@media (max-width: 759px) {
+  [data-offline] .toast { top: calc(env(safe-area-inset-top, 0px) + var(--top-h) + 18px + var(--ob-h, 64px)); }
+}

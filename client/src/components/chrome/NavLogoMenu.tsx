@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "wouter";
@@ -6,6 +7,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { SutaeruGlyph } from "@/components/SutaeruGlyph";
 import { SutaeruSeal } from "@/components/brand/SutaeruSeal";
 import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
+import { navigateWithTransition } from "@/lib/transitions";
 
 export interface NavDestination {
   label: string;
@@ -168,7 +170,7 @@ export function NavLogoMenu({ variant = "header", className }: NavLogoMenuProps)
   const handleSelect = useCallback(
     (path: string) => {
       setIsOpen(false);
-      navigate(path);
+      navigateWithTransition(navigate, path);
     },
     [navigate]
   );
@@ -204,13 +206,17 @@ export function NavLogoMenu({ variant = "header", className }: NavLogoMenuProps)
           ref={triggerRef}
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
-          className={cn("skx-nav-header-btn", className)}
-          aria-label="Open navigation menu"
+          className={cn("logo-btn skx-nav-header-btn", className)}
+          aria-label="Open menu"
           aria-expanded={isOpen}
           aria-haspopup="dialog"
           title="Open navigation menu"
         >
-          <SutaeruGlyph className="skx-logo" />
+          <SutaeruGlyph className="glyph skx-logo" detail="compact" />
+          <svg className="chev" viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M3 4.5L6 7.5L9 4.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span className="sr-only sr">Open menu</span>
         </button>
       )}
 

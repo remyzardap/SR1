@@ -1,0 +1,52 @@
+/* Done & Result Screen */
+
+.result { padding: 26px; display: flex; flex-direction: column; gap: 16px; min-height: 320px; }
+.result canvas.edge { position: absolute; right: 0; top: 0; width: 46%; height: 70%; pointer-events: none; }
+.result .title { font-size: 34px; color: var(--hero-ink); max-width: 9em; position: relative; }
+@media (min-width: 760px) { .result .title { font-size: 52px; } .result { padding: 36px; } }
+.result p { margin: 0; color: var(--hero-quiet); font-size: 16px; line-height: 1.55; max-width: 32em; position: relative; }
+.figs { display: grid; grid-template-columns: repeat(3, minmax(0, auto)); justify-content: start; gap: 8px 28px; padding-top: 18px; border-top: 1px solid var(--hero-hair); position: relative; }
+.figs b { display: block; font: 800 26px/1 var(--disp); letter-spacing: -.02em; margin-top: 6px; color: var(--hero-ink); }
+@media (min-width: 760px) { .figs b { font-size: 34px; } }
+.done-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.sent-line { display: flex; align-items: center; gap: 8px; color: var(--quiet); font-size: 14px; margin-top: 14px; }
+.cmp { padding: 6px 22px; overflow-x: auto; }
+.cmp table { width: 100%; border-collapse: collapse; min-width: 520px; font-variant-numeric: tabular-nums; }
+.cmp th { text-align: left; padding: 14px 10px 10px 0; font: 500 11px/1 var(--mono); letter-spacing: 1.54px; text-transform: uppercase; color: var(--quiet); }
+.cmp td { padding: 14px 10px 14px 0; border-top: 1px solid var(--hair); font-size: 15px; }
+.cmp td:first-child { font: 700 16px/1.25 var(--disp); }
+.cmp tr.best td { font-weight: 600; }
+.cmp .bestmark { display: inline-flex; margin-left: 8px; vertical-align: 1px; }
+
+@media (max-width: 759px) {
+  .result canvas.edge { width: 40%; height: 40%; }
+  .result .title { max-width: 6.6em; }
+  .done-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .done-actions .btn:first-child { grid-column: 1 / -1; }
+}
+
+/* 済 settled stamp, pressed onto finished work */
+.done-stamp { position: absolute; width: 92px; height: 92px; top: 20px; right: 20px; color: var(--hero-ink); opacity: .9; transform: rotate(-9deg); pointer-events: none; z-index: 1; }
+.done-stamp .stamp, .mini-stamp { display: block; }
+.done-stamp .stamp { width: 100%; height: 100%; }
+.done-stamp.pressing { animation: stampin .6s var(--ease) .35s both; }
+@keyframes stampin { 0% { opacity: 0; transform: scale(1.6) rotate(-16deg); } 55% { opacity: .95; transform: scale(.94) rotate(-8deg); } 100% { opacity: .9; transform: rotate(-9deg); } }
+@media (min-width: 760px) { .done-stamp { width: 116px; height: 116px; top: 28px; right: 30px; } }
+.mini-stamp { width: 40px; height: 40px; color: var(--ink); flex: none; transform: rotate(-8deg); }
+
+/* Result card: the finished document beside the summary on wide screens */
+.result-doc { display: none; }
+@media (min-width: 1000px) {
+  .result { padding-right: 46%; min-height: 380px; }
+  .result-doc { display: block; position: absolute; right: 0; top: 0; bottom: 0; width: 46%; }
+  .result-doc .docbox { inset: 10px 18px 10px 0; }
+  .result .done-stamp { display: none; }
+  .result-doc .doc-stamp { position: absolute; width: 104px; height: 104px; right: 46px; bottom: 34px; color: var(--accent); transform: rotate(-11deg); z-index: 2; mix-blend-mode: normal; opacity: .92; }
+  .result-doc .doc-stamp.pressing { animation: stampin2 .6s var(--ease) .5s both; }
+  .result-doc .doc-stamp .stamp { width: 100%; height: 100%; display: block; }
+  .result canvas.edge { opacity: .55; }
+}
+@keyframes stampin2 { 0% { opacity: 0; transform: scale(1.6) rotate(-20deg); } 55% { opacity: .95; transform: scale(.95) rotate(-10deg); } 100% { opacity: .92; transform: rotate(-11deg); } }
+
+.act-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.act-grid .btn:first-child { grid-column: 1 / -1; }

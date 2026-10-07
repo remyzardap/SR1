@@ -1,3 +1,4 @@
+import * as React from "react";
 import { cn } from "@/lib/utils";
 import "./art.css";
 
@@ -7,20 +8,17 @@ export interface FocusBracketsProps {
   className?: string;
 }
 
-const CORNER_PATH = "M2 10V2H10";
-
-/** Four 9px corner strokes, placed 6px outside a card, marking the active item.
- *  The parent must be position:relative. */
+/**
+ * Four 2px corner brackets placed 9px outside the element (.brk i with inset: -9px).
+ * The parent must have position: relative.
+ */
 export function FocusBrackets({ tone = "ink", className }: FocusBracketsProps) {
   return (
-    <span className={cn("art-brackets", className)} data-tone={tone} aria-hidden="true">
-      {(["tl", "tr", "br", "bl"] as const).map((pos) => (
-        <span key={pos} className={`art-bracket art-bracket-${pos}`}>
-          <svg viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d={CORNER_PATH} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" />
-          </svg>
-        </span>
-      ))}
+    <span className={cn("brk art-brackets", className)} data-tone={tone} aria-hidden="true">
+      <i className="art-bracket art-bracket-tl" />
+      <i className="art-bracket art-bracket-tr" />
+      <i className="art-bracket art-bracket-br" />
+      <i className="art-bracket art-bracket-bl" />
     </span>
   );
 }

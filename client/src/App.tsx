@@ -1,7 +1,13 @@
+import * as React from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Redirect, Route, Switch } from "wouter";
+
+const LabRouter =
+  import.meta.env.DEV || import.meta.env.VITE_DESIGN_LAB === "1"
+    ? React.lazy(() => import("./lab/LabRouter"))
+    : null;
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { VideoPlayerProvider } from "./contexts/VideoPlayerContext";
@@ -56,6 +62,20 @@ function AppRoutes() {
 
   return (
     <Switch>
+      {LabRouter ? (
+        <Route path="/__lab/:rest*">
+          <React.Suspense fallback={null}>
+            <LabRouter />
+          </React.Suspense>
+        </Route>
+      ) : null}
+      {LabRouter ? (
+        <Route path="/__lab">
+          <React.Suspense fallback={null}>
+            <LabRouter />
+          </React.Suspense>
+        </Route>
+      ) : null}
       <Route path="/" component={Home} />
       <Route path="/index" component={Home} />
       <Route path="/index.html" component={Home} />

@@ -1,0 +1,18 @@
+/* ── Image run ─────────────────────────────────────────────────────────── */
+.run-grid { display: grid; gap: 22px; margin-top: 22px; }
+@media (min-width: 1100px) { .run-grid { grid-template-columns: minmax(0, 1fr) 380px; gap: 40px; align-items: start; } }
+.run-stage { position: relative; border-radius: 26px; background: var(--panel); display: grid; place-items: center; padding: 22px; min-height: 340px; }
+@media (min-width: 1100px) { .run-stage { min-height: 600px; } }
+.run-frame { position: relative; overflow: hidden; border-radius: 14px; }
+.run-frame .scene { position: absolute; inset: 0; }
+.run-frame .scene svg { width: 100%; height: 100%; }
+.run-frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.run-frame .chip-on { position: absolute; left: 12px; bottom: 12px; z-index: 3; }
+.variants { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.variant { position: relative; border-radius: 14px; overflow: hidden; aspect-ratio: 1; max-width: 100%; background: var(--panel); outline: 2px solid transparent; outline-offset: 2px; transition: outline-color var(--t); }
+.variant svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.variant[aria-checked="true"] { outline-color: var(--ink); }
+.status-card { padding: 20px; }
+.big-pct { font: 800 48px/1 var(--disp); letter-spacing: -.035em; }
+.phase-row { display: flex; justify-content: space-between; margin-top: 10px; }
+.phase-row .mono.cur { color: var(--ink); }
