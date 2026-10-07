@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sutaeru agent session</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="{{rootStyle}}">
+  <svg aria-hidden="true" width="390" height="844" style="position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:overlay;opacity:.09;z-index:5"><filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="4" stitchTiles="stitch"/><feColorMatrix type="matrix" values=".33 .33 .33 0 0 .33 .33 .33 0 0 .33 .33 .33 0 0 0 0 0 0 1"/></filter><rect width="390" height="844" filter="url(#grain)"/></svg>
+
+  <header style="display:flex;align-items:center;justify-content:space-between;height:60px;padding:0 20px;flex-shrink:0;border-bottom:1px solid var(--hair)">
+    <button type="button" aria-label="Open menu" style="display:flex;align-items:center;gap:6px;border:0;background:none;padding:0;height:44px;color:var(--ink)">
+      <svg width="46" height="25" viewBox="0 0 144 76" fill="none" aria-hidden="true"><path d="M72 38C64 18 52 8 36 8C19 8 8 20 8 38s11 30 28 30c16 0 28-10 36-30C80 18 92 8 108 8c17 0 28 12 28 30s-11 30-28 30c-16 0-28-10-36-30Z" stroke="currentColor" stroke-width="9" stroke-linejoin="round"/><g transform="translate(108 39) scale(.94) translate(-108 -39)"><circle cx="108" cy="46.6" r="6.8" fill="#F4511E"/><g fill="currentColor"><path d="M88.6 20.8L90.4 22.2Q108 27.4 125.6 22.2L127.4 20.8L126.6 26.0Q108 31.4 89.4 26.0Z"/><path d="M89.8 34.6H126.2V38.4H89.8Z"/><path d="M95.6 25.5H99.8L98.8 57.6H94.4ZM116.2 25.5H120.4L121.6 57.6H117.2Z"/></g></g></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--quiet)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div role="tablist" aria-label="Mode" style="position:relative;display:flex;width:188px;height:44px;padding:4px;box-sizing:border-box;border-radius:22px;background:var(--panel);border:1px solid var(--stroke)">
+      <div style="position:absolute;left:96px;top:4px;width:88px;height:34px;border-radius:17px;background:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.18)"></div>
+      <button type="button" role="tab" aria-selected="false" style="position:relative;flex:1;border:0;background:none;font-family:var(--disp);font-weight:600;font-size:16px;color:var(--quiet);letter-spacing:-.01em">Chat</button>
+      <button type="button" role="tab" aria-selected="true" style="position:relative;flex:1;border:0;background:none;font-family:var(--disp);font-weight:700;font-size:16px;color:var(--paper);letter-spacing:-.01em">Agent</button>
+    </div>
+    <button type="button" aria-label="Account, R" style="width:44px;height:44px;border-radius:50%;border:0;background:var(--ink);color:var(--paper);font-family:var(--disp);font-weight:700;font-size:17px">R</button>
+  </header>
+
+  <main style="position:relative;flex:1;min-height:0;overflow:hidden;padding:0 20px">
+    <a href="#" style="display:inline-flex;align-items:center;gap:8px;height:44px;margin:6px 0 0 -6px;padding:0 10px 0 6px;font-size:17px;color:var(--ink)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Home</a>
+
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-top:10px">
+      <div style="flex:1;min-width:0">
+        <h1 style="margin:0;font-family:var(--disp);font-weight:800;font-size:31px;line-height:1.05;letter-spacing:-.035em;color:var(--ink)">Solar PV supplier research</h1>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+          <span style="display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 14px 0 12px;border-radius:15px;background:var(--panel);font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.16em;color:var(--ink);text-transform:uppercase"><i aria-hidden="true" style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></i>Working</span>
+          <span style="font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.14em;color:var(--quiet);text-transform:uppercase;font-variant-numeric:tabular-nums">Elapsed 00:52</span>
+        </div>
+      </div>
+      <div role="img" aria-label="59 percent complete, about 35 seconds left" style="flex:none;display:flex;flex-direction:column;align-items:center;gap:8px;width:98px">
+        <div style="position:relative;width:96px;height:96px">
+          <sc-for list="{{dial}}" as="d" hint-placeholder-count="56">
+            <span style="{{d.style}}"></span>
+          </sc-for>
+          <span style="position:absolute;inset:0;display:grid;place-items:center;font-family:var(--disp);font-weight:800;font-size:25px;letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums">59%</span>
+        </div>
+        <span style="font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.16em;color:var(--quiet);text-transform:uppercase">35 s left</span>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:14px;margin-top:14px">
+      <button type="button" style="flex:none;display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 24px 0 20px;border-radius:24px;border:1.5px solid var(--ink);background:none;color:var(--ink);font-family:var(--disp);font-weight:700;font-size:17px"><span aria-hidden="true" style="width:11px;height:11px;border:2px solid currentColor;border-radius:3px"></span>Stop</button>
+      <p style="margin:0;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.14em;line-height:1.5;color:var(--quiet);text-transform:uppercase">You can close the app.<br>It keeps going.</p>
+    </div>
+
+    <!-- progress card -->
+    <section aria-label="Progress" style="margin-top:20px;padding:18px 20px 22px;border-radius:30px;background:var(--panel);border:1px solid var(--stroke)">
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.2em;color:var(--quiet);text-transform:uppercase"><span>Progress</span><span style="color:var(--ink)">Step 3 of 4</span></div>
+      <ol style="position:relative;margin:16px 0 0;padding:0;list-style:none">
+        <span aria-hidden="true" style="position:absolute;left:6px;top:10px;bottom:34px;width:1.5px;background:var(--ink);opacity:.8"></span>
+        <li style="position:relative;display:flex;gap:16px;padding-bottom:18px">
+          <i aria-hidden="true" style="flex:none;width:14px;height:14px;margin-top:5px;border-radius:50%;background:var(--ink)"></i>
+          <div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:-.015em;color:var(--ink)">Plan the search</span><span style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;color:var(--quiet)">DONE</span></div><p style="margin:3px 0 0;font-size:14px;color:var(--quiet)">Three questions, two source types</p></div>
+        </li>
+        <li style="position:relative;display:flex;gap:16px;padding-bottom:18px">
+          <i aria-hidden="true" style="flex:none;width:14px;height:14px;margin-top:5px;border-radius:50%;background:var(--ink)"></i>
+          <div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:-.015em;color:var(--ink)">Search the web</span><span style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;color:var(--quiet)">DONE</span></div><p style="margin:3px 0 0;font-size:14px;color:var(--quiet)">14 sources found</p></div>
+        </li>
+        <li style="position:relative;display:flex;gap:16px;padding-bottom:18px">
+          <i aria-hidden="true" style="flex:none;width:14px;height:14px;margin-top:5px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 5px var(--accent-tint)"></i>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:-.015em;color:var(--ink)">Read the quotes</span><span style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;color:var(--accent)">IN PROGRESS</span></div>
+            <div style="position:relative;margin-top:12px;padding:12px 14px;border-radius:14px;background:var(--card)">
+              <i aria-hidden="true" style="position:absolute;left:-6px;top:-6px;width:10px;height:10px;border-left:1.5px solid var(--ink);border-top:1.5px solid var(--ink);border-top-left-radius:5px;opacity:.55"></i>
+              <i aria-hidden="true" style="position:absolute;right:-6px;top:-6px;width:10px;height:10px;border-right:1.5px solid var(--ink);border-top:1.5px solid var(--ink);border-top-right-radius:5px;opacity:.55"></i>
+              <i aria-hidden="true" style="position:absolute;left:-6px;bottom:-6px;width:10px;height:10px;border-left:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);border-bottom-left-radius:5px;opacity:.55"></i>
+              <i aria-hidden="true" style="position:absolute;right:-6px;bottom:-6px;width:10px;height:10px;border-right:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);border-bottom-right-radius:5px;opacity:.55"></i>
+              <div style="display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:13px;font-weight:500;color:var(--ink)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>supplier_quotes.pdf</div>
+              <div aria-hidden="true" style="display:flex;gap:4px;margin-top:11px"><sc-for list="{{pages}}" as="p" hint-placeholder-count="12"><span style="{{p.style}}"></span></sc-for></div>
+            </div>
+            <p style="margin:8px 0 0;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.16em;color:var(--quiet);text-transform:uppercase">Page 11 of 12</p>
+          </div>
+        </li>
+        <li style="position:relative;display:flex;gap:16px">
+          <i aria-hidden="true" style="flex:none;width:14px;height:14px;margin-top:5px;border-radius:50%;background:var(--panel);border:1.5px solid var(--rule);box-sizing:border-box"></i>
+          <div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:-.015em;color:var(--quiet)">Write the report</span><span style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;color:var(--quiet)">QUEUED</span></div></div>
+        </li>
+      </ol>
+    </section>
+
+    <div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;height:90px;background:linear-gradient(to bottom,transparent,var(--paper) 80%);pointer-events:none"></div>
+  </main>
+
+  <footer style="flex:none;padding:6px 20px 20px;position:relative">
+    <div style="display:flex;align-items:center;gap:10px;height:60px;padding:0 7px 0 24px;border-radius:30px;background:var(--card);border:1px solid var(--ink);box-shadow:var(--shadow)">
+      <span style="flex:1;min-width:0;font-size:16px;color:var(--quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Message Sutaeru while it works</span>
+      <button type="button" aria-label="Send" style="flex:none;width:46px;height:46px;border-radius:50%;border:0;background:var(--ink);color:var(--paper);display:grid;place-items:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = this.props.theme === 'dark';
+    const v = dark ? {
+      paper:'#1C1B19',panel:'#2E2D2A',card:'#252421',stroke:'#3A3935',ink:'#F4F2EC',quiet:'#B6BBC3',rule:'#6B6964',
+      accent:'#F4511E',tint:'rgba(244,81,30,.16)',hero:'#131211',heroInk:'#F4F2EC',heroQuiet:'rgba(244,242,236,.6)',hair:'rgba(244,242,236,.12)',
+      shadow:'0 1px 2px rgba(0,0,0,.3),0 18px 40px -22px rgba(0,0,0,.7)'
+    } : {
+      paper:'#F7F6F2',panel:'#EFEDE7',card:'#FFFFFF',stroke:'#E3E1DB',ink:'#242320',quiet:'#66645F',rule:'#B6BBC3',
+      accent:'#F4511E',tint:'#FCE9DE',hero:'#242320',heroInk:'#F7F6F2',heroQuiet:'rgba(247,246,242,.62)',hair:'rgba(36,35,32,.14)',
+      shadow:'0 1px 2px rgba(36,35,32,.06),0 18px 40px -22px rgba(36,35,32,.28)'
+    };
+    const rootStyle = [
+      'width:390px','height:844px','box-sizing:border-box','display:flex','flex-direction:column','overflow:hidden','position:relative',
+      'background:' + v.paper,
+      '--paper:' + v.paper,'--panel:' + v.panel,'--card:' + v.card,'--stroke:' + v.stroke,'--ink:' + v.ink,'--quiet:' + v.quiet,'--rule:' + v.rule,
+      '--accent:' + v.accent,'--accent-tint:' + v.tint,'--hero:' + v.hero,'--hero-ink:' + v.heroInk,'--hero-quiet:' + v.heroQuiet,'--hair:' + v.hair,'--shadow:' + v.shadow,
+      "--disp:'Inter Tight','Inter',system-ui,sans-serif","--body:'Inter',system-ui,sans-serif","--mono:'JetBrains Mono',ui-monospace,monospace",
+      "font-family:'Inter',system-ui,sans-serif",'color:' + v.ink,'-webkit-font-smoothing:antialiased'
+    ].join(';');
+    const N = 60, C = 48, R = 43, done = Math.round(N * 0.59);
+    const dial = [];
+    for (let i = 0; i < N; i++) {
+      const a = (i / N) * Math.PI * 2 - Math.PI / 2;
+      const lead = i === done;
+      const size = lead ? 8 : (i < done ? 5.5 : 4);
+      const x = C + R * Math.cos(a) - size / 2;
+      const y = C + R * Math.sin(a) - size / 2;
+      const bg = lead ? 'var(--accent)' : (i < done ? 'var(--ink)' : 'var(--rule)');
+      const op = i < done ? 1 : (lead ? 1 : 0.55);
+      dial.push({ style: 'position:absolute;left:' + x.toFixed(1) + 'px;top:' + y.toFixed(1) + 'px;width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + bg + ';opacity:' + op });
+    }
+    const pages = [];
+    for (let i = 0; i < 12; i++) {
+      const state = i < 10 ? 'var(--ink)' : (i === 10 ? 'var(--accent)' : 'var(--stroke)');
+      pages.push({ style: 'flex:1;height:6px;border-radius:3px;background:' + state });
+    }
+    return { rootStyle, dial, pages };
+  }
+}
+</script>
+</body>
+</html>
