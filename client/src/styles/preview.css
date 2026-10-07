@@ -225,7 +225,7 @@
 .sutaeru-chat button:focus-visible,.sutaeru-chat a:focus-visible,.sutaeru-chat textarea:focus-visible { outline: 2px solid var(--neon-orange); outline-offset: 2px; }
 @media (max-width: 767px) {
   .sutaeru-chat-header { min-height: 58px; }
-  .sutaeru-chat-mobile-modes { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 18px max(14px, env(safe-area-inset-bottom)); border-bottom: 1px solid var(--border); background: var(--art-paper); }
+  .sutaeru-chat-mobile-modes { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 18px 14px; border-bottom: 1px solid var(--border); background: var(--art-paper); }
   .sutaeru-chat-mobile-heading { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .sutaeru-chat-mobile-title { font: 800 26px/.95 var(--font-d); }
   .sutaeru-chat-mobile-subtitle { font: 600 10px var(--font-b); text-transform: uppercase; color: var(--muted-foreground); }

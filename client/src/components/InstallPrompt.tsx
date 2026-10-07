@@ -24,7 +24,7 @@ export function InstallPrompt() {
     return (
       <div
         className={cn(
-          "fixed bottom-4 left-4 right-4 md:bottom-6 md:left-auto md:right-6 md:w-auto z-50",
+          "fixed pwa-bottom-card bottom-4 left-4 right-4 md:left-auto md:right-6 md:w-auto z-50",
           "animate-slide-up"
         )}
         role="status"
@@ -55,7 +55,7 @@ export function InstallPrompt() {
   return (
     <div
       className={cn(
-        "fixed bottom-4 left-4 right-4 md:bottom-6 md:left-auto md:right-6 md:w-auto z-50",
+        "fixed pwa-bottom-card bottom-4 left-4 right-4 md:left-auto md:right-6 md:w-auto z-50",
         "animate-slide-up"
       )}
       role="status"
