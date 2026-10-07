@@ -31,6 +31,7 @@ const ACCOUNT: MoreItem[] = [
 
 const ADMIN: MoreItem[] = [
   { label: "Admin", href: "/admin", icon: "admin", meta: "People" },
+  { label: "Invite links", href: "/admin/invites", icon: "share", meta: "Send" },
   { label: "Audit logs", href: "/admin/audit-logs", icon: "review", meta: "Records" },
 ];
 

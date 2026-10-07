@@ -12,6 +12,7 @@ import Generate from "./pages/Generate";
 import Files from "./pages/Files";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
+import Invites from "./pages/Invites";
 import AuditLogs from "./pages/AuditLogs";
 import Chat from "./pages/Chat";
 import Onboarding from "./pages/Onboarding";
@@ -26,10 +27,12 @@ import More from "./pages/More";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
 import DashboardLayout from "./components/DashboardLayout";
+import FirstRunScreen from "./components/FirstRunScreen";
 import { useAuth } from "./_core/hooks/useAuth";
 import { IntelligenceProvider } from "./_core/hooks/useSutaeruIntelligence";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
+import { captureInviteFromWindow } from "./lib/inviteCapture";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, loading } = useAuth();
@@ -103,6 +106,15 @@ function AppRoutes() {
           </DashboardLayout>
         ) : (
           <ProtectedRoute component={AuditLogs} />
+        )}
+      </Route>
+      <Route path="/admin/invites">
+        {isAuthenticated ? (
+          <DashboardLayout>
+            <Invites />
+          </DashboardLayout>
+        ) : (
+          <ProtectedRoute component={Invites} />
         )}
       </Route>
       <Route path="/admin">
@@ -213,6 +225,13 @@ function AppRoutes() {
 }
 
 function App() {
+  // An invite link arrives as `/?invite=<code>`. A route can redirect before the sign-in
+  // page ever renders, and a redirect drops the query string, so the code is read here on
+  // the first load and the parameter is removed from the address bar.
+  useEffect(() => {
+    captureInviteFromWindow();
+  }, []);
+
   return (
     <ErrorBoundary>
       <ThemeProvider>
@@ -221,6 +240,9 @@ function App() {
             <TooltipProvider>
               <Toaster richColors position="top-right" />
               <AppRoutes />
+              {/* The greeting is a sibling of the router, not a route: a new person can be
+                  redirected to any page after signing in, and must be greeted regardless. */}
+              <FirstRunScreen />
             </TooltipProvider>
           </IntelligenceProvider>
         </VideoPlayerProvider>
