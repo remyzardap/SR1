@@ -35,7 +35,8 @@ services:
 
   # Optional: PostgreSQL database
   postgres:
-    image: postgres:16-alpine
+    # postgres:16-alpine + pgvector, built from ops/postgres (runbook: ops/postgres/README.md)
+    build: ./ops/postgres
     environment:
       POSTGRES_USER: sutaeru
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
