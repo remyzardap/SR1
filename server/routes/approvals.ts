@@ -1,10 +1,13 @@
 import { Router } from "express";
+import { and, asc, eq, gt } from "drizzle-orm";
 import {
   getApprovalById,
   hashArgs,
   resolveWaiter,
   transitionApprovalStatus,
 } from "../kemma/approvals";
+import { getDb } from "../db";
+import { approvals, type ApprovalRow } from "../../drizzle/schema";
 import { getToolSpec } from "../kemma/toolkit/registry";
 import { getMcpRegistry, MCP_TOOL_PREFIX, type ToolDefinition } from "../kemma/mcp/client";
 import { logAuditEvent } from "../middleware/audit-logging";
@@ -215,6 +218,89 @@ approvalsRouter.post("/:id", async (req, res) => {
     return res.status(200).json({ ok: true, status: "rejected" });
   }
 });
+
+/**
+ * GET /api/kemma/approvals/?sessionId=&status=pending
+ * Lists the approvals a chat card can be rebuilt from. The SSE `approval.requested` event is
+ * one-shot, so a reload or a phone that slept through the event leaves a run blocking on a request
+ * the human can no longer see. Same six fields the event carries — see `toCardPayload` — so the
+ * card cannot tell which route it came from.
+ *
+ * Only the requester's own approvals are returned, and `sessionId` is required rather than
+ * optional: without it a session id from another conversation would leak this user's pending
+ * actions into it. `status` accepts only `pending`, which is additionally filtered to rows that
+ * still have time left — an expired request has nothing to restore, and its card says so.
+ */
+approvalsRouter.get("/", async (req, res) => {
+  const user = (req as any).user;
+  if (!user?.id) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const sessionId = req.query.sessionId;
+  if (typeof sessionId !== "string" || sessionId.trim() === "") {
+    return res.status(400).json({ error: "sessionId is required" });
+  }
+
+  const status = req.query.status ?? "pending";
+  if (status !== "pending") {
+    return res.status(400).json({ error: "Only status=pending is available here." });
+  }
+
+  try {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+
+    const rows = await db
+      .select()
+      .from(approvals)
+      .where(
+        and(
+          eq(approvals.userId, user.id),
+          eq(approvals.sessionId, sessionId),
+          eq(approvals.status, "pending"),
+          gt(approvals.expiresAt, new Date()),
+        ),
+      )
+      .orderBy(asc(approvals.createdAt));
+
+    return res.json({ approvals: (rows as ApprovalRow[]).map(toCardPayload) });
+  } catch (err) {
+    console.error("[Approvals] Failed to list pending approvals:", err);
+    return res.status(500).json({ error: "Internal server error", detail: String(err) });
+  }
+});
+
+/** A stored row -> the card payload, deliberately identical to the `approval.requested` SSE event.
+ *
+ * Only these six fields leave the server. `argsHash` and `targetRevision` are how the gate proves
+ * the human approved what was shown, and `decidedArgs`/`result` hold values the run has not agreed
+ * to yet — none of them belong in a browser. The headline is re-derived from the preview the same
+ * way `requestToolApproval` derives it, so a restored card reads exactly like the one that streamed
+ * first, and `preview` is flattened to a string for the same reason the event does it: the card
+ * renders text, not an object. */
+function toCardPayload(row: ApprovalRow): {
+  id: string;
+  tool: string;
+  title: string;
+  preview: string;
+  args: unknown;
+  expiresAt: string;
+} {
+  const preview = row.preview as unknown;
+  const previewTitle =
+    preview !== null && typeof preview === "object" && !Array.isArray(preview)
+      ? (preview as Record<string, unknown>).title
+      : undefined;
+  return {
+    id: row.id,
+    tool: row.tool,
+    title: typeof previewTitle === "string" ? previewTitle : `Approve ${row.tool}`,
+    preview: typeof preview === "string" ? preview : preview ? JSON.stringify(preview) : "",
+    args: row.args,
+    expiresAt: row.expiresAt.toISOString(),
+  };
+}
 
 /**
  * GET /api/kemma/approvals/:id
