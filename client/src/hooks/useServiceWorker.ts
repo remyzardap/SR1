@@ -37,11 +37,11 @@ export function useServiceWorker() {
     const renderToast = () => {
       if (!waitingWorker || toastClosed || disposed) return;
       const pending = getActiveStreamCount();
-      toast("Update ready", {
+      toast("Update ready, tap to refresh", {
         id: UPDATE_TOAST_ID,
         description: pending > 0
           ? `Waiting for ${pending} stream${pending > 1 ? "s" : ""} to finish before applying the update.`
-          : "Tap to refresh and get the latest version",
+          : "Reload the page to get the latest version",
         action: {
           label: "Refresh",
           onClick: () => {

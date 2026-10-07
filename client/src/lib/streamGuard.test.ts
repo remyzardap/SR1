@@ -102,6 +102,17 @@ describe("useServiceWorker.ts update gate", () => {
     expect(USE_SW).toContain("subscribeActiveStreams(renderToast)");
   });
 
+  it("titles the toast with the wording the task asks for", () => {
+    // The spec phrase is the thing a reviewer reads on screen, so it lives in the
+    // title rather than being paraphrased across title and description.
+    const render = bodyOf(USE_SW, "const renderToast = () => {");
+    expect(render).toContain('toast("Update ready, tap to refresh"');
+    // While a stream holds the update, the description is what tells the user why
+    // tapping does not reload yet.
+    expect(render).toContain("to finish before applying the update.");
+    expect(render).toContain("if (pending > 0)");
+  });
+
   it("posts exactly the message the worker listens for", () => {
     const posted = USE_SW.match(/postMessage\(\{ type: "([^"]+)" \}\)/g) ?? [];
     expect(posted).toHaveLength(1);
