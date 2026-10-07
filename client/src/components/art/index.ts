@@ -13,7 +13,15 @@ export { FocusBrackets, type FocusBracketsProps } from "./FocusBrackets";
 export { SteppedMeter, type SteppedMeterProps } from "./SteppedMeter";
 export { Toggle, type ToggleProps } from "./Toggle";
 export { Slider, type SliderProps } from "./Slider";
-export { DitherEdge, type DitherEdgeProps } from "./DitherEdge";
+export {
+  DitherEdge,
+  DITHER_EDGE_BAND_COUNT,
+  computeDitherBands,
+  type DitherEdgeProps,
+  type DitherBand,
+  type DitherBandVariant,
+  type DitherMaskStop,
+} from "./DitherEdge";
 export { HalftoneFade, type HalftoneFadeProps } from "./HalftoneFade";
 export {
   PaperGrain,
