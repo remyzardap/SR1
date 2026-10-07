@@ -18,7 +18,7 @@ import {
   MAX_MONITORS_PER_USER,
   MAX_TOPIC_CHARS,
   scheduleRun,
-} from "../../../routes/fn/monitors";
+} from "../../../lib/monitorsCore";
 import { countMonitors, createMonitor } from "../../../lib/fnStore";
 import { logAuditEvent } from "../../../middleware/audit-logging";
 import { randomUUID } from "crypto";

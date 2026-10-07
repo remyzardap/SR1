@@ -23,7 +23,7 @@ const fnMonitors = vi.hoisted(() => ({
   scheduleRun: vi.fn(),
 }));
 
-vi.mock("../../../routes/fn/monitors", () => fnMonitors);
+vi.mock("../../../lib/monitorsCore", () => fnMonitors);
 
 const audit = vi.hoisted(() => ({
   logAuditEvent: vi.fn(),

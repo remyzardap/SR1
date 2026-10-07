@@ -27,20 +27,9 @@ const handlers = vi.hoisted(() => ({
   parseAudio: vi.fn(),
 }));
 
-const monitorsMock = vi.hoisted(() => ({
-  handleMonitors: handlers.handleMonitors,
-  MAX_TOPIC_CHARS: 200,
-  MAX_MONITORS_PER_USER: 20,
-  MAX_RUNS_RETURNED: 50,
-  MAX_REPORT_CHARS: 20000,
-  MAX_SOURCES: 15,
-  FIRST_RUN_DELAY_SECONDS: 60,
-  FREQUENCIES: ["daily", "weekly"],
-}));
-
 vi.mock("../../lib/fnStore", () => store);
 vi.mock("./memories", () => ({ handleMemories: handlers.handleMemories }));
-vi.mock("./monitors", () => monitorsMock);
+vi.mock("./monitors", () => ({ handleMonitors: handlers.handleMonitors }));
 vi.mock("./documentBrief", () => ({ handleDocumentBrief: handlers.handleDocumentBrief }));
 vi.mock("./chatInsights", () => ({ handleChatInsights: handlers.handleChatInsights }));
 vi.mock("./research", () => ({ handleResearch: handlers.handleResearch }));

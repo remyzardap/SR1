@@ -43,17 +43,21 @@ import {
   unknownAction,
 } from "./shared";
 
-export const MONITOR_JOB = "monitor-run";
-export const MAX_MONITORS_PER_USER = 20;
+import {
+  FREQUENCIES,
+  MAX_MONITORS_PER_USER,
+  MAX_TOPIC_CHARS,
+  MONITOR_JOB,
+  delaySecondsUntil,
+  scheduleRun,
+  type MonitorFrequency,
+} from "../../lib/monitorsCore";
+export { FREQUENCIES, MAX_MONITORS_PER_USER, MAX_TOPIC_CHARS, MONITOR_JOB, delaySecondsUntil, scheduleRun };
+export type { MonitorFrequency };
 export const MAX_RUNS_RETURNED = 50;
-export const MAX_TOPIC_CHARS = 200;
 export const MAX_REPORT_CHARS = 20000;
 export const MAX_SOURCES = 15;
 export const FIRST_RUN_DELAY_SECONDS = 60;
-
-/** The only cadences Monitors.tsx offers. */
-export const FREQUENCIES = monitorFrequencyEnum.enumValues;
-export type MonitorFrequency = (typeof FREQUENCIES)[number];
 
 const INTERVAL_SECONDS: Record<MonitorFrequency, number> = {
   daily: 24 * 60 * 60,
@@ -66,11 +70,6 @@ export function intervalSeconds(frequency: MonitorFrequency): number {
 
 export function nextRunTime(from: Date, frequency: MonitorFrequency): Date {
   return new Date(from.getTime() + intervalSeconds(frequency) * 1000);
-}
-
-/** Whole seconds until a slot comes due, never less than one. */
-export function delaySecondsUntil(at: Date, now: Date = new Date()): number {
-  return Math.max(1, Math.round((at.getTime() - now.getTime()) / 1000));
 }
 
 export async function handleMonitors(userId: number, req: Request, res: Response): Promise<void> {
@@ -137,19 +136,6 @@ async function requireOwned(userId: number, id: string) {
   const monitor = await getMonitor(userId, id);
   if (!monitor) throw new FnError(404, "Monitor not found.");
   return monitor;
-}
-
-/**
- * Queues one briefing, tagged with the slot it belongs to. A job from a paused
- * or re-armed chain finds a different next_run_at when it fires and drops out,
- * so a monitor never runs two chains at once.
- */
-export async function scheduleRun(userId: number, monitorId: string, forTime: Date): Promise<void> {
-  await enqueueJob(
-    MONITOR_JOB,
-    { monitorId, userId, scheduledFor: forTime.getTime() },
-    { startAfterSeconds: delaySecondsUntil(forTime) }
-  );
 }
 
 export function registerMonitorJobs(): void {

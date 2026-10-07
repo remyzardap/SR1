@@ -78,18 +78,15 @@ const adminStub = vi.hoisted(() => ({ isAdminUser: vi.fn(async () => false) }));
 const googleStub = vi.hoisted(() => ({
   getConnectionStatus: vi.fn(async () => ({ connected: false })),
 }));
-// Mock the monitors tool to avoid circular dependency: builtin/index.ts -> monitors.ts -> routes/fn/monitors.ts -> engine.ts -> registerBuiltinTools()
-const monitorsMock = vi.hoisted(() => ({ registerMonitorTools: vi.fn() }));
-vi.mock("../../../kemma/executors/vpsFiles", async (importOriginal) => {
+vi.mock("./toolkit/executors/vpsFiles", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("../../../kemma/executors/vpsFiles")>();
+    await importOriginal<typeof import("./toolkit/executors/vpsFiles")>();
   return { ...actual, isAdminUser: adminStub.isAdminUser };
 });
-vi.mock("../../../services/google", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../../services/google")>();
+vi.mock("./services/google", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./services/google")>();
   return { ...actual, getConnectionStatus: googleStub.getConnectionStatus };
 });
-vi.mock("./toolkit/builtin/monitors", () => monitorsMock);
 
 registerBuiltinTools();
 

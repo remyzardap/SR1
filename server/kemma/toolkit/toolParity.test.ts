@@ -9,8 +9,11 @@
  * comment there and the PR's "Deviations from spec" section.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { registerBuiltinTools } from "./builtin";
 import { toOpenAiTools, toolsFor, type OpenAiToolDef } from "./registry";
 import type { ToolContext } from "./types";
+
+registerBuiltinTools();
 
 // ── frozen copies of the old hand-written definitions (server/kemma/tools.ts before P1-02) ──────
 const FROZEN: Record<string, OpenAiToolDef> = {
@@ -252,25 +255,22 @@ const google = vi.hoisted(() => ({ getConnectionStatus: vi.fn(async () => ({ con
 // that the engine-level merge combines toolsFor's output with whatever the registry already
 // decided to expose.
 const mcpMock = vi.hoisted(() => ({ getMcpRegistry: vi.fn() }));
-// Mock the monitors tool to avoid circular dependency: builtin/index.ts -> monitors.ts -> routes/fn/monitors.ts -> engine.ts -> registerBuiltinTools()
-const monitorsMock = vi.hoisted(() => ({ registerMonitorTools: vi.fn() }));
-vi.mock("../../../kemma/executors/vpsFiles", () => admin);
-vi.mock("../../../services/google", () => google);
-vi.mock("../mcp/client", () => mcpMock);
-vi.mock("./builtin/monitors", () => monitorsMock);
+vi.mock("../executors/vpsFiles", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../executors/vpsFiles")>();
+  return { ...actual, isAdminUser: admin.isAdminUser };
+});
+vi.mock("../../services/google", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../services/google")>();
+  return { ...actual, getConnectionStatus: google.getConnectionStatus };
+});
+vi.mock("../mcp/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../mcp/client")>();
+  return { ...actual, getMcpRegistry: mcpMock.getMcpRegistry };
+});
 
-beforeEach(async () => {
+beforeEach(() => {
   admin.isAdminUser.mockResolvedValue(false);
   google.getConnectionStatus.mockResolvedValue({ connected: false });
-  const { registerBuiltinTools } = await import("./builtin");
-  registerBuiltinTools();
-
-  // Manually register drive and vpsFiles tools with mocked available functions
-  // since the module-level mocks don't work due to import ordering
-  const { registerDriveTools } = await import("./builtin/drive");
-  const { registerVpsFiles } = await import("./builtin/vpsFiles");
-  registerDriveTools();
-  registerVpsFiles();
 });
 afterEach(() => vi.clearAllMocks());
 
