@@ -144,7 +144,7 @@ async function requireOwned(userId: number, id: string) {
  * or re-armed chain finds a different next_run_at when it fires and drops out,
  * so a monitor never runs two chains at once.
  */
-async function scheduleRun(userId: number, monitorId: string, forTime: Date): Promise<void> {
+export async function scheduleRun(userId: number, monitorId: string, forTime: Date): Promise<void> {
   await enqueueJob(
     MONITOR_JOB,
     { monitorId, userId, scheduledFor: forTime.getTime() },
