@@ -1,0 +1,125 @@
+/*
+ * F-12 first-run greeting (T-74). A single card that fills the phone screen, three
+ * plain promises to read, one big button to leave. Everything is scoped under
+ * .sr-first-run; tokens come from reskin-tokens.css so dark mode needs no extra work.
+ */
+
+.sr-first-run {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px 16px;
+  padding-top: max(20px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: srFadeIn var(--r-motion) var(--r-ease-out) forwards;
+}
+
+.sr-first-run-card {
+  width: min(100%, 420px);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px 22px;
+  border: 1px solid var(--r-stroke);
+  border-radius: var(--r-radius-card-lg);
+  background: var(--r-card);
+  color: var(--r-ink);
+  box-shadow: 0 24px 60px var(--r-shadow);
+  animation: srRiseIn var(--r-motion) var(--r-ease-out) forwards;
+}
+
+.sr-first-run-mark {
+  width: 44px;
+  height: 44px;
+}
+
+.sr-first-run-title {
+  margin: 0;
+  font-family: var(--r-font-title);
+  font-size: 27px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.sr-first-run-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sr-first-run-item {
+  padding: 16px 16px;
+  border: 1px solid var(--r-stroke);
+  border-radius: 20px;
+  background: var(--r-panel);
+  font-family: var(--r-font-body);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+/* One big thumb-friendly action — nothing else on the screen asks for a tap. */
+.sr-first-run-done {
+  min-height: 54px;
+  border: 0;
+  border-radius: var(--r-radius-pill);
+  background: var(--r-accent);
+  color: #ffffff;
+  font-family: var(--r-font-title);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: transform var(--r-motion) var(--r-ease-out);
+}
+
+.sr-first-run-done:active {
+  transform: scale(0.98);
+}
+
+.sr-first-run-done:focus-visible {
+  outline: 2px solid var(--r-accent);
+  outline-offset: 3px;
+}
+
+@keyframes srFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes srRiseIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (min-width: 768px) {
+  .sr-first-run-card {
+    gap: 24px;
+    padding: 34px 32px;
+  }
+
+  .sr-first-run-title {
+    font-size: 32px;
+  }
+
+  .sr-first-run-item {
+    padding: 18px 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sr-first-run,
+  .sr-first-run-card,
+  .sr-first-run-done {
+    animation: none;
+    transition: none;
+  }
+}

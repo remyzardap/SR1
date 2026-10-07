@@ -3,6 +3,7 @@
  * to make every tool name resolvable through `toolsFor` / `runTool`.
  */
 import { registerSafeFiles } from "./safeFiles";
+import { registerReadResult } from "./readResult";
 import { registerWebSearch } from "./webSearch";
 import { registerBrowse } from "./browse";
 import { registerRunCode } from "./runCode";
@@ -26,4 +27,6 @@ export function registerBuiltinTools(): void {
   registerDriveTools();
   registerSkillTools();
   registerVpsFiles();
+  // Last: it is gated on flag("CONTEXT_MANAGER"), so the default tool list is unaffected.
+  registerReadResult();
 }

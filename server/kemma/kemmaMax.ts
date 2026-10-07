@@ -90,6 +90,8 @@ import { Sandbox, type SandboxOpts } from "@e2b/code-interpreter";
 import { BrowserUse } from "browser-use-sdk";
 import fsp from "fs/promises";
 import nodePath from "path";
+import { flag } from "../core/flags";
+import { readPage } from "./reader";
 import { type FileSkill } from "./fileSkills";
 import { runTool } from "./toolkit/registry";
 import type { ToolContext } from "./toolkit/types";
@@ -241,7 +243,11 @@ export async function runCode(language: "python" | "nodejs", code: string, signa
 //
 // Install: npm install browser-use-sdk
 
-const BROWSER_USE_API_KEY = process.env.BROWSER_USE_API_KEY;
+// Read at call time, not at import time: Secret Manager fills process.env after the module
+// graph loads, so a module-level `const` here would capture an empty value forever (P1-09).
+function browserUseApiKey(): string | undefined {
+  return process.env.BROWSER_USE_API_KEY;
+}
 const BROWSE_TIMEOUT_MS = 60_000; // real browser navigation needs more headroom than a plain fetch
 const DEFAULT_MAX_LENGTH = 10_000;
 
@@ -250,7 +256,7 @@ const DEFAULT_MAX_LENGTH = 10_000;
 
 let browserUseClient: BrowserUse | null = null;
 function getBrowserUseClient(): BrowserUse {
-  if (!browserUseClient) browserUseClient = new BrowserUse({ apiKey: BROWSER_USE_API_KEY });
+  if (!browserUseClient) browserUseClient = new BrowserUse({ apiKey: browserUseApiKey() });
   return browserUseClient;
 }
 
@@ -261,6 +267,12 @@ export interface BrowseOptions {
   maxLength?: number;
   waitForSelector?: string;
   signal?: AbortSignal;
+  /** P1-09 (behind flag("READER_V2")): what the caller is looking for on the page. */
+  query?: string;
+  /** P1-09: use the browser agent even when the tiered reader would otherwise handle it. */
+  interactive?: boolean;
+  /** For usage logging only (P1-09 tier 2/3 cost rows); omit to skip logging. */
+  userId?: number;
 }
 
 export interface BrowseResult {
@@ -268,6 +280,11 @@ export interface BrowseResult {
   content: string;
   links?: string[];
   images?: string[];
+  /** P1-09 (readPage path only): which tier produced this content, and whether it was cut down to fit. */
+  tier?: 1 | 2 | 3;
+  truncated?: boolean;
+  url?: string;
+  publishedAt?: string;
 }
 
 export interface BrowseError extends Error {
@@ -304,16 +321,50 @@ function truncateChars(text: string, maxLength: number): string {
 }
 
 /**
+ * P1-09: with `FF_READER_V2` on, a URL goes through the tiered reader (tier 1 plain
+ * SSRF-guarded fetch + local extraction, tier 2 hosted reader, tier 3 this same browser
+ * agent) instead of straight to browser-use. Flag off, this is exactly what it was before.
+ */
+export async function browse(url: string, options: BrowseOptions = {}): Promise<BrowseResult> {
+  if (flag("READER_V2")) {
+    // validateUrl() only normalises (adds the missing https://); readPage() then re-checks the
+    // result against the SSRF guard before any tier runs, including the interactive/tier-3 hop,
+    // so a private/loopback address still fails without ever reaching the browser agent.
+    const normalized = validateUrl(url);
+    const page = await readPage(normalized, {
+      query: options.query,
+      maxChars: options.maxLength,
+      interactive: options.interactive,
+      userId: options.userId,
+      signal: options.signal,
+    });
+    return {
+      title: page.title || "Untitled",
+      content: page.markdown,
+      tier: page.tier,
+      truncated: page.truncated,
+      url: page.finalUrl,
+      publishedAt: page.publishedAt,
+    };
+  }
+
+  return browseWithAgent(url, options);
+}
+
+/**
+ * Executes the browser-use agent directly, without checking flag("READER_V2") — this is
+ * Tier 3 for the tiered reader, and the whole path when the flag is off.
+ *
  * Asks the task to emit a single JSON object as its final answer, then
  * parses it ourselves. This sidesteps depending on the exact structured-
  * output parameter name in the current SDK version (which varies between
  * REST's snake_case and the JS SDK's camelCase) — the instruction-level
  * contract is simpler and won't break silently on an SDK version bump.
  */
-export async function browse(url: string, options: BrowseOptions = {}): Promise<BrowseResult> {
+export async function browseWithAgent(url: string, options: BrowseOptions = {}): Promise<BrowseResult> {
   const normalizedUrl = validateUrl(url);
 
-  if (!BROWSER_USE_API_KEY) {
+  if (!browserUseApiKey()) {
     throw createBrowseError(
       "BROWSER_USE_API_KEY is not configured. Browsing is unavailable until it is set.",
       "NOT_CONFIGURED"
