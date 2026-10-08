@@ -58,7 +58,7 @@ export function FocusBrackets({
 
   return (
     <span
-      className={cn("brk art-brackets", className)}
+      className={cn("art-brackets", className)}
       data-tone={tone}
       style={wrapStyle}
       aria-hidden="true"

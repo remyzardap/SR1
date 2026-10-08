@@ -9,7 +9,9 @@ body {
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
+  /* clip, not hidden: hidden makes body a scroll container and stops position: sticky from sticking */
   overflow-x: hidden;
+  overflow-x: clip;
 }
 button, input, textarea, select { font: inherit; color: inherit; }
 button { cursor: pointer; background: none; border: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
