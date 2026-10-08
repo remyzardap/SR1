@@ -109,6 +109,16 @@ export default function LabIndex() {
             The ported settings screen in every state — each theme, art and motion off, slider extremes, empty and loading data. Pick a state with the links, or scroll through all of them.
           </p>
         </Link>
+        <Link
+          href="/__lab/files"
+          className="card"
+          style={{ padding: 18, textDecoration: "none", color: "inherit", borderRadius: 14, display: "block" }}
+        >
+          <b style={{ font: "700 15px/1.2 var(--disp)", display: "block", marginBottom: 4 }}>Files</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 12 }}>
+            Files screen with storage meter, pill search, filters, miniature documents, live writing bar, and empty states.
+          </p>
+        </Link>
       </div>
     </LabLayout>
   );
