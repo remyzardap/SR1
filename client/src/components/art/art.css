@@ -11,7 +11,12 @@
   color: var(--r-quiet);
 }
 
-/* ── ConvergeBar: two ink pills growing from both edges toward the middle ──── */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ── ConvergeBar: clean 4-6px rounded track and solid fill, 22px graded leading edge ──── */
 .art-converge {
   display: flex;
   flex-direction: column;
@@ -23,90 +28,46 @@
 }
 .art-converge-track {
   position: relative;
-  height: 10px;
+  height: 6px;
+  border-radius: var(--r-radius-pill, 999px);
+  background: var(--r-stroke, rgba(36, 35, 32, 0.12));
   overflow: visible;
-}
-.art-dotrow {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle at 50% 50%, var(--r-rule) 0 1.3px, transparent 1.4px);
-  background-size: 7px 100%;
-  background-position: 0 center;
-  background-repeat: repeat-x;
 }
 .art-pill {
   position: absolute;
   top: 0;
-  height: 10px;
-  border-radius: var(--r-radius-pill);
+  height: 6px;
+  border-radius: var(--r-radius-pill, 999px);
   background: var(--r-ink);
-  transition: width var(--r-motion) var(--r-ease-out);
+  transition: width var(--r-motion, 380ms) var(--r-ease-out, ease-out);
 }
 .art-pill-l { left: 0; width: calc(var(--pw) / 2); }
 .art-pill-r { right: 0; width: calc(var(--pw) / 2); }
+
+/* Short graded 22px leading edge */
 .art-trail {
   position: absolute;
   top: 0;
-  height: 10px;
-  width: 36px;
+  height: 6px;
+  width: 22px;
   pointer-events: none;
-  transition: left var(--r-motion) var(--r-ease-out), right var(--r-motion) var(--r-ease-out);
+  transition: left var(--r-motion, 380ms) var(--r-ease-out, ease-out), right var(--r-motion, 380ms) var(--r-ease-out, ease-out);
 }
 .art-trail-l {
   left: calc(var(--pw) / 2);
-  background: linear-gradient(to right, var(--r-ink), transparent);
-  opacity: 0.9;
-  border-radius: 0 var(--r-radius-pill) var(--r-radius-pill) 0;
+  color: var(--r-ink);
 }
 .art-trail-r {
   right: calc(var(--pw) / 2);
-  background: linear-gradient(to left, var(--r-ink), transparent);
-  opacity: 0.9;
-  border-radius: var(--r-radius-pill) 0 0 var(--r-radius-pill);
+  color: var(--r-ink);
+}
+.art-lead {
+  display: block;
+  width: 22px;
+  height: 6px;
 }
 .art-converge.is-done .art-trail,
 .art-converge.is-error .art-trail { display: none; }
-
-/* Dither dots scattered between each trail tip and the middle. */
-.art-dither {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  pointer-events: none;
-  transition: left var(--r-motion) var(--r-ease-out), width var(--r-motion) var(--r-ease-out),
-    right var(--r-motion) var(--r-ease-out);
-}
-.art-dither-l {
-  left: calc(var(--pw) / 2 + 36px);
-  width: max(0px, calc(50% - var(--pw) / 2 - 36px));
-}
-.art-dither-r {
-  right: calc(var(--pw) / 2 + 36px);
-  width: max(0px, calc(50% - var(--pw) / 2 - 36px));
-}
-.art-dither b {
-  position: absolute;
-  top: 50%;
-  border-radius: 50%;
-  background: var(--r-ink);
-}
-.art-dither-l b { transform: translateY(-50%); }
-.art-dither-r b { transform: translateY(-50%); }
-.art-dither b:nth-child(1) { left: 8%;  width: 5.2px; height: 5.2px; margin-top: -3px; }
-.art-dither b:nth-child(2) { left: 26%; width: 3.6px; height: 3.6px; margin-top: 3px; }
-.art-dither b:nth-child(3) { left: 44%; width: 2.6px; height: 2.6px; margin-top: -3px; }
-.art-dither b:nth-child(4) { left: 64%; width: 1.6px; height: 1.6px; margin-top: 3px; }
-.art-dither b:nth-child(5) { left: 86%; width: 0.8px; height: 0.8px; margin-top: -3px; }
-/* Bolder trail (Documents/Generate): seven dots, spread evenly, shrinking to the middle. */
-.art-dither.is-bold b:nth-child(1) { left: 4%;  width: 5.2px; height: 5.2px; margin-top: -3px; }
-.art-dither.is-bold b:nth-child(2) { left: 18%; width: 4.4px; height: 4.4px; margin-top: 3px; }
-.art-dither.is-bold b:nth-child(3) { left: 32%; width: 3.4px; height: 3.4px; margin-top: -3px; }
-.art-dither.is-bold b:nth-child(4) { left: 47%; width: 2.5px; height: 2.5px; margin-top: 3px; }
-.art-dither.is-bold b:nth-child(5) { left: 61%; width: 1.8px; height: 1.8px; margin-top: -3px; }
-.art-dither.is-bold b:nth-child(6) { left: 76%; width: 1.1px; height: 1.1px; margin-top: 3px; }
-.art-dither.is-bold b:nth-child(7) { left: 90%; width: 0.6px; height: 0.6px; margin-top: -3px; }
-.art-converge.is-done .art-dither,
-.art-converge.is-error .art-dither { display: none; }
 
 /* Junction: pills met in the middle (done) or the break tick (error). */
 .art-junction {
@@ -124,12 +85,12 @@
   position: absolute;
   left: 50%;
   width: 2px;
-  height: 6px;
+  height: 5px;
   transform: translateX(-50%);
   background: var(--r-ink);
 }
-.art-junction::before { bottom: calc(100% + 3px); }
-.art-junction::after { top: calc(100% + 3px); }
+.art-junction::before { bottom: calc(100% + 2px); }
+.art-junction::after { top: calc(100% + 2px); }
 .art-junction.is-error::before,
 .art-junction.is-error::after { background: var(--r-alert); }
 .art-converge.is-error .art-pill { background: var(--r-alert); }
@@ -147,6 +108,7 @@
   letter-spacing: var(--r-track-title-md);
   color: var(--r-ink);
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
 .art-meta {
   text-align: right;
@@ -155,7 +117,7 @@
 .art-converge.is-error .art-meta { color: var(--r-alert); }
 .art-converge.is-error .art-pct { color: var(--r-ink); }
 
-/* ── LinearDitherBar: one ink pill from the left with a dither head ────────── */
+/* ── LinearDitherBar: clean 4-6px rounded track, solid fill, 22px leading edge ────────── */
 .art-ditherbar {
   display: flex;
   flex-direction: column;
@@ -164,52 +126,33 @@
 }
 .art-ditherbar-track {
   position: relative;
-  height: 10px;
+  height: 6px;
+  border-radius: var(--r-radius-pill, 999px);
+  background: var(--r-stroke, rgba(36, 35, 32, 0.12));
+  overflow: visible;
 }
 .art-ditherbar-pill {
   position: absolute;
   left: 0;
   top: 0;
-  height: 10px;
+  height: 6px;
   width: var(--pw);
-  border-radius: var(--r-radius-pill);
+  border-radius: var(--r-radius-pill, 999px);
   background: var(--r-ink);
-  transition: width var(--r-motion) var(--r-ease-out);
+  transition: width var(--r-motion, 380ms) var(--r-ease-out, ease-out);
 }
 .art-ditherbar.is-error .art-ditherbar-pill { background: var(--r-alert); }
 .art-ditherbar-trail {
   position: absolute;
   left: var(--pw);
   top: 0;
-  height: 10px;
-  width: 36px;
-  background: linear-gradient(to right, var(--r-ink), transparent);
-  border-radius: 0 var(--r-radius-pill) var(--r-radius-pill) 0;
-  opacity: 0.9;
-  transition: left var(--r-motion) var(--r-ease-out);
+  height: 6px;
+  width: 22px;
+  pointer-events: none;
+  color: var(--r-ink);
+  transition: left var(--r-motion, 380ms) var(--r-ease-out, ease-out);
 }
 .art-ditherbar.is-error .art-ditherbar-trail { display: none; }
-.art-ditherbar-head {
-  position: absolute;
-  left: calc(var(--pw) + 36px);
-  top: 0;
-  height: 100%;
-  width: max(0px, calc(100% - var(--pw) - 36px));
-  transition: left var(--r-motion) var(--r-ease-out), width var(--r-motion) var(--r-ease-out);
-}
-.art-ditherbar.is-error .art-ditherbar-head { display: none; }
-.art-ditherbar-head b {
-  position: absolute;
-  top: 50%;
-  border-radius: 50%;
-  background: var(--r-ink);
-  transform: translateY(-50%);
-}
-.art-ditherbar-head b:nth-child(1) { left: 10%; width: 5.2px; height: 5.2px; margin-top: -3px; }
-.art-ditherbar-head b:nth-child(2) { left: 30%; width: 3.6px; height: 3.6px; margin-top: 3px; }
-.art-ditherbar-head b:nth-child(3) { left: 50%; width: 2.6px; height: 2.6px; margin-top: -3px; }
-.art-ditherbar-head b:nth-child(4) { left: 70%; width: 1.6px; height: 1.6px; margin-top: 3px; }
-.art-ditherbar-head b:nth-child(5) { left: 88%; width: 0.8px; height: 0.8px; margin-top: -3px; }
 .art-ditherbar-meta {
   display: flex;
   justify-content: space-between;
@@ -218,23 +161,37 @@
   min-width: 0;
 }
 
-/* ── HalftoneRamp: columns of dots with growing radius ─────────────────────── */
+/* ── HalftoneRamp: 27 dots with smooth peak shifting, gap 6px ─────────────── */
+.ramp {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 18px;
+}
+.ramp i {
+  display: inline-block;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+  transition: width 240ms var(--r-ease-out, ease-out), height 240ms var(--r-ease-out, ease-out), opacity 240ms var(--r-ease-out, ease-out);
+}
 .art-halftone {
   display: block;
   color: var(--r-paper);
   pointer-events: none;
 }
 
-/* ── FocusBrackets: four corner strokes marking a selected card ────────────── */
+/* ── FocusBrackets: recipe: 10-13px legs, 1.5px stroke, .55 opacity, radius 5.5, 8px outside */
 .art-brackets {
   position: absolute;
-  inset: -6px;
+  inset: -8px;
   pointer-events: none;
+  opacity: 0.55;
 }
 .art-bracket {
   position: absolute;
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   color: var(--r-ink);
 }
 .art-bracket svg { display: block; width: 100%; height: 100%; }
@@ -254,7 +211,7 @@
   display: block;
   border-radius: 2px;
   background: color-mix(in srgb, var(--r-rule) 35%, transparent);
-  transition: background var(--r-motion) var(--r-ease-out);
+  transition: background var(--r-motion, 380ms) var(--r-ease-out, ease-out);
 }
 .art-meter i.is-filled { background: var(--r-ink); }
 .art-meter-row i { width: 9px; height: 8px; }
@@ -267,12 +224,12 @@
   flex: none;
   width: 52px;
   height: 30px;
-  border-radius: var(--r-radius-pill);
+  border-radius: var(--r-radius-pill, 999px);
   border: 1px solid var(--r-stroke);
   background: var(--r-card);
   cursor: pointer;
   padding: 0;
-  transition: background var(--r-motion) var(--r-ease-out), border-color var(--r-motion) var(--r-ease-out);
+  transition: background var(--r-motion, 380ms) var(--r-ease-out, ease-out), border-color var(--r-motion, 380ms) var(--r-ease-out, ease-out);
 }
 .art-toggle[data-on="true"] {
   background: var(--r-ink);
@@ -287,14 +244,22 @@
   border-radius: 50%;
   background: var(--r-rule);
   box-shadow: 0 1px 3px var(--r-shadow);
-  transition: transform var(--r-motion) var(--r-ease-out);
+  transition: transform var(--r-motion, 380ms) var(--r-ease-out, ease-out);
 }
 .art-toggle[data-on="true"] .art-toggle-knob {
   transform: translateX(22px);
   background: var(--r-paper);
 }
 .art-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
-.art-toggle:focus-visible { outline: 2px solid var(--r-accent); outline-offset: 2px; }
+.art-toggle:focus-visible { outline: 2px solid var(--r-accent, var(--r-ink)); outline-offset: 2px; }
+
+/* ── Slider: themed range component with 28px thumb and ink border ─────────── */
+.art-slider-root:focus-visible {
+  outline: none;
+}
+.art-slider-root:focus-visible .art-slider-thumb {
+  box-shadow: 0 0 0 2px var(--r-paper), 0 0 0 4px var(--r-ink);
+}
 
 /* ── Chip / Pill / StatusPill ──────────────────────────────────────────────── */
 .art-chip {
@@ -303,7 +268,7 @@
   gap: 6px;
   min-height: 30px;
   padding: 4px 14px;
-  border-radius: var(--r-radius-pill);
+  border-radius: var(--r-radius-pill, 999px);
   font: 600 13px/1.2 var(--r-font-body);
   color: var(--r-ink);
   background: var(--r-card);
@@ -323,7 +288,7 @@ button.art-chip:hover { border-color: var(--r-rule); }
   align-items: center;
   min-height: 24px;
   padding: 2px 10px;
-  border-radius: var(--r-radius-pill);
+  border-radius: var(--r-radius-pill, 999px);
   font: 500 var(--r-size-mono)/1.3 var(--r-font-mono);
   letter-spacing: var(--r-track-mono);
   text-transform: uppercase;
@@ -332,3 +297,27 @@ button.art-chip:hover { border-color: var(--r-rule); }
 .art-status[data-tone="panel"] { background: var(--r-panel); color: var(--r-ink); border: 1px solid transparent; }
 .art-status[data-tone="outline"] { background: transparent; color: var(--r-ink); border: 1px solid var(--r-stroke); }
 .art-status[data-tone="alert"] { background: transparent; color: var(--r-alert); border: 1px solid var(--r-alert); }
+
+/* ── Reduced motion overrides: jumps immediately to state ─────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .art-pill,
+  .art-trail,
+  .art-ditherbar-pill,
+  .art-ditherbar-trail,
+  .art-meter i,
+  .art-toggle,
+  .art-toggle-knob,
+  .ramp i {
+    transition: none !important;
+  }
+}
+[data-reduce-motion="true"] .art-pill,
+[data-reduce-motion="true"] .art-trail,
+[data-reduce-motion="true"] .art-ditherbar-pill,
+[data-reduce-motion="true"] .art-ditherbar-trail,
+[data-reduce-motion="true"] .art-meter i,
+[data-reduce-motion="true"] .art-toggle,
+[data-reduce-motion="true"] .art-toggle-knob,
+[data-reduce-motion="true"] .ramp i {
+  transition: none !important;
+}
