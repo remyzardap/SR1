@@ -34,6 +34,16 @@ export default function LabIndex() {
           </p>
         </Link>
         <Link
+          href="/__lab/answer"
+          className="card"
+          style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}
+        >
+          <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Chat answer</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>
+            Sources, streaming answer, chart, hand-off, follow-up. States: searching, streaming, done, error, cancelled, approval, offline.
+          </p>
+        </Link>
+        <Link
           href="/__lab/art"
           className="card"
           style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}
