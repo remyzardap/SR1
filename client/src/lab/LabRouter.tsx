@@ -11,6 +11,11 @@ import LabPaperGrain from "./LabPaperGrain";
 import LabRegistrationMarks from "./LabRegistrationMarks";
 import LabSlider from "./LabSlider";
 
+import LabFiles from "./LabFiles";
+
+import LabSession from "./LabSession";
+import LabDone from "./LabDone";
+
 import LabAgent from "./LabAgent";
 
 export function LabRouter() {
@@ -26,6 +31,9 @@ export function LabRouter() {
       <Route path="/__lab/art/slider" component={LabSlider} />
       <Route path="/__lab/art" component={LabArt} />
       <Route path="/__lab/settings" component={LabSettings} />
+      <Route path="/__lab/files" component={LabFiles} />
+      <Route path="/__lab/session" component={LabSession} />
+      <Route path="/__lab/done" component={LabDone} />
       <Route path="/__lab/agent" component={LabAgent} />
     </Switch>
   );
