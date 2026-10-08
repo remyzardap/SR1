@@ -104,6 +104,8 @@
 .sutaeru-chat .sutaeru-chat-transcript > div { margin-inline: auto; width: 100%; }
 
 @media (max-width: 767px) {
+  /* The floating logo button has no header around it: keep the first message clear of it. */
+  .sutaeru-chat .sutaeru-chat-transcript .sutaeru-chat-content { padding-top: calc(max(14px, env(safe-area-inset-top, 0px)) + 52px); }
   .sutaeru-chat .sutaeru-input-box { min-height: 72px; padding: 8px 10px 8px 18px; }
   .sutaeru-chat .sutaeru-composer-textarea { min-height: 56px; padding: 16px 0 12px; }
   .sutaeru-chat .sutaeru-composer-send { width: 48px; height: 48px; }

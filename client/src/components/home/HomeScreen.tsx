@@ -51,7 +51,8 @@ export function HomeScreen({ rows, composer, loading, intro, listening, banners,
   const pulse = useRampEnergy(heroRef, !!listening);
   useKeyboardInset();
   // The prototype skips the intro under reduced motion as surely as on a second visit.
-  const showIntro = !!intro && !useReducedMotion();
+  const reducedMotion = useReducedMotion();
+  const showIntro = !!intro && !reducedMotion;
 
   return (
     <section className={cn("view", "home", "view-enter", composer.privateChat && "private-on")}>
