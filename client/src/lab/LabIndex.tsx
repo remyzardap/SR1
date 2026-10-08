@@ -119,6 +119,26 @@ export default function LabIndex() {
             Files screen with storage meter, pill search, filters, miniature documents, live writing bar, and empty states.
           </p>
         </Link>
+        <Link
+          href="/__lab/session"
+          className="card"
+          style={{ padding: 24, textDecoration: "none", color: "inherit", borderRadius: 20, display: "block" }}
+        >
+          <b style={{ font: "700 18px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Agent Session</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 14 }}>
+            Stippled progress dial, step flow with sources/pages, draft resolving from dither, stop/resume.
+          </p>
+        </Link>
+        <Link
+          href="/__lab/done"
+          className="card"
+          style={{ padding: 24, textDecoration: "none", color: "inherit", borderRadius: 20, display: "block" }}
+        >
+          <b style={{ font: "700 18px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Result Card</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 14 }}>
+            Dark result card with dither edge, 済 stamp, key figures, actions, comparison table, wide doc preview.
+          </p>
+        </Link>
       </div>
     </LabLayout>
   );
