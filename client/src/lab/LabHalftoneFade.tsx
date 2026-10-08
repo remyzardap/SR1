@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useState } from "react";
 import { LabLayout } from "./LabLayout";
-import { HalftoneFade } from "@/components/art";
+import { HalftoneFade, Slider } from "@/components/art";
 
 export default function LabHalftoneFade() {
   const [direction, setDirection] = useState<"radial" | "bottom" | "top" | "right" | "left">("radial");
@@ -20,11 +20,11 @@ export default function LabHalftoneFade() {
         <section className="card" style={{ padding: 20 }}>
           <h2 style={{ font: "700 16px/1 var(--disp)", marginBottom: 14 }}>Props & Options</h2>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
-            <div>
+            <div style={{ width: 150, minWidth: 0 }}>
               <span className="mono" style={{ fontSize: 11, display: "block", marginBottom: 4, color: "var(--quiet)" }}>
                 Direction / Mask Shape
               </span>
-              <div style={{ display: "flex", gap: 6 }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {(["radial", "bottom", "top", "right", "left"] as const).map((d) => (
                   <button
                     key={d}
@@ -39,6 +39,7 @@ export default function LabHalftoneFade() {
                       background: direction === d ? "var(--ink)" : "var(--card)",
                       color: direction === d ? "var(--paper)" : "var(--ink)",
                       cursor: "pointer",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {d}
@@ -47,49 +48,25 @@ export default function LabHalftoneFade() {
               </div>
             </div>
 
-            <div>
+            <div style={{ width: 150, minWidth: 0 }}>
               <span className="mono" style={{ fontSize: 11, display: "block", marginBottom: 4, color: "var(--quiet)" }}>
                 Grid Size: {gridSize}px
               </span>
-              <input
-                type="range"
-                min="4"
-                max="12"
-                step="1"
-                value={gridSize}
-                onChange={(e) => setGridSize(parseInt(e.target.value, 10))}
-                style={{ width: 100 }}
-              />
+              <Slider label="GridSize control" min={4} max={12} step={1} value={gridSize} onChange={setGridSize} />
             </div>
 
-            <div>
+            <div style={{ width: 150, minWidth: 0 }}>
               <span className="mono" style={{ fontSize: 11, display: "block", marginBottom: 4, color: "var(--quiet)" }}>
                 Dot Radius: {dotRadius}px
               </span>
-              <input
-                type="range"
-                min="0.6"
-                max="2.5"
-                step="0.1"
-                value={dotRadius}
-                onChange={(e) => setDotRadius(parseFloat(e.target.value))}
-                style={{ width: 100 }}
-              />
+              <Slider label="DotRadius control" min={0.6} max={2.5} step={0.1} value={dotRadius} onChange={setDotRadius} />
             </div>
 
-            <div>
+            <div style={{ width: 150, minWidth: 0 }}>
               <span className="mono" style={{ fontSize: 11, display: "block", marginBottom: 4, color: "var(--quiet)" }}>
                 Opacity: {opacity}
               </span>
-              <input
-                type="range"
-                min="0.1"
-                max="1"
-                step="0.05"
-                value={opacity}
-                onChange={(e) => setOpacity(parseFloat(e.target.value))}
-                style={{ width: 100 }}
-              />
+              <Slider label="Opacity control" min={0.1} max={1} step={0.05} value={opacity} onChange={setOpacity} />
             </div>
           </div>
         </section>
