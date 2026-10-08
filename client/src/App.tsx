@@ -150,6 +150,9 @@ function AppRoutes() {
       </Route>
       <Route path="/sessions/:id">{() => <Redirect to="/chat" />}</Route>
       <Route path="/sessions">{() => <Redirect to="/chat" />}</Route>
+      <Route path="/agent">
+        <Redirect to="/chat?mode=agent" />
+      </Route>
       <Route path="/chat">
         {isAuthenticated ? (
           <DashboardLayout noPadding>

@@ -157,7 +157,7 @@ describe("AgentScreen", () => {
     expect(html).toContain("14 sources · 6 min");
     expect(html).toContain("40+ sources · 20 min");
     // .brk.tight's geometry travels as props now: one bracket, on the chosen chip only.
-    expect(count(html, /class="art-brackets/g)).toBe(1);
+    expect(count(html, /class="art-brackets"/g)).toBe(1);
     expect(html).toContain('data-tone="ink" style="inset:-6px;opacity:0.55"');
     expect(html).toContain('viewBox="0 0 9 9"');
   });

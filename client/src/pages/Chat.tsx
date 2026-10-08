@@ -129,7 +129,7 @@ export default function Chat() {
   });
   const [hasPersistedHistory, setHasPersistedHistory] = useState(() => sessionStorage.getItem("sutaeru_chat_has_history") === "1");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isAgentMode, setIsAgentMode] = useState(false);
+  const [isAgentMode, setIsAgentMode] = useState(() => new URLSearchParams(window.location.search).get("mode") === "agent");
   const [, navigate] = useLocation();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [agentPanelOpen, setAgentPanelOpen] = useState(false);

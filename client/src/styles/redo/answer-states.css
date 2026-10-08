@@ -26,7 +26,7 @@ a.src, button.src { cursor: pointer; text-decoration: none; color: inherit; }
 .src:focus-visible { outline-offset: 4px; }
 .src.pending { pointer-events: none; }
 .sutaeru-message-sources .sources { margin-left: 0; margin-right: 0; padding-left: 8px; padding-right: 8px; scroll-padding-left: 8px; }
-.sutaeru-message-sources .src { width: 168px; }
+@media (max-width: 1099px) { .sutaeru-message-sources .src { width: 168px; } }
 
 /* Thinking / steps panel: a quiet panel, mono label. */
 .think { margin: 10px 0; border-radius: 20px; background: var(--panel); color: var(--quiet); overflow: hidden; }

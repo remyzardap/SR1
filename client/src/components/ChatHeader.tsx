@@ -199,7 +199,7 @@ export function ChatHeader({
               }
             >
               <SutaeruIcon name="research" className="h-4 w-4" />
-              <span className="hidden sm:inline">Max</span>
+              <span className="hidden 2xl:inline">Max</span>
              </Button>
           )}
 
@@ -213,7 +213,7 @@ export function ChatHeader({
               style={{ background: "rgba(10,10,10,0.05)", border: "1px solid rgba(10,10,10,0.06)", color: NEON.muted }}
             >
               {chatWidth === "full" ? <Minimize2 className="h-4 w-4" /> : chatWidth === "wide" ? <Maximize2 className="h-4 w-4" /> : <MoveHorizontal className="h-4 w-4" />}
-              <span className="hidden sm:inline">{chatWidth === "full" ? "Full" : chatWidth === "wide" ? "Wide" : "Width"}</span>
+              <span className="hidden 2xl:inline">{chatWidth === "full" ? "Full" : chatWidth === "wide" ? "Wide" : "Width"}</span>
             </Button>
           )}
 
@@ -227,7 +227,7 @@ export function ChatHeader({
               style={{ background: "rgba(10,10,10,0.05)", border: "1px solid rgba(10,10,10,0.06)", color: NEON.muted }}
             >
               <SutaeruIcon name="review" className="h-4 w-4" />
-              <span className="hidden sm:inline">Review</span>
+              <span className="hidden 2xl:inline">Review</span>
             </Button>
           )}
 
@@ -243,7 +243,7 @@ export function ChatHeader({
                   style={{ background: "rgba(10,10,10,0.05)", border: "1px solid rgba(10,10,10,0.06)", color: NEON.muted }}
                 >
                   {exportPending ? <Loader2 className="h-3 w-3 animate-spin motion-reduce:animate-none" /> : <SutaeruIcon name="download" className="h-4 w-4" />}
-                  <span className="hidden sm:inline">Export</span>
+                  <span className="hidden 2xl:inline">Export</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
