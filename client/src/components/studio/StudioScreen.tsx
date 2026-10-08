@@ -419,7 +419,6 @@ function EngineCards({ engines, value, suggested, onChange }: { engines: Engine[
                   </span>
                 ))}
               </span>
-              <span className="mono">{m.cost} credits each</span>
             </span>
           </button>
         );
@@ -464,7 +463,7 @@ export interface StudioScreenProps {
 
 export function StudioScreen(p: StudioScreenProps) {
   const meta = ENGINE_META[p.engine];
-  const { credits, secs } = estimate(p.engine, p.quality, p.count);
+  const { secs } = estimate(p.engine, p.quality, p.count);
   const current = p.engines.find((e) => e.id === p.engine);
 
   return (
@@ -505,7 +504,7 @@ export function StudioScreen(p: StudioScreenProps) {
           <div className="opt-group">
             <div className="between">
               <span className="mono ink">Quality and count</span>
-              <span className="why">High is slower and costs double</span>
+              <span className="why">High is slower</span>
             </div>
             <div className="qty">
               <SegSwitch
@@ -539,7 +538,7 @@ export function StudioScreen(p: StudioScreenProps) {
           <span className="mono">
             {meta.name}{p.quality === "high" ? " · High" : ""} · {p.count} picture{p.count > 1 ? "s" : ""}
           </span>
-          <b className="tnum">{credits} credits · about {secs} s</b>
+          <b className="tnum">about {secs} s</b>
         </div>
         <button type="button" className="btn ink big" disabled={!p.canBegin} onClick={p.onBegin}>
           Begin
