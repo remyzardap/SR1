@@ -6,8 +6,6 @@ export default function NotFound() {
     <div className="sk-auth sk-notfound">
       <span className="sk-plus sk-plus-tl" aria-hidden="true" />
       <span className="sk-plus sk-plus-tr" aria-hidden="true" />
-      <span className="sk-plus sk-plus-bl" aria-hidden="true" />
-      <span className="sk-plus sk-plus-br" aria-hidden="true" />
 
       <p className="sk-label sk-notfound-kicker">Error <i>&middot;</i> Page not found</p>
       <h1 className="sk-notfound-code" aria-label="404">

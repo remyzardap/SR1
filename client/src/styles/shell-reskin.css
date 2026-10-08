@@ -129,4 +129,4 @@
 .sk-btn { display: inline-flex; align-items: center; justify-content: center; height: 52px; padding: 0 30px; border-radius: 999px; font: 600 16px var(--font-d); text-decoration: none; transition: filter .15s; }
 .sk-btn:hover { filter: brightness(1.12); }
 .sk-btn-dark { background: var(--art-ink); color: var(--art-paper); }
-.sk-btn-light { background: #fff; color: var(--art-ink); }
+.sk-btn-light { background: var(--r-card); color: var(--r-ink); border: 1px solid var(--r-stroke); }

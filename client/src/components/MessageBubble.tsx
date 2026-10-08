@@ -14,7 +14,7 @@ import { ThinkingBlock } from "./chat/ThinkingBlock";
 import { CitationChip } from "./chat/CitationChip";
 import { citationAnchorId, createCitationPlugin, hostOf, numberedSources } from "@/lib/citations";
 import { SutaeruIcon } from "./SutaeruIcon";
-import { FocusBrackets } from "@/components/art";
+import { SourceCards } from "@/components/answer/AnswerParts";
 import { ActivityFeed, type ActivityItem } from "./ActivityFeed";
 import { toolState, formatDuration, type AgentStep } from "@/lib/streamReducer";
 
@@ -89,6 +89,8 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message, onSave, tools = [], isRunning = false, activity = [], sources = NO_SOURCES, question, references = [], onSelectPlan }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
+  const [activeSource, setActiveSource] = useState<string | null>(null);
+  const numbered = useMemo(() => numberedSources(sources), [sources]);
   const utils = trpc.useUtils();
   const createBlock = trpc.blocks.create.useMutation({
     onSuccess: () => { toast.success("Pinned to Board"); void utils.blocks.pinned.invalidate(); },
@@ -141,21 +143,19 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
       {isUser && references.length > 0 && <div className="sutaeru-message-references">{references.map((name) => <span key={name}><FileText />{name}</span>)}</div>}
       {!isUser && sources.length > 0 && (
         <section className="sutaeru-message-sources" aria-label="Sources for this answer">
-          <strong>Sources / {sources.length}</strong>
-          <ol>
-            {numberedSources(sources).map(({ source, number }, index) => (
-              <li key={citationAnchorId(message.id, number)} id={citationAnchorId(message.id, number)}>
-                {index === 0 && <FocusBrackets />}
-                <a href={source.url} target="_blank" rel="noreferrer">
-                  <span className="sutaeru-cite-chip">{number}</span>
-                  <span className="sutaeru-source-copy">
-                    <span className="sutaeru-source-host">{number} · {hostOf(source.url)}</span>
-                    <span className="sutaeru-source-title">{source.title}</span>
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ol>
+          <p className="mono">Sources / {sources.length}</p>
+          <SourceCards
+            label="Sources for this answer"
+            activeId={activeSource ?? citationAnchorId(message.id, numbered[0].number)}
+            onSelect={(s) => setActiveSource(s.id)}
+            sources={numbered.map(({ source, number }) => ({
+              id: citationAnchorId(message.id, number),
+              number,
+              host: hostOf(source.url),
+              title: source.title,
+              href: source.url,
+            }))}
+          />
         </section>
       )}
       {!isUser && activity.length === 0 && tools.length > 0 && (

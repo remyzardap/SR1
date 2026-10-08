@@ -41,3 +41,35 @@
 .next-card canvas { position: absolute; right: -10px; top: 50%; transform: translateY(-50%); width: 150px; height: 150px; pointer-events: none; }
 .stop-confirm { padding: 18px; display: flex; flex-direction: column; gap: 12px; border-color: var(--alert); }
 .stop-confirm .row { flex-wrap: wrap; }
+
+/* Progress dial: stippled ring with the percentage in the middle */
+.dial { position: relative; flex: none; }
+.dial svg { display: block; width: 100%; height: 100%; }
+.dial-pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; font: 800 24px/1 var(--disp); letter-spacing: -.02em; color: var(--ink); }
+.dial-pct small { display: inline; font-size: 13px; font-weight: 700; margin-left: 1px; color: var(--quiet); }
+.sess-head .title { font-family: var(--disp); font-weight: 800; letter-spacing: -.035em; line-height: 1.02; text-wrap: balance; margin-top: 6px; }
+.panel.prog { padding: 22px; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.draft { position: relative; }
+.draft-doc { position: relative; }
+.draft-doc > div:first-child { position: relative; }
+.draft-fade { z-index: 1; }
+.next-card { position: relative; overflow: hidden; }
+.next-card > .mono, .next-card > b, .next-card > .btn { position: relative; z-index: 1; }
+.next-card > .btn { align-self: flex-start; }
+.next-card .btn.ink { background: var(--hero-ink); color: var(--hero); border-color: transparent; }
+.next-card canvas { display: none; }
+.fl .side { white-space: nowrap; }
+.fl b { min-width: 0; }
+.fl .stepped { display: inline-flex; align-items: flex-end; gap: 3px; }
+.fl .stepped i { background: var(--ink); }
+.fl .stepped i.off { background: var(--seg-off); }
+.fl .stepped i.live { background: var(--accent); }
+.sess-head .btn.backlink { padding-left: 0; }
+.sup.pending { filter: none; }
+.sess-follow { position: sticky; bottom: 0; z-index: 2; margin-top: 28px; padding: 12px 0 calc(14px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to top, var(--paper) 70%, transparent); }
+#stopArea { margin-top: 16px; }
+#stopArea .tx { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+#stopArea .row { margin-top: 0; }
+#stopArea .mini-stamp { width: 40px; height: 40px; color: var(--ink); flex: none; transform: rotate(-8deg); }
+.sess-meta { row-gap: 6px; }

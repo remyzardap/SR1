@@ -34,6 +34,16 @@ export default function LabIndex() {
           </p>
         </Link>
         <Link
+          href="/__lab/answer"
+          className="card"
+          style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}
+        >
+          <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Chat answer</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>
+            Sources, streaming answer, chart, hand-off, follow-up. States: searching, streaming, done, error, cancelled, approval, offline.
+          </p>
+        </Link>
+        <Link
           href="/__lab/art"
           className="card"
           style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}
@@ -107,6 +117,46 @@ export default function LabIndex() {
           <b style={{ font: "700 18px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Settings</b>
           <p style={{ margin: 0, color: "var(--quiet)", fontSize: 14 }}>
             The ported settings screen in every state — each theme, art and motion off, slider extremes, empty and loading data. Pick a state with the links, or scroll through all of them.
+          </p>
+        </Link>
+        <Link
+          href="/__lab/files"
+          className="card"
+          style={{ padding: 18, textDecoration: "none", color: "inherit", borderRadius: 14, display: "block" }}
+        >
+          <b style={{ font: "700 15px/1.2 var(--disp)", display: "block", marginBottom: 4 }}>Files</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 12 }}>
+            Files screen with storage meter, pill search, filters, miniature documents, live writing bar, and empty states.
+          </p>
+        </Link>
+        <Link
+          href="/__lab/session"
+          className="card"
+          style={{ padding: 24, textDecoration: "none", color: "inherit", borderRadius: 20, display: "block" }}
+        >
+          <b style={{ font: "700 18px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Agent Session</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 14 }}>
+            Stippled progress dial, step flow with sources/pages, draft resolving from dither, stop/resume.
+          </p>
+        </Link>
+        <Link
+          href="/__lab/done"
+          className="card"
+          style={{ padding: 24, textDecoration: "none", color: "inherit", borderRadius: 20, display: "block" }}
+        >
+          <b style={{ font: "700 18px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Result Card</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 14 }}>
+            Dark result card with dither edge, 済 stamp, key figures, actions, comparison table, wide doc preview.
+          </p>
+        </Link>
+        <Link
+          href="/__lab/agent"
+          className="card"
+          style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}
+        >
+          <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Agent — task builder</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>
+            Every output card, the plan redrawing, validation, insufficient credits and the submitting draft.
           </p>
         </Link>
         <Link

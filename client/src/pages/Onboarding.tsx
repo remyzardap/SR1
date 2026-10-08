@@ -1,27 +1,26 @@
 import { useState, useEffect } from "react";
+import { PaperGrain } from "@/components/art";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
 import { useLocation } from "wouter";
 import { AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
-import { LandingMark } from "@/components/LandingMark";
 import { toast } from "sonner";
 import {
-  ProgressIndicator,
+  OnboardingProgress,
   WelcomeStep,
   IdentityStep,
   SkillsStep,
   ApiKeyStep,
   DoneStep,
-} from "@/components/onboarding";
-import type { IdentityData } from "@/components/onboarding";
-import type { SkillData } from "@/components/onboarding";
-import type { ApiKeyData } from "@/components/onboarding";
+  type OnboardingStep,
+  type IdentityData,
+  type SkillData,
+  type ApiKeyData,
+} from "@/components/redo/Onboarding";
 
-type Step = "welcome" | "identity" | "skills" | "apikey" | "done";
+const STEPS: OnboardingStep[] = ["welcome", "identity", "skills", "apikey", "done"];
 
-const STEPS: Step[] = ["welcome", "identity", "skills", "apikey", "done"];
-
-const STEP_LABELS: Record<Step, string> = {
+const STEP_LABELS: Record<OnboardingStep, string> = {
   welcome: "Welcome",
   identity: "Identity",
   skills: "Skills",
@@ -29,19 +28,24 @@ const STEP_LABELS: Record<Step, string> = {
   done: "Done",
 };
 
-export default function Onboarding() {
+const PROGRESS_STEPS = [
+  { id: "identity", label: "Identity" },
+  { id: "skills", label: "Skills" },
+  { id: "apikey", label: "Connect AI" },
+];
+
+export default function OnboardingPage() {
   useSeoMeta({ title: "Welcome to Sutaeru", path: "/onboarding", appendSiteName: false });
 
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
 
-  const [currentStep, setCurrentStep] = useState<Step>("welcome");
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>("welcome");
   const [identityData, setIdentityData] = useState<IdentityData | null>(null);
   const [skillsData, setSkillsData] = useState<SkillData[]>([]);
   const [apiKeyData, setApiKeyData] = useState<ApiKeyData | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Check if user already completed onboarding
   const { data: onboardingStatus } = trpc.identity.getOnboardingStatus.useQuery();
 
   useEffect(() => {
@@ -86,14 +90,12 @@ export default function Onboarding() {
     if (!identityData) return;
     setIsSubmitting(true);
     try {
-      // 1. Save identity
       await upsertIdentity.mutateAsync({
         displayName: identityData.displayName,
         handle: identityData.handle || undefined,
         bio: identityData.bio,
       });
 
-      // 2. Save skills (in parallel)
       if (skillsData.length > 0) {
         await Promise.all(
           skillsData.map((skill) =>
@@ -108,7 +110,6 @@ export default function Onboarding() {
         );
       }
 
-      // 3. Save API key as a connection
       if (apiKeyData) {
         await addConnection.mutateAsync({
           provider: apiKeyData.provider,
@@ -118,10 +119,8 @@ export default function Onboarding() {
         });
       }
 
-      // 4. Mark onboarding complete
       await completeOnboarding.mutateAsync();
 
-      // 5. Invalidate queries and navigate
       await utils.identity.get.invalidate();
       await utils.skills.list.invalidate();
 
@@ -135,67 +134,50 @@ export default function Onboarding() {
     }
   };
 
+  const renderStep = () => {
+    switch (currentStep) {
+      case "welcome":
+        return <WelcomeStep key="welcome" onNext={goNext} />;
+      case "identity":
+        return <IdentityStep key="identity" initialData={identityData ?? undefined} onNext={handleIdentityNext} onBack={goBack} />;
+      case "skills":
+        return <SkillsStep key="skills" initialData={skillsData} onNext={handleSkillsNext} onBack={goBack} onSkip={goNext} />;
+      case "apikey":
+        return <ApiKeyStep key="apikey" initialData={apiKeyData} onNext={handleApiKeyNext} onBack={goBack} onSkip={goNext} />;
+      case "done":
+        return identityData && (
+          <DoneStep
+            key="done"
+            identity={identityData}
+            skills={skillsData}
+            apiKey={apiKeyData}
+            onComplete={handleComplete}
+            isLoading={isSubmitting}
+          />
+        );
+    }
+  };
+
   return (
     <div className="sk-onboarding">
+      <PaperGrain />
       <span className="sk-plus sk-plus-tl" aria-hidden="true" />
       <span className="sk-plus sk-plus-tr" aria-hidden="true" />
-      <span className="sk-plus sk-plus-bl" aria-hidden="true" />
-      <span className="sk-plus sk-plus-br" aria-hidden="true" />
       <div className="sk-onboarding-inner">
-        <LandingMark className="sk-onboarding-mark" />
+        <div className="sk-onboarding-mark">
+          <svg className="glyph" viewBox="0 0 96 96" aria-hidden="true"><path d="M48 14c2 18 12 30 30 34-18 4-28 16-30 34-2-18-12-30-30-34 18-4 28-16 30-34Z" fill="currentColor"/></svg>
+        </div>
 
-        {/* Progress indicator: hidden on welcome and done */}
         {currentStep !== "welcome" && currentStep !== "done" && (
-          <ProgressIndicator
-            steps={["identity", "skills", "apikey"].map((s) => ({
-              id: s,
-              label: STEP_LABELS[s as Step],
-            }))}
+          <OnboardingProgress
+            steps={PROGRESS_STEPS}
             currentStepId={currentStep}
           />
         )}
 
         <div className="sk-onboarding-step">
           <AnimatePresence mode="wait">
-            {currentStep === "welcome" && (
-              <WelcomeStep key="welcome" onNext={goNext} />
-            )}
-            {currentStep === "identity" && (
-              <IdentityStep
-                key="identity"
-                initialData={identityData ?? undefined}
-                onNext={handleIdentityNext}
-                onBack={goBack}
-              />
-            )}
-            {currentStep === "skills" && (
-              <SkillsStep
-                key="skills"
-                initialData={skillsData}
-                onNext={handleSkillsNext}
-                onBack={goBack}
-                onSkip={goNext}
-              />
-            )}
-            {currentStep === "apikey" && (
-              <ApiKeyStep
-                key="apikey"
-                initialData={apiKeyData}
-                onNext={handleApiKeyNext}
-                onBack={goBack}
-                onSkip={goNext}
-              />
-            )}
-            {currentStep === "done" && identityData && (
-              <DoneStep
-                key="done"
-                identity={identityData}
-                skills={skillsData}
-                apiKey={apiKeyData}
-                onComplete={handleComplete}
-                isLoading={isSubmitting}
-              />
-            )}
+            {renderStep()}
           </AnimatePresence>
         </div>
 

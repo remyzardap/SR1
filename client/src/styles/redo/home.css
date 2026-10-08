@@ -61,7 +61,7 @@
 .continue {
   display: grid; grid-template-columns: auto 1fr auto; gap: 4px 14px; align-items: center;
   padding: 16px 18px; text-align: left; width: 100%;
-  border-radius: var(--r-card);
+  border-radius: var(--r-radius-card);
 }
 .continue .orb-wrap { grid-row: span 2; }
 .continue b { font: 600 16px/1.25 var(--body); }

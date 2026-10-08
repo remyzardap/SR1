@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback, type RefObject } from "react";
 import type { FileUIPart } from "ai";
-import { useSearch } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
 import { toast } from "sonner";
 import { ChatSessionList } from "@/components/ChatSessionList";
 import { ChatHeader } from "@/components/ChatHeader";
-import { ChatAgentView } from "@/components/ChatAgentView";
+import { AgentBuilder } from "@/components/agent/AgentBuilder";
 import { ChatMessages } from "@/components/ChatMessages";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatErrorBanner } from "@/components/ChatErrorBanner";
@@ -130,6 +130,7 @@ export default function Chat() {
   const [hasPersistedHistory, setHasPersistedHistory] = useState(() => sessionStorage.getItem("sutaeru_chat_has_history") === "1");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAgentMode, setIsAgentMode] = useState(false);
+  const [, navigate] = useLocation();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [agentPanelOpen, setAgentPanelOpen] = useState(false);
   type ChatWidth = "normal" | "wide" | "full";
@@ -862,7 +863,15 @@ export default function Chat() {
         )}
         <div className="flex flex-1 min-h-0">
           <div className="flex flex-col flex-1 min-w-0">
-            {isAgentMode ? <ChatAgentView /> : isCode ? <CodeThreadView code={code} /> : showHome ? (
+            {isAgentMode ? (
+              <AgentBuilder
+                onCreateTask={(text) => handleSend(text)}
+                onOpenStudio={() => navigate("/images")}
+                onOpenSession={() => setIsAgentMode(false)}
+                isStreaming={isStreaming}
+                error={error}
+              />
+            ) : isCode ? <CodeThreadView code={code} /> : showHome ? (
               // Home is the whole screen, so it carries its own scroll: the page column
               // it sits in clips, and the docked composer sticks to this scroller's bottom.
               <div className="flex-1 min-h-0 overflow-y-auto">
@@ -1071,7 +1080,7 @@ export default function Chat() {
                 {isStreaming && <Button variant="outline" className="sutaeru-stop-run" onClick={stopRun}>Stop run</Button>}
               </div>
               {mobileDetailsOpen && <div className="sutaeru-mobile-details"><strong>Run details</strong><p>{isStreaming ? currentStep || "Thinking…" : error ? "Run failed" : "No active run"}</p>{agentSteps.map(step => <p key={step.id}>{stepStatusPrefix(step)} {step.label}</p>)}{sources.length > 0 && <div className="sutaeru-inline-sources"><strong>Sources</strong>{sources.map((source, index) => <a key={`${source.url}-${index}`} href={source.url} target="_blank" rel="noreferrer"><span>{index + 1}. {source.title}</span><ExternalLink size={14} /></a>)}</div>}</div>}
-              {!showHome && (
+              {!showHome && !isAgentMode && (
               <div className="sutaeru-run-composer">
               <div className="sutaeru-composer-row mx-auto flex max-w-2xl items-center gap-2">
                 <div className="flex-1 min-w-0">
