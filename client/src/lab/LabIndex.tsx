@@ -139,6 +139,16 @@ export default function LabIndex() {
             Dark result card with dither edge, 済 stamp, key figures, actions, comparison table, wide doc preview.
           </p>
         </Link>
+        <Link
+          href="/__lab/agent"
+          className="card"
+          style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}
+        >
+          <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Agent — task builder</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>
+            Every output card, the plan redrawing, validation, insufficient credits and the submitting draft.
+          </p>
+        </Link>
       </div>
     </LabLayout>
   );

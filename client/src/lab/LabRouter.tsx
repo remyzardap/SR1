@@ -16,6 +16,8 @@ import LabFiles from "./LabFiles";
 import LabSession from "./LabSession";
 import LabDone from "./LabDone";
 
+import LabAgent from "./LabAgent";
+
 export function LabRouter() {
   return (
     <Switch>
@@ -32,6 +34,7 @@ export function LabRouter() {
       <Route path="/__lab/files" component={LabFiles} />
       <Route path="/__lab/session" component={LabSession} />
       <Route path="/__lab/done" component={LabDone} />
+      <Route path="/__lab/agent" component={LabAgent} />
     </Switch>
   );
 }
