@@ -4,12 +4,14 @@ import LabIndex from "./LabIndex";
 import LabShell from "./LabShell";
 import LabBrand from "./LabBrand";
 import LabArt from "./LabArt";
-import LabHome from "./LabHome";
+import LabSettings from "./LabSettings";
 import LabDitherEdge from "./LabDitherEdge";
 import LabHalftoneFade from "./LabHalftoneFade";
 import LabPaperGrain from "./LabPaperGrain";
 import LabRegistrationMarks from "./LabRegistrationMarks";
 import LabSlider from "./LabSlider";
+
+import LabHome from "./LabHome";
 
 export function LabRouter() {
   return (
@@ -23,6 +25,7 @@ export function LabRouter() {
       <Route path="/__lab/art/registration-marks" component={LabRegistrationMarks} />
       <Route path="/__lab/art/slider" component={LabSlider} />
       <Route path="/__lab/art" component={LabArt} />
+      <Route path="/__lab/settings" component={LabSettings} />
       <Route path="/__lab/home" component={LabHome} />
     </Switch>
   );

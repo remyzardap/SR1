@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useState } from "react";
 import { LabLayout } from "./LabLayout";
-import { RegistrationMarks } from "@/components/art";
+import { RegistrationMarks, Slider } from "@/components/art";
 
 export default function LabRegistrationMarks() {
   const [placement, setPlacement] = useState<"diagonal-tl-br" | "diagonal-tr-bl" | "all-four">("diagonal-tl-br");
@@ -19,11 +19,11 @@ export default function LabRegistrationMarks() {
         <section className="card" style={{ padding: 20 }}>
           <h2 style={{ font: "700 16px/1 var(--disp)", marginBottom: 14 }}>Placement & Metrics</h2>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
-            <div>
+            <div style={{ width: 150, minWidth: 0 }}>
               <span className="mono" style={{ fontSize: 11, display: "block", marginBottom: 4, color: "var(--quiet)" }}>
                 Placement Mode
               </span>
-              <div style={{ display: "flex", gap: 6 }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {(["diagonal-tl-br", "diagonal-tr-bl", "all-four"] as const).map((p) => (
                   <button
                     key={p}
@@ -38,6 +38,7 @@ export default function LabRegistrationMarks() {
                       background: placement === p ? "var(--ink)" : "var(--card)",
                       color: placement === p ? "var(--paper)" : "var(--ink)",
                       cursor: "pointer",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {p}
@@ -46,34 +47,18 @@ export default function LabRegistrationMarks() {
               </div>
             </div>
 
-            <div>
+            <div style={{ width: 150, minWidth: 0 }}>
               <span className="mono" style={{ fontSize: 11, display: "block", marginBottom: 4, color: "var(--quiet)" }}>
                 Opacity: {opacity}
               </span>
-              <input
-                type="range"
-                min="0.1"
-                max="1"
-                step="0.05"
-                value={opacity}
-                onChange={(e) => setOpacity(parseFloat(e.target.value))}
-                style={{ width: 100 }}
-              />
+              <Slider label="Opacity control" min={0.1} max={1} step={0.05} value={opacity} onChange={setOpacity} />
             </div>
 
-            <div>
+            <div style={{ width: 150, minWidth: 0 }}>
               <span className="mono" style={{ fontSize: 11, display: "block", marginBottom: 4, color: "var(--quiet)" }}>
                 Edge Inset: {offset}px
               </span>
-              <input
-                type="range"
-                min="4"
-                max="24"
-                step="2"
-                value={offset}
-                onChange={(e) => setOffset(parseInt(e.target.value, 10))}
-                style={{ width: 100 }}
-              />
+              <Slider label="Offset control" min={4} max={24} step={2} value={offset} onChange={setOffset} />
             </div>
           </div>
         </section>
