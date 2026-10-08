@@ -1,4 +1,5 @@
 import { SutaeruGlyph, SutaeruSeal } from "@/components/brand";
+import { PaperGrain } from "@/components/art";
 import type { LoginForm, RegisterForm } from "@/pages/Login";
 
 export type LoginTab = "in" | "up";
@@ -48,10 +49,9 @@ export function Login({
 
   return (
     <div className={`sk-auth ${className || ""}`}>
+      <PaperGrain />
       <span className="sk-plus sk-plus-tl" aria-hidden="true" />
       <span className="sk-plus sk-plus-tr" aria-hidden="true" />
-      <span className="sk-plus sk-plus-bl" aria-hidden="true" />
-      <span className="sk-plus sk-plus-br" aria-hidden="true" />
 
       <div className="sk-auth-card">
         <SutaeruGlyph detail="full" size={96} className="sk-auth-mark" />

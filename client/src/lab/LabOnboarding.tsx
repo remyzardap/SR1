@@ -40,7 +40,6 @@ const SAMPLE_APIKEY: ApiKeyData = {
 
 export default function LabOnboarding() {
   const [step, setStep] = useState<OnboardingStep>("welcome");
-  const [width, setWidth] = useState(390);
   const [identity, setIdentity] = useState<IdentityData | null>(null);
   const [skills, setSkills] = useState<SkillData[]>([]);
   const [apiKey, setApiKey] = useState<ApiKeyData | undefined>(undefined);
@@ -70,27 +69,19 @@ export default function LabOnboarding() {
   };
 
   return (
-    <LabLayout title="Onboarding — Multi-step Setup">
+    <LabLayout bleed title="Onboarding — Multi-step Setup">
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-        <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", padding: "0 24px" }}>
           <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "var(--quiet)" }}>
             Step:
             <select value={step} onChange={(e) => setStep(e.target.value as OnboardingStep)} style={{ padding: "4px 8px", borderRadius: 8, border: "1px solid var(--stroke)", background: "var(--card)", color: "var(--ink)" }}>
               {STEPS.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </label>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "var(--quiet)" }}>
-            Width:
-            <select value={width} onChange={(e) => setWidth(Number(e.target.value))} style={{ padding: "4px 8px", borderRadius: 8, border: "1px solid var(--stroke)", background: "var(--card)", color: "var(--ink)" }}>
-              <option value={360}>360px</option>
-              <option value={390}>390px</option>
-              <option value={1280}>1280px</option>
-            </select>
-          </label>
         </div>
 
-        <section style={{ border: "1px dashed var(--stroke)", borderRadius: 16, overflow: "hidden", width, margin: "0 auto" }}>
-          <div style={{ padding: 24, minHeight: 600 }}>
+        <section style={{ borderTop: "1px dashed var(--stroke)", borderBottom: "1px dashed var(--stroke)", overflow: "hidden" }}>
+          <div style={{ minHeight: 600 }}>
             <div className="sk-onboarding">
               <span className="sk-plus sk-plus-tl" aria-hidden="true" />
               <span className="sk-plus sk-plus-tr" aria-hidden="true" />

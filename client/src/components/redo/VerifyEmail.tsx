@@ -1,4 +1,5 @@
 import { SutaeruGlyph, SutaeruSeal } from "@/components/brand";
+import { PaperGrain } from "@/components/art";
 import { Link } from "wouter";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 
@@ -13,6 +14,7 @@ export interface VerifyEmailProps {
 export function VerifyEmail({ status, message, className }: VerifyEmailProps) {
   return (
     <div className={`sk-verify-email ${className || ""}`}>
+      <PaperGrain />
       <div className="sk-verify-card">
         <Link href="/" className="sk-verify-brand">
           <SutaeruGlyph detail="full" size={72} />

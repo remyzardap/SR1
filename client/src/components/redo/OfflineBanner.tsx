@@ -6,7 +6,7 @@ export interface OfflineBannerProps {
   subMessage?: string;
 }
 
-export function OfflineBanner({ className, message = "You&apos;re offline. Past chats are still here.", subMessage = "New questions wait to send." }: OfflineBannerProps) {
+export function OfflineBanner({ className, message = "You’re offline. Past chats are still here.", subMessage = "New questions wait to send." }: OfflineBannerProps) {
   return (
     <aside className={`sk-offline-banner ${className || ""}`} role="status" aria-live="polite">
       <div className="sk-offline-copy">

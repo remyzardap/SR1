@@ -1,6 +1,7 @@
 import { Link } from "wouter";
-import { SutaeruGlyph, SutaeruSeal } from "@/components/brand";
-import { HalftoneRamp, ConvergeBar } from "@/components/art";
+import { SutaeruGlyph } from "@/components/brand";
+import { HalftoneRamp, ConvergeBar, PaperGrain, DitherEdge } from "@/components/art";
+import { CrossMark } from "@/components/art/RegistrationMarks";
 
 export interface LandingProps {
   className?: string;
@@ -9,12 +10,12 @@ export interface LandingProps {
 export function Landing({ className }: LandingProps) {
   return (
     <div className={`sk-landing ${className || ""}`}>
+      <PaperGrain fixed />
       <header className="sk-land-nav-wrap">
         <nav className="sk-land-nav" aria-label="Main">
           <Link href="/" className="sk-land-brand">
-            <SutaeruGlyph detail="full" size={96} className="sk-land-glyph" />
+            <SutaeruGlyph detail="compact" size={46} className="sk-land-glyph" />
             <span className="sk-land-word">Sutaeru</span>
-            <SutaeruSeal className="sk-land-seal" rough={false} />
           </Link>
           <div className="sk-land-links">
             <a href="#search">Search</a>
@@ -27,11 +28,13 @@ export function Landing({ className }: LandingProps) {
       </header>
 
       <section className="sk-land-hero">
-        <div className="sk-plus sk-plus-tl" aria-hidden="true" />
-        <div className="sk-plus sk-plus-tr" aria-hidden="true" />
-        <HalftoneRamp columns={9} rows={7} className="sk-land-ramp" />
+        <span className="sk-land-mark sk-land-mark-l" aria-hidden="true"><CrossMark /></span>
+        <span className="sk-land-mark sk-land-mark-r" aria-hidden="true"><CrossMark /></span>
+        <SutaeruGlyph detail="full" size={104} className="sk-land-glyph-big" />
+        <h1 className="sk-land-title">Sutaeru</h1>
+        <p className="sk-land-tagline">Ask once. We do the rest.</p>
+        <HalftoneRamp row className="sk-land-ramp" />
         <p className="sk-land-pill"><i aria-hidden="true" /> Now running <b>&middot;</b> Deep research</p>
-        <h1 className="sk-land-title">Ask once.<br />Sutaeru does the rest.</h1>
         <p className="sk-land-lead">Search, deep research and agents that keep working while you are away.</p>
         <div className="sk-land-cta">
           <Link href="/login?mode=signup" className="btn ink big">Start for free</Link>
@@ -88,8 +91,7 @@ export function Landing({ className }: LandingProps) {
       </section>
 
       <section className="sk-land-band" id="start">
-        <div className="sk-plus sk-plus-tl" aria-hidden="true" />
-        <div className="sk-plus sk-plus-tr" aria-hidden="true" />
+        <DitherEdge direction="top" fineGridSize={4} coarseGridSize={8} className="sk-land-band-dither" style={{ position: "absolute", left: 0, top: -44, width: "100%", height: 44 }} />
         <div>
           <h2>Start asking.</h2>
           <p>Free to try. No card needed. Keep working while it works.</p>

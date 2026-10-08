@@ -1,4 +1,5 @@
 import { SutaeruGlyph, SutaeruSeal } from "@/components/brand";
+import { PaperGrain } from "@/components/art";
 import { Link } from "wouter";
 import { ArrowRight, Loader2, CheckCircle } from "lucide-react";
 
@@ -28,6 +29,7 @@ export function ResetPassword({
   if (success) {
     return (
       <div className={`sk-reset-password ${className || ""}`}>
+      <PaperGrain />
         <div className="sk-reset-card">
           <Link href="/" className="sk-reset-brand">
             <SutaeruGlyph detail="full" size={72} />
@@ -47,6 +49,7 @@ export function ResetPassword({
   if (!token) {
     return (
       <div className={`sk-reset-password ${className || ""}`}>
+      <PaperGrain />
         <div className="sk-reset-card">
           <Link href="/" className="sk-reset-brand">
             <SutaeruGlyph detail="full" size={72} />
@@ -64,6 +67,7 @@ export function ResetPassword({
 
   return (
     <div className={`sk-reset-password ${className || ""}`}>
+      <PaperGrain />
       <div className="sk-reset-card">
         <Link href="/" className="sk-reset-brand">
           <SutaeruGlyph detail="full" size={72} />

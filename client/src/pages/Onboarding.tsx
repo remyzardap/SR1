@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PaperGrain } from "@/components/art";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
 import { useLocation } from "wouter";
 import { AnimatePresence } from "framer-motion";
@@ -159,10 +160,9 @@ export default function OnboardingPage() {
 
   return (
     <div className="sk-onboarding">
+      <PaperGrain />
       <span className="sk-plus sk-plus-tl" aria-hidden="true" />
       <span className="sk-plus sk-plus-tr" aria-hidden="true" />
-      <span className="sk-plus sk-plus-bl" aria-hidden="true" />
-      <span className="sk-plus sk-plus-br" aria-hidden="true" />
       <div className="sk-onboarding-inner">
         <div className="sk-onboarding-mark">
           <svg className="glyph" viewBox="0 0 96 96" aria-hidden="true"><path d="M48 14c2 18 12 30 30 34-18 4-28 16-30 34-2-18-12-30-30-34 18-4 28-16 30-34Z" fill="currentColor"/></svg>
