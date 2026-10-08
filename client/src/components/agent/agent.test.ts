@@ -120,7 +120,7 @@ describe("AgentScreen", () => {
     const onSheet = html.match(/<button[^>]*class="out is-on"[^>]*>.*?<\/button>/s)?.[0] ?? "";
     expect(onSheet).toContain("Villa BOQ and budget");
     expect(onSheet).toContain('aria-checked="true"');
-    expect(onSheet).toContain('class="brk art-brackets" data-tone="ink"');
+    expect(onSheet).toContain('class="art-brackets" data-tone="ink"');
     expect(onSheet).toContain('class="check-badge"');
     // FocusBrackets draws as soon as it is mounted, so the other five must not carry it.
     // (The check badge stays CSS-driven — .is-on > .check-badge — as the prototype has it.)
@@ -157,7 +157,7 @@ describe("AgentScreen", () => {
     expect(html).toContain("14 sources · 6 min");
     expect(html).toContain("40+ sources · 20 min");
     // .brk.tight's geometry travels as props now: one bracket, on the chosen chip only.
-    expect(count(html, /brk art-brackets/g)).toBe(1);
+    expect(count(html, /class="art-brackets"/g)).toBe(1);
     expect(html).toContain('data-tone="ink" style="inset:-6px;opacity:0.55"');
     expect(html).toContain('viewBox="0 0 9 9"');
   });
@@ -209,7 +209,7 @@ describe("AgentScreen", () => {
     expect(html).toContain('aria-describedby="agent-brief-error"');
     expect(html).toContain('id="agent-brief-error"');
     // .show is what rests the bracket: base.css keeps it at scale(1.04) without a .is-on parent.
-    expect(html).toContain('class="brk art-brackets show" data-tone="alert"');
+    expect(html).toContain('class="art-brackets show" data-tone="alert"');
   });
 
   it("says why Start is blocked when the workspace is out of credits", () => {

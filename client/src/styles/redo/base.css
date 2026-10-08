@@ -14,7 +14,8 @@ body {
   overflow-x: clip;
 }
 button, input, textarea, select { font: inherit; color: inherit; }
-button { cursor: pointer; background: none; border: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+/* In the base layer: an unlayered reset would beat every Tailwind padding, background and border utility on <button>. */
+@layer base { button { cursor: pointer; background: none; border: 0; padding: 0; -webkit-tap-highlight-color: transparent; } }
 a { color: inherit; }
 svg { display: block; }
 .sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
