@@ -6,7 +6,7 @@ export const FIRST_RUN_DISMISS_LABEL = "Start asking";
 export const FIRST_RUN_CARDS = [
   "Search the web with sources you can click.",
   "Deep research that reads dozens of pages and writes a cited report.",
-  "Agents that browse, write and file while you&apos;re away.",
+  "Agents that browse, write and file while you’re away.",
 ];
 
 export interface FirstRunProps {
