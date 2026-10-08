@@ -3,18 +3,6 @@ import { Link } from "wouter";
 import { LabLayout } from "./LabLayout";
 
 export default function LabIndex() {
-  const sections = [
-    { href: "/__lab/landing", title: "Landing", desc: "Public landing page with hero, features, and CTA band." },
-    { href: "/__lab/login", title: "Login", desc: "Sign In, Sign Up, 2FA code step, and error states." },
-    { href: "/__lab/verify-email", title: "Verify Email", desc: "Pending, success, and error states." },
-    { href: "/__lab/reset-password", title: "Reset Password", desc: "Form, error, no-token, success, and loading states." },
-    { href: "/__lab/onboarding", title: "Onboarding", desc: "Welcome, Identity, Skills, Connect AI, and Done steps." },
-    { href: "/__lab/first-run", title: "First Run", desc: "First-run greeting card shown once per browser." },
-    { href: "/__lab/offline", title: "Offline", desc: "Offline banner with halftone ramp." },
-    { href: "/__lab/install", title: "Install", desc: "Install card and iOS Add to Home Screen guide." },
-    { href: "/__lab/splash", title: "Splash", desc: "Brand intro animation (loop draws, gate settles, sun rises, seal presses)." },
-  ];
-
   return (
     <LabLayout title="Design Lab">
       <p style={{ color: "var(--quiet)", marginBottom: 24, fontSize: 16 }}>
@@ -111,23 +99,56 @@ export default function LabIndex() {
             Themed slider with track, fill, 28 px thumb with ink border, keyboard support.
           </p>
         </Link>
-      </div>
-
-      <h2 style={{ font: "700 16px/1 var(--disp)", margin: "32px 0 14px", color: "var(--quiet)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-        Public and auth screens
-      </h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
-        {sections.map((section) => (
-          <Link
-            key={section.href}
-            href={section.href}
-            className="card"
-            style={{ padding: 18, textDecoration: "none", color: "inherit", borderRadius: 14, display: "block" }}
-          >
-            <b style={{ font: "700 15px/1.2 var(--disp)", display: "block", marginBottom: 4 }}>{section.title}</b>
-            <p style={{ margin: 0, color: "var(--quiet)", fontSize: 12 }}>{section.desc}</p>
-          </Link>
-        ))}
+        <Link
+          href="/__lab/settings"
+          className="card"
+          style={{ padding: 24, textDecoration: "none", color: "inherit", borderRadius: 20, display: "block" }}
+        >
+          <b style={{ font: "700 18px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Settings</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 14 }}>
+            The ported settings screen in every state — each theme, art and motion off, slider extremes, empty and loading data. Pick a state with the links, or scroll through all of them.
+          </p>
+        </Link>
+        <Link
+          href="/__lab/files"
+          className="card"
+          style={{ padding: 18, textDecoration: "none", color: "inherit", borderRadius: 14, display: "block" }}
+        >
+          <b style={{ font: "700 15px/1.2 var(--disp)", display: "block", marginBottom: 4 }}>Files</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 12 }}>
+            Files screen with storage meter, pill search, filters, miniature documents, live writing bar, and empty states.
+          </p>
+        </Link>
+        <Link
+          href="/__lab/session"
+          className="card"
+          style={{ padding: 24, textDecoration: "none", color: "inherit", borderRadius: 20, display: "block" }}
+        >
+          <b style={{ font: "700 18px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Agent Session</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 14 }}>
+            Stippled progress dial, step flow with sources/pages, draft resolving from dither, stop/resume.
+          </p>
+        </Link>
+        <Link
+          href="/__lab/done"
+          className="card"
+          style={{ padding: 24, textDecoration: "none", color: "inherit", borderRadius: 20, display: "block" }}
+        >
+          <b style={{ font: "700 18px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Result Card</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 14 }}>
+            Dark result card with dither edge, 済 stamp, key figures, actions, comparison table, wide doc preview.
+          </p>
+        </Link>
+        <Link
+          href="/__lab/agent"
+          className="card"
+          style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}
+        >
+          <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Agent — task builder</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>
+            Every output card, the plan redrawing, validation, insufficient credits and the submitting draft.
+          </p>
+        </Link>
       </div>
     </LabLayout>
   );

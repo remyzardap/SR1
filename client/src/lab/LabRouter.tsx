@@ -4,6 +4,20 @@ import LabIndex from "./LabIndex";
 import LabShell from "./LabShell";
 import LabBrand from "./LabBrand";
 import LabArt from "./LabArt";
+import LabSettings from "./LabSettings";
+import LabDitherEdge from "./LabDitherEdge";
+import LabHalftoneFade from "./LabHalftoneFade";
+import LabPaperGrain from "./LabPaperGrain";
+import LabRegistrationMarks from "./LabRegistrationMarks";
+import LabSlider from "./LabSlider";
+
+import LabFiles from "./LabFiles";
+
+import LabSession from "./LabSession";
+import LabDone from "./LabDone";
+
+import LabAgent from "./LabAgent";
+
 import LabLanding from "./LabLanding";
 import LabLogin from "./LabLogin";
 import LabVerifyEmail from "./LabVerifyEmail";
@@ -13,11 +27,6 @@ import LabFirstRun from "./LabFirstRun";
 import LabOffline from "./LabOffline";
 import LabInstall from "./LabInstall";
 import LabSplash from "./LabSplash";
-import LabDitherEdge from "./LabDitherEdge";
-import LabHalftoneFade from "./LabHalftoneFade";
-import LabPaperGrain from "./LabPaperGrain";
-import LabRegistrationMarks from "./LabRegistrationMarks";
-import LabSlider from "./LabSlider";
 
 export function LabRouter() {
   return (
@@ -31,6 +40,11 @@ export function LabRouter() {
       <Route path="/__lab/art/registration-marks" component={LabRegistrationMarks} />
       <Route path="/__lab/art/slider" component={LabSlider} />
       <Route path="/__lab/art" component={LabArt} />
+      <Route path="/__lab/settings" component={LabSettings} />
+      <Route path="/__lab/files" component={LabFiles} />
+      <Route path="/__lab/session" component={LabSession} />
+      <Route path="/__lab/done" component={LabDone} />
+      <Route path="/__lab/agent" component={LabAgent} />
       <Route path="/__lab/landing" component={LabLanding} />
       <Route path="/__lab/login" component={LabLogin} />
       <Route path="/__lab/verify-email" component={LabVerifyEmail} />
