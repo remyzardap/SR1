@@ -25,6 +25,7 @@ export const APPEARANCE_EVENT = "sutaeru:appearance";
 const CHOICES: ThemeChoice[] = ["light", "dark", "system"];
 
 function store(): Storage | null {
+  if (typeof window === "undefined") return null;
   try {
     return window.localStorage;
   } catch {
@@ -33,7 +34,9 @@ function store(): Storage | null {
 }
 
 function announce() {
-  window.dispatchEvent(new Event(APPEARANCE_EVENT));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(APPEARANCE_EVENT));
+  }
 }
 
 /** The saved choice. Defaults to System, which follows the OS. */
@@ -44,6 +47,7 @@ export function readThemeChoice(): ThemeChoice {
 
 /** Put the choice on <html>. Does not touch storage. */
 export function applyThemeChoice(choice: ThemeChoice): void {
+  if (typeof document === "undefined") return;
   const root = document.documentElement;
   if (choice === "system") {
     delete root.dataset.mode;
@@ -68,8 +72,10 @@ export function readReduceMotion(): boolean {
 
 export function setReduceMotion(on: boolean): void {
   store()?.setItem(REDUCE_MOTION_STORAGE_KEY, on ? "true" : "false");
-  if (on) document.documentElement.dataset.reduceMotion = "true";
-  else delete document.documentElement.dataset.reduceMotion;
+  if (typeof document !== "undefined") {
+    if (on) document.documentElement.dataset.reduceMotion = "true";
+    else delete document.documentElement.dataset.reduceMotion;
+  }
   announce();
 }
 
@@ -80,13 +86,16 @@ export function readBackgroundArt(): boolean {
 
 export function setBackgroundArt(on: boolean): void {
   store()?.setItem(BG_ART_STORAGE_KEY, on ? "on" : "off");
-  if (on) delete document.documentElement.dataset.bgArt;
-  else document.documentElement.dataset.bgArt = "off";
+  if (typeof document !== "undefined") {
+    if (on) delete document.documentElement.dataset.bgArt;
+    else document.documentElement.dataset.bgArt = "off";
+  }
   announce();
 }
 
 /** The palette actually on screen right now. */
 export function currentMode(): "light" | "dark" {
+  if (typeof window === "undefined") return "light";
   const choice = readThemeChoice();
   if (choice !== "system") return choice;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -125,3 +134,5 @@ export function onAppearanceChange(listener: () => void): () => void {
     window.removeEventListener("storage", listener);
   };
 }
+
+export { readArtIntensity, setArtIntensity } from "@/components/art/PaperGrain";
