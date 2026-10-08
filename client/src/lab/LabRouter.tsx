@@ -29,6 +29,8 @@ import LabOffline from "./LabOffline";
 import LabInstall from "./LabInstall";
 import LabSplash from "./LabSplash";
 
+import LabHome from "./LabHome";
+
 export function LabRouter() {
   return (
     <Switch>
@@ -56,6 +58,7 @@ export function LabRouter() {
       <Route path="/__lab/offline" component={LabOffline} />
       <Route path="/__lab/install" component={LabInstall} />
       <Route path="/__lab/splash" component={LabSplash} />
+      <Route path="/__lab/home" component={LabHome} />
     </Switch>
   );
 }

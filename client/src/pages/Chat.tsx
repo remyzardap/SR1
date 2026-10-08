@@ -10,6 +10,8 @@ import { ChatMessages } from "@/components/ChatMessages";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatErrorBanner } from "@/components/ChatErrorBanner";
 import { ChatInsightsDialog } from "@/components/ChatInsightsDialog";
+import { Home } from "@/components/home/Home";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { getAuthToken } from "@/lib/authSession";
@@ -165,6 +167,12 @@ export default function Chat() {
   // Message-level settings
   const [messageModel, setMessageModel] = useState<string>("auto");
   const [taggedSkills, setTaggedSkills] = useState<number[]>([]);
+  // Home's two composer switches. Thinking asks for the slower, more careful run, and the
+  // stream endpoint reads it straight off the body. Private has no state here beyond the
+  // one the composer shows: no endpoint keeps a chat out of history or memory yet, so
+  // Home leaves the switch honest about that rather than flipping something inert.
+  const [thinking, setThinking] = useState(false);
+  const [privateChat, setPrivateChat] = useState(false);
 
   // Agent run state
   const [agentSteps, setAgentSteps] = useState<AgentStep[]>([]);
@@ -537,6 +545,8 @@ export default function Chat() {
           body: JSON.stringify({
             messages: conversationSoFar.map((m) => ({ role: m.role, content: m.content })),
             ...(mode === "deep" ? {} : { sessionId, max: false, settings }),
+            // Thinking is the endpoint's own flag: a slower model and its own daily limit.
+            ...(mode === "deep" ? {} : { isThinking: thinking }),
             ...(sent.length > 0 ? { attachments: sent } : {}),
           }),
         });
@@ -704,7 +714,7 @@ export default function Chat() {
         if (streamRef.current === stream) streamRef.current = null;
       }
     },
-    [input, isStreaming, messages, sessionId, mode, messageModel, taggedSkills, attachments, isCode, code, codeAccess, codeTotp]
+    [input, isStreaming, messages, sessionId, mode, messageModel, taggedSkills, attachments, isCode, code, codeAccess, codeTotp, thinking]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -786,6 +796,11 @@ export default function Chat() {
   const ModeIcon = meta.icon;
 
   // ─── Render ────────────────────────────────────────────────────────────────
+  // Home is what an empty conversation looks like: the ask screen with its own docked
+  // composer. As soon as there is a question on screen the thread takes over, so the
+  // two composers are never both mounted and the draft is the page's one piece of state.
+  const showHome = !isAgentMode && !isCode && messages.length === 0 && !isStreaming;
+
   return (
     <div className="sutaeru-chat" data-chat-width={chatWidth} style={{ ...NEON_PAGE_BG, display: "flex", minHeight: "100vh" }}>
       <div style={NOISE_OVERLAY} />
@@ -837,11 +852,15 @@ export default function Chat() {
           initialConversation={messages.filter((m) => m.content.trim()).map((m) => `${m.role === "user" ? "User" : "Sutaeru"}: ${m.content}`).join("\n\n")}
         />
 
-        <div className="sutaeru-run-status" role="status" aria-live="off">
-          <span className={cn("sutaeru-status-dot", isStreaming && "sutaeru-status-active")} />
-          <div className="sutaeru-status-copy"><strong>{isStreaming ? "Working" : error ? "Run failed" : "Ready"}</strong><span>{isStreaming ? currentStep || "Thinking…" : error ? "Check the message below" : "Start a conversation"}</span></div>
-          <time className="sutaeru-timer" aria-label="Run duration">{String(Math.floor(elapsed / 60)).padStart(2, "0")}:{String(elapsed % 60).padStart(2, "0")}</time>
-        </div>
+        {/* Home already says what this strip says when there is no run; the strip returns
+            with the thread, where the step and the timer are the live signal. */}
+        {!showHome && (
+          <div className="sutaeru-run-status" role="status" aria-live="off">
+            <span className={cn("sutaeru-status-dot", isStreaming && "sutaeru-status-active")} />
+            <div className="sutaeru-status-copy"><strong>{isStreaming ? "Working" : error ? "Run failed" : "Ready"}</strong><span>{isStreaming ? currentStep || "Thinking…" : error ? "Check the message below" : "Start a conversation"}</span></div>
+            <time className="sutaeru-timer" aria-label="Run duration">{String(Math.floor(elapsed / 60)).padStart(2, "0")}:{String(elapsed % 60).padStart(2, "0")}</time>
+          </div>
+        )}
         <div className="flex flex-1 min-h-0">
           <div className="flex flex-col flex-1 min-w-0">
             {isAgentMode ? (
@@ -852,7 +871,45 @@ export default function Chat() {
                 isStreaming={isStreaming}
                 error={error}
               />
-            ) : isCode ? <CodeThreadView code={code} /> : <ChatMessages
+            ) : isCode ? <CodeThreadView code={code} /> : showHome ? (
+              // Home is the whole screen, so it carries its own scroll: the page column
+              // it sits in clips, and the docked composer sticks to this scroller's bottom.
+              <div className="flex-1 min-h-0 overflow-y-auto">
+              <Home
+                onSend={(submission) => void handleSend(submission)}
+                value={input}
+                onValueChange={setInput}
+                attachments={attachments}
+                onAttachmentsChange={setAttachments}
+                allowedTools={allowedTools}
+                onToggleTool={toggleTool}
+                thinking={thinking}
+                onThinkingChange={setThinking}
+                privateChat={privateChat}
+                onPrivateChange={setPrivateChat}
+                offline={!online}
+                running={isStreaming}
+                runningTitle={lastInput}
+                activity={activity}
+                loading={historyState === "loading"}
+                queued={messages.find((message) => message.queued)?.content ?? null}
+                onOpenSession={handleSelectSession}
+                onHandoff={() => setIsAgentMode(true)}
+                banners={
+                  <>
+                    {!online && <OfflineBanner />}
+                    <ChatErrorBanner
+                      error={historyState === "error" && !error ? "Couldn't load this conversation's history." : null}
+                      onRetry={() => setHistoryAttempt((n) => n + 1)}
+                      onDismiss={() => setHistoryState("ready")}
+                      retryLabel="Reload"
+                    />
+                    <ChatErrorBanner error={error} onRetry={retry} retrying={isStreaming} onDismiss={() => setError(null)} />
+                  </>
+                }
+              />
+              </div>
+            ) : <ChatMessages
               messages={messages}
               isStreaming={isStreaming}
               messagesEndRef={messagesEndRef as RefObject<HTMLDivElement>}
@@ -879,16 +936,20 @@ export default function Chat() {
               </div>
             )}
 
-            {historyState === "loading" && messages.length === 0 && (
+            {historyState === "loading" && messages.length === 0 && !showHome && (
               <div role="status" className="flex-none mx-3 sm:mx-6 mb-3 text-center text-xs text-muted-foreground">Loading conversation…</div>
             )}
-            <ChatErrorBanner
-              error={historyState === "error" && !error ? "Couldn't load this conversation's history." : null}
-              onRetry={() => setHistoryAttempt((n) => n + 1)}
-              onDismiss={() => setHistoryState("ready")}
-              retryLabel="Reload"
-            />
-            <ChatErrorBanner error={error} onRetry={retry} retrying={isStreaming} onDismiss={() => setError(null)} />
+            {!showHome && (
+              <>
+                <ChatErrorBanner
+                  error={historyState === "error" && !error ? "Couldn't load this conversation's history." : null}
+                  onRetry={() => setHistoryAttempt((n) => n + 1)}
+                  onDismiss={() => setHistoryState("ready")}
+                  retryLabel="Reload"
+                />
+                <ChatErrorBanner error={error} onRetry={retry} retrying={isStreaming} onDismiss={() => setError(null)} />
+              </>
+            )}
 
             {/* Settings panel */}
             {settingsOpen && (
@@ -1019,7 +1080,7 @@ export default function Chat() {
                 {isStreaming && <Button variant="outline" className="sutaeru-stop-run" onClick={stopRun}>Stop run</Button>}
               </div>
               {mobileDetailsOpen && <div className="sutaeru-mobile-details"><strong>Run details</strong><p>{isStreaming ? currentStep || "Thinking…" : error ? "Run failed" : "No active run"}</p>{agentSteps.map(step => <p key={step.id}>{stepStatusPrefix(step)} {step.label}</p>)}{sources.length > 0 && <div className="sutaeru-inline-sources"><strong>Sources</strong>{sources.map((source, index) => <a key={`${source.url}-${index}`} href={source.url} target="_blank" rel="noreferrer"><span>{index + 1}. {source.title}</span><ExternalLink size={14} /></a>)}</div>}</div>}
-              {!isAgentMode && (
+              {!showHome && !isAgentMode && (
               <div className="sutaeru-run-composer">
               <div className="sutaeru-composer-row mx-auto flex max-w-2xl items-center gap-2">
                 <div className="flex-1 min-w-0">
