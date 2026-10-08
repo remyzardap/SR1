@@ -4,9 +4,9 @@ import { cn } from "@/lib/utils";
 export interface DitherEdgeProps {
   /** Direction in which dots grade / fade out (default "bottom"). */
   direction?: "top" | "bottom" | "left" | "right";
-  /** Fine dot grid pitch in px (default 3.5). */
+  /** Fine dot grid pitch in px (default 4). */
   fineGridSize?: number;
-  /** Coarse dot grid pitch in px (default 7). */
+  /** Coarse dot grid pitch in px (default 8). */
   coarseGridSize?: number;
   /** Color token or CSS color (default "var(--r-ink)"). */
   color?: string;
@@ -24,45 +24,43 @@ export interface DitherEdgeProps {
  */
 export function DitherEdge({
   direction = "bottom",
-  fineGridSize = 3.5,
-  coarseGridSize = 7,
+  fineGridSize = 4,
+  coarseGridSize = 8,
   color = "var(--r-ink)",
   opacity = 1,
   className,
   id,
   style,
 }: DitherEdgeProps) {
-  const gradientDir =
-    direction === "bottom"
-      ? "to bottom"
-      : direction === "top"
-      ? "to top"
-      : direction === "right"
-      ? "to right"
-      : "to left";
+  const gradientDir = `to ${direction}`;
+  // One shared lattice: every layer sits on the coarse pitch, or on a half pitch
+  // whose points coincide with it, so layers never beat against each other.
+  const coarse = Math.max(6, Math.round(coarseGridSize / 2) * 2);
+  const half = coarse / 2;
+  const fine = Math.min(half, Math.max(3, Math.round(fineGridSize)));
+  const lattice = fine === half ? half : coarse;
+  const mid = coarse;
 
-  const fineMask = `linear-gradient(${gradientDir}, #000 0%, transparent 85%)`;
-  const coarseMask = `linear-gradient(${gradientDir}, #000 15%, transparent 100%)`;
+  const dots = (grid: number, dia: number) => {
+    const r = dia / 2;
+    return `radial-gradient(circle at 50% 50%, ${color} ${r}px, transparent ${r + 0.7}px)`;
+  };
+  const band = (a: number, b: number, c: number, d: number) =>
+    `linear-gradient(${gradientDir}, transparent ${a}%, #000 ${b}%, #000 ${c}%, transparent ${d}%)`;
 
-  const fineLayerStyle: React.CSSProperties = {
+  const layer = (grid: number, dia: number, mask: string, alpha: number): React.CSSProperties => ({
     position: "absolute",
     inset: 0,
-    backgroundImage: `radial-gradient(circle at 50% 50%, ${color} 0.65px, transparent 0.8px)`,
-    backgroundSize: `${fineGridSize}px ${fineGridSize}px`,
-    maskImage: fineMask,
-    WebkitMaskImage: fineMask,
-    opacity: 0.85,
-  };
+    backgroundImage: dots(grid, dia),
+    backgroundSize: `${grid}px ${grid}px`,
+    maskImage: mask,
+    WebkitMaskImage: mask,
+    opacity: alpha,
+  });
 
-  const coarseLayerStyle: React.CSSProperties = {
-    position: "absolute",
-    inset: 0,
-    backgroundImage: `radial-gradient(circle at 50% 50%, ${color} 1.25px, transparent 1.4px)`,
-    backgroundSize: `${coarseGridSize}px ${coarseGridSize}px`,
-    maskImage: coarseMask,
-    WebkitMaskImage: coarseMask,
-    opacity: 0.7,
-  };
+  // Soft side fade so no rectangular boundary shows along the edge.
+  const sideDir = direction === "top" || direction === "bottom" ? "to right" : "to bottom";
+  const sideMask = `linear-gradient(${sideDir}, transparent, #000 12%, #000 88%, transparent)`;
 
   return (
     <div
@@ -75,13 +73,18 @@ export function DitherEdge({
         overflow: "hidden",
         pointerEvents: "none",
         opacity,
+        maskImage: sideMask,
+        WebkitMaskImage: sideMask,
         ...style,
       }}
       data-direction={direction}
       aria-hidden="true"
     >
-      <div className="art-dither-edge-fine" style={fineLayerStyle} />
-      <div className="art-dither-edge-coarse" style={coarseLayerStyle} />
+      {/* origin: faint texture, then coarse dots shrinking through mid to a fine mist */}
+      <div className="art-dither-edge-base" style={layer(mid, mid * 0.16, band(0, 0, 22, 50), 0.3)} />
+      <div className="art-dither-edge-coarse" style={layer(coarse, coarse * 0.36, band(-10, 0, 14, 48), 0.6)} />
+      <div className="art-dither-edge-mid" style={layer(coarse, coarse * 0.2, band(15, 38, 46, 74), 0.55)} />
+      <div className="art-dither-edge-fine" style={layer(lattice, lattice * 0.3, band(40, 62, 66, 100), 0.45)} />
     </div>
   );
 }
