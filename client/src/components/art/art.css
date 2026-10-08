@@ -200,6 +200,14 @@
 .art-bracket-tr { top: 0; right: 0; transform: rotate(90deg); }
 .art-bracket-br { bottom: 0; right: 0; transform: rotate(180deg); }
 .art-bracket-bl { bottom: 0; left: 0; transform: rotate(270deg); }
+/* The older .brk rules in redo/base.css also match these <i> marks (border legs, 14 px boxes, nth-child
+   corners). Reset them so the SVG corners alone draw the bracket, in the right four places. */
+.brk.art-brackets { transform: none; }
+.brk.art-brackets > i.art-bracket { width: auto; height: auto; border-width: 0; left: auto; right: auto; top: auto; bottom: auto; }
+.brk.art-brackets > i.art-bracket-tl { top: 0; left: 0; }
+.brk.art-brackets > i.art-bracket-tr { top: 0; right: 0; }
+.brk.art-brackets > i.art-bracket-br { bottom: 0; right: 0; }
+.brk.art-brackets > i.art-bracket-bl { bottom: 0; left: 0; }
 
 /* ── SteppedMeter: rounded segments filled up to the value ─────────────────── */
 .art-meter {

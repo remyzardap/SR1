@@ -10,6 +10,7 @@ import LabHalftoneFade from "./LabHalftoneFade";
 import LabPaperGrain from "./LabPaperGrain";
 import LabRegistrationMarks from "./LabRegistrationMarks";
 import LabSlider from "./LabSlider";
+import LabDocsStates from "./LabDocsStates";
 import LabAnswer from "./LabAnswer";
 
 import LabFiles from "./LabFiles";
@@ -47,6 +48,7 @@ export function LabRouter() {
       <Route path="/__lab/art/paper-grain" component={LabPaperGrain} />
       <Route path="/__lab/art/registration-marks" component={LabRegistrationMarks} />
       <Route path="/__lab/art/slider" component={LabSlider} />
+      <Route path="/__lab/docs-states" component={LabDocsStates} />
       <Route path="/__lab/answer" component={LabAnswer} />
       <Route path="/__lab/art" component={LabArt} />
       <Route path="/__lab/settings" component={LabSettings} />
