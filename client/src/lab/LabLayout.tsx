@@ -42,7 +42,7 @@ export function useLabTheme() {
   return theme;
 }
 
-export function LabLayout({ title, children }: { title: string; children: ReactNode }) {
+export function LabLayout({ title, children, bleed = false }: { title: string; children: ReactNode; bleed?: boolean }) {
   const { theme, bg, is2x, search } = useLabSettings();
 
   const makeUrl = (updates: Record<string, string | null>) => {
@@ -63,13 +63,13 @@ export function LabLayout({ title, children }: { title: string; children: ReactN
       className={cn("lab-wrap", is2x && "is-zoom-2x")}
       style={{
         minHeight: "100vh",
-        padding: "24px",
+        padding: bleed ? "24px 0 0" : "24px",
         background: bgStyle,
         color: "var(--r-ink, var(--ink, #242320))",
         transition: "background 200ms ease",
       }}
     >
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+      <div style={bleed ? { maxWidth: "none" } : { maxWidth: 1100, margin: "0 auto" }}>
         <header
           className="lab-header"
           style={{
@@ -79,6 +79,7 @@ export function LabLayout({ title, children }: { title: string; children: ReactN
             flexWrap: "wrap",
             gap: 16,
             marginBottom: 28,
+            padding: bleed ? "0 24px 16px" : undefined,
             borderBottom: "1px solid var(--stroke, rgba(36, 35, 32, 0.12))",
             paddingBottom: 16,
           }}

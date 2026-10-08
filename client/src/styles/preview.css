@@ -202,10 +202,6 @@
 .sutaeru-message-references span { display: inline-flex; align-items: center; gap: 6px; min-width: 0; padding: 7px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted-foreground); font: 600 10px var(--font-b); }
 .sutaeru-message-references svg { width: 13px; height: 13px; flex: none; }
 .sutaeru-message-sources { width: 100%; margin-top: 6px; padding: 16px 0 4px 18px; border-left: 2px solid var(--art-ink); }
-.sutaeru-message-sources > strong { display: block; margin-bottom: 10px; color: var(--neon-orange); font: 700 10px var(--font-b); text-transform: uppercase; }
-.sutaeru-message-sources ol { display: grid; gap: 6px; }
-.sutaeru-message-sources a { display: flex; gap: 10px; align-items: baseline; color: var(--art-ink); font-size: 12px; overflow-wrap: anywhere; }
-.sutaeru-message-sources a > span { color: var(--neon-orange); font-weight: 700; }
 .sutaeru-editorial-message.is-assistant { animation: sutaeruAnswerIn .28s var(--spring-smooth) both; }
 @keyframes sutaeruAnswerIn { from { opacity: 0; transform: translateY(7px); } }
 .sutaeru-nav-item { position: relative; transition: transform var(--duration-fast) var(--spring-smooth), background var(--duration-fast) ease !important; }

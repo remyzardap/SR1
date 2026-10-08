@@ -56,7 +56,8 @@ export function Slider({
       const clampedFrac = Math.max(0, Math.min(1, rawFrac));
       const rawVal = min + clampedFrac * (max - min);
       const steppedVal = Math.round((rawVal - min) / step) * step + min;
-      const finalVal = Math.max(min, Math.min(max, steppedVal));
+      const decimals = (String(step).split(".")[1] ?? "").length;
+      const finalVal = Number(Math.max(min, Math.min(max, steppedVal)).toFixed(decimals));
       onChange(finalVal);
     },
     [disabled, max, min, onChange, step]

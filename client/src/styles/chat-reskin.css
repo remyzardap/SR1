@@ -18,11 +18,6 @@
 .sutaeru-chat .sutaeru-status-copy span { font-size: 13px; color: var(--r-ink); }
 .sutaeru-chat .sutaeru-timer { font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); color: var(--r-quiet); }
 
-/* ── First run ───────────────────────────────────────────────────────────── */
-.sk-chat-empty { width: 100%; max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px; padding: 24px 0 8px; text-align: left; }
-.sk-chat-greeting { font: 800 42px/1.02 var(--r-font-title); letter-spacing: var(--r-track-title-lg); margin: 0; color: var(--r-ink); }
-.sk-chat-sub { margin: 0; font: 400 20px/1.4 var(--r-font-body); color: var(--r-quiet); }
-
 /* ── Transcript ──────────────────────────────────────────────────────────── */
 .sutaeru-chat .sutaeru-message-label { gap: 10px; }
 .sutaeru-chat .sutaeru-message-label strong { font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: var(--r-quiet); }
@@ -33,22 +28,13 @@
 .sutaeru-chat .sutaeru-user-content * { color: var(--r-paper) !important; }
 
 /* Sutaeru's answer: a card on the paper, one hairline stroke. */
-.sutaeru-chat .sutaeru-assistant-content { background: var(--r-card); border: 1px solid var(--r-stroke); border-radius: var(--r-radius-card); padding: 16px 20px; font: 400 16px/1.7 var(--r-font-body); color: var(--r-ink); overflow-wrap: anywhere; }
+.sutaeru-chat .sutaeru-assistant-content { background: var(--r-card); border: 1px solid var(--r-stroke); border-radius: 28px; padding: 22px; box-shadow: var(--r-shadow-card, inset 0 1px 0 rgba(255,255,255,.7), 0 1px 2px rgba(36,35,32,.04), 0 10px 28px -20px rgba(36,35,32,.22)); font: 400 16px/1.7 var(--r-font-body); color: var(--r-ink); overflow-wrap: anywhere; text-wrap: pretty; }
 .sutaeru-chat .sutaeru-assistant-content :is(p, li) { line-height: 1.75; }
 .sutaeru-chat .sutaeru-assistant-content :is(h1, h2, h3) { font-family: var(--r-font-title); font-weight: 700; letter-spacing: 0; }
 
 /* Sources: a row of citation chips over a grid of source cards. */
 .sutaeru-message-sources { width: 100%; margin-top: 4px; padding: 0; border-left: 0; }
-.sutaeru-message-sources > strong { display: block; margin-bottom: 10px; font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: var(--r-quiet); }
-.sutaeru-message-sources ol { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--r-gap-card); margin: 0; padding: 0; list-style: none; }
-.sutaeru-message-sources li { position: relative; }
-.sutaeru-message-sources li:first-child .art-brackets { inset: -10px; }
-.sutaeru-message-sources a { display: flex; align-items: flex-start; gap: 12px; height: 100%; padding: 14px 16px; background: var(--r-card); border: 1px solid var(--r-stroke); border-radius: 20px; color: var(--r-ink); text-decoration: none; overflow-wrap: anywhere; }
-.sutaeru-message-sources a:hover { border-color: var(--r-rule); }
-.sutaeru-cite-chip { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: var(--r-panel); color: var(--r-ink); font: 700 12px/1 var(--r-font-body); font-variant-numeric: tabular-nums; }
-.sutaeru-source-copy { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.sutaeru-source-host { font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: var(--r-quiet); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sutaeru-source-title { font: 600 15px/1.35 var(--r-font-title); letter-spacing: -0.2px; color: var(--r-ink); }
+.sutaeru-message-sources > .mono { margin: 0 0 2px; }
 
 /* The trailing source block of a deep-research run uses the same chip. */
 .sutaeru-answer-sources { margin: 20px 0 34px; padding: 0; border-left: 0; }
@@ -122,7 +108,6 @@
   .sutaeru-chat .sutaeru-composer-textarea { min-height: 56px; padding: 16px 0 12px; }
   .sutaeru-chat .sutaeru-composer-send { width: 48px; height: 48px; }
   .sutaeru-chat .sutaeru-run-controls { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
-  .sk-chat-greeting { font-size: 38px; }
 }
 
 @media (max-width: 767px) {
