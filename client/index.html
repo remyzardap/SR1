@@ -26,6 +26,13 @@
             r.dataset.theme = mode;
           }
           if (s.getItem("sutaeru.reduce-motion") === "true") r.dataset.reduceMotion = "true";
+          /* A switched-off art setting must not flash on, and full grain must not flash
+             before the saved intensity is applied. */
+          var art = s.getItem("sutaeru.background-art") === "off" ? "off" : "on";
+          r.dataset.art = art;
+          r.dataset.bgArt = art;
+          var intensity = Number(s.getItem("sutaeru.art-intensity"));
+          if (intensity >= 20 && intensity <= 100) r.style.setProperty("--art-intensity", String(intensity / 100));
           var meta = document.querySelector('meta[name="theme-color"]');
           if (meta) {
             var dark = mode === "dark" || (mode !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);

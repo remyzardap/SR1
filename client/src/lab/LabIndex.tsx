@@ -48,7 +48,7 @@ export default function LabIndex() {
       <h2 style={{ font: "700 16px/1 var(--disp)", margin: "0 0 14px", color: "var(--quiet)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
         Refined Art Primitives (F0b)
       </h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 32 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
         <Link
           href="/__lab/art/dither-edge"
           className="card"
@@ -99,12 +99,16 @@ export default function LabIndex() {
             Themed slider with track, fill, 28 px thumb with ink border, keyboard support.
           </p>
         </Link>
-      </div>
-
-      <h2 style={{ font: "700 16px/1 var(--disp)", margin: "0 0 14px", color: "var(--quiet)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-        Redo Screens
-      </h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+        <Link
+          href="/__lab/settings"
+          className="card"
+          style={{ padding: 24, textDecoration: "none", color: "inherit", borderRadius: 20, display: "block" }}
+        >
+          <b style={{ font: "700 18px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Settings</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 14 }}>
+            The ported settings screen in every state — each theme, art and motion off, slider extremes, empty and loading data. Pick a state with the links, or scroll through all of them.
+          </p>
+        </Link>
         <Link
           href="/__lab/agent"
           className="card"

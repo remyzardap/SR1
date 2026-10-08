@@ -1,0 +1,97 @@
+/**
+ * /__lab/settings — the ported Settings screen, shown in every state it can be in.
+ *
+ * Fixtures only: nothing here logs in, calls the API or writes to localStorage. The
+ * handlers SettingsView expects are no-ops, so the controls are visible but inert.
+ *
+ * `?state=<name>` renders one state alone (the names are the links below); with no
+ * `?state=` every state stacks up for a scroll-through. When a single state is shown,
+ * that state's Background-art / Art-intensity / Reduce-motion choices are mirrored onto
+ * the page so the grain and the motion actually behave — the Theme card stays untouched,
+ * because `?theme=` from the Lab header owns the palette.
+ *
+ * `?w=360|390|430` is the browser width, not a fake viewport — resize a real window (or
+ * DevTools device mode) to check the 360px and the wide layouts.
+ */
+import { useEffect } from "react";
+import { Link, useSearch } from "wouter";
+
+import { SettingsView } from "@/components/settings/SettingsView";
+import { applyArtIntensity, applyBackgroundArt, applyReduceMotion } from "@/lib/theme";
+import { cn } from "@/lib/utils";
+import {
+  SETTINGS_STATE_NAMES,
+  SETTINGS_STATES,
+  settingsFixture,
+  type SettingsState,
+} from "./fixtures/settings";
+import { LabLayout } from "./LabLayout";
+
+function useStateParam(): SettingsState | "all" {
+  const param = new URLSearchParams(useSearch()).get("state");
+  if (!param) return "all";
+  return (SETTINGS_STATE_NAMES as string[]).includes(param) ? (param as SettingsState) : "default";
+}
+
+export default function LabSettings() {
+  const state = useStateParam();
+  const single = state !== "all";
+
+  // Mirror the fixture's own appearance switches onto the document (no storage writes).
+  useEffect(() => {
+    if (!single) return;
+    const fixture = SETTINGS_STATES[state];
+    applyBackgroundArt(fixture.backgroundArt);
+    applyArtIntensity(fixture.artIntensity);
+    applyReduceMotion(fixture.reduceMotion);
+  }, [single, state]);
+
+  return (
+    <LabLayout title="Settings">
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <p className="mono" style={{ margin: 0, fontSize: 12, color: "var(--quiet)" }}>
+          Sample data — no login, no network, no saved preferences. Pick a state, or scroll
+          through all of them. Theme previews and the sliders below are live; the buttons do
+          nothing.
+        </p>
+
+        <nav
+          aria-label="Settings states"
+          style={{ display: "flex", flexWrap: "wrap", gap: 8 }}
+        >
+          <Link href="/__lab/settings" className={cn("pill", !single && "is-active")}>
+            All states
+          </Link>
+          {SETTINGS_STATE_NAMES.map((name) => (
+            <Link
+              key={name}
+              href={`/__lab/settings?state=${name}`}
+              className={cn("pill", state === name && "is-active")}
+            >
+              {name}
+            </Link>
+          ))}
+        </nav>
+
+        {single ? (
+          <SettingsView {...settingsFixture(state)} />
+        ) : (
+          SETTINGS_STATE_NAMES.map((name) => (
+            <section key={name}>
+              <h2 style={{ font: "700 18px/1 var(--disp)", margin: "0 0 12px" }}>{name}</h2>
+              <div
+                style={{
+                  border: "1px dashed var(--stroke)",
+                  borderRadius: 16,
+                  overflow: "hidden",
+                }}
+              >
+                <SettingsView {...settingsFixture(name)} />
+              </div>
+            </section>
+          ))
+        )}
+      </div>
+    </LabLayout>
+  );
+}

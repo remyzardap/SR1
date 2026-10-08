@@ -8,6 +8,11 @@ import { useEffect, useState } from "react";
  * CSS transitions use var(--r-motion) and go to 0 under the same conditions.
  */
 export const REDUCE_MOTION_STORAGE_KEY = "sutaeru.reduce-motion";
+/**
+ * Re-dispatched on window after any appearance change (lib/theme.ts), so JS-driven
+ * art re-snaps the moment a switch moves instead of waiting for a reload.
+ */
+export const APPEARANCE_EVENT = "sutaeru:appearance";
 
 export function prefersReducedMotion(): boolean {
   if (typeof window === "undefined") return false;
@@ -28,9 +33,13 @@ export function useReducedMotion(): boolean {
     const onChange = () => setReduced(prefersReducedMotion());
     mq.addEventListener("change", onChange);
     window.addEventListener("storage", onChange);
+    // The app's own Reduce motion switch: without this the bars keep animating
+    // until the page is reloaded.
+    window.addEventListener(APPEARANCE_EVENT, onChange);
     return () => {
       mq.removeEventListener("change", onChange);
       window.removeEventListener("storage", onChange);
+      window.removeEventListener(APPEARANCE_EVENT, onChange);
     };
   }, []);
   return reduced;
