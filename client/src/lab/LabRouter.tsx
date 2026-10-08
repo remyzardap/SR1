@@ -18,6 +18,16 @@ import LabDone from "./LabDone";
 
 import LabAgent from "./LabAgent";
 
+import LabLanding from "./LabLanding";
+import LabLogin from "./LabLogin";
+import LabVerifyEmail from "./LabVerifyEmail";
+import LabResetPassword from "./LabResetPassword";
+import LabOnboarding from "./LabOnboarding";
+import LabFirstRun from "./LabFirstRun";
+import LabOffline from "./LabOffline";
+import LabInstall from "./LabInstall";
+import LabSplash from "./LabSplash";
+
 export function LabRouter() {
   return (
     <Switch>
@@ -35,6 +45,15 @@ export function LabRouter() {
       <Route path="/__lab/session" component={LabSession} />
       <Route path="/__lab/done" component={LabDone} />
       <Route path="/__lab/agent" component={LabAgent} />
+      <Route path="/__lab/landing" component={LabLanding} />
+      <Route path="/__lab/login" component={LabLogin} />
+      <Route path="/__lab/verify-email" component={LabVerifyEmail} />
+      <Route path="/__lab/reset-password" component={LabResetPassword} />
+      <Route path="/__lab/onboarding" component={LabOnboarding} />
+      <Route path="/__lab/first-run" component={LabFirstRun} />
+      <Route path="/__lab/offline" component={LabOffline} />
+      <Route path="/__lab/install" component={LabInstall} />
+      <Route path="/__lab/splash" component={LabSplash} />
     </Switch>
   );
 }
