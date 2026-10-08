@@ -1,1 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 144 76" fill="none" aria-hidden="true"><path stroke="#242320" d="M72 38C64 18 52 8 36 8C19 8 8 20 8 38s11 30 28 30c16 0 28-10 36-30C80 18 92 8 108 8c17 0 28 12 28 30s-11 30-28 30c-16 0-28-10-36-30Z" pathLength="1" stroke-width="9" stroke-linejoin="round"/><g transform="translate(108 39) scale(.94) translate(-108 -39)"><circle cx="108" cy="46.6" r="6.8" fill="#F4511E"/><g class="gate" fill="#242320"><path d="M88.6 20.8L90.4 22.2Q108 27.4 125.6 22.2L127.4 20.8L126.6 26.0Q108 31.4 89.4 26.0Z"/><path d="M89.8 34.6H126.2V38.4H89.8Z"/><path d="M95.6 25.5H99.8L98.8 57.6H94.4ZM116.2 25.5H120.4L121.6 57.6H117.2Z"/></g></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 1024 1024">
+ <defs>
+  <radialGradient id="bg" cx="50%" cy="40%" r="78%"><stop offset="0" stop-color="#35342F"/><stop offset="1" stop-color="#1C1B19"/></radialGradient>
+  <radialGradient id="glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#F4511E" stop-opacity="0.17"/><stop offset="1" stop-color="#F4511E" stop-opacity="0"/></radialGradient>
+  <filter id="gr" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7" stitchTiles="stitch"/><feColorMatrix type="matrix" values=".33 .33 .33 0 0 .33 .33 .33 0 0 .33 .33 .33 0 0 0 0 0 0 1"/></filter>
+  <clipPath id="r"><rect width="1024" height="1024" rx="232"/></clipPath>
+ </defs>
+ <g clip-path="url(#r)">
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <circle cx="630.296" cy="478" r="300" fill="url(#glow)" transform="translate(-2.9999999999999982 0)"/>
+  <rect width="1024" height="1024" filter="url(#gr)" style="mix-blend-mode:overlay" opacity=".13"/>
+  
+  <g transform="translate(512 512) scale(5.6) translate(-72 -38)">
+ <path d="M72 38C64 18 52 8 36 8C19 8 8 20 8 38s11 30 28 30c16 0 28-10 36-30C80 18 92 8 108 8c17 0 28 12 28 30s-11 30-28 30c-16 0-28-10-36-30Z" stroke="#F7F6F2" stroke-width="9" stroke-linejoin="round" fill="none"/>
+ <g transform="translate(108 39) scale(.94) translate(-108 -39)"><circle cx="108" cy="46.6" r="6.8" fill="#F4511E"/><g fill="#F7F6F2"><path d="M88.6 20.8L90.4 22.2Q108 27.4 125.6 22.2L127.4 20.8L126.6 26.0Q108 31.4 89.4 26.0Z"/><path d="M89.8 34.6H126.2V38.4H89.8Z"/><path d="M95.6 25.5H99.8L98.8 57.6H94.4ZM116.2 25.5H120.4L121.6 57.6H117.2Z"/></g></g></g>
+  
+ </g>
+</svg>
