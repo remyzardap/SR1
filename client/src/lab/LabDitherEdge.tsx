@@ -1,14 +1,14 @@
 import * as React from "react";
 import { useState } from "react";
 import { LabLayout } from "./LabLayout";
-import { DitherEdge } from "@/components/art";
+import { DitherEdge, Slider } from "@/components/art";
 
 export default function LabDitherEdge() {
   const [direction, setDirection] = useState<"top" | "bottom" | "left" | "right">("bottom");
   const [opacity, setOpacity] = useState(0.85);
   const [colorToken, setColorToken] = useState<"var(--r-ink)" | "var(--r-rule)" | "var(--r-alert)">("var(--r-ink)");
-  const [fineGrid, setFineGrid] = useState(3.5);
-  const [coarseGrid, setCoarseGrid] = useState(7);
+  const [fineGrid, setFineGrid] = useState(4);
+  const [coarseGrid, setCoarseGrid] = useState(8);
 
   return (
     <LabLayout title="DitherEdge Lab">
@@ -21,11 +21,11 @@ export default function LabDitherEdge() {
         <section className="card" style={{ padding: 20 }}>
           <h2 style={{ font: "700 16px/1 var(--disp)", marginBottom: 14 }}>Interactive Controls</h2>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
-            <div>
+            <div style={{ width: 150, minWidth: 0 }}>
               <span className="mono" style={{ fontSize: 11, display: "block", marginBottom: 4, color: "var(--quiet)" }}>
                 Direction
               </span>
-              <div style={{ display: "flex", gap: 6 }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {(["bottom", "top", "right", "left"] as const).map((d) => (
                   <button
                     key={d}
@@ -40,6 +40,7 @@ export default function LabDitherEdge() {
                       background: direction === d ? "var(--ink)" : "var(--card)",
                       color: direction === d ? "var(--paper)" : "var(--ink)",
                       cursor: "pointer",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {d}
@@ -48,11 +49,11 @@ export default function LabDitherEdge() {
               </div>
             </div>
 
-            <div>
+            <div style={{ width: 150, minWidth: 0 }}>
               <span className="mono" style={{ fontSize: 11, display: "block", marginBottom: 4, color: "var(--quiet)" }}>
                 Color Token
               </span>
-              <div style={{ display: "flex", gap: 6 }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {(["var(--r-ink)", "var(--r-rule)", "var(--r-alert)"] as const).map((c) => (
                   <button
                     key={c}
@@ -67,6 +68,7 @@ export default function LabDitherEdge() {
                       background: colorToken === c ? "var(--ink)" : "var(--card)",
                       color: colorToken === c ? "var(--paper)" : "var(--ink)",
                       cursor: "pointer",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {c.replace("var(--r-", "").replace(")", "")}
@@ -75,19 +77,11 @@ export default function LabDitherEdge() {
               </div>
             </div>
 
-            <div>
+            <div style={{ width: 150, minWidth: 0 }}>
               <span className="mono" style={{ fontSize: 11, display: "block", marginBottom: 4, color: "var(--quiet)" }}>
                 Opacity: {opacity}
               </span>
-              <input
-                type="range"
-                min="0.1"
-                max="1"
-                step="0.05"
-                value={opacity}
-                onChange={(e) => setOpacity(parseFloat(e.target.value))}
-                style={{ width: 120 }}
-              />
+              <Slider label="Opacity control" min={0.1} max={1} step={0.05} value={opacity} onChange={setOpacity} />
             </div>
           </div>
         </section>

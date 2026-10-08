@@ -193,9 +193,9 @@ export function ApprovalCard({
       role="region"
       aria-label="Action approval request"
       className={cn(
-        "my-3 w-full max-w-2xl rounded-xl border border-border/60 bg-card p-4 text-card-foreground shadow-sm transition-all sm:p-5",
-        status === "approved" && "border-green-500/40 bg-green-500/5",
-        status === "rejected" && "border-destructive/40 bg-destructive/5",
+        "approval-card my-3 w-full max-w-2xl p-4 transition-all sm:p-5",
+        status === "approved" && "is-approved",
+        status === "rejected" && "is-rejected",
         expired && "opacity-75",
         className,
       )}

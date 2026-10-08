@@ -43,7 +43,7 @@
   --font-sans: var(--body);
   --grain: .045;
 
-  --r-card: 24px;
+  --r-card: 24px; /* radius (prototype); the colour alias further down wins in the cascade, so use --r-radius-card for radii */
   --r-lg: 28px;
   --r-thumb: 18px;
   --gutter: 20px;
@@ -62,7 +62,7 @@
   --r-quiet: var(--quiet);
   --r-rule: var(--rule);
   --r-seg-off: var(--seg-off);
-  --r-accent: var(--accent);
+  --r-accent: #F4511E; /* literal: the shadcn block below re-points --accent at the panel colour */
   --r-accent-ink: var(--ink);
   --r-alert: var(--alert);
   --r-alert-tint: var(--alert-tint);
@@ -86,7 +86,7 @@
   --r-track-mono: 1.54px;
   --r-size-mono: 11px;
 
-  --r-radius-card: var(--r-card);
+  --r-radius-card: 24px;
   --r-radius-card-lg: var(--r-lg);
   --r-radius-panel: var(--r-lg);
   --r-radius-thumb: var(--r-thumb);
@@ -270,7 +270,6 @@
   /* shadcn/ui semantic colors (tailwind theme maps onto these) */
   --background: var(--r-paper);
   --foreground: var(--r-ink);
-  --card: var(--r-card);
   --card-foreground: var(--r-ink);
   --popover: var(--r-card);
   --popover-foreground: var(--r-ink);
@@ -280,7 +279,7 @@
   --secondary-foreground: var(--r-ink);
   --muted: var(--r-panel);
   --muted-foreground: var(--r-quiet);
-  --accent: var(--r-panel);
+  --ui-accent: var(--r-panel); /* shadcn hover surface; --accent stays the orange signal */
   --accent-foreground: var(--r-ink);
   --destructive: var(--r-alert);
   --destructive-foreground: var(--r-paper);

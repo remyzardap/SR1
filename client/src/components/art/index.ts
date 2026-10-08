@@ -33,4 +33,6 @@ export {
   type StatusPillStatus,
 } from "./Chip";
 export { Sheet, type SheetProps } from "./Sheet";
+export { DocMini, type DocMiniProps } from "./DocMini";
+export { DitherSphere, drawDitherSphere, type DitherSphereProps, type DitherSphereOptions } from "./DitherSphere";
 export { useReducedMotion, prefersReducedMotion, REDUCE_MOTION_STORAGE_KEY } from "./useMotion";

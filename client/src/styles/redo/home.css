@@ -4,9 +4,10 @@
 .home-hero .mark { width: 96px; height: 52px; color: var(--ink); }
 .home-hero .word { font: 800 53px/1 var(--disp); letter-spacing: -2.6px; margin: 16px 0 12px; }
 .home-hero .tagline { letter-spacing: 1.54px; }
-.ramp { display: flex; align-items: center; gap: 0; height: 18px; margin-top: 22px; }
-.ramp i { width: 9.7px; display: grid; place-items: center; }
-.ramp i::before { content: ""; width: var(--d); height: var(--d); border-radius: 50%; background: var(--ink); transform: scale(var(--k, 1)); transition: transform 240ms var(--ease); }
+.ramp { margin-top: 22px; color: var(--ink); max-width: 100%; }
+.ramp i { transform: scale(var(--k, 1)); transition: transform 240ms var(--ease), width 240ms var(--ease), height 240ms var(--ease), opacity 240ms var(--ease); }
+.ramp { width: 100%; justify-content: center; gap: 6px !important; }
+@media (max-width: 480px) { .ramp { gap: 3.5px !important; } }
 @media (min-width: 760px) { .home { padding-top: 40px; } .home-hero { padding: 64px 0 40px; } .home-hero .mark { width: 120px; height: 64px; } .home-hero .word { font-size: 72px; letter-spacing: -3.4px; } }
 .recent { display: flex; flex-direction: column; }
 .recent-row { display: flex; align-items: center; gap: 12px; min-height: 56px; width: 100%; text-align: left; border-radius: 16px; padding: 0 4px; transition: background var(--t); }
@@ -14,25 +15,25 @@
 .recent-row .st { width: 40px; height: 40px; border-radius: 50%; background: var(--panel); display: grid; place-items: center; flex: none; }
 .recent-row .st .ico { width: 20px; height: 20px; }
 .recent-row .tx { flex: 1; min-width: 0; }
-.recent-row b { display: block; font: 600 15px/1.3 var(--body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent-row b { display: block; font: 600 16px/1.3 var(--disp); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recent-row .sub { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
-.recent-row .when { color: var(--quiet); font-size: 12px; white-space: nowrap; }
+.recent-row .when { color: var(--quiet); font-size: 14px; white-space: nowrap; }
 .recent-row canvas.bar { width: 90px; height: 8px; }
 .handoff {
   display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
-  min-height: 76px; padding: 12px 12px 12px 18px; border-radius: 24px; margin-top: 14px;
+  min-height: 76px; padding: 0 12px 0 14px; border-radius: 30px; box-shadow: var(--shadow); margin-top: 14px;
   background: var(--hero); color: var(--hero-ink); position: relative; overflow: hidden;
   transition: transform 160ms var(--ease);
 }
 .handoff:active { transform: scale(.985); }
-.handoff .hi { width: 40px; height: 40px; border-radius: 14px; background: var(--hero-ink); color: var(--hero); display: grid; place-items: center; flex: none; }
+.handoff .hi { width: 44px; height: 44px; border-radius: 14px; background: var(--hero-ink); color: var(--hero); display: grid; place-items: center; flex: none; }
 .handoff .tx { flex: 1; min-width: 0; position: relative; z-index: 1; }
-.handoff b { display: block; font: 700 17px/1.2 var(--disp); }
-.handoff small { display: block; font-size: 12px; color: var(--hero-quiet); margin-top: 3px; }
-.handoff .cols { display: grid; grid-template-columns: repeat(3, 11.4px); align-items: center; height: 60px; }
-.handoff .cols span { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 54px; }
-.handoff .cols span i { border-radius: 50%; background: var(--hero-ink); }
-.handoff .go { width: 52px; height: 52px; border-radius: 50%; background: var(--hero-ink); color: var(--hero); display: grid; place-items: center; flex: none; transition: transform var(--t) var(--ease); }
+.handoff b { display: block; white-space: nowrap; font: 700 18px/1.2 var(--disp); }
+.handoff small { display: block; white-space: nowrap; font-size: 13px; color: var(--hero-quiet); margin-top: 3px; }
+.handoff .cols { position: absolute; top: 0; bottom: 0; right: 64px; width: 130px; pointer-events: none; opacity: .2;
+  background-image: radial-gradient(circle at 50% 50%, var(--hero-ink) 1.2px, transparent 1.35px); background-size: 6px 6px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 62%, transparent); mask-image: linear-gradient(90deg, transparent, #000 62%, transparent); }
+.handoff .go { position: relative; z-index: 1; width: 52px; height: 52px; border-radius: 50%; background: var(--hero-ink); color: var(--hero); display: grid; place-items: center; flex: none; transition: transform var(--t) var(--ease); }
 .handoff:hover .go { transform: rotate(-8deg) scale(1.04); }
 .home-dock { order: 2; position: sticky; bottom: 0; z-index: 10; margin: auto calc(var(--gutter) * -1) 0; padding: 18px var(--gutter) calc(14px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to top, var(--paper) 78%, transparent); }
 @media (min-width: 760px) { .home-dock { position: static; margin: 0 0 8px; padding: 0; background: none; order: -1; } .home-hero { order: -2; } .home-dock .composer-wrap { margin-top: 0; } }
@@ -60,7 +61,7 @@
 .continue {
   display: grid; grid-template-columns: auto 1fr auto; gap: 4px 14px; align-items: center;
   padding: 16px 18px; text-align: left; width: 100%;
-  border-radius: var(--r-card);
+  border-radius: var(--r-radius-card);
 }
 .continue .orb-wrap { grid-row: span 2; }
 .continue b { font: 600 16px/1.25 var(--body); }
@@ -101,3 +102,71 @@
 @keyframes fadein { to { opacity: 1; } }
 @keyframes fadeup { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes press { 0% { opacity: 0; transform: scale(1.5) rotate(-8deg); } 60% { opacity: 1; transform: scale(.94) rotate(1deg); } 100% { opacity: 1; transform: none; } }
+
+/* ── Home container (T-113) ───────────────────────────────────────────── */
+.sec-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 34px 0 12px; }
+
+/* The live run marker: an accent dot with two dotted rings expanding out of it. */
+.orb { position: relative; width: 28px; height: 28px; display: grid; place-items: center; flex: none; }
+.orb::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); position: relative; z-index: 1; }
+.orb i { position: absolute; inset: 0; border-radius: 50%; border: 1.5px dotted var(--accent); opacity: 0; }
+.orb.run i { animation: ring 2.4s var(--ease) infinite; }
+.orb.run i:nth-child(2) { animation-delay: .8s; }
+.orb.run i:nth-child(3) { animation-delay: 1.6s; }
+.orb.still i:nth-child(1) { opacity: .7; inset: 4px; }
+.orb.still i:nth-child(2) { opacity: .35; }
+.orb.done::before { background: var(--ink); }
+@keyframes ring { 0% { transform: scale(.35); opacity: .9; } 100% { transform: scale(1.15); opacity: 0; } }
+/* The prototype only freezes rings through its global reduced-motion rule, which would leave a bare
+   dot and read as "nothing running"; hold them open at two static sizes instead. */
+@media (prefers-reduced-motion: reduce) {
+  .orb.run i { animation: none; opacity: .55; }
+  .orb.run i:nth-child(2) { opacity: .28; }
+  .orb.run i:nth-child(3) { opacity: .14; }
+}
+
+/* The waiting-to-send row: a dotted rail in place of a progress bar. */
+.recent-row .dotline {
+  flex: 1; height: 2px; min-width: 40px;
+  background-image: radial-gradient(circle, var(--rule) 1px, transparent 1.2px);
+  background-size: 6px 2px;
+}
+
+/* Photo thumbnails in the leading state box. */
+.thumb-ph { position: relative; overflow: hidden; }
+.recent-row .st.thumb-ph { overflow: hidden; }
+.recent-row .st.thumb-ph img { width: 100%; height: 100%; object-fit: cover; }
+.att .att-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Nothing has been updated yet, and the rows are still coming in. */
+.recent-empty { display: block; padding: 10px 4px 2px; }
+.recent-row .sk-line { display: block; height: 12px; border-radius: 6px; background: var(--panel); animation: skpulse 1.4s var(--ease) infinite; }
+.recent-row .st.sk { width: 40px; height: 40px; border-radius: 50%; animation: skpulse 1.4s var(--ease) infinite; }
+@keyframes skpulse { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) {
+  .recent-row .sk-line, .recent-row .st.sk { animation: none; }
+}
+
+/* The sources popover: three switch rows with no dividers of their own. */
+.pop-toggles { display: flex; flex-direction: column; gap: 2px; padding: 4px; }
+.pop-toggles .toggle-row { border: 0; padding: 10px 8px; }
+.pop-toggles .toggle-row:last-child { border: 0; }
+
+/* Background art off: the prototype hides every decorative dot field, the ramp and the
+   hand-off columns included, not just the grain. */
+[data-art="off"] .art-deco { display: none; }
+
+/* One line tall at 360px: the title keeps its space and the row scrolls none of it. */
+@media (max-width: 389px) {
+  .recent-row { gap: 10px; }
+}
+
+/* Phone composer rules (app.css 978-986): the sources pill collapses to its icon. */
+@media (max-width: 759px) {
+  .composer .ctrls { gap: 4px; }
+  .composer .ctrls .icon-btn.flat { width: 40px; }
+  .composer .ctrls .pill { padding: 0 12px; }
+  .composer .ctrls .pill.src-pill { padding: 0 11px; }
+  .composer .ctrls .pill.src-pill .src-text { display: none; }
+  .composer .ctrls .send { width: 44px; height: 44px; }
+}

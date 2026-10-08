@@ -1,7 +1,8 @@
 import * as React from "react";
 import { useState } from "react";
 import { LabLayout } from "./LabLayout";
-import { SutaeruGlyph, SutaeruSeal, SutaeruStamp, BrandIntro } from "@/components/brand";
+import { SutaeruGlyph, SutaeruSeal, SutaeruStamp } from "@/components/brand";
+import { BrandIntro } from "@/components/redo/BrandIntro";
 
 export default function LabBrand() {
   const [introKey, setIntroKey] = useState(0);
