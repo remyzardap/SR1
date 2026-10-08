@@ -99,6 +99,16 @@ export default function LabIndex() {
             Themed slider with track, fill, 28 px thumb with ink border, keyboard support.
           </p>
         </Link>
+        <Link
+          href="/__lab/settings"
+          className="card"
+          style={{ padding: 24, textDecoration: "none", color: "inherit", borderRadius: 20, display: "block" }}
+        >
+          <b style={{ font: "700 18px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Settings</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 14 }}>
+            The ported settings screen in every state — each theme, art and motion off, slider extremes, empty and loading data. Pick a state with the links, or scroll through all of them.
+          </p>
+        </Link>
       </div>
     </LabLayout>
   );

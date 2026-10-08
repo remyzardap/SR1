@@ -4,6 +4,7 @@ import LabIndex from "./LabIndex";
 import LabShell from "./LabShell";
 import LabBrand from "./LabBrand";
 import LabArt from "./LabArt";
+import LabSettings from "./LabSettings";
 import LabDitherEdge from "./LabDitherEdge";
 import LabHalftoneFade from "./LabHalftoneFade";
 import LabPaperGrain from "./LabPaperGrain";
@@ -22,6 +23,7 @@ export function LabRouter() {
       <Route path="/__lab/art/registration-marks" component={LabRegistrationMarks} />
       <Route path="/__lab/art/slider" component={LabSlider} />
       <Route path="/__lab/art" component={LabArt} />
+      <Route path="/__lab/settings" component={LabSettings} />
     </Switch>
   );
 }
