@@ -2,7 +2,8 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
 import { Button } from "@/components/ui/button";
-import { SutaeruSeal, SutaeruStamp } from "@/components/brand/SutaeruSeal";
+import { DitherEdge } from "@/components/art";
+import { SutaeruStamp } from "@/components/brand/SutaeruSeal";
 
 export interface ResultCardProps {
   kind: "report" | "deck" | "sheet" | "brief" | "monitor" | "image";
@@ -26,21 +27,10 @@ export interface ResultCardProps {
   className?: string;
 }
 
-function SettledStamp({ pressing, size = 92, className, style }: { pressing?: boolean; size?: number; className?: string; style?: React.CSSProperties }) {
+function SettledStamp({ pressing, className }: { pressing?: boolean; size?: number; className?: string }) {
   return (
     <span
       className={cn("done-stamp", pressing && "pressing", className)}
-      style={{
-        position: "absolute",
-        width: size,
-        height: size,
-        color: "var(--hero-ink)",
-        opacity: 0.9,
-        transform: "rotate(-9deg)",
-        pointerEvents: "none",
-        zIndex: 1,
-        ...style,
-      }}
       aria-hidden="true"
     >
       <SutaeruStamp className="stamp" style={{ width: "100%", height: "100%", display: "block" }} />
@@ -50,77 +40,28 @@ function SettledStamp({ pressing, size = 92, className, style }: { pressing?: bo
 
 function MiniStamp({ className }: { className?: string }) {
   return (
-    <span className={cn("mini-stamp", className)} style={{ width: 40, height: 40, color: "var(--ink)", flex: "none", transform: "rotate(-8deg)" }} aria-hidden="true">
+    <span className={cn("mini-stamp", className)} aria-hidden="true">
       <SutaeruStamp className="stamp" style={{ width: "100%", height: "100%", display: "block" }} />
     </span>
   );
 }
 
-function DitherEdge({ className }: { className?: string }) {
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
-  const intensityRef = React.useRef(70);
-
-  React.useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const draw = () => {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      canvas.width = Math.max(1, Math.round(rect.width * dpr));
-      canvas.height = Math.max(1, Math.round(rect.height * dpr));
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      const w = rect.width;
-      const h = rect.height;
-      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--hero-ink").trim() || "#F4F2EC";
-      const k = intensityRef.current / 100;
-      const s = 2;
-      const seed = 4;
-
-      function rng(seed: number) {
-        let a = seed >>> 0;
-        return () => {
-          a = (a + 0x6d2b79f5) >>> 0;
-          let t = a;
-          t = Math.imul(t ^ (t >>> 15), t | 1);
-          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-        };
-      }
-
-      const R = rng(seed);
-      for (let py = 0; py < h; py += s) {
-        for (let px = 0; px < w; px += s) {
-          const u = px / w;
-          const v = py / h;
-          let d = Math.pow(Math.max(0, (u - 0.12) / 0.88), 1.5) * (0.8 + 0.2 * Math.sin(v * 3.1 + 0.6));
-          if (R() < d * k) {
-            ctx.fillRect(px, py, s * 0.78, s * 0.78);
-          }
-        }
-      }
-    };
-
-    draw();
-    const ro = new ResizeObserver(() => draw());
-    ro.observe(canvas);
-    return () => ro.disconnect();
-  }, []);
-
-  return <canvas ref={canvasRef} className={cn("edge art-deco", className)} aria-hidden="true" style={{ position: "absolute", right: 0, top: 0, width: "46%", height: "70%", pointerEvents: "none" }} />;
+function CornerDither() {
+  return (
+    <div className="result-dither" aria-hidden="true">
+      <DitherEdge direction="left" color="var(--hero-ink)" fineGridSize={5} coarseGridSize={9} opacity={0.5} />
+    </div>
+  );
 }
 
-function DocumentPreview({ kind, title, children }: { kind: string; title: string; children?: React.ReactNode }) {
-  if (children) {
-    return <div className="result-doc" style={{ display: "block", position: "absolute", right: 0, top: 0, bottom: 0, width: "46%" }}>{children}</div>;
+function DocumentPreview({ kind, title, pressing, custom }: { kind: string; title: string; pressing: boolean; custom?: React.ReactNode }) {
+  if (custom) {
+    return <div className="result-doc"><div className="docbox">{custom}</div></div>;
   }
 
   return (
-    <div className="result-doc" style={{ display: "block", position: "absolute", right: 0, top: 0, bottom: 0, width: "46%" }}>
-      <div className="docbox" style={{ inset: "10px 18px 10px 0", position: "absolute" }}>
+    <div className="result-doc">
+      <div className="docbox">
         <div style={{ aspectRatio: "1.6", borderRadius: 12, background: "var(--panel)", overflow: "hidden" }}>
           <svg viewBox="0 0 560 340" style={{ width: "100%", height: "100%" }}>
             <rect x="0" y="0" width="560" height="340" fill="var(--paper)" />
@@ -148,7 +89,7 @@ function DocumentPreview({ kind, title, children }: { kind: string; title: strin
             )}
           </svg>
         </div>
-        <SettledStamp className="doc-stamp" pressing={false} size={104} style={{ position: "absolute", width: 104, height: 104, right: 46, bottom: 34, color: "var(--accent)", transform: "rotate(-11deg)", zIndex: 2, mixBlendMode: "normal", opacity: 0.92 }} />
+        <SettledStamp className="doc-stamp" pressing={pressing} />
       </div>
     </div>
   );
@@ -156,7 +97,7 @@ function DocumentPreview({ kind, title, children }: { kind: string; title: strin
 
 function ComparisonTable({ head, rows }: { head: string[]; rows: Array<{ cells: string[]; isBest?: boolean }> }) {
   return (
-    <div className="card cmp" style={{ padding: "6px 22px", overflowX: "auto", marginTop: 20 }}>
+    <div className="card cmp" style={{ padding: "6px 22px", overflowX: "auto", marginTop: 16 }}>
       <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 520, fontVariantNumeric: "tabular-nums" }}>
         <thead>
           <tr>
@@ -199,7 +140,7 @@ function FollowUpComposer({ onSend }: { onSend: (text: string) => void }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8, padding: "12px 16px", border: "1px solid var(--stroke)", borderRadius: 28, marginTop: "28px calc(var(--gutter) * -1) -40px", background: "linear-gradient(to top, var(--paper) 70%, transparent)" }}>
+    <form onSubmit={handleSubmit} className="followup">
       <label htmlFor="done-followup" className="sr">Ask a follow up</label>
       <input
         id="done-followup"
@@ -207,7 +148,7 @@ function FollowUpComposer({ onSend }: { onSend: (text: string) => void }) {
         placeholder="Ask a follow up"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        style={{ flex: 1, minWidth: 0, border: 0, outline: 0, background: "transparent", fontSize: 16 }}
+        style={{ flex: 1, minWidth: 0, border: 0, outline: 0, background: "transparent", fontSize: 16, color: "var(--ink)" }}
         enterKeyHint="send"
       />
       <Button type="submit" className="icon-btn ink" style={{ width: 44, height: 44 }} aria-label="Send">
@@ -244,7 +185,7 @@ export function ResultCard({
 
   if (status === "error") {
     return (
-      <section className={cn("view view-enter", className)} id="view-done" style={{ maxWidth: 1240, margin: "0 auto", padding: "28px var(--gutter) 40px", minHeight: "calc(100% - var(--top-h))" }}>
+      <section className={cn("view wide view-enter", className)} id="view-done">
         <div className="hero-card" style={{ padding: 36, textAlign: "center", background: "var(--hero)", color: "var(--hero-ink)", borderRadius: "var(--r-lg)" }}>
           <span className="tag alert" style={{ display: "inline-block", marginBottom: 16 }}>
             <span className="live-dot" style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--alert)", flex: "none", display: "inline-block", marginRight: 8 }} />
@@ -269,36 +210,36 @@ export function ResultCard({
   }
 
   return (
-    <section className={cn("view view-enter", className)} id="view-done" style={{ maxWidth: 1240, margin: "0 auto", padding: "28px var(--gutter) 40px", minHeight: "calc(100% - var(--top-h))" }}>
+    <section className={cn("view wide view-enter", className)} id="view-done">
       <Button className="btn ghost backlink" variant="ghost" onClick={onBack || (() => {})} style={{ marginBottom: 12 }}>
         <SutaeruIcon name="arrow" className="h-5 w-5" /> {title}
       </Button>
 
-      <div className="hero-card result" style={{ position: "relative", padding: isWide ? 36 : 26, display: "flex", flexDirection: "column", gap: 16, minHeight: isWide ? 380 : 320, borderRadius: "var(--r-lg)", background: "var(--hero)", color: "var(--hero-ink)", overflow: "hidden" }}>
-        <SettledStamp pressing={!stamped} size={isWide ? 116 : 92} style={{ top: isWide ? 28 : 20, right: isWide ? 30 : 20 }} />
-        <DitherEdge />
-        {isWide && <DocumentPreview kind={kind} title={title}><SettledStamp className="doc-stamp" pressing={!stamped} size={104} style={{ position: "absolute", width: 104, height: 104, right: 46, bottom: 34, color: "var(--accent)", transform: "rotate(-11deg)", zIndex: 2, mixBlendMode: "normal", opacity: 0.92 }} /></DocumentPreview>}
+      <div className={cn("hero-card result", isWide && "has-doc")}>
+        <SettledStamp pressing={!stamped} />
+        <CornerDither />
+        {isWide && <DocumentPreview kind={kind} title={title} pressing={!stamped} custom={documentPreview} />}
 
-        <span className="mono" style={{ position: "relative" }}>Result · {kind.charAt(0).toUpperCase() + kind.slice(1)}</span>
-        <h1 className="title" style={{ fontSize: isWide ? 52 : 34, color: "var(--hero-ink)", maxWidth: isWide ? "9em" : "6.6em", position: "relative", fontFamily: "var(--disp)", fontWeight: 800, letterSpacing: "-.035em", lineHeight: 1.02, textWrap: "balance" }}>
+        <span className="mono">Result · {kind.charAt(0).toUpperCase() + kind.slice(1)}</span>
+        <h1 className="title">
           {title}
         </h1>
-        <p style={{ margin: 0, color: "var(--hero-quiet)", fontSize: 16, lineHeight: 1.55, maxWidth: "32em", position: "relative" }}>{summary}</p>
+        <p>{summary}</p>
 
-        <div className="figs" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, auto))", justifyContent: "start", gap: "8px 28px", paddingTop: 18, borderTop: "1px solid var(--hero-hair)", position: "relative" }}>
+        <div className="figs">
           {figures.map((fig, i) => (
             <div key={i}>
-              <span className="mono" style={{ display: "block", fontSize: 11, letterSpacing: "1.54px", textTransform: "uppercase", color: "var(--hero-quiet)" }}>{fig.label}</span>
-              <b className="tnum" style={{ display: "block", font: "800 26px/1 var(--disp)", letterSpacing: "-.02em", marginTop: 6, color: "var(--hero-ink)" }}>
+              <span className="mono">{fig.label}</span>
+              <b className="tnum">
                 {fig.value}
               </b>
             </div>
           ))}
         </div>
 
-        <span className="mono" style={{ position: "relative" }}>{meta}</span>
+        <span className="mono meta">{meta}</span>
 
-        <div className="done-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
+        <div className="done-actions">
           <Button className="btn ink big" onClick={onDownload}>
             <SutaeruIcon name="download" className="h-5 w-5" /> Download
           </Button>
@@ -310,14 +251,15 @@ export function ResultCard({
           </Button>
         </div>
 
-        <p className="sent-line" style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--hero-quiet)", fontSize: 14, marginTop: 14 }}>
+        <p className="sent-line">
           <SutaeruIcon name="check" className="s" style={{ width: 16, height: 16, fill: "var(--accent)" }} /> Telegram notified · saved to Files
         </p>
 
-        {comparison && <ComparisonTable head={comparison.head} rows={comparison.rows} />}
-
-        <FollowUpComposer onSend={onFollowUp || (() => {})} />
       </div>
+
+      {comparison && <ComparisonTable head={comparison.head} rows={comparison.rows} />}
+
+      <FollowUpComposer onSend={onFollowUp || (() => {})} />
     </section>
   );
 }

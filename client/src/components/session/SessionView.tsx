@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { FocusBrackets } from "@/components/art";
+import { HalftoneFade } from "@/components/art";
+import { SutaeruStamp } from "@/components/brand/SutaeruSeal";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -57,41 +58,44 @@ function formatRemaining(ms?: number): string {
   return "Almost done";
 }
 
-function StippleDial({ progress, label, size = 96 }: { progress: number; label: string; size?: number }) {
-  const N = 220;
-  const dots = React.useMemo(() => {
-    const result: Array<{ cx: number; cy: number; r: number }> = [];
-    for (let i = 0; i < N; i++) {
-      const a = (i / N) * Math.PI * 2 - Math.PI / 2;
-      const rad = 40 + (Math.random() - 0.5) * 8;
-      const s = 0.6 + Math.random() * 1.2;
-      result.push({
-        cx: 50 + Math.cos(a) * rad,
-        cy: 50 + Math.sin(a) * rad,
-        r: s,
-      });
-    }
-    return result;
-  }, []);
+function seeded(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
-  const visibleCount = Math.round(progress * dots.length);
+const DIAL_DOTS = (() => {
+  const N = 220;
+  const R = seeded(7);
+  const result: Array<{ cx: number; cy: number; r: number }> = [];
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2 - Math.PI / 2;
+    const rad = 40 + (R() - 0.5) * 7;
+    result.push({ cx: 50 + Math.cos(a) * rad, cy: 50 + Math.sin(a) * rad, r: 0.6 + R() * 1.1 });
+  }
+  return result;
+})();
+
+function StippleDial({ progress, label, size = 96 }: { progress: number; label: string; size?: number }) {
+  const pct = Math.round(Math.max(0, Math.min(1, progress)) * 100);
+  const visibleCount = Math.round((pct / 100) * DIAL_DOTS.length);
 
   return (
-    <div className="dial-wrap" style={{ width: size, height: size }}>
-      <div className="dial" role="img" aria-label={`Progress ${Math.round(progress * 100)} percent, ${label}`} style={{ width: size, height: size }}>
-        <svg viewBox="0 0 100 100" aria-hidden="true" style={{ width: "100%", height: "100%" }}>
-          <circle cx="50" cy="50" r="40" className="s-seg" strokeWidth="9" fill="none" style={{ stroke: "var(--seg-off)" }} />
-          <g className="dd">
-            {dots.map((dot, i) => (
-              <circle key={i} cx={dot.cx} cy={dot.cy} r={dot.r} className="f-acc" style={{ display: i < visibleCount ? "block" : "none" }} />
-            ))}
-          </g>
-        </svg>
-        <div className="readout" style={{ position: "absolute", inset: 0, display: "grid", placeContent: "center", textAlign: "center" }}>
-          <b className="tnum" style={{ font: "800 22px/1 var(--disp)", letterSpacing: "-.02em" }}>{Math.round(progress * 100)}%</b>
-          <div className="mono dial-cap" style={{ fontSize: 11, letterSpacing: 1, marginTop: 3 }}>{label}</div>
-        </div>
-      </div>
+    <div className="dial" role="img" aria-label={`Progress ${pct} percent, ${label}`} style={{ width: size, height: size }}>
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="40" fill="none" strokeWidth="9" style={{ stroke: "var(--seg-off)", opacity: 0.55 }} />
+        <g className="dd">
+          {DIAL_DOTS.slice(0, visibleCount).map((dot, i) => (
+            <circle key={i} cx={dot.cx} cy={dot.cy} r={dot.r} className="f-acc" />
+          ))}
+        </g>
+      </svg>
+      <b className="dial-pct tnum">{pct}<small>%</small></b>
     </div>
   );
 }
@@ -135,12 +139,12 @@ function StepFlow({ steps, currentIndex, status, stoppedAt }: { steps: SessionSt
             {(isCurrent || isStopped) && step.sourcesTotal && (
               <div className="detail" style={{ gridColumn: "2 / -1", display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
                 <div className="row" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span className="stepped" id="srcBars" style={{ display: "inline-flex", alignItems: "flexEnd", gap: 3 }} aria-hidden="true">
+                  <span className="stepped" id="srcBars" style={{ display: "inline-flex", alignItems: "flex-end", gap: 3 }} aria-hidden="true">
                     {Array.from({ length: 10 }, (_, j) => (
                       <i
                         key={j}
                         className={j < Math.floor((step.progress || 0) * 10) ? "" : j === Math.floor((step.progress || 0) * 10) && !isStopped ? "live" : "off"}
-                        style={{ width: 5, borderRadius: "1.5px", background: "var(--ink)", height: 6 + j * 2, transition: "background var(--t), height var(--t) var(--ease)" }}
+                        style={{ width: 5, borderRadius: "1.5px", height: 6 + j * 2, transition: "background var(--t)" }}
                       />
                     ))}
                   </span>
@@ -150,7 +154,7 @@ function StepFlow({ steps, currentIndex, status, stoppedAt }: { steps: SessionSt
             )}
             {(isCurrent || isStopped) && step.pagesTotal && (
               <div className="detail" style={{ gridColumn: "2 / -1", display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
-                <span className="file-chip is-on" style={{ position: "relative", alignSelf: "flexStart", display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 10px", font: "500 13px/1 var(--mono)", margin: "6px 6px" }}>
+                <span className="file-chip is-on" style={{ position: "relative", alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 10px", font: "500 13px/1 var(--mono)", margin: "6px 6px" }}>
                   <span className={cn("brk", "tight", isStopped && "alert")} style={{ position: "absolute", inset: -6, pointerEvents: "none", color: isStopped ? "var(--alert)" : "var(--ink)", opacity: isCurrent || isStopped ? 1 : 0, transform: isCurrent || isStopped ? "none" : "scale(1.04)", transition: "opacity 220ms var(--ease), transform 420ms var(--ease)" }} aria-hidden="true">
                     <i style={{ position: "absolute", width: 9, height: 9, border: "0 solid currentColor" }} />
                     <i style={{ position: "absolute", width: 9, height: 9, border: "0 solid currentColor", right: 0, top: 0, borderRightWidth: "1.5px", borderTopWidth: "1.5px" }} />
@@ -185,9 +189,9 @@ function DraftCard({ draft, progress, status }: { draft: SessionDraft; progress:
   const ditherProgress = isDone ? 1 : Math.min(0.97, progress * 1.05);
 
   return (
-    <div className="card draft" style={{ padding: 22, position: "relative" }}>
-      <div className="draft-doc" style={{ position: "relative" }}>
-        <div style={{ opacity: 1 - ditherProgress, transition: "opacity 500ms var(--ease)" }}>
+    <div className="card draft">
+      <div className="draft-doc">
+        <div style={{ opacity: 0.25 + 0.75 * ditherProgress, transition: "opacity 500ms var(--ease)" }}>
           <div style={{ aspectRatio: "1.6", borderRadius: 12, background: "var(--panel)", overflow: "hidden" }}>
             <svg viewBox="0 0 560 340" style={{ width: "100%", height: "100%" }}>
               <rect x="0" y="0" width="560" height="340" fill="var(--paper)" />
@@ -202,15 +206,15 @@ function DraftCard({ draft, progress, status }: { draft: SessionDraft; progress:
             </svg>
           </div>
         </div>
-        <canvas id="draftDither" aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} />
+        <HalftoneFade direction="radial" gridSize={6} dotRadius={1.3} opacity={Math.max(0, 0.45 * (1 - ditherProgress))} className="draft-fade" style={{ borderRadius: 12 }} />
       </div>
-      <span className="mono" style={{ display: "block", marginTop: 12 }}>{draft.eyebrow}</span>
-      <h3 style={{ font: "800 26px/1.05 var(--disp)", letterSpacing: "-.03em", margin: "10px 0 10px", textWrap: "balance" }}>{draft.title}</h3>
-      <p style={{ margin: "0 0 14px", color: "var(--quiet)", fontSize: 15, lineHeight: 1.55 }}>{draft.lede}</p>
+      <span className="mono" style={{ display: "block", marginTop: 14 }}>{draft.eyebrow}</span>
+      <h3>{draft.title}</h3>
+      <p>{draft.lede}</p>
       {draft.rows.map((row, i) => (
-        <div key={i} className={cn("sup", !isDone && progress < 0.5 + i * 0.16 && "pending")} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: "4px 12px", padding: "14px 0", borderTop: "1px solid var(--hair)", position: "relative", transition: "opacity 500ms var(--ease)" }}>
-          <b style={{ font: "700 16px/1.25 var(--disp)" }}>{row.label}</b>
-          <span className="mono" style={{ textAlign: "right" }}>{row.value}</span>
+        <div key={i} className={cn("sup", !isDone && progress < 0.5 + i * 0.16 && "pending")}>
+          <b>{row.label}</b>
+          <span className="mono">{row.value}</span>
         </div>
       ))}
       {isDone && (
@@ -225,11 +229,11 @@ function DraftCard({ draft, progress, status }: { draft: SessionDraft; progress:
 function NextCard({ status, onOpenDone }: { status: "running" | "stopped" | "done"; onOpenDone?: () => void }) {
   if (status === "done") {
     return (
-      <div className="hero-card next-card" style={{ padding: 22, minHeight: 150, display: "flex", flexDirection: "column", justifyContent: "flexEnd", gap: 6, position: "relative", overflow: "hidden", borderRadius: "var(--r-lg)", background: "var(--hero)", color: "var(--hero-ink)" }}>
-        <canvas className="art-deco" aria-hidden="true" style={{ position: "absolute", right: -10, top: "50%", transform: "translateY(-50%)", width: 150, height: 150, pointerEvents: "none" }} />
-        <span className="mono" style={{ position: "relative", zIndex: 1 }}>Sent</span>
-        <b style={{ font: "800 22px/1.15 var(--disp)", letterSpacing: "-.02em", maxWidth: "13em", position: "relative", zIndex: 1 }}>The file is on Telegram and in Files.</b>
-        <Button className="btn ink big" onClick={onOpenDone} style={{ alignSelf: "flexStart" }}>
+      <div className="hero-card next-card">
+        <HalftoneFade direction="radial" gridSize={6} dotRadius={1.2} color="var(--hero-ink)" opacity={0.2} className="handoff-fade" style={{ inset: "0 0 0 auto", width: 150 }} />
+        <span className="mono">Sent</span>
+        <b>The file is on Telegram and in Files.</b>
+        <Button className="btn ink big" onClick={onOpenDone} style={{ alignSelf: "flex-start" }}>
           Open result <SutaeruIcon name="arrow" className="h-5 w-5" />
         </Button>
       </div>
@@ -237,10 +241,10 @@ function NextCard({ status, onOpenDone }: { status: "running" | "stopped" | "don
   }
 
   return (
-    <div className="hero-card next-card" style={{ padding: 22, minHeight: 150, display: "flex", flexDirection: "column", justifyContent: "flexEnd", gap: 6, position: "relative", overflow: "hidden", borderRadius: "var(--r-lg)", background: "var(--hero)", color: "var(--hero-ink)" }}>
-      <canvas className="art-deco" aria-hidden="true" style={{ position: "absolute", right: -10, top: "50%", transform: "translateY(-50%)", width: 150, height: 150, pointerEvents: "none" }} />
-      <span className="mono" style={{ position: "relative", zIndex: 1 }}>What happens next</span>
-      <b style={{ font: "800 22px/1.15 var(--disp)", letterSpacing: "-.02em", maxWidth: "13em", position: "relative", zIndex: 1 }}>Sutaeru finishes the file, then pings you on Telegram. You can close the app.</b>
+    <div className="hero-card next-card">
+      <HalftoneFade direction="radial" gridSize={6} dotRadius={1.2} color="var(--hero-ink)" opacity={0.2} className="handoff-fade" style={{ inset: "0 0 0 auto", width: 150 }} />
+      <span className="mono">What happens next</span>
+      <b>Sutaeru finishes the file, then pings you on Telegram. You can close the app.</b>
     </div>
   );
 }
@@ -310,8 +314,8 @@ function StopArea({ status, showConfirm, progress, onStop, onResume, onKeepWorki
 
 function MiniStamp() {
   return (
-    <span className="mini-stamp" style={{ width: 40, height: 40, color: "var(--ink)", flex: "none", transform: "rotate(-8deg)" }} aria-hidden="true">
-      <svg viewBox="0 0 96 96" style={{ width: "100%", height: "100%" }}><path d="M28 48h40M48 28v40" stroke="currentColor" strokeWidth="6" strokeLinecap="round" fill="none"/></svg>
+    <span className="mini-stamp" aria-hidden="true">
+      <SutaeruStamp className="stamp" style={{ width: "100%", height: "100%", display: "block" }} />
     </span>
   );
 }
@@ -327,7 +331,7 @@ function Composer({ onSend }: { onSend: (text: string) => void }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", gap: 8, padding: "12px 16px", background: "var(--card)", border: "1px solid var(--stroke)", borderRadius: 28 }}>
+    <form onSubmit={handleSubmit} className="followup">
       <label htmlFor="session-message" className="sr">Message Sutaeru</label>
       <input
         id="session-message"
@@ -335,7 +339,7 @@ function Composer({ onSend }: { onSend: (text: string) => void }) {
         placeholder="Message Sutaeru while it works"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        style={{ flex: 1, minWidth: 0, border: 0, outline: 0, background: "transparent", fontSize: 16 }}
+        style={{ flex: 1, minWidth: 0, border: 0, outline: 0, background: "transparent", fontSize: 16, color: "var(--ink)" }}
         enterKeyHint="send"
       />
       <Button type="submit" className="icon-btn ink" style={{ width: 44, height: 44 }} aria-label="Send">
@@ -367,18 +371,19 @@ export function SessionView({
   };
 
   const handleBack = () => {};
+  const remainingLabel = status === "done" ? "Done" : status === "stopped" ? "Stopped" : formatRemaining(estimatedRemainingMs);
 
   return (
-    <section className={cn("view view-enter", className)} id="view-session" style={{ maxWidth: 1240, margin: "0 auto", padding: "28px var(--gutter) 40px", minHeight: "calc(100% - var(--top-h))" }}>
-      <div className="sess-head" style={{ display: "flex", alignItems: "flexStart", gap: 16 }}>
-        <div className="tx" style={{ flex: 1, minWidth: 0 }}>
+    <section className={cn("view wide view-enter", className)} id="view-session">
+      <div className="sess-head">
+        <div className="tx">
           <Button className="btn ghost backlink" variant="ghost" onClick={handleBack} style={{ marginBottom: 6 }}>
             <SutaeruIcon name="arrow" className="h-5 w-5" /> Home
           </Button>
-          <h1 className="title" style={{ fontSize: 30, marginTop: 6, fontFamily: "var(--disp)", fontWeight: 800, letterSpacing: "-.035em", lineHeight: 1.02, textWrap: "balance" }}>
+          <h1 className="title">
             {title}
           </h1>
-          <div className="sess-meta" id="sessMeta" style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
+          <div className="sess-meta" id="sessMeta">
             {status === "done" ? (
               <span className="tag" style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 26, padding: "0 10px", borderRadius: 999, background: "var(--panel)", font: "500 11px/1 var(--mono)", letterSpacing: "1.54px", textTransform: "uppercase", color: "var(--ink)" }}>Done</span>
             ) : status === "stopped" ? (
@@ -389,10 +394,11 @@ export function SessionView({
                 Working
               </span>
             )}
-            <span className="mono tnum" style={{ fontVariantNumeric: "tabular-nums" }}>Elapsed {formatDuration(elapsedMs)}</span>
+            <span className="mono tnum">Elapsed {formatDuration(elapsedMs)}</span>
+            {status === "running" && <span className="mono">{remainingLabel}</span>}
           </div>
         </div>
-        <StippleDial progress={progress} label={status === "done" ? "Done" : status === "stopped" ? "Stopped" : formatRemaining(estimatedRemainingMs)} size={96} />
+        <StippleDial progress={progress} label={remainingLabel} size={96} />
       </div>
 
       <div id="stopArea">
@@ -407,9 +413,9 @@ export function SessionView({
         />
       </div>
 
-      <div className="sess-grid" style={{ display: "grid", gap: 16, marginTop: 24 }}>
-        <div className="panel prog" style={{ padding: 22, background: "var(--panel)", borderRadius: "var(--r-lg)" }}>
-          <div className="between" style={{ display: "flex", alignItems: "center", justifyContent: "spaceBetween", gap: 12 }}>
+      <div className="sess-grid">
+        <div className="panel prog">
+          <div className="between" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <span className="mono">Progress</span>
             <span className="mono ink" id="stepOf" style={{ fontVariantNumeric: "tabular-nums" }}>
               {status === "done" ? `${steps.length} of ${steps.length}` : `Step ${Math.min(currentStepIndex + 1, steps.length)} of ${steps.length}`}
@@ -417,7 +423,7 @@ export function SessionView({
           </div>
           <StepFlow steps={steps} currentIndex={currentStepIndex} status={status as "running" | "stopped" | "done"} />
         </div>
-        <div className="stack" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className="stack">
           {draft && <DraftCard draft={draft} progress={progress} status={status as "running" | "stopped" | "done"} />}
           <NextCard status={status as "running" | "stopped" | "done"} onOpenDone={() => {}} />
         </div>
@@ -431,7 +437,7 @@ export function SessionView({
         </p>
       )}
 
-      <div className="follow" style={{ margin: "28px calc(var(--gutter) * -1) -40px", padding: "12px var(--gutter) calc(14px + env(safe-area-inset-bottom, 0px))", background: "linear-gradient(to top, var(--paper) 70%, transparent)" }}>
+      <div className="sess-follow">
         <Composer onSend={onSendMessage} />
       </div>
     </section>
