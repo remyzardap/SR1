@@ -256,7 +256,6 @@ export default function Images() {
 
   const pictures: RunPicture[] = run.pictures.length ? run.pictures : [{ id: "preview", shot: run.shot, alt: run.prompt }];
   const file = run.files[run.pick];
-  const { credits } = estimate(run.engine, run.quality, run.count);
 
   return (
     <ImageRunScreen
@@ -270,7 +269,6 @@ export default function Images() {
       phase={phaseOf(progress, now - run.t0 > EST_MS)}
       etaSeconds={etaSeconds}
       took={run.took}
-      creditsText={`${credits} credits`}
       pictures={pictures}
       pick={run.pick}
       onPick={(i) => setRun((cur) => (cur ? { ...cur, pick: i } : cur))}
