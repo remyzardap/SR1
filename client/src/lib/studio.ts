@@ -9,7 +9,7 @@
    - painted and clay show a real style reference
    The engine still draws the final picture; the choices reach it as words in the prompt. */
 
-import type { AspectRatio } from "@/pages/Images";
+export type AspectRatio = "1:1" | "4:3" | "16:9" | "3:4" | "9:16";
 
 export type ShotId = "detail" | "close" | "medium" | "wide";
 export type AngleId = "top" | "high" | "eye" | "low" | "dutch";

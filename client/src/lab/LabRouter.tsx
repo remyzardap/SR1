@@ -9,6 +9,8 @@ import LabHalftoneFade from "./LabHalftoneFade";
 import LabPaperGrain from "./LabPaperGrain";
 import LabRegistrationMarks from "./LabRegistrationMarks";
 import LabSlider from "./LabSlider";
+import LabStudio from "./LabStudio";
+import LabImageRun from "./LabImageRun";
 
 export function LabRouter() {
   return (
@@ -22,6 +24,8 @@ export function LabRouter() {
       <Route path="/__lab/art/registration-marks" component={LabRegistrationMarks} />
       <Route path="/__lab/art/slider" component={LabSlider} />
       <Route path="/__lab/art" component={LabArt} />
+      <Route path="/__lab/studio" component={LabStudio} />
+      <Route path="/__lab/image-run" component={LabImageRun} />
     </Switch>
   );
 }
