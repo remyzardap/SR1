@@ -97,7 +97,7 @@ describe("Home screen markup, ported from VIEWS.home", () => {
   it("docks the composer with the focus brackets always on, as Home has them", () => {
     const html = screen();
     expect(html).toContain('class="composer-wrap is-on"');
-    expect(html).toContain('class="brk art-brackets"');
+    expect(html).toContain('class="art-brackets"');
     expect(html).toContain('class="composer dock"');
     // The server renderer keeps the React spelling; the browser reads it case-insensitively.
     expect(html).toMatch(/autocomplete="off"/i);
