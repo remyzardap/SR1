@@ -216,5 +216,3 @@ export function onAppearanceChange(listener: () => void): () => void {
     window.removeEventListener("storage", listener);
   };
 }
-
-export { readArtIntensity, setArtIntensity } from "@/components/art/PaperGrain";
