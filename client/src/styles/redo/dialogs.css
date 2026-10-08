@@ -1,0 +1,42 @@
+/* Dialogs (Radix Dialog from components/ui/dialog.tsx): the redo sheet language on tokens.
+   Card surface with a hairline stroke and top highlight, round 44 px close, left-aligned type,
+   soft scrim. Loaded after the older reskin sheets, so equal specificity wins here. */
+[data-slot="dialog-overlay"] { background: var(--r-scrim); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+[data-slot="dialog-content"] {
+  background: var(--r-card);
+  color: var(--r-ink);
+  border: 1px solid var(--r-stroke);
+  border-radius: 28px;
+  box-shadow: inset 0 1px 0 var(--fin-hl), var(--r-lift);
+}
+[data-slot="dialog-header"] { text-align: left; }
+[data-slot="dialog-title"] { font: 800 24px/1.15 var(--r-font-title); letter-spacing: -0.02em; color: var(--r-ink); }
+[data-slot="dialog-description"] { font: 400 15px/1.5 var(--r-font-body); color: var(--r-quiet); }
+[data-slot="dialog-close"] {
+  top: 10px; right: 10px; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 999px;
+  color: var(--r-quiet); opacity: 1; box-shadow: none;
+  transition: background var(--r-motion) var(--r-ease-out), color 160ms ease;
+}
+[data-slot="dialog-close"]:hover { background: var(--r-panel); color: var(--r-ink); }
+[data-slot="dialog-close"]:focus-visible { outline: 2px solid var(--r-accent); outline-offset: 0; box-shadow: none; }
+[data-slot="dialog-close"] svg { width: 18px; height: 18px; }
+.sk-dialog .sk-empty { padding: 8px 0 4px; }
+.sk-dialog .sk-btn-ghost { background: transparent; border: 1px solid var(--r-stroke); color: var(--r-ink); }
+.sk-dialog .sk-btn-ghost:hover { background: var(--r-panel); }
+@media (prefers-reduced-motion: reduce) { [data-slot="dialog-close"] { transition: none; } }
+:root[data-reduce-motion="true"] [data-slot="dialog-close"] { transition: none; }
+.sk-dialog .sk-search { background: var(--r-panel); border: 1px solid var(--r-stroke); max-width: none; flex: none; height: 48px; }
+[data-slot="dialog-close"]:focus-visible { outline-color: color-mix(in srgb, var(--r-ink) 55%, transparent); }
+
+/* Toasts (sonner): token card instead of the default rich-colour fills. Success keeps an accent dot via its icon only. */
+[data-sonner-toaster] {
+  --normal-bg: var(--r-card); --normal-text: var(--r-ink); --normal-border: var(--r-stroke);
+  --success-bg: var(--r-card); --success-text: var(--r-ink); --success-border: var(--r-stroke);
+  --info-bg: var(--r-card); --info-text: var(--r-ink); --info-border: var(--r-stroke);
+  --warning-bg: var(--r-card); --warning-text: var(--r-ink); --warning-border: var(--r-stroke);
+  --error-bg: var(--r-card); --error-text: var(--r-alert); --error-border: color-mix(in srgb, var(--r-alert) 35%, var(--r-stroke));
+  --border-radius: 20px;
+}
+[data-sonner-toast] { font-family: var(--r-font-body); box-shadow: inset 0 1px 0 var(--fin-hl), var(--r-lift); }
+[data-rich-colors="true"][data-sonner-toast][data-type] { background: var(--r-card); color: var(--r-ink); border-color: var(--r-stroke); }
+[data-rich-colors="true"][data-sonner-toast][data-type="error"] { color: var(--r-alert); border-color: color-mix(in srgb, var(--r-alert) 35%, var(--r-stroke)); }

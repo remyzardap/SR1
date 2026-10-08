@@ -39,7 +39,7 @@
   text-align: left; font: inherit; cursor: pointer; transition: border-color 160ms ease, transform 220ms ease;
 }
 .vd-engine:hover { border-color: var(--r-rule); }
-.vd-engine.is-active { border-color: var(--r-ink); border-width: 2px; padding: 15px; }
+.vd-engine.is-active { border-color: color-mix(in srgb, var(--r-ink) 28%, var(--r-stroke)); } /* selection is marked by FocusBrackets, not a heavy ring */
 .vd-poster {
   position: relative; flex: none; width: 96px; height: 96px; border-radius: 20px; overflow: hidden; background: var(--r-panel);
   display: grid; place-items: center;
@@ -96,6 +96,8 @@
 /* Prompt */
 .vd-prompt { position: relative; margin: 6px; padding: 20px 24px 14px; border-radius: var(--r-radius-card-lg); background: var(--r-card); border: 1px solid var(--r-stroke); }
 .vd-prompt textarea { display: block; width: 100%; min-height: 110px; resize: vertical; border: 0; outline: 0; background: transparent; color: var(--r-ink); font: 400 17px/1.5 var(--r-font-body); }
+.vd-page .vd-prompt textarea:focus-visible { outline: 0; } /* the card takes the focus mark, not a box inside it */
+.vd-prompt:focus-within { border-color: var(--r-ink); }
 .vd-prompt textarea::placeholder { color: var(--r-quiet); opacity: 0.8; }
 .vd-count { display: block; text-align: right; margin-top: 6px; }
 .vd-attach { padding: 20px; border-radius: var(--r-radius-card-lg); border: 1.5px dashed var(--r-rule); display: flex; flex-direction: column; gap: 10px; }

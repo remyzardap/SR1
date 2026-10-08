@@ -43,6 +43,16 @@ export default function LabIndex() {
             All art components: HalftoneRamp, ConvergeBar, LinearDitherBar, DitherEdge, PaperGrain, FocusBrackets, Slider.
           </p>
         </Link>
+        <Link
+          href="/__lab/docs-states"
+          className="card"
+          style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}
+        >
+          <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Documents, Video, Code states</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>
+            Loading, empty and error states for Video engines, the Drive dialog and Code mode.
+          </p>
+        </Link>
       </div>
 
       <h2 style={{ font: "700 16px/1 var(--disp)", margin: "0 0 14px", color: "var(--quiet)", textTransform: "uppercase", letterSpacing: "0.05em" }}>

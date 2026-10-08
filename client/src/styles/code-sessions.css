@@ -24,7 +24,7 @@
 .cs-error, .cs-capped, .cs-interrupted { background: var(--r-alert-tint); color: var(--r-alert); }
 .cs-back { border: 0; background: transparent; padding: 0; margin-bottom: 12px; font: 600 14px var(--r-font-body); color: var(--r-quiet); cursor: pointer; }
 .cs-view-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.cs-timeline { display: grid; gap: 12px; margin: 18px 0; }
+.cs-timeline { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 18px 0; }
 /* Your message: the ink bubble, tail on the sending side. */
 .cs-me { justify-self: end; max-width: 88%; background: var(--r-ink); color: var(--r-paper); padding: 14px 20px; border-radius: var(--r-radius-bubble); font: 400 15px/1.45 var(--r-font-body); white-space: pre-wrap; }
 /* The answer: a card with one hairline stroke, same as the chat transcript. */
@@ -46,8 +46,15 @@
 .cs-totp-input { max-width: 180px; letter-spacing: 0.15em; font-family: var(--r-font-mono); font-weight: 600; }
 
 /* Code mode inside Chat */
-.cs-thread { flex: 1; min-height: 0; overflow-y: auto; width: 100%; max-width: 800px; margin: 0 auto; padding: 16px var(--r-gutter) 8px; }
+.cs-thread { flex: 1; min-height: 0; overflow-y: auto; box-sizing: border-box; width: 100%; max-width: 800px; margin: 0 auto; padding: 16px var(--gutter, 20px) 8px; }
 .cs-empty { padding: 28px 4px; }
 .cs-meta { text-align: center; margin: 0 0 8px; }
 .cs-accessbar { width: 100%; max-width: 800px; margin: 0 auto; padding: 0 16px 6px; }
 .cs-accessbar .cs-totp-input { margin-top: 8px; }
+.cs-approve .sk-btn-ghost { background: transparent; border: 1px solid var(--r-stroke); color: var(--r-ink); }
+.cs-approve .sk-btn-ghost:hover { background: var(--r-panel); }
+/* Locked and empty states read as the quiet cards of the other redo screens. */
+.cs-empty { display: flex; flex-direction: column; gap: 4px; }
+.cs-empty .cs-card-title { font-weight: 800; font-size: 24px; letter-spacing: -0.6px; }
+/* On phones the logo menu floats over the top-left of the thread: start below it. */
+@media (max-width: 759px) { .cs-thread { padding-top: 60px; } }
