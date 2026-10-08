@@ -247,12 +247,34 @@ function AppRoutes() {
 }
 
 function App() {
+  const isLab = Boolean(
+    LabRouter &&
+      typeof window !== "undefined" &&
+      window.location.pathname.startsWith("/__lab")
+  );
+
   // An invite link arrives as `/?invite=<code>`. A route can redirect before the sign-in
   // page ever renders, and a redirect drops the query string, so the code is read here on
   // the first load and the parameter is removed from the address bar.
   useEffect(() => {
-    captureInviteFromWindow();
-  }, []);
+    if (!isLab) {
+      captureInviteFromWindow();
+    }
+  }, [isLab]);
+
+  if (isLab && LabRouter) {
+    return (
+      <ErrorBoundary>
+        <ThemeProvider>
+          <TooltipProvider>
+            <React.Suspense fallback={null}>
+              <LabRouter />
+            </React.Suspense>
+          </TooltipProvider>
+        </ThemeProvider>
+      </ErrorBoundary>
+    );
+  }
 
   return (
     <ErrorBoundary>
