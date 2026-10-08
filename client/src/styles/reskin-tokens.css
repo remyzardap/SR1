@@ -16,134 +16,192 @@
 
 /* ── Light (final) ─────────────────────────────────────────────────────────── */
 :root {
-  --r-paper: #F7F6F2;
-  --r-panel: #EFEDE7;
-  --r-card: #FFFFFF;
-  --r-stroke: #E3E1DB;
-  --r-card-stroke: var(--r-stroke); /* used by the Images flow; follows the theme with --r-stroke */
-  --r-ink: #242320;
-  --r-quiet: #66645F;
-  --r-rule: #B6BBC3;
-  --r-accent: #F4511E;
-  --r-accent-ink: #242320; /* text/icons sitting on accent fill */
-  --r-alert: #B3402A;
-  --r-alert-tint: rgba(179, 64, 42, 0.10);
-  --r-accent-tint: #FCE9DE;
-  --r-shadow: rgba(36, 35, 32, 0.12);
-  --r-wash: rgba(255, 255, 255, 0.30); /* body::before light wash */
+  --paper: #F7F6F2;
+  --panel: #EFEDE7;
+  --card: #FFFFFF;
+  --stroke: #E3E1DB;
+  --ink: #242320;
+  --quiet: #66645F;
+  --rule: #B6BBC3;
+  --seg-off: #DAD7CF;
+  --accent: #F4511E;
+  --accent-tint: #FCE9DE;
+  --alert: #B3402A;
+  --alert-tint: rgba(179, 64, 42, .10);
+  --hair: rgba(36, 35, 32, .14);
+  --hero: #242320;
+  --hero-ink: #F7F6F2;
+  --hero-quiet: rgba(247, 246, 242, .62);
+  --hero-hair: rgba(247, 246, 242, .16);
+  --scrim: rgba(28, 27, 25, .32);
+  --shadow: 0 1px 2px rgba(36, 35, 32, .06), 0 18px 40px -22px rgba(36, 35, 32, .28);
+  --lift: 0 24px 60px -28px rgba(36, 35, 32, .45);
+
+  --disp: "Inter Tight", "Inter", system-ui, sans-serif;
+  --body: "Inter", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-sans: var(--body);
+  --grain: .045;
+
+  --r-card: 24px; /* radius (prototype); the colour alias further down wins in the cascade, so use --r-radius-card for radii */
+  --r-lg: 28px;
+  --r-thumb: 18px;
+  --gutter: 20px;
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  --t: 380ms;
+  --top-h: 60px;
+  color-scheme: light;
+
+  /* Aliased --r-* tokens mapped to root palette */
+  --r-paper: var(--paper);
+  --r-panel: var(--panel);
+  --r-card: var(--card);
+  --r-stroke: var(--stroke);
+  --r-card-stroke: var(--stroke);
+  --r-ink: var(--ink);
+  --r-quiet: var(--quiet);
+  --r-rule: var(--rule);
+  --r-seg-off: var(--seg-off);
+  --r-accent: #F4511E; /* literal: the shadcn block below re-points --accent at the panel colour */
+  --r-accent-ink: var(--ink);
+  --r-alert: var(--alert);
+  --r-alert-tint: var(--alert-tint);
+  --r-accent-tint: var(--accent-tint);
+  --r-hair: var(--hair);
+  --r-hero: var(--hero);
+  --r-hero-ink: var(--hero-ink);
+  --r-hero-quiet: var(--hero-quiet);
+  --r-hero-hair: var(--hero-hair);
+  --r-scrim: var(--scrim);
+  --r-shadow: var(--shadow);
+  --r-lift: var(--lift);
+  --r-wash: rgba(255, 255, 255, 0.30);
   --r-noise-opacity: 0.035;
 
-  /* Accent surfaces that stay dark in both themes (Identity hero, the Memories and
-     Connections privacy cards). --r-ink/--r-paper swap between themes, so a card that
-     is meant to read as a dark block needs its own pair. */
-  --r-hero: #242320;
-  --r-hero-ink: #F7F6F2;
-
-  /* Type: Inter Tight titles, Inter body, JetBrains Mono labels (loaded in client/index.html) */
-  --r-font-title: "Inter Tight", "Inter", system-ui, sans-serif;
-  --r-font-body: "Inter", system-ui, sans-serif;
-  --r-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --r-track-title-lg: -2px;   /* at 42px */
-  --r-track-title-md: -1.2px; /* at 30px */
-  --r-track-mono: 1.54px;     /* mono labels, never below 11px */
+  --r-font-title: var(--disp);
+  --r-font-body: var(--body);
+  --r-font-mono: var(--mono);
+  --r-track-title-lg: -2px;
+  --r-track-title-md: -1.2px;
+  --r-track-mono: 1.54px;
   --r-size-mono: 11px;
 
-  /* Radii and spacing */
   --r-radius-card: 24px;
-  --r-radius-card-lg: 28px;
-  --r-radius-panel: 28px;
-  --r-radius-thumb: 18px;
+  --r-radius-card-lg: var(--r-lg);
+  --r-radius-panel: var(--r-lg);
+  --r-radius-thumb: var(--r-thumb);
   --r-radius-pill: 999px;
-  --r-radius-bubble: 26px 26px 8px 26px; /* user question, tail on the sending side */
-  --r-gutter: 20px;
+  --r-radius-bubble: 26px 26px 8px 26px;
   --r-gap-card: 12px;
   --r-pad-card: 24px;
 
-  /* Motion: 300-500ms ease-out for progress; [data-reduce-motion] and the OS
-     prefers-reduced-motion setting snap instead (see the override below). */
-  --r-motion: 380ms;
-  --r-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --r-motion: var(--t);
+  --r-ease-out: var(--ease);
 }
 
-/* ── Dark (proposal, per spec) ─────────────────────────────────────────────── */
+@media (min-width: 760px) { :root { --gutter: 32px; --top-h: 72px; } }
+@media (min-width: 1100px) { :root { --gutter: 48px; } }
+
 @media (prefers-color-scheme: dark) {
-  :root:not([data-mode]):not([data-theme]):not(.light):not(.dark) {
-    --r-paper: #1C1B19;
-    --r-panel: #2A2926;
-    --r-card: #2A2926;
-    --r-stroke: #3A3935;
-    --r-ink: #F7F6F2;
-    --r-quiet: #B6BBC3;
-    --r-rule: #66645F;
-    --r-accent: #F4511E;
-    --r-accent-ink: #1C1B19;
-    --r-alert: #B3402A;
-    --r-alert-tint: rgba(179, 64, 42, 0.22);
-    --r-accent-tint: rgba(244, 81, 30, 0.16);
-    --r-shadow: rgba(0, 0, 0, 0.5);
+  :root:not([data-theme="light"]):not([data-mode="light"]) {
+    --paper: #1C1B19;
+    --panel: #2E2D2A;
+    --card: #252421;
+    --stroke: #3A3935;
+    --ink: #F4F2EC;
+    --quiet: #B6BBC3;
+    --rule: #6B6964;
+    --seg-off: #403F3A;
+    --accent: #F4511E;
+    --accent-tint: rgba(244, 81, 30, .16);
+    --alert: #E0694E;
+    --alert-tint: rgba(224, 105, 78, .16);
+    --hair: rgba(244, 242, 236, .12);
+    --hero: #131211;
+    --hero-ink: #F4F2EC;
+    --hero-quiet: rgba(244, 242, 236, .6);
+    --hero-hair: rgba(244, 242, 236, .14);
+    --scrim: rgba(0, 0, 0, .55);
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 18px 40px -22px rgba(0, 0, 0, .7);
+    --lift: 0 24px 60px -28px rgba(0, 0, 0, .9);
+    --grain: .03;
+    color-scheme: dark;
+
+    --r-accent-ink: var(--paper);
     --r-wash: rgba(255, 255, 255, 0.03);
     --r-noise-opacity: 0.02;
-    --r-hero: #131211;
-    --r-hero-ink: #F7F6F2;
   }
 }
 
-/* Explicit dark: attribute/class on <html> forces it (also works on scoped demo cards). */
-[data-mode="dark"],
-[data-theme="dark"],
+:root[data-theme="dark"],
+:root[data-mode="dark"],
 .dark {
-  --r-paper: #1C1B19;
-  --r-panel: #2A2926;
-  --r-card: #2A2926;
-  --r-stroke: #3A3935;
-  --r-card-stroke: var(--r-stroke);
-  --r-ink: #F7F6F2;
-  --r-quiet: #B6BBC3;
-  --r-rule: #66645F;
-  --r-accent: #F4511E;
-  --r-accent-ink: #1C1B19;
-  --r-alert: #B3402A;
-  --r-alert-tint: rgba(179, 64, 42, 0.22);
-  --r-accent-tint: rgba(244, 81, 30, 0.16);
-  --r-shadow: rgba(0, 0, 0, 0.5);
+  --paper: #1C1B19;
+  --panel: #2E2D2A;
+  --card: #252421;
+  --stroke: #3A3935;
+  --ink: #F4F2EC;
+  --quiet: #B6BBC3;
+  --rule: #6B6964;
+  --seg-off: #403F3A;
+  --accent: #F4511E;
+  --accent-tint: rgba(244, 81, 30, .16);
+  --alert: #E0694E;
+  --alert-tint: rgba(224, 105, 78, .16);
+  --hair: rgba(244, 242, 236, .12);
+  --hero: #131211;
+  --hero-ink: #F4F2EC;
+  --hero-quiet: rgba(244, 242, 236, .6);
+  --hero-hair: rgba(244, 242, 236, .14);
+  --scrim: rgba(0, 0, 0, .55);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 18px 40px -22px rgba(0, 0, 0, .7);
+  --lift: 0 24px 60px -28px rgba(0, 0, 0, .9);
+  --grain: .03;
+  color-scheme: dark;
+
+  --r-accent-ink: var(--paper);
   --r-wash: rgba(255, 255, 255, 0.03);
   --r-noise-opacity: 0.02;
-  --r-hero: #131211;
-  --r-hero-ink: #F7F6F2;
 }
 
-/* Explicit light forces the light values back inside a dark-forced ancestor. */
-[data-mode="light"],
-[data-theme="light"],
+:root[data-theme="light"],
+:root[data-mode="light"],
 .light {
-  --r-paper: #F7F6F2;
-  --r-panel: #EFEDE7;
-  --r-card: #FFFFFF;
-  --r-stroke: #E3E1DB;
-  --r-card-stroke: var(--r-stroke);
-  --r-ink: #242320;
-  --r-quiet: #66645F;
-  --r-rule: #B6BBC3;
-  --r-accent: #F4511E;
-  --r-accent-ink: #242320;
-  --r-alert: #B3402A;
-  --r-alert-tint: rgba(179, 64, 42, 0.10);
-  --r-accent-tint: #FCE9DE;
-  --r-shadow: rgba(36, 35, 32, 0.12);
+  --paper: #F7F6F2;
+  --panel: #EFEDE7;
+  --card: #FFFFFF;
+  --stroke: #E3E1DB;
+  --ink: #242320;
+  --quiet: #66645F;
+  --rule: #B6BBC3;
+  --seg-off: #DAD7CF;
+  --accent: #F4511E;
+  --accent-tint: #FCE9DE;
+  --alert: #B3402A;
+  --alert-tint: rgba(179, 64, 42, .10);
+  --hair: rgba(36, 35, 32, .14);
+  --hero: #242320;
+  --hero-ink: #F7F6F2;
+  --hero-quiet: rgba(247, 246, 242, .62);
+  --hero-hair: rgba(247, 246, 242, .16);
+  --scrim: rgba(28, 27, 25, .32);
+  --shadow: 0 1px 2px rgba(36, 35, 32, .06), 0 18px 40px -22px rgba(36, 35, 32, .28);
+  --lift: 0 24px 60px -28px rgba(36, 35, 32, .45);
+  color-scheme: light;
+
+  --r-accent-ink: var(--ink);
   --r-wash: rgba(255, 255, 255, 0.30);
   --r-noise-opacity: 0.035;
-  --r-hero: #242320;
-  --r-hero-ink: #F7F6F2;
 }
 
-/* Reduce motion: snap progress bars instead of animating. Driven by the OS setting
-   and by data-reduce-motion="true" on <html> (the app's Reduce motion setting hook). */
 [data-reduce-motion="true"] {
   --r-motion: 0ms;
+  --t: 0ms;
 }
 @media (prefers-reduced-motion: reduce) {
   :root {
     --r-motion: 0ms;
+    --t: 0ms;
   }
 }
 
@@ -212,7 +270,6 @@
   /* shadcn/ui semantic colors (tailwind theme maps onto these) */
   --background: var(--r-paper);
   --foreground: var(--r-ink);
-  --card: var(--r-card);
   --card-foreground: var(--r-ink);
   --popover: var(--r-card);
   --popover-foreground: var(--r-ink);
@@ -222,7 +279,7 @@
   --secondary-foreground: var(--r-ink);
   --muted: var(--r-panel);
   --muted-foreground: var(--r-quiet);
-  --accent: var(--r-panel);
+  --ui-accent: var(--r-panel); /* shadcn hover surface; --accent stays the orange signal */
   --accent-foreground: var(--r-ink);
   --destructive: var(--r-alert);
   --destructive-foreground: var(--r-paper);

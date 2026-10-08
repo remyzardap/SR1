@@ -11,9 +11,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Sutaeru" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="preload" href="/fonts/inter-tight-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/inter-tight-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin />
     <title>Sutaeru: ask once, Sutaeru does the rest</title>
     <script>
       /* Restore the saved appearance before the first paint, so a dark choice never
@@ -22,8 +21,18 @@
         try {
           var s = window.localStorage, r = document.documentElement;
           var mode = s.getItem("sutaeru.theme");
-          if (mode === "light" || mode === "dark") r.dataset.mode = mode;
+          if (mode === "light" || mode === "dark") {
+            r.dataset.mode = mode;
+            r.dataset.theme = mode;
+          }
           if (s.getItem("sutaeru.reduce-motion") === "true") r.dataset.reduceMotion = "true";
+          /* A switched-off art setting must not flash on, and full grain must not flash
+             before the saved intensity is applied. */
+          var art = s.getItem("sutaeru.background-art") === "off" ? "off" : "on";
+          r.dataset.art = art;
+          r.dataset.bgArt = art;
+          var intensity = Number(s.getItem("sutaeru.art-intensity"));
+          if (intensity >= 20 && intensity <= 100) r.style.setProperty("--art-intensity", String(intensity / 100));
           var meta = document.querySelector('meta[name="theme-color"]');
           if (meta) {
             var dark = mode === "dark" || (mode !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);

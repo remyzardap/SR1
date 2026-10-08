@@ -5,7 +5,7 @@ import { createErrorResult, createSuccessResult, type LegacyToolResult } from ".
 import type { ToolContext } from "../types";
 
 const RunCodeArgs = z.object({
-  language: z.enum(["python", "nodejs"]).optional().describe("Programming language to execute"),
+  language: z.enum(["python", "nodejs", "javascript", "bash", "r"]).optional().describe("Programming language to execute"),
   code: z.string().describe("The code to execute"),
   timeout: z.number().optional().describe("Execution timeout in seconds (default: 30, max: 300)"),
   dependencies: z.array(z.string().describe("Package name (e.g., 'requests', 'lodash')")).optional().describe("List of npm/pip packages to install before execution"),
@@ -15,9 +15,16 @@ const RunCodeArgs = z.object({
 
 async function execute(args: z.infer<typeof RunCodeArgs>, ctx: ToolContext): Promise<LegacyToolResult> {
   if (typeof args.code !== "string") return createErrorResult('Missing or invalid "code" parameter', "INVALID_PARAMS");
-  // FIX kept from kemmaMax.ts: runCode is (language, code); default language to "python" when omitted.
-  const resolvedLanguage: "python" | "nodejs" = args.language === "nodejs" ? "nodejs" : "python";
-  return createSuccessResult(await runCode(resolvedLanguage, args.code, ctx.signal));
+  const resolvedLanguage = args.language ?? "python";
+  const timeoutMs = typeof args.timeout === "number" && args.timeout > 0 ? args.timeout * 1000 : undefined;
+  return createSuccessResult(
+    await runCode(resolvedLanguage, args.code, ctx.signal, {
+      userId: ctx.userId,
+      sessionId: ctx.sessionId,
+      emit: ctx.emit,
+      timeoutMs,
+    })
+  );
 }
 
 export function registerRunCode(): void {

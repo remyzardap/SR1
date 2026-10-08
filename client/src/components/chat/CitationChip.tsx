@@ -34,7 +34,7 @@ export function CitationChip({
           href={href}
           onClick={scrollToSource}
           aria-label={`Source ${number}: ${title}`}
-          className="mx-px inline-flex items-center rounded-sm bg-muted px-[0.28em] align-super text-[0.7em] font-medium text-muted-foreground underline-offset-2 transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="cite"
         >
           {children ?? number}
         </a>

@@ -1,3 +1,4 @@
+import * as React from "react";
 import type { SVGProps } from "react";
 
 import { cn } from "@/lib/utils";
@@ -38,7 +39,13 @@ export type SutaeruIconName =
   | "review"
   | "admin"
   | "plan"
-  | "pause";
+  | "pause"
+  | "camera"
+  | "eyeoff"
+  | "send"
+  | "up"
+  | "upright"
+  | "wave";
 
 type SutaeruIconProps = SVGProps<SVGSVGElement> & {
   name: SutaeruIconName;
@@ -82,6 +89,12 @@ const paths: Record<SutaeruIconName, React.ReactNode> = {
   admin: <><path d="M48 14 76 25v20c0 18-11 29-28 37-17-8-28-19-28-37V25l28-11Z" /><path d="m34 48 9 9 19-20" /></>,
   plan: <><path d="M18 24h60v48H18V24Z" /><path d="M18 40h60M39 40v32M28 32h2M36 32h2M56 52h12M56 61h8" /></>,
   pause: <><rect x="32" y="26" width="14" height="44" rx="7" /><rect x="50" y="26" width="14" height="44" rx="7" /></>,
+  camera: <><path d="M18 34h14l6-9h20l6 9h14v40H18Z" /><circle cx="48" cy="52" r="12" /></>,
+  eyeoff: <><path d="M16 48s12-22 32-22 32 22 32 22-12 22-32 22-32-22-32-22Z" /><circle cx="48" cy="48" r="10" /><path d="M20 20l56 56" /></>,
+  send: <><path d="M16 46 80 18 66 80 46 56Z" /><path d="m46 56 34-38" /></>,
+  up: <path d="M48 78V22M28 41l20-20 20 20" />,
+  upright: <><path d="M30 66 66 30M38 30h28v28" /></>,
+  wave: <path d="M18 42v12M30 32v32M42 22v52M54 30v36M66 38v20M78 44v8" />,
 };
 
 const signals: Partial<Record<SutaeruIconName, [number, number]>> = {

@@ -395,6 +395,17 @@ an unset or blank variable means the default.
 
 ---
 
+## 📦 E2B Code Sandbox (P2-11)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `E2B_API_KEY` | empty | API key for E2B isolated code execution sandbox |
+| `E2B_SANDBOX_TEMPLATE` | empty | Optional custom E2B sandbox template ID |
+| `SANDBOX_IDLE_MIN` | `15` | Idle timeout in minutes for persistent session sandboxes |
+| `SANDBOX_COST_PER_MIN` | `0.03` | Sandbox cost estimate per minute (USD), logged to `usage_logs` |
+
+---
+
 ## Tests and bench
 
 | Variable | Default | Description |

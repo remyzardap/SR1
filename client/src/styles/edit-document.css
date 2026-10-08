@@ -546,3 +546,7 @@
   .sk-edit-progress-title { font-size: 20px; }
   .sk-edit-result-title { font-size: 20px; }
 }
+
+/* Field label: the mono caps label used across the redo screens. */
+.sk-edit-label { display: flex; align-items: baseline; gap: 8px; font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: var(--r-quiet); }
+.sk-edit-label .opacity-60 { opacity: 1; color: var(--r-rule); }

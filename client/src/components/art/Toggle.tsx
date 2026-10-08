@@ -1,3 +1,4 @@
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export interface ToggleProps {
@@ -19,10 +20,10 @@ export function Toggle({ checked, onCheckedChange, disabled, label, className }:
       aria-label={label}
       disabled={disabled}
       data-on={checked ? "true" : "false"}
-      className={cn("art-toggle", className)}
+      className={cn("toggle-track toggle art-toggle", className)}
       onClick={() => onCheckedChange?.(!checked)}
     >
-      <span className="art-toggle-knob" />
+      <span className="toggle-thumb art-toggle-knob" />
     </button>
   );
 }

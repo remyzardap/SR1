@@ -61,7 +61,9 @@
 .sk-identity .skx-id-stats {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  line-height: 1.5;
   min-width: 0;
 }
 .sk-identity .skx-id-stats .sk-dot { background: var(--r-paper); }

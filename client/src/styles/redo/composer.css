@@ -1,0 +1,64 @@
+/* ── Composer ─────────────────────────────────────────────────────────── */
+.composer-wrap { position: relative; margin-top: 28px; }
+.composer {
+  position: relative;
+  background: var(--card); border: 1px solid var(--stroke); border-radius: 26px;
+  padding: 18px 18px 14px;
+  display: flex; flex-direction: column; gap: 12px;
+  box-shadow: var(--shadow);
+  transition: border-color var(--t) var(--ease);
+}
+.composer:focus-within { border-color: var(--rule); }
+.composer textarea {
+  border: 0; outline: 0; resize: none; background: transparent;
+  font: 400 17px/1.5 var(--body); min-height: 78px; max-height: 220px;
+  padding: 0 4px;
+}
+.composer textarea::placeholder { color: var(--quiet); }
+@media (min-width: 760px) { .composer { padding: 24px 22px 18px; } .composer textarea { font-size: 20px; min-height: 64px; } }
+.composer .ctrls { display: flex; align-items: center; gap: 8px; }
+.composer .ctrls .pills { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 4px 2px; flex: 1; min-width: 0; }
+.composer .ctrls .pills::-webkit-scrollbar { display: none; }
+.send { width: 48px; height: 48px; }
+.send[disabled] { background: var(--panel); color: var(--quiet); border-color: var(--panel); }
+.attach-dot { position: absolute; top: 9px; right: 9px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.attachments { display: flex; flex-wrap: wrap; gap: 8px; }
+.att {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 8px 8px 10px; border-radius: 16px; background: var(--panel);
+  min-width: 0; max-width: 100%;
+}
+.att .att-thumb { width: 36px; height: 36px; border-radius: 10px; background: var(--card); display: grid; place-items: center; flex: none; overflow: hidden; }
+.att .att-meta { min-width: 0; }
+.att b { display: block; font: 600 13px/1.2 var(--body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+.att canvas { display: block; width: 120px; height: 6px; margin-top: 6px; }
+.att .icon-btn { width: 32px; height: 32px; border: 0; background: transparent; }
+.att .icon-btn::after { content: ""; position: absolute; inset: -6px; }
+
+.popover {
+  position: absolute; z-index: 20; left: 0; bottom: calc(100% + 10px);
+  width: min(320px, calc(100vw - 2 * var(--gutter)));
+  background: var(--card); border: 1px solid var(--stroke); border-radius: 22px;
+  padding: 8px; box-shadow: var(--lift);
+  transform-origin: 12% 100%;
+  animation: pop 260ms var(--ease) both;
+}
+@keyframes pop { from { opacity: 0; transform: scale(.94) translateY(6px); } }
+.popover .mono { padding: 10px 12px 6px; }
+.pop-item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 0 12px; border-radius: 14px; text-align: left; }
+.pop-item:active { background: var(--panel); }
+.pop-item .pi { width: 36px; height: 36px; border-radius: 12px; background: var(--panel); display: grid; place-items: center; flex: none; }
+.pop-item b { display: block; font: 600 15px/1.2 var(--body); }
+.pop-item small { display: block; color: var(--quiet); font-size: 13px; margin-top: 2px; }
+
+/* Voice: the mic turns into a live level meter */
+.voice-meter { display: none; align-items: center; gap: 3px; height: 22px; }
+.listening .voice-meter { display: inline-flex; }
+.listening .mic-ico { display: none; }
+.voice-meter i { width: 3px; border-radius: 2px; background: var(--accent); height: 6px; animation: lvl 900ms ease-in-out infinite; }
+.voice-meter i:nth-child(2) { animation-delay: -.2s; } .voice-meter i:nth-child(3) { animation-delay: -.5s; } .voice-meter i:nth-child(4) { animation-delay: -.7s; }
+@keyframes lvl { 50% { height: 20px; } }
+
+/* Keyboard: keep docked composers above it; hide the go bar while typing */
+.kb-open .home-dock, .kb-open .follow { transform: translateY(calc(-1 * var(--kb, 0px))); }
+.kb-open .go-bar { display: none; }

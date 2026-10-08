@@ -13,7 +13,14 @@ export function useAuth(options?: UseAuthOptions) {
     options ?? {};
   const utils = trpc.useUtils();
 
+  const isLab = Boolean(
+    (import.meta.env.DEV || import.meta.env.VITE_DESIGN_LAB === "1") &&
+      typeof window !== "undefined" &&
+      window.location.pathname.startsWith("/__lab")
+  );
+
   const meQuery = trpc.auth.me.useQuery(undefined, {
+    enabled: !isLab,
     retry: false,
     refetchOnWindowFocus: false,
   });

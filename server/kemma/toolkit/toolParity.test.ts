@@ -97,7 +97,7 @@ const FROZEN: Record<string, OpenAiToolDef> = {
     parameters: {
       type: "object",
       properties: {
-        language: { type: "string", description: "Programming language to execute", enum: ["python", "nodejs"] },
+        language: { type: "string", description: "Programming language to execute", enum: ["python", "nodejs", "javascript", "bash", "r"] },
         code: { type: "string", description: "The code to execute" },
         timeout: { type: "number", description: "Execution timeout in seconds (default: 30, max: 300)" },
         dependencies: { type: "array", description: "List of npm/pip packages to install before execution", items: { type: "string", description: "Package name (e.g., 'requests', 'lodash')" } },

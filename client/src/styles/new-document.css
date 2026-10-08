@@ -123,7 +123,7 @@
 }
 .sk-nd-kind-title { font: 800 22px/1.1 var(--r-font-title); letter-spacing: -0.6px; }
 .sk-nd-kind-text { font: 400 14px/1.5 var(--r-font-body); color: var(--r-quiet); }
-.sk-nd-kind-meta { font: 400 12.5px/1.4 var(--r-font-body); color: var(--r-rule); }
+.sk-nd-kind-meta { font: 400 12.5px/1.4 var(--r-font-body); color: var(--r-quiet); }
 .sk-nd-kind-eta {
   margin-top: 2px;
   font: 500 var(--r-size-mono)/1.5 var(--r-font-mono);
