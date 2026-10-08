@@ -120,7 +120,7 @@ export default function AuditLogs() {
               </thead>
               <tbody>
                 {data.logs.map((log) => (
-                  <tr key={log.id} className="transition-colors hover:bg-[#FAF9F5]">
+                  <tr key={log.id} className="transition-colors hover:bg-[var(--r-panel)]">
                     <td data-label="Time" className="sk-td-mono">{formatTs(log.createdAt)}</td>
                     <td data-label="User">
                       <div className="sk-row">
