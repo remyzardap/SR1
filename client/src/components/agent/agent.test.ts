@@ -64,19 +64,20 @@ const count = (html: string, re: RegExp) => (html.match(re) || []).length;
 describe("StepRail", () => {
   it("marks the first step current and counts four", () => {
     const html = renderToStaticMarkup(React.createElement(StepRail));
-    expect(html).toContain('aria-label="Step 1 of 4"');
+    expect(html).toContain('aria-label="Steps"');
     expect(count(html, /class="st[ "]/g)).toBe(4);
-    expect(html).toContain('class="st cur"');
-    expect(html).toContain('<span class="num">01 </span>Brief');
-    expect(html).toContain('<span class="num">04 </span>Done');
-    expect(count(html, /class="ln"/g)).toBe(3);
+    expect(html).toContain('class="st cur" aria-current="step"');
+    expect(html).toContain('class="sq" aria-hidden="true"></i>Brief');
+    expect(html).not.toContain('class="num"');
+    expect(html).toContain(">Done</span>");
+    expect(count(html, /class="ln"[ >]/g)).toBe(3);
   });
 
   it("marks finished steps and connectors done", () => {
     const html = renderToStaticMarkup(React.createElement(StepRail, { current: 2 }));
-    expect(count(html, /class="ln done"/g)).toBe(2);
+    expect(count(html, /class="ln done"[ >]/g)).toBe(2);
     expect(html).toContain('class="st done"');
-    expect(html).toContain('aria-label="Step 3 of 4"');
+    expect(html).toContain('class="st cur" aria-current="step"><i class="sq" aria-hidden="true"></i>Build');
   });
 });
 

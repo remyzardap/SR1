@@ -11,19 +11,20 @@ export interface StepRailProps {
 /** The BRIEF / LOOK / BUILD / DONE rail above a screen (app.js stepsHTML). */
 export function StepRail({ current = ACTIVE_STEP }: StepRailProps) {
   return (
-    <div className="steps" aria-label={`Step ${current + 1} of ${STEP_NAMES.length}`}>
+    <nav className="steps" aria-label="Steps">
       {STEP_NAMES.map((name, i) => (
         <React.Fragment key={name}>
-          {i > 0 && <span className={cn("ln", i <= current && "done")} />}
-          <span className={cn("st", i === current && "cur", i < current && "done")}>
-            <span className="mono">
-              <span className="num">{`0${i + 1} `}</span>
-              {name}
-            </span>
+          {i > 0 && <span className={cn("ln", i <= current && "done")} aria-hidden="true" />}
+          <span
+            className={cn("st", i === current && "cur", i < current && "done")}
+            aria-current={i === current ? "step" : undefined}
+          >
+            {i === current && <i className="sq" aria-hidden="true" />}
+            {name}
           </span>
         </React.Fragment>
       ))}
-    </div>
+    </nav>
   );
 }
 
