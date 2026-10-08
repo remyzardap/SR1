@@ -34,6 +34,8 @@ import LabHome from "./LabHome";
 import LabStudio from "./LabStudio";
 import LabImageRun from "./LabImageRun";
 
+import LabPageStates from "./LabPageStates";
+
 export function LabRouter() {
   return (
     <Switch>
@@ -64,6 +66,7 @@ export function LabRouter() {
       <Route path="/__lab/home" component={LabHome} />
       <Route path="/__lab/studio" component={LabStudio} />
       <Route path="/__lab/image-run" component={LabImageRun} />
+      <Route path="/__lab/page-states" component={LabPageStates} />
     </Switch>
   );
 }

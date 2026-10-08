@@ -178,6 +178,7 @@ export default function LabIndex() {
           <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Image run</b>
           <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>Dither reveal, converge bar, phases, stopped, error, done with variants.</p>
         </Link>
+        <Link href="/__lab/page-states">Page states: loading, empty, error (Skills, Memories, Monitors, Admin)</Link>
       </div>
     </LabLayout>
   );
