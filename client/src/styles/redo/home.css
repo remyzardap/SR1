@@ -4,9 +4,10 @@
 .home-hero .mark { width: 96px; height: 52px; color: var(--ink); }
 .home-hero .word { font: 800 53px/1 var(--disp); letter-spacing: -2.6px; margin: 16px 0 12px; }
 .home-hero .tagline { letter-spacing: 1.54px; }
-.ramp { display: flex; align-items: center; gap: 0; height: 18px; margin-top: 22px; }
-.ramp i { width: 9.7px; display: grid; place-items: center; }
-.ramp i::before { content: ""; width: var(--d); height: var(--d); border-radius: 50%; background: var(--ink); transform: scale(var(--k, 1)); transition: transform 240ms var(--ease); }
+.ramp { margin-top: 22px; color: var(--ink); max-width: 100%; }
+.ramp i { transform: scale(var(--k, 1)); transition: transform 240ms var(--ease), width 240ms var(--ease), height 240ms var(--ease), opacity 240ms var(--ease); }
+.ramp { width: 100%; justify-content: center; gap: 6px !important; }
+@media (max-width: 480px) { .ramp { gap: 3.5px !important; } }
 @media (min-width: 760px) { .home { padding-top: 40px; } .home-hero { padding: 64px 0 40px; } .home-hero .mark { width: 120px; height: 64px; } .home-hero .word { font-size: 72px; letter-spacing: -3.4px; } }
 .recent { display: flex; flex-direction: column; }
 .recent-row { display: flex; align-items: center; gap: 12px; min-height: 56px; width: 100%; text-align: left; border-radius: 16px; padding: 0 4px; transition: background var(--t); }
@@ -29,10 +30,10 @@
 .handoff .tx { flex: 1; min-width: 0; position: relative; z-index: 1; }
 .handoff b { display: block; font: 700 17px/1.2 var(--disp); }
 .handoff small { display: block; font-size: 12px; color: var(--hero-quiet); margin-top: 3px; }
-.handoff .cols { display: grid; grid-template-columns: repeat(3, 11.4px); align-items: center; height: 60px; }
-.handoff .cols span { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 54px; }
-.handoff .cols span i { border-radius: 50%; background: var(--hero-ink); }
-.handoff .go { width: 52px; height: 52px; border-radius: 50%; background: var(--hero-ink); color: var(--hero); display: grid; place-items: center; flex: none; transition: transform var(--t) var(--ease); }
+.handoff .cols { position: absolute; top: 0; bottom: 0; right: 64px; width: 130px; pointer-events: none; opacity: .2;
+  background-image: radial-gradient(circle at 50% 50%, var(--hero-ink) 1.2px, transparent 1.35px); background-size: 6px 6px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 40%, #000 60%, transparent); mask-image: linear-gradient(90deg, transparent, #000 40%, #000 60%, transparent); }
+.handoff .go { position: relative; z-index: 1; width: 52px; height: 52px; border-radius: 50%; background: var(--hero-ink); color: var(--hero); display: grid; place-items: center; flex: none; transition: transform var(--t) var(--ease); }
 .handoff:hover .go { transform: rotate(-8deg) scale(1.04); }
 .home-dock { order: 2; position: sticky; bottom: 0; z-index: 10; margin: auto calc(var(--gutter) * -1) 0; padding: 18px var(--gutter) calc(14px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to top, var(--paper) 78%, transparent); }
 @media (min-width: 760px) { .home-dock { position: static; margin: 0 0 8px; padding: 0; background: none; order: -1; } .home-hero { order: -2; } .home-dock .composer-wrap { margin-top: 0; } }

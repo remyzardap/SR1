@@ -77,13 +77,13 @@ describe("Home screen markup, ported from VIEWS.home", () => {
     expect(screen({ intro: false })).toContain("home-hero lockup no-intro");
   });
 
-  it("renders the 16-dot halftone ramp with the prototype's diameters", () => {
+  it("renders the refined 27-dot halftone ramp that fades out at both ends", () => {
     const html = screen();
     expect(html).toContain('class="ramp art-deco"');
     expect(html).toContain('id="ramp"');
-    expect(html.match(/--d:/g)).toHaveLength(16);
-    expect(html).toContain("--d:1.2px");
-    expect(html).toContain("--d:5.4px");
+    expect(html.match(/--d:/g)).toHaveLength(27);
+    expect(html).toContain("--d:1.6px");
+    expect(html).toContain("--d:13px");
   });
 
   it("shows the private note and the dashed composer only when private is on", () => {
@@ -137,13 +137,11 @@ describe("Home screen markup, ported from VIEWS.home", () => {
     expect(html).toContain('title="Private chats are not available yet."');
   });
 
-  it("renders the handoff card with its three dot columns", () => {
+  it("renders the handoff card with one blended halftone fade", () => {
     const html = screen();
     expect(html).toContain('class="handoff"');
     expect(html).toContain("<b>Hand off a project</b><small>Works while you are away</small>");
     expect(html).toContain('class="cols art-deco"');
-    expect(html.match(/width:1\.6px;height:1\.6px/g)).toHaveLength(5);
-    expect(html.match(/width:4px;height:4px/g)).toHaveLength(5);
     expect(html).toContain('class="go"');
   });
 });

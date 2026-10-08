@@ -42,8 +42,6 @@ export interface HomeScreenProps {
   onHandoff: () => void;
 }
 
-const HANDOFF_DOTS = [1.6, 2.8, 4];
-
 /**
  * Home, the screen the prototype draws in `VIEWS.home` (design/sutaeru-app/app.js:511-563).
  * Presentational only: the rows and the composer's behaviour arrive as props.
@@ -88,11 +86,7 @@ export function HomeScreen({ rows, composer, loading, intro, listening, banners,
         <button type="button" className="handoff" onClick={onHandoff}>
           <span className="hi"><SutaeruIcon name="make" signal={false} className="ico" /></span>
           <span className="tx"><b>Hand off a project</b><small>Works while you are away</small></span>
-          <span className="cols art-deco" aria-hidden="true">
-            {HANDOFF_DOTS.map((d) => (
-              <span key={d}>{[0, 1, 2, 3, 4].map((i) => <i key={i} style={{ width: `${d}px`, height: `${d}px` }} />)}</span>
-            ))}
-          </span>
+          <span className="cols art-deco" aria-hidden="true" />
           <span className="go"><SutaeruIcon name="upright" signal={false} className="ico" /></span>
         </button>
       </div>
