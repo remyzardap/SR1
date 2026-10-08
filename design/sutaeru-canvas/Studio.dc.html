@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sutaeru image studio</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="{{rootStyle}}">
+  <svg aria-hidden="true" width="390" height="844" style="position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:overlay;opacity:.09;z-index:5"><filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="4" stitchTiles="stitch"/><feColorMatrix type="matrix" values=".33 .33 .33 0 0 .33 .33 .33 0 0 .33 .33 .33 0 0 0 0 0 0 1"/></filter><rect width="390" height="844" filter="url(#grain)"/></svg>
+
+  <header style="display:flex;align-items:center;justify-content:space-between;height:60px;padding:0 20px;flex-shrink:0;border-bottom:1px solid var(--hair)">
+    <button type="button" aria-label="Open menu" style="display:flex;align-items:center;gap:6px;border:0;background:none;padding:0;height:44px;color:var(--ink)">
+      <svg width="46" height="25" viewBox="0 0 144 76" fill="none" aria-hidden="true"><path d="M72 38C64 18 52 8 36 8C19 8 8 20 8 38s11 30 28 30c16 0 28-10 36-30C80 18 92 8 108 8c17 0 28 12 28 30s-11 30-28 30c-16 0-28-10-36-30Z" stroke="currentColor" stroke-width="9" stroke-linejoin="round"/><g transform="translate(108 39) scale(.94) translate(-108 -39)"><circle cx="108" cy="46.6" r="6.8" fill="#F4511E"/><g fill="currentColor"><path d="M88.6 20.8L90.4 22.2Q108 27.4 125.6 22.2L127.4 20.8L126.6 26.0Q108 31.4 89.4 26.0Z"/><path d="M89.8 34.6H126.2V38.4H89.8Z"/><path d="M95.6 25.5H99.8L98.8 57.6H94.4ZM116.2 25.5H120.4L121.6 57.6H117.2Z"/></g></g></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--quiet)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div role="tablist" aria-label="Mode" style="position:relative;display:flex;width:188px;height:44px;padding:4px;box-sizing:border-box;border-radius:22px;background:var(--panel);border:1px solid var(--stroke)">
+      <div style="position:absolute;left:96px;top:4px;width:88px;height:34px;border-radius:17px;background:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.18)"></div>
+      <button type="button" role="tab" aria-selected="false" style="position:relative;flex:1;border:0;background:none;font-family:var(--disp);font-weight:600;font-size:16px;color:var(--quiet);letter-spacing:-.01em">Chat</button>
+      <button type="button" role="tab" aria-selected="true" style="position:relative;flex:1;border:0;background:none;font-family:var(--disp);font-weight:700;font-size:16px;color:var(--paper);letter-spacing:-.01em">Agent</button>
+    </div>
+    <button type="button" aria-label="Account, R" style="width:44px;height:44px;border-radius:50%;border:0;background:var(--ink);color:var(--paper);font-family:var(--disp);font-weight:700;font-size:17px">R</button>
+  </header>
+
+  <main style="position:relative;flex:1;min-height:0;overflow:hidden;padding:0 20px">
+    <a href="#" style="display:inline-flex;align-items:center;gap:8px;height:44px;margin:6px 0 0 -6px;padding:0 10px 0 6px;font-size:17px;color:var(--ink)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Agent</a>
+    <nav aria-label="Steps" style="display:flex;align-items:center;gap:10px;margin-top:8px;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.2em;text-transform:uppercase">
+      <span style="color:var(--quiet)">Brief</span>
+      <span aria-hidden="true" style="width:22px;height:1px;background:var(--rule)"></span>
+      <span aria-current="step" style="display:inline-flex;align-items:center;gap:7px;color:var(--ink);padding-bottom:3px;border-bottom:1.5px solid var(--ink)"><i aria-hidden="true" style="width:7px;height:7px;background:var(--accent)"></i>Look</span>
+      <span aria-hidden="true" style="width:22px;height:1px;background:var(--rule)"></span>
+      <span style="color:var(--quiet)">Build</span>
+      <span aria-hidden="true" style="width:22px;height:1px;background:var(--rule)"></span>
+      <span style="color:var(--quiet)">Done</span>
+    </nav>
+    <h1 style="margin:16px 0 0;font-family:var(--disp);font-weight:800;font-size:34px;line-height:1.04;letter-spacing:-.04em;color:var(--ink)">Set up the shot.</h1>
+    <p style="margin:8px 0 0;font-size:16px;line-height:1.45;color:var(--quiet)">Each tile is your picture with one choice changed. Pick what you see.</p>
+
+    <!-- live preview -->
+    <section aria-label="Live preview" style="margin-top:16px;padding:12px 14px 12px;border-radius:28px;background:var(--card);border:1px solid var(--stroke);box-shadow:var(--shadow)">
+      <div style="display:flex;align-items:center;justify-content:space-between;height:36px">
+        <span style="display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.18em;color:var(--ink);text-transform:uppercase"><i aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:var(--accent)"></i>Live preview</span>
+        <span role="group" aria-label="Preview style" style="display:flex;padding:3px;border-radius:19px;background:var(--panel);border:1px solid var(--stroke)">
+          <button type="button" aria-pressed="true" style="height:30px;padding:0 14px;border-radius:15px;border:0;background:var(--ink);color:var(--paper);font-family:var(--disp);font-weight:600;font-size:14px">Photo</button>
+          <button type="button" aria-pressed="false" style="height:30px;padding:0 14px;border-radius:15px;border:0;background:none;color:var(--quiet);font-family:var(--disp);font-weight:600;font-size:14px">Sketch</button>
+        </span>
+        <button type="button" aria-label="Show grid" style="width:36px;height:36px;border-radius:50%;border:0;background:none;color:var(--ink);display:grid;place-items:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9.3h16M4 14.7h16M9.3 4v16M14.7 4v16"/></svg></button>
+      </div>
+      <div style="position:relative;width:162px;height:150px;margin:8px auto 0;border-radius:6px;overflow:hidden;background:var(--panel)">
+        <img alt="A green ceramic mug steaming on a wooden table in soft light" src="/_blob/e24a42d7f9f98da8d09013c2da486fca" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 58%">
+        <span aria-hidden="true" style="position:absolute;left:33.3%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.4)"></span>
+        <span aria-hidden="true" style="position:absolute;left:66.6%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.4)"></span>
+        <span aria-hidden="true" style="position:absolute;top:33.3%;left:0;right:0;height:1px;background:rgba(255,255,255,.4)"></span>
+        <span aria-hidden="true" style="position:absolute;top:66.6%;left:0;right:0;height:1px;background:rgba(255,255,255,.4)"></span>
+        <i aria-hidden="true" style="position:absolute;left:62px;top:56px;width:12px;height:12px;border-left:1.5px solid #fff;border-top:1.5px solid #fff"></i>
+        <i aria-hidden="true" style="position:absolute;left:92px;top:56px;width:12px;height:12px;border-right:1.5px solid #fff;border-top:1.5px solid #fff"></i>
+        <i aria-hidden="true" style="position:absolute;left:62px;top:86px;width:12px;height:12px;border-left:1.5px solid #fff;border-bottom:1.5px solid #fff"></i>
+        <i aria-hidden="true" style="position:absolute;left:92px;top:86px;width:12px;height:12px;border-right:1.5px solid #fff;border-bottom:1.5px solid #fff"></i>
+      </div>
+      <p style="margin:8px 0 0;text-align:center;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.16em;color:var(--quiet);text-transform:uppercase">Photo · Thomas Park · Unsplash</p>
+      <p style="margin:8px 0 0;display:flex;justify-content:center;gap:14px;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.14em;color:var(--quiet);text-transform:uppercase"><span>Shot <b style="color:var(--ink);font-weight:600">Medium</b></span><span>Angle <b style="color:var(--ink);font-weight:600">Eye level</b></span><span>Lens <b style="color:var(--ink);font-weight:600">50 mm</b></span></p>
+    </section>
+
+    <!-- light tiles -->
+    <h2 style="margin:18px 0 0;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.22em;color:var(--quiet);text-transform:uppercase">Light</h2>
+    <div role="radiogroup" aria-label="Light" style="display:flex;gap:12px;margin-top:10px">
+      <button type="button" role="radio" aria-checked="true" aria-label="Golden" style="position:relative;flex:1;min-width:0;padding:0;border:0;background:none;text-align:center">
+        <i aria-hidden="true" style="position:absolute;left:-6px;top:-6px;width:10px;height:10px;border-left:1.5px solid var(--ink);border-top:1.5px solid var(--ink);border-top-left-radius:5px;opacity:.6"></i>
+        <i aria-hidden="true" style="position:absolute;right:-6px;top:-6px;width:10px;height:10px;border-right:1.5px solid var(--ink);border-top:1.5px solid var(--ink);border-top-right-radius:5px;opacity:.6"></i>
+        <i aria-hidden="true" style="position:absolute;left:-6px;top:58px;width:10px;height:10px;border-left:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);border-bottom-left-radius:5px;opacity:.6"></i>
+        <i aria-hidden="true" style="position:absolute;right:-6px;top:58px;width:10px;height:10px;border-right:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);border-bottom-right-radius:5px;opacity:.6"></i>
+        <img alt="" src="/_blob/e24a42d7f9f98da8d09013c2da486fca" style="display:block;width:100%;height:62px;object-fit:cover;border-radius:16px;box-shadow:0 0 0 2px var(--ink)">
+        <span style="display:block;margin-top:7px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.14em;color:var(--ink);text-transform:uppercase">Golden</span>
+      </button>
+      <button type="button" role="radio" aria-checked="false" aria-label="Window" style="flex:1;min-width:0;padding:0;border:0;background:none;text-align:center">
+        <img alt="" src="/_blob/cb779dfe47fadb4ddca492648f51bfe6" style="display:block;width:100%;height:62px;object-fit:cover;border-radius:16px;box-shadow:0 0 0 1px var(--stroke)">
+        <span style="display:block;margin-top:7px;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.14em;color:var(--quiet);text-transform:uppercase">Window</span>
+      </button>
+      <button type="button" role="radio" aria-checked="false" aria-label="Night" style="flex:1;min-width:0;padding:0;border:0;background:none;text-align:center">
+        <img alt="" src="/_blob/fa83026be8118f59771fea3c83f324ac" style="display:block;width:100%;height:62px;object-fit:cover;border-radius:16px;box-shadow:0 0 0 1px var(--stroke)">
+        <span style="display:block;margin-top:7px;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.14em;color:var(--quiet);text-transform:uppercase">Night</span>
+      </button>
+      <button type="button" role="radio" aria-checked="false" aria-label="Backlit" style="flex:1;min-width:0;padding:0;border:0;background:none;text-align:center">
+        <img alt="" src="/_blob/aeed059a57306a89c0e737bd8a5c3a6b" style="display:block;width:100%;height:62px;object-fit:cover;border-radius:16px;box-shadow:0 0 0 1px var(--stroke)">
+        <span style="display:block;margin-top:7px;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.14em;color:var(--quiet);text-transform:uppercase">Backlit</span>
+      </button>
+    </div>
+
+    <!-- prompt -->
+    <section style="margin-top:16px;padding:14px 18px 16px;border-radius:24px;background:var(--card);border:1px solid var(--stroke);box-shadow:var(--shadow)">
+      <p style="margin:0;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.2em;color:var(--quiet);text-transform:uppercase">Your prompt</p>
+      <p style="margin:7px 0 0;font-size:17px;line-height:1.35;color:var(--ink)">A ceramic mug on a wooden table in soft morning light.</p>
+    </section>
+
+    <div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;height:40px;background:linear-gradient(to bottom,transparent,var(--paper));pointer-events:none"></div>
+  </main>
+
+  <footer style="flex:none;display:flex;align-items:center;gap:14px;padding:14px 20px 26px;border-top:1px solid var(--hair);background:var(--paper)">
+    <div style="flex:1;min-width:0">
+      <p style="margin:0;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.14em;color:var(--quiet);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wan · 1 picture</p>
+      <p style="margin:5px 0 0;font-family:var(--disp);font-weight:700;font-size:17px;letter-spacing:-.01em;color:var(--ink)">2 credits · about 18 s</p>
+    </div>
+    <button type="button" style="flex:none;display:inline-flex;align-items:center;gap:10px;height:56px;padding:0 24px 0 28px;border-radius:28px;border:0;background:var(--ink);color:var(--paper);font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:-.01em">Begin<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = this.props.theme === 'dark';
+    const v = dark ? {
+      paper:'#1C1B19',panel:'#2E2D2A',card:'#252421',stroke:'#3A3935',ink:'#F4F2EC',quiet:'#B6BBC3',rule:'#6B6964',
+      accent:'#F4511E',tint:'rgba(244,81,30,.16)',hero:'#131211',heroInk:'#F4F2EC',heroQuiet:'rgba(244,242,236,.6)',hair:'rgba(244,242,236,.12)',
+      shadow:'0 1px 2px rgba(0,0,0,.3),0 18px 40px -22px rgba(0,0,0,.7)'
+    } : {
+      paper:'#F7F6F2',panel:'#EFEDE7',card:'#FFFFFF',stroke:'#E3E1DB',ink:'#242320',quiet:'#66645F',rule:'#B6BBC3',
+      accent:'#F4511E',tint:'#FCE9DE',hero:'#242320',heroInk:'#F7F6F2',heroQuiet:'rgba(247,246,242,.62)',hair:'rgba(36,35,32,.14)',
+      shadow:'0 1px 2px rgba(36,35,32,.06),0 18px 40px -22px rgba(36,35,32,.28)'
+    };
+    const rootStyle = [
+      'width:390px','height:844px','box-sizing:border-box','display:flex','flex-direction:column','overflow:hidden','position:relative',
+      'background:' + v.paper,
+      '--paper:' + v.paper,'--panel:' + v.panel,'--card:' + v.card,'--stroke:' + v.stroke,'--ink:' + v.ink,'--quiet:' + v.quiet,'--rule:' + v.rule,
+      '--accent:' + v.accent,'--accent-tint:' + v.tint,'--hero:' + v.hero,'--hero-ink:' + v.heroInk,'--hero-quiet:' + v.heroQuiet,'--hair:' + v.hair,'--shadow:' + v.shadow,
+      "--disp:'Inter Tight','Inter',system-ui,sans-serif","--body:'Inter',system-ui,sans-serif","--mono:'JetBrains Mono',ui-monospace,monospace",
+      "font-family:'Inter',system-ui,sans-serif",'color:' + v.ink,'-webkit-font-smoothing:antialiased'
+    ].join(';');
+    return { rootStyle };
+  }
+}
+</script>
+</body>
+</html>

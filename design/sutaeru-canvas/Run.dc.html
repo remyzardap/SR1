@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sutaeru image run</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="{{rootStyle}}">
+  <svg aria-hidden="true" width="390" height="844" style="position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:overlay;opacity:.09;z-index:5"><filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="4" stitchTiles="stitch"/><feColorMatrix type="matrix" values=".33 .33 .33 0 0 .33 .33 .33 0 0 .33 .33 .33 0 0 0 0 0 0 1"/></filter><rect width="390" height="844" filter="url(#grain)"/></svg>
+
+  <header style="display:flex;align-items:center;justify-content:space-between;height:60px;padding:0 20px;flex-shrink:0;border-bottom:1px solid var(--hair)">
+    <button type="button" aria-label="Open menu" style="display:flex;align-items:center;gap:6px;border:0;background:none;padding:0;height:44px;color:var(--ink)">
+      <svg width="46" height="25" viewBox="0 0 144 76" fill="none" aria-hidden="true"><path d="M72 38C64 18 52 8 36 8C19 8 8 20 8 38s11 30 28 30c16 0 28-10 36-30C80 18 92 8 108 8c17 0 28 12 28 30s-11 30-28 30c-16 0-28-10-36-30Z" stroke="currentColor" stroke-width="9" stroke-linejoin="round"/><g transform="translate(108 39) scale(.94) translate(-108 -39)"><circle cx="108" cy="46.6" r="6.8" fill="#F4511E"/><g fill="currentColor"><path d="M88.6 20.8L90.4 22.2Q108 27.4 125.6 22.2L127.4 20.8L126.6 26.0Q108 31.4 89.4 26.0Z"/><path d="M89.8 34.6H126.2V38.4H89.8Z"/><path d="M95.6 25.5H99.8L98.8 57.6H94.4ZM116.2 25.5H120.4L121.6 57.6H117.2Z"/></g></g></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--quiet)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div role="tablist" aria-label="Mode" style="position:relative;display:flex;width:188px;height:44px;padding:4px;box-sizing:border-box;border-radius:22px;background:var(--panel);border:1px solid var(--stroke)">
+      <div style="position:absolute;left:96px;top:4px;width:88px;height:34px;border-radius:17px;background:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.18)"></div>
+      <button type="button" role="tab" aria-selected="false" style="position:relative;flex:1;border:0;background:none;font-family:var(--disp);font-weight:600;font-size:16px;color:var(--quiet);letter-spacing:-.01em">Chat</button>
+      <button type="button" role="tab" aria-selected="true" style="position:relative;flex:1;border:0;background:none;font-family:var(--disp);font-weight:700;font-size:16px;color:var(--paper);letter-spacing:-.01em">Agent</button>
+    </div>
+    <button type="button" aria-label="Account, R" style="width:44px;height:44px;border-radius:50%;border:0;background:var(--ink);color:var(--paper);font-family:var(--disp);font-weight:700;font-size:17px">R</button>
+  </header>
+
+  <main style="position:relative;flex:1;min-height:0;overflow:hidden;padding:0 20px">
+    <nav aria-label="Steps" style="display:flex;align-items:center;gap:10px;margin-top:30px;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.2em;text-transform:uppercase">
+      <span style="color:var(--quiet)">Brief</span>
+      <span aria-hidden="true" style="width:22px;height:1px;background:var(--rule)"></span>
+      <span style="color:var(--quiet)">Look</span>
+      <span aria-hidden="true" style="width:22px;height:1px;background:var(--rule)"></span>
+      <span aria-current="step" style="display:inline-flex;align-items:center;gap:7px;color:var(--ink);padding-bottom:3px;border-bottom:1.5px solid var(--ink)"><i aria-hidden="true" style="width:7px;height:7px;background:var(--accent)"></i>Build</span>
+      <span aria-hidden="true" style="width:22px;height:1px;background:var(--rule)"></span>
+      <span style="color:var(--quiet)">Done</span>
+    </nav>
+    <h1 style="margin:20px 0 0;font-family:var(--disp);font-weight:800;font-size:34px;line-height:1.04;letter-spacing:-.04em;color:var(--ink)">Drawing your shot.</h1>
+    <p style="margin:10px 0 0;font-size:16px;line-height:1.45;color:var(--quiet)">You can leave this screen. It keeps going and lands in Files.</p>
+
+    <!-- picture with dither reveal -->
+    <figure style="position:relative;width:350px;height:350px;margin:22px 0 0;border-radius:28px;overflow:hidden;background:var(--panel);box-shadow:var(--shadow);border:1px solid var(--stroke)">
+      <img alt="Your image, drawn in from the left" src="/_blob/e24a42d7f9f98da8d09013c2da486fca" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 58%">
+      <span aria-hidden="true" style="position:absolute;top:0;bottom:0;left:44%;width:20%;background-image:radial-gradient(circle,var(--paper) 1.1px,transparent 1.5px);background-size:5px 5px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 100%);mask-image:linear-gradient(90deg,transparent,#000 100%)"></span>
+      <span aria-hidden="true" style="position:absolute;top:0;bottom:0;left:56%;width:16%;background-image:radial-gradient(circle,var(--paper) 2px,transparent 2.4px);background-size:6px 6px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 90%);mask-image:linear-gradient(90deg,transparent,#000 90%)"></span>
+      <span aria-hidden="true" style="position:absolute;top:0;bottom:0;left:64%;width:12%;background-image:radial-gradient(circle,var(--paper) 3px,transparent 3.4px);background-size:7px 7px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 80%);mask-image:linear-gradient(90deg,transparent,#000 80%)"></span>
+      <span aria-hidden="true" style="position:absolute;top:0;bottom:0;left:72%;right:0;background:var(--paper)"></span>
+      <span aria-hidden="true" style="position:absolute;top:0;bottom:0;left:72%;right:0;background-image:radial-gradient(circle,var(--rule) .8px,transparent 1.2px);background-size:9px 9px;opacity:.4;-webkit-mask-image:linear-gradient(90deg,transparent,#000 40%);mask-image:linear-gradient(90deg,transparent,#000 40%)"></span>
+      <span aria-hidden="true" style="position:absolute;top:0;bottom:0;left:calc(62% - 22px);width:22px;background:linear-gradient(90deg,transparent,rgba(244,81,30,.14))"></span>
+      <span aria-hidden="true" style="position:absolute;top:0;bottom:0;left:62%;width:1.5px;margin-left:-.75px;background:var(--accent);opacity:.9;-webkit-mask-image:linear-gradient(to bottom,transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(to bottom,transparent,#000 14%,#000 86%,transparent);box-shadow:0 0 10px 1px rgba(244,81,30,.4)"></span>
+      <figcaption style="position:absolute;left:16px;bottom:14px;padding:6px 12px;border-radius:14px;background:rgba(19,18,17,.62);color:#F7F6F2;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.16em;text-transform:uppercase">Wan · Standard</figcaption>
+    </figure>
+
+    <!-- converge -->
+    <section aria-label="Progress" style="margin-top:20px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between">
+        <span style="font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.2em;color:var(--quiet);text-transform:uppercase">Converging</span>
+        <span style="font-family:var(--disp);font-weight:800;font-size:28px;letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums">62%</span>
+      </div>
+      <div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="62" aria-label="Image progress" style="position:relative;height:6px;margin-top:8px;border-radius:3px;background:var(--stroke);overflow:hidden">
+        <span style="position:absolute;left:0;top:0;bottom:0;width:62%;border-radius:3px;background:var(--ink)"></span>
+        <span style="position:absolute;left:62%;top:0;bottom:0;width:22px;background:linear-gradient(90deg,var(--ink),transparent);opacity:.5"></span>
+      </div>
+      <ol style="display:flex;justify-content:space-between;margin:16px 0 0;padding:0;list-style:none">
+        <li style="display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.14em;color:var(--ink);text-transform:uppercase"><span style="width:16px;height:16px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg></span>Compose</li>
+        <li style="display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.14em;color:var(--ink);text-transform:uppercase"><span style="width:16px;height:16px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg></span>Light</li>
+        <li aria-current="step" style="display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.14em;color:var(--ink);text-transform:uppercase"><span style="width:16px;height:16px;border-radius:50%;border:2px solid var(--accent);box-sizing:border-box;display:grid;place-items:center"><i style="width:5px;height:5px;border-radius:50%;background:var(--accent)"></i></span>Detail</li>
+        <li style="display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.14em;color:var(--quiet);text-transform:uppercase"><span style="width:16px;height:16px;border-radius:50%;border:1.5px solid var(--rule);box-sizing:border-box"></span>Finish</li>
+      </ol>
+    </section>
+  </main>
+
+  <footer style="flex:none;display:flex;align-items:center;gap:14px;padding:14px 20px 26px;border-top:1px solid var(--hair);background:var(--paper)">
+    <p style="flex:1;margin:0;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.16em;color:var(--quiet);text-transform:uppercase;line-height:1.5">About 7 s left<br><b style="color:var(--ink);font-weight:600">2 credits</b></p>
+    <button type="button" style="flex:none;display:inline-flex;align-items:center;gap:10px;height:56px;padding:0 28px;border-radius:28px;border:1.5px solid var(--ink);background:none;color:var(--ink);font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:-.01em"><span aria-hidden="true" style="width:12px;height:12px;border:2px solid currentColor;border-radius:3px"></span>Cancel</button>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = this.props.theme === 'dark';
+    const v = dark ? {
+      paper:'#1C1B19',panel:'#2E2D2A',card:'#252421',stroke:'#3A3935',ink:'#F4F2EC',quiet:'#B6BBC3',rule:'#6B6964',
+      accent:'#F4511E',tint:'rgba(244,81,30,.16)',hero:'#131211',heroInk:'#F4F2EC',heroQuiet:'rgba(244,242,236,.6)',hair:'rgba(244,242,236,.12)',
+      shadow:'0 1px 2px rgba(0,0,0,.3),0 18px 40px -22px rgba(0,0,0,.7)'
+    } : {
+      paper:'#F7F6F2',panel:'#EFEDE7',card:'#FFFFFF',stroke:'#E3E1DB',ink:'#242320',quiet:'#66645F',rule:'#B6BBC3',
+      accent:'#F4511E',tint:'#FCE9DE',hero:'#242320',heroInk:'#F7F6F2',heroQuiet:'rgba(247,246,242,.62)',hair:'rgba(36,35,32,.14)',
+      shadow:'0 1px 2px rgba(36,35,32,.06),0 18px 40px -22px rgba(36,35,32,.28)'
+    };
+    const rootStyle = [
+      'width:390px','height:844px','box-sizing:border-box','display:flex','flex-direction:column','overflow:hidden','position:relative',
+      'background:' + v.paper,
+      '--paper:' + v.paper,'--panel:' + v.panel,'--card:' + v.card,'--stroke:' + v.stroke,'--ink:' + v.ink,'--quiet:' + v.quiet,'--rule:' + v.rule,
+      '--accent:' + v.accent,'--accent-tint:' + v.tint,'--hero:' + v.hero,'--hero-ink:' + v.heroInk,'--hero-quiet:' + v.heroQuiet,'--hair:' + v.hair,'--shadow:' + v.shadow,
+      "--disp:'Inter Tight','Inter',system-ui,sans-serif","--body:'Inter',system-ui,sans-serif","--mono:'JetBrains Mono',ui-monospace,monospace",
+      "font-family:'Inter',system-ui,sans-serif",'color:' + v.ink,'-webkit-font-smoothing:antialiased'
+    ].join(';');
+    return { rootStyle };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sutaeru answer</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit;text-decoration:none}
+</style>
+</helmet>
+<div style="{{rootStyle}}">
+  <svg aria-hidden="true" width="390" height="844" style="position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:overlay;opacity:.09;z-index:5"><filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="4" stitchTiles="stitch"/><feColorMatrix type="matrix" values=".33 .33 .33 0 0 .33 .33 .33 0 0 .33 .33 .33 0 0 0 0 0 0 1"/></filter><rect width="390" height="844" filter="url(#grain)"/></svg>
+
+  <header style="display:flex;align-items:center;justify-content:space-between;height:60px;padding:0 20px;flex-shrink:0;border-bottom:1px solid var(--hair)">
+    <button type="button" aria-label="Open menu" style="display:flex;align-items:center;gap:6px;border:0;background:none;padding:0;height:44px;color:var(--ink)">
+      <svg width="46" height="25" viewBox="0 0 144 76" fill="none" aria-hidden="true"><path d="M72 38C64 18 52 8 36 8C19 8 8 20 8 38s11 30 28 30c16 0 28-10 36-30C80 18 92 8 108 8c17 0 28 12 28 30s-11 30-28 30c-16 0-28-10-36-30Z" stroke="currentColor" stroke-width="9" stroke-linejoin="round"/><g transform="translate(108 39) scale(.94) translate(-108 -39)"><circle cx="108" cy="46.6" r="6.8" fill="#F4511E"/><g fill="currentColor"><path d="M88.6 20.8L90.4 22.2Q108 27.4 125.6 22.2L127.4 20.8L126.6 26.0Q108 31.4 89.4 26.0Z"/><path d="M89.8 34.6H126.2V38.4H89.8Z"/><path d="M95.6 25.5H99.8L98.8 57.6H94.4ZM116.2 25.5H120.4L121.6 57.6H117.2Z"/></g></g></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--quiet)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div role="tablist" aria-label="Mode" style="position:relative;display:flex;width:188px;height:44px;padding:4px;box-sizing:border-box;border-radius:22px;background:var(--panel);border:1px solid var(--stroke)">
+      <div style="position:absolute;left:4px;top:4px;width:88px;height:34px;border-radius:17px;background:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.18)"></div>
+      <button type="button" role="tab" aria-selected="true" style="position:relative;flex:1;border:0;background:none;font-family:var(--disp);font-weight:700;font-size:16px;color:var(--paper);letter-spacing:-.01em">Chat</button>
+      <button type="button" role="tab" aria-selected="false" style="position:relative;flex:1;border:0;background:none;font-family:var(--disp);font-weight:600;font-size:16px;color:var(--quiet);letter-spacing:-.01em">Agent</button>
+    </div>
+    <button type="button" aria-label="Account, R" style="width:44px;height:44px;border-radius:50%;border:0;background:var(--ink);color:var(--paper);font-family:var(--disp);font-weight:700;font-size:17px">R</button>
+  </header>
+
+  <main style="position:relative;flex:1;min-height:0;overflow:hidden">
+    <div style="padding:6px 20px 0">
+      <a href="#" style="display:inline-flex;align-items:center;gap:8px;height:44px;margin-left:-6px;padding:0 10px 0 6px;font-size:17px;color:var(--ink)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Chat</a>
+      <p style="margin:14px 0 0;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.22em;color:var(--quiet);text-transform:uppercase">Chat · Example answer</p>
+      <h1 style="margin:10px 0 0;font-family:var(--disp);font-weight:800;font-size:27px;line-height:1.08;letter-spacing:-.035em;color:var(--ink)">How fast do commercial rooftop systems pay back?</h1>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+        <svg width="22" height="20" viewBox="0 0 22 20" aria-hidden="true"><rect x="0" y="12" width="4" height="8" rx="1" fill="var(--ink)"/><rect x="6" y="8" width="4" height="12" rx="1" fill="var(--ink)"/><rect x="12" y="4" width="4" height="16" rx="1" fill="var(--ink)"/><rect x="18" y="0" width="4" height="20" rx="1" fill="var(--ink)"/></svg>
+        <span style="font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.2em;color:var(--quiet);text-transform:uppercase">Searched 14 sources · 6 s</span>
+      </div>
+    </div>
+
+    <!-- sources -->
+    <div style="display:flex;gap:12px;margin-top:8px;padding:12px 20px 12px;overflow:hidden">
+      <a href="#" aria-label="Source 1: Renewable cost report, irena.org" style="position:relative;flex:none;width:152px;box-sizing:border-box;padding:14px;border-radius:22px;background:var(--card);border:1px solid var(--ink);box-shadow:var(--shadow)">
+        <i aria-hidden="true" style="position:absolute;left:-7px;top:-7px;width:12px;height:12px;border-left:1.5px solid var(--ink);border-top:1.5px solid var(--ink);border-top-left-radius:5px;opacity:.55"></i>
+        <i aria-hidden="true" style="position:absolute;right:-7px;top:-7px;width:12px;height:12px;border-right:1.5px solid var(--ink);border-top:1.5px solid var(--ink);border-top-right-radius:5px;opacity:.55"></i>
+        <i aria-hidden="true" style="position:absolute;left:-7px;bottom:-7px;width:12px;height:12px;border-left:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);border-bottom-left-radius:5px;opacity:.55"></i>
+        <i aria-hidden="true" style="position:absolute;right:-7px;bottom:-7px;width:12px;height:12px;border-right:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);border-bottom-right-radius:5px;opacity:.55"></i>
+        <span style="display:flex;align-items:center;gap:8px"><span style="width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-family:var(--disp);font-weight:700;font-size:13px">I</span><span style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--quiet)">IRENA.ORG</span></span>
+        <span style="display:block;margin-top:12px;font-family:var(--disp);font-weight:600;font-size:15px;line-height:1.25;color:var(--ink)">Renewable cost report</span>
+      </a>
+      <a href="#" aria-label="Source 2: Rooftop PV tariff rules, pln.co.id" style="flex:none;width:152px;box-sizing:border-box;padding:14px;border-radius:22px;background:var(--card);border:1px solid var(--stroke);box-shadow:var(--shadow)">
+        <span style="display:flex;align-items:center;gap:8px"><span style="width:26px;height:26px;border-radius:50%;background:var(--panel);color:var(--ink);display:grid;place-items:center;font-family:var(--disp);font-weight:700;font-size:13px">P</span><span style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--quiet)">PLN.CO.ID</span></span>
+        <span style="display:block;margin-top:12px;font-family:var(--disp);font-weight:600;font-size:15px;line-height:1.25;color:var(--ink)">Rooftop PV tariff rules</span>
+      </a>
+      <a href="#" aria-label="Source 3: Net metering regulation, esdm.go.id" style="flex:none;width:152px;box-sizing:border-box;padding:14px;border-radius:22px;background:var(--card);border:1px solid var(--stroke);box-shadow:var(--shadow)">
+        <span style="display:flex;align-items:center;gap:8px"><span style="width:26px;height:26px;border-radius:50%;background:var(--panel);color:var(--ink);display:grid;place-items:center;font-family:var(--disp);font-weight:700;font-size:13px">E</span><span style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--quiet)">ESDM.GO.ID</span></span>
+        <span style="display:block;margin-top:12px;font-family:var(--disp);font-weight:600;font-size:15px;line-height:1.25;color:var(--ink)">Net metering regulation</span>
+      </a>
+    </div>
+
+    <!-- answer -->
+    <article style="margin:4px 20px 0;padding:22px 22px 0;border-radius:28px;background:var(--card);border:1px solid var(--stroke);box-shadow:var(--shadow)">
+      <p style="margin:0;font-size:17px;line-height:1.5;color:var(--ink)">Most commercial rooftop systems in Indonesia pay back in 4 to 6 years, depending on size and the PLN tariff class. <a href="#src-1" aria-label="Source 1" style="display:inline-grid;place-items:center;width:22px;height:22px;margin:0 1px;border-radius:50%;background:var(--panel);border:1px solid var(--stroke);font-family:var(--mono);font-size:12px;font-weight:600;vertical-align:1px">1</a><a href="#src-2" aria-label="Source 2" style="display:inline-grid;place-items:center;width:22px;height:22px;margin:0 1px;border-radius:50%;background:var(--panel);border:1px solid var(--stroke);font-family:var(--mono);font-size:12px;font-weight:600;vertical-align:1px">2</a> Larger systems recover faster because installation cost per watt falls with scale. <a href="#src-3" aria-label="Source 3" style="display:inline-grid;place-items:center;width:22px;height:22px;margin:0 1px;border-radius:50%;background:var(--panel);border:1px solid var(--stroke);font-family:var(--mono);font-size:12px;font-weight:600;vertical-align:1px">3</a></p>
+      <p style="margin:22px 0 0;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.2em;color:var(--quiet);text-transform:uppercase">Payback by system size</p>
+      <div style="display:flex;align-items:flex-end;gap:14px;height:140px;margin-top:14px">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="font-family:var(--mono);font-size:12px;font-weight:500;color:var(--quiet)">5.9 Y</span><span style="width:100%;height:100px;border-radius:10px 10px 0 0;background:var(--rule);opacity:.7"></span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="font-family:var(--mono);font-size:12px;font-weight:500;color:var(--quiet)">5.1 Y</span><span style="width:100%;height:86px;border-radius:10px 10px 0 0;background:var(--rule);opacity:.7"></span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="font-family:var(--mono);font-size:12px;font-weight:500;color:var(--quiet)">4.6 Y</span><span style="width:100%;height:76px;border-radius:10px 10px 0 0;background:var(--rule);opacity:.7"></span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><span style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink)">4.2 Y</span><span style="width:100%;height:70px;border-radius:10px 10px 0 0;background:var(--ink)"></span></div>
+      </div>
+    </article>
+
+    <!-- fade under composer -->
+    <div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;height:120px;background:linear-gradient(to bottom,transparent,var(--paper) 78%);pointer-events:none"></div>
+  </main>
+
+  <footer style="flex:none;padding:8px 20px 20px;position:relative">
+    <div style="display:flex;align-items:center;gap:10px;height:60px;padding:0 8px 0 24px;border-radius:30px;background:var(--card);border:1px solid var(--ink);box-shadow:var(--shadow)">
+      <span style="flex:1;font-size:17px;color:var(--quiet)">Ask a follow up</span>
+      <button type="button" aria-label="Send" style="flex:none;width:46px;height:46px;border-radius:50%;border:0;background:var(--ink);color:var(--paper);display:grid;place-items:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = this.props.theme === 'dark';
+    const v = dark ? {
+      paper:'#1C1B19',panel:'#2E2D2A',card:'#252421',stroke:'#3A3935',ink:'#F4F2EC',quiet:'#B6BBC3',rule:'#6B6964',
+      accent:'#F4511E',tint:'rgba(244,81,30,.16)',hero:'#131211',heroInk:'#F4F2EC',heroQuiet:'rgba(244,242,236,.6)',hair:'rgba(244,242,236,.12)',
+      shadow:'0 1px 2px rgba(0,0,0,.3),0 18px 40px -22px rgba(0,0,0,.7)'
+    } : {
+      paper:'#F7F6F2',panel:'#EFEDE7',card:'#FFFFFF',stroke:'#E3E1DB',ink:'#242320',quiet:'#66645F',rule:'#B6BBC3',
+      accent:'#F4511E',tint:'#FCE9DE',hero:'#242320',heroInk:'#F7F6F2',heroQuiet:'rgba(247,246,242,.62)',hair:'rgba(36,35,32,.14)',
+      shadow:'0 1px 2px rgba(36,35,32,.06),0 18px 40px -22px rgba(36,35,32,.28)'
+    };
+    const rootStyle = [
+      'width:390px','height:844px','box-sizing:border-box','display:flex','flex-direction:column','overflow:hidden','position:relative',
+      'background:' + v.paper,
+      '--paper:' + v.paper,'--panel:' + v.panel,'--card:' + v.card,'--stroke:' + v.stroke,'--ink:' + v.ink,'--quiet:' + v.quiet,'--rule:' + v.rule,
+      '--accent:' + v.accent,'--accent-tint:' + v.tint,'--hero:' + v.hero,'--hero-ink:' + v.heroInk,'--hero-quiet:' + v.heroQuiet,'--hair:' + v.hair,'--shadow:' + v.shadow,
+      "--disp:'Inter Tight','Inter',system-ui,sans-serif","--body:'Inter',system-ui,sans-serif","--mono:'JetBrains Mono',ui-monospace,monospace",
+      "font-family:'Inter',system-ui,sans-serif",'color:' + v.ink,'-webkit-font-smoothing:antialiased'
+    ].join(';');
+    return { rootStyle };
+  }
+}
+</script>
+</body>
+</html>
