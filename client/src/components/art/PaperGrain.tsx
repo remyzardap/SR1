@@ -5,35 +5,13 @@ import {
   currentMode,
   onAppearanceChange,
   readBackgroundArt,
+  readArtIntensity,
+  setArtIntensity,
+  ART_INTENSITY_STORAGE_KEY,
 } from "@/lib/theme";
 
-export const ART_INTENSITY_STORAGE_KEY = "sutaeru.intensity";
-
-/** Read the current art intensity percentage (20..100, default 70). */
-export function readArtIntensity(): number {
-  if (typeof window === "undefined") return 70;
-  try {
-    const saved = localStorage.getItem(ART_INTENSITY_STORAGE_KEY);
-    if (saved != null) {
-      const parsed = parseInt(saved, 10);
-      if (!Number.isNaN(parsed)) return Math.max(0, Math.min(100, parsed));
-    }
-  } catch {
-    // storage unavailable
-  }
-  return 70;
-}
-
-/** Save art intensity and notify listeners. */
-export function setArtIntensity(val: number): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(ART_INTENSITY_STORAGE_KEY, String(Math.round(val)));
-  } catch {
-    // storage unavailable
-  }
-  window.dispatchEvent(new Event("sutaeru:appearance"));
-}
+// One source of truth: lib/theme.ts owns the stored value and publishes --art-intensity.
+export { readArtIntensity, setArtIntensity, ART_INTENSITY_STORAGE_KEY };
 
 export interface PaperGrainProps {
   /** Override art intensity percentage (0..100). Defaults to the saved setting. */
