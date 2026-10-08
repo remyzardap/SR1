@@ -45,6 +45,10 @@ export default function LabIndex() {
         </Link>
       </div>
 
+      <p style={{ marginBottom: 24 }}>
+        <Link href="/__lab/page-states">Page states: loading, empty, error (Skills, Memories, Monitors, Admin)</Link>
+      </p>
+
       <h2 style={{ font: "700 16px/1 var(--disp)", margin: "0 0 14px", color: "var(--quiet)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
         Refined Art Primitives (F0b)
       </h2>

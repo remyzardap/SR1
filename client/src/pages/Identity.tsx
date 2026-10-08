@@ -435,7 +435,7 @@ export default function Identity() {
               <Select value={primaryLanguage} onValueChange={setPrimaryLanguage}>
                 <SelectTrigger
                   id="primaryLanguage"
-                  className="h-12 w-full rounded-[20px] border-0 bg-[var(--art-paper)] px-4 text-[15px] shadow-none data-[size=default]:h-12 focus-visible:ring-0"
+                  className="h-12 w-full rounded-[var(--r-radius-pill)] border border-[var(--r-stroke)] bg-[var(--r-paper)] px-5 text-[15px] text-[var(--r-ink)] shadow-none data-[placeholder]:text-[var(--r-quiet)] data-[size=default]:h-12 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-[var(--r-accent)]"
                 >
                   <SelectValue placeholder="Select a language..." />
                 </SelectTrigger>
