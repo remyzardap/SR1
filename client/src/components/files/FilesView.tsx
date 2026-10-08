@@ -453,7 +453,7 @@ export function FilesView({
             onClick={onUpload}
             aria-label="Upload files"
           >
-            <SutaeruIcon name="plus" />
+            <SutaeruIcon name="plus" signal={false} className="h-4 w-4" />
             Upload
           </button>
         </div>
@@ -609,7 +609,6 @@ export function FilesView({
                   }
                 }}
               >
-                {file.fresh && <FocusBrackets className="show" />}
                 <span className="fp">{renderFilePreview(file)}</span>
                 <span className="fm">
                   <div
