@@ -6,11 +6,11 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { codeCall, type CodeSession } from "@/components/CodeThread";
 import { LogoMenuSheet, type MenuChat, type MenuPill, type MenuRun, type MenuTile } from "./LogoMenuSheet";
+import { buildChats, buildPills, buildRuns, buildTiles } from "./menuModel";
 import { SutaeruGlyph } from "@/components/SutaeruGlyph";
 import { DotRamp } from "@/components/art/DotRamp";
 import type { SutaeruIconName } from "@/components/SutaeruIcon";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { pickArt, type PickArtId } from "@/lib/pickArt";
 import { navigateWithTransition, prefersReducedMotion } from "@/lib/transitions";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
@@ -128,27 +128,7 @@ const CHAT_ACTIONS: Array<{ label: string; path: string; icon: SutaeruIconName }
   { label: "Past chats", path: "/chat?history=1", icon: "bookmark" },
 ];
 
-/* The workspace tiles, in the order the menu shows them, with their picture. */
-const TILE_ART: Record<string, PickArtId> = {
-  "/chat": "nav-chat",
-  "/generate": "nav-agent",
-  "/images": "nav-images",
-  "/documents": "nav-documents",
-  "/files": "nav-files",
-  "/video": "nav-video",
-};
-const TILE_ORDER = ["/chat", "/generate", "/images", "/documents", "/files", "/video"];
-
 const POP_WIDTH = 420;
-
-function relTime(ts: number | null | undefined): string {
-  if (!ts) return "";
-  const diff = Date.now() - ts;
-  if (diff < 60_000) return "now";
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h`;
-  return new Date(ts).toLocaleDateString();
-}
 
 export interface NavLogoMenuProps {
   /**
@@ -251,31 +231,10 @@ export function NavLogoMenu({ variant = "header", className }: NavLogoMenuProps)
   const visibleItems = NAV_DESTINATIONS.filter((item) => !item.adminOnly || isAdmin);
   const isCurrent = (item: NavDestination) => (item.match ? item.match(location) : location === item.path);
 
-  const tiles: MenuTile[] = TILE_ORDER.flatMap((path) => {
-    const item = visibleItems.find((i) => i.path === path && TILE_ART[path]);
-    return item ? [{ label: item.label, href: item.path, art: pickArt(TILE_ART[path]), active: isCurrent(item) }] : [];
-  });
-
-  const pills: MenuPill[] = visibleItems
-    .filter((i) => !TILE_ART[i.path])
-    .map((i) => ({ label: i.label, href: i.path, active: isCurrent(i) }));
-
-  const runs: MenuRun[] = codeSessions
-    .filter((s) => s.status === "running" || s.status === "needs_approval")
-    .map((s) => ({
-      id: s.id,
-      label: s.title || "Code session",
-      detail: s.status === "running" ? "Code · working" : "Code · needs you",
-      href: `/chat?session=${s.id}`,
-      live: s.status === "running",
-    }));
-
-  const chats: MenuChat[] = (sessions.data ?? []).slice(0, 6).map((s) => ({
-    id: s.id,
-    title: s.title || "Untitled",
-    when: relTime(s.lastMessageAt),
-    href: `/chat?session=${s.id}`,
-  }));
+  const tiles: MenuTile[] = buildTiles(NAV_DESTINATIONS, isAdmin, isCurrent);
+  const pills: MenuPill[] = buildPills(NAV_DESTINATIONS, isAdmin, isCurrent);
+  const runs: MenuRun[] = buildRuns(codeSessions);
+  const chats: MenuChat[] = buildChats(sessions.data ?? []);
 
   const person = user
     ? {

@@ -192,6 +192,10 @@ export default function LabIndex() {
           <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Shared parts</b>
           <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>Fold sections, pick tiles, showcase, two-up, prompt field, live tag and go bar in every state.</p>
         </Link>
+        <Link href="/__lab/menu" className="card" style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}>
+          <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Logo menu</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>The navigation sheet and popover: workspace tiles, working for you, recent chats, yours.</p>
+        </Link>
         <Link href="/__lab/image-run"className="card" style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}>
           <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Image run</b>
           <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>Dither reveal, converge bar, phases, stopped, error, done with variants.</p>
