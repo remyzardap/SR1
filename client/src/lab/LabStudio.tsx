@@ -72,7 +72,7 @@ export default function LabStudio() {
           </Link>
         ))}
       </div>
-      <div style={{ margin: "0 -24px" }}>
+      <div style={{ "--gutter": "0px" } as React.CSSProperties}>
         <Studio key={key} init={STATES[key].init} />
       </div>
     </LabLayout>

@@ -388,12 +388,12 @@ export function StudioScreen(p: StudioScreenProps) {
             {CAMERA_GROUPS.map((g, i) => {
               const sel = optionOf(g, p.shot[g]);
               return (
-                <FoldSection key={g} id={g} index={i + 1} label={GROUP_TITLES[g]} pick={`${sel.label} · ${sel.sub}`} mini={<MiniShot shot={previewShot(p.shot, g, p.shot[g])} />}>
+                <FoldSection key={g} id={g} index={i + 1} label={GROUP_TITLES[g]} pick={sel.label} mini={<MiniShot shot={previewShot(p.shot, g, p.shot[g])} />}>
                   <PickTiles label={GROUP_TITLES[g]} items={cameraItems(g, p.shot)} value={p.shot[g]} onChange={(id) => p.onPick(g, id as Shot[typeof g])} />
                 </FoldSection>
               );
             })}
-            <FoldSection id="ratio" index={6} label={GROUP_TITLES.ratio} pick={`${shape.label} · ${shape.sub}`} mini={<MiniShape shot={p.shot} />}>
+            <FoldSection id="ratio" index={6} label={GROUP_TITLES.ratio} pick={shape.label} mini={<MiniShape shot={p.shot} />}>
               <PickTiles variant="shape" label="Shape" items={shapeItems(p.shot)} value={p.shot.ratio} onChange={(id) => p.onPick("ratio", id as Shot["ratio"])} />
             </FoldSection>
             <FoldSection id="engine" index={7} label="Engine" pick={meta.name} mini={meta.img ? <Pic art={meta.img} fallback={<EngineMark id={p.engine} />} /> : <EngineMark id={p.engine} />}>

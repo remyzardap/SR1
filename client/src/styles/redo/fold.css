@@ -17,7 +17,9 @@
   transition: color var(--t), background var(--t), box-shadow var(--t);
 }
 .fold-all::after { content: ""; position: absolute; inset: -5px -2px; } /* 44 px target */
-.fold-all .ico { width: 14px; height: 14px; }
+/* Inline 24-unit icons (the shared .ico is drawn for a 100-unit box and would blob these). */
+.fi { display: block; flex: none; width: 16px; height: 16px; }
+.fold-all .fi { width: 14px; height: 14px; }
 .fold-all:hover { color: var(--ink); background: var(--panel); }
 .fold-all:focus-visible { outline: none; box-shadow: 0 0 0 1px var(--stroke), 0 0 0 3px var(--paper), 0 0 0 5px var(--r-accent); }
 .head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
@@ -67,7 +69,7 @@
   background: var(--panel); color: var(--quiet);
   transition: transform var(--fold-t) var(--ease-emph), background 200ms, color 200ms;
 }
-.fold-chev .ico { width: 15px; height: 15px; }
+.fold-chev .fi { width: 16px; height: 16px; }
 .fold[data-state="open"] .fold-chev { transform: rotate(180deg); color: var(--ink); background: var(--seg-off); }
 /* Open, the tiles show the pick: the mini steps back. */
 .fold[data-state="open"] .fold-mini { opacity: 0; transform: scale(.8); width: 0; margin-left: -10px; box-shadow: none; }
@@ -202,7 +204,7 @@
   background: var(--panel); color: var(--ink); transition: background 200ms, transform 160ms var(--ease);
 }
 .pfield-ib::after { content: ""; position: absolute; inset: -2px; }
-.pfield-ib .ico { width: 19px; height: 19px; }
+.pfield-ib .fi { width: 20px; height: 20px; }
 .pfield-ib:hover { background: var(--seg-off); }
 .pfield-ib:active { transform: scale(.94); }
 .pfield-ib:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--r-accent); }

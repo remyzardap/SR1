@@ -28,7 +28,7 @@ export function FoldAllButton({ state, className }: { state: FoldState; classNam
   const folded = state.allFolded;
   return (
     <button type="button" className={cn("fold-all", className)} onClick={folded ? state.openAll : state.foldAll}>
-      <svg className="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg className="fi"viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         {folded ? <path d="M7 10l5-5 5 5M7 14l5 5 5-5" /> : <path d="M7 5l5 5 5-5M7 19l5-5 5 5" />}
       </svg>
       {folded ? "Open all" : "Fold all"}
