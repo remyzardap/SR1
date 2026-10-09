@@ -33,6 +33,7 @@ import LabSplash from "./LabSplash";
 import LabHome from "./LabHome";
 
 import LabStudio from "./LabStudio";
+import LabParts from "./LabParts";
 import LabImageRun from "./LabImageRun";
 
 import LabPageStates from "./LabPageStates";
@@ -67,6 +68,7 @@ export function LabRouter() {
       <Route path="/__lab/splash" component={LabSplash} />
       <Route path="/__lab/home" component={LabHome} />
       <Route path="/__lab/studio" component={LabStudio} />
+      <Route path="/__lab/parts" component={LabParts} />
       <Route path="/__lab/image-run" component={LabImageRun} />
       <Route path="/__lab/page-states" component={LabPageStates} />
     </Switch>
