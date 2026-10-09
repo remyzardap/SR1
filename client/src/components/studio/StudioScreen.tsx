@@ -1,8 +1,22 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import * as React from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
-import { SutaeruIcon } from "@/components/SutaeruIcon";
 import { FocusBrackets } from "@/components/art/FocusBrackets";
 import { Toggle } from "@/components/art/Toggle";
+import {
+  FoldAllButton,
+  FoldGroup,
+  FoldSection,
+  GoBar,
+  LiveTag,
+  Pic,
+  PickTiles,
+  PromptField,
+  tileHeight,
+  tileWidth,
+  useFoldState,
+  type PickItem,
+} from "@/components/fold";
 import {
   GROUP_TITLES,
   OPTIONS,
@@ -25,50 +39,35 @@ import { StudioSketch } from "./StudioSketch";
 import { EngineMark, StudioIcon } from "./studioIcons";
 
 const CAMERA_GROUPS: CameraGroup[] = ["shot", "angle", "lens", "light", "look"];
-const READOUT: Array<[StudioGroup, string]> = [["shot", "Shot"], ["angle", "Angle"], ["lens", "Lens"], ["light", "Light"], ["look", "Look"], ["ratio", ""]];
+const FOLD_IDS = [...CAMERA_GROUPS, "ratio", "engine", "quality"];
 
-/* ── Header: back link, four steps, title ────────────────────────────── */
-
-const STEP_NAMES = ["Brief", "Look", "Build", "Done"];
-
-export function StudioSteps({ current }: { current: 0 | 1 | 2 | 3 }) {
-  return (
-    <div className="steps" aria-label={`Step ${current + 1} of 4`}>
-      {STEP_NAMES.map((n, i) => (
-        <Fragment key={n}>
-          {i > 0 && <span className={cn("ln", i <= current && "done")} />}
-          <span className={cn("st", i === current ? "cur" : i < current && "done")}>
-            <span className="mono">
-              <span className="num">{String(i + 1).padStart(2, "0")} </span>
-              {n}
-            </span>
-          </span>
-        </Fragment>
-      ))}
-    </div>
-  );
-}
+/* ── Header: back link, title ────────────────────────────────────────── */
 
 export function StudioHead({
-  step,
   backLabel,
   onBack,
   title,
   lede,
+  action,
 }: {
-  step: 0 | 1 | 2 | 3;
+  /** Kept so the image-run screen compiles unchanged; the step bar is gone. */
+  step?: 0 | 1 | 2 | 3;
   backLabel: string;
   onBack?: () => void;
   title: string;
   lede: ReactNode;
+  /** Right of the back link: the page's "Fold all / Open all" pill. */
+  action?: ReactNode;
 }) {
   return (
     <div className="studio-head">
-      <button type="button" className="btn ghost backlink" onClick={onBack}>
-        <StudioIcon name="back" />
-        {backLabel}
-      </button>
-      <StudioSteps current={step} />
+      <div className="head-row head-top">
+        <button type="button" className="btn ghost backlink" onClick={onBack}>
+          <StudioIcon name="back" />
+          {backLabel}
+        </button>
+        {action}
+      </div>
       <h1 className="title">{title}</h1>
       <p className="lede">{lede}</p>
     </div>
@@ -161,9 +160,8 @@ export function Viewfinder({
       <div ref={marker} className="vf-marker" aria-hidden="true" />
       <div ref={dock} className="vf-dock">
         <div ref={box} className="vf" style={vfH ? ({ height: vfH } as CSSProperties) : undefined}>
-          <span className="tag vf-tag">
-            <span className="live-dot" />
-            Live<span className="vf-long"> preview</span>
+          <span className="vf-tag">
+            <LiveTag />
           </span>
           <div className="vf-tools">
             <SegSwitch
@@ -195,181 +193,69 @@ export function Viewfinder({
           ) : null}
           <span className="mono ph-credit">{credit}</span>
         </div>
-        <div className="readout" aria-label="Current shot">
-          {READOUT.map(([g, name]) => {
-            const value = g === "ratio" ? shot.ratio : optionOf(g as CameraGroup, shot[g as CameraGroup]).label;
-            return (
-              <span key={g} className="mono">
-                {name ? `${name} ` : ""}
-                <b>{value}</b>
-              </span>
-            );
-          })}
-        </div>
-        <p className="vf-note">Sample photos show framing, light and look. The engine draws your final picture.</p>
       </div>
     </div>
   );
 }
 
-/* ── Option tiles ────────────────────────────────────────────────────── */
-
-const Tick = () => (
-  <span className="tick" aria-hidden="true">
-    <SutaeruIcon name="check" signal={false} className="ico" />
-  </span>
-);
+/* ── Option groups ───────────────────────────────────────────────────── */
 
 interface PickerProps {
   shot: Shot;
   onPick: <G extends StudioGroup>(group: G, value: Shot[G]) => void;
 }
 
-/* Tile art is sized to the tile, a touch bigger on wide screens. */
-const tileW = () => (typeof window !== "undefined" && window.innerWidth >= 760 ? 128 : 116);
-
-function CameraGroupRow({ group, shot, onPick }: PickerProps & { group: CameraGroup }) {
-  const sel = optionOf(group, shot[group]);
-  const w = tileW();
-  return (
-    <section className="opt-group" aria-label={GROUP_TITLES[group]}>
-      <div className="between">
-        <span className="mono ink">{GROUP_TITLES[group]}</span>
-        <span className="why">{sel.label} · {sel.sub}</span>
-      </div>
-      <div className="opts" role="radiogroup" aria-label={GROUP_TITLES[group]}>
-        {OPTIONS[group].map((o) => {
-          const on = shot[group] === o.id;
-          /* Painted and clay show a style reference; the other rows keep the photo so framing and light stay readable. */
-          const preview: Shot = { ...shot, [group]: o.id };
-          if (group !== "look" && (shot.look === "painted" || shot.look === "clay")) preview.look = "photo";
-          return (
-            <button key={o.id} type="button" role="radio" aria-checked={on} className="opt" onClick={() => onPick(group, o.id as Shot[typeof group])}>
-              <span className="otw">
-                <span className="ot">
-                  <StudioFrame shot={preview} width={w} aspect={w / (w >= 128 ? 96 : 86)} />
-                  <Tick />
-                </span>
-                {on && <FocusBrackets />}
-              </span>
-              <span className="cap">
-                <b>{o.label}</b>
-                <small>{o.sub}</small>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </section>
-  );
+/* Painted and clay show a style reference; the other rows keep the photo so framing and light stay readable. */
+function previewShot(shot: Shot, group: StudioGroup, id: string): Shot {
+  const preview = { ...shot, [group]: id } as Shot;
+  if (group !== "look" && (shot.look === "painted" || shot.look === "clay")) preview.look = "photo";
+  return preview;
 }
 
-function ShapeRow({ shot, onPick }: PickerProps) {
-  const sel = shapeOf(shot.ratio);
-  return (
-    <section className="opt-group" aria-label="Shape">
-      <div className="between">
-        <span className="mono ink">{GROUP_TITLES.ratio}</span>
-        <span className="why">{sel.label} · {sel.sub}</span>
-      </div>
-      <div className="opts" role="radiogroup" aria-label="Shape">
-        {SHAPES.map((s) => {
-          const on = shot.ratio === s.id;
-          const W = 92;
-          const H = 66;
-          const w = s.r >= W / H ? W : H * s.r;
-          const h = w / s.r;
-          const preview: Shot = { ...shot, ratio: s.id };
-          if (shot.look === "painted" || shot.look === "clay") preview.look = "photo";
-          return (
-            <button key={s.id} type="button" role="radio" aria-checked={on} className="opt shape" onClick={() => onPick("ratio", s.id)}>
-              <span className="otw">
-                <span className="ot">
-                  <span className="sh" style={{ width: w, height: h }}>
-                    <StudioFrame shot={preview} width={w} />
-                  </span>
-                  <Tick />
-                </span>
-                {on && <FocusBrackets />}
-              </span>
-              <span className="cap">
-                <b>{s.label}</b>
-                <small className="mono">{s.sub}</small>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </section>
-  );
+/** The shot's picture at 42x32 for a folded row. */
+const MiniShot = ({ shot }: { shot: Shot }) => <StudioFrame shot={shot} width={42} aspect={42 / 32} />;
+
+function cameraItems(group: CameraGroup, shot: Shot): PickItem[] {
+  const w = tileWidth();
+  return OPTIONS[group].map((o) => ({
+    id: o.id,
+    label: o.label,
+    sub: o.sub,
+    art: <StudioFrame shot={previewShot(shot, group, o.id)} width={w} aspect={w / tileHeight(w)} />,
+  }));
 }
 
-/* ── Prompt card ─────────────────────────────────────────────────────── */
-
-export interface RefPhoto {
-  name: string;
-  src: string;
+function shapeItems(shot: Shot): PickItem[] {
+  const W = 92;
+  const H = 66;
+  return SHAPES.map((s) => {
+    const w = s.r >= W / H ? W : H * s.r;
+    const h = w / s.r;
+    return {
+      id: s.id,
+      label: s.label,
+      sub: s.sub,
+      art: (
+        <span className="sh" style={{ width: w, height: h }}>
+          <StudioFrame shot={previewShot(shot, "ratio", s.id)} width={w} />
+        </span>
+      ),
+    };
+  });
 }
 
-function PromptCard({
-  prompt,
-  onPrompt,
-  onSubmit,
-  maxLength,
-  refs,
-  canRef,
-  maxRefs,
-  onAddRefs,
-  onRemoveRef,
-}: {
-  prompt: string;
-  onPrompt: (v: string) => void;
-  onSubmit: () => void;
-  maxLength: number;
-  refs: RefPhoto[];
-  canRef: boolean;
-  maxRefs: number;
-  onAddRefs: (files: FileList | null) => void;
-  onRemoveRef: (index: number) => void;
-}) {
-  const file = useRef<HTMLInputElement>(null);
+/** Mini picture of a shape pick: the frame drawn at its ratio inside the 42x32 slot. */
+function MiniShape({ shot }: { shot: Shot }) {
+  const r = shapeOf(shot.ratio).r;
+  const w = r >= 42 / 32 ? 42 : 32 * r;
+  const h = w / r;
+  const preview = previewShot(shot, "ratio", shot.ratio);
   return (
-    <div className="card prompt-card">
-      <label className="mono" htmlFor="image-prompt-field">Your prompt</label>
-      <textarea
-        id="image-prompt-field"
-        rows={2}
-        value={prompt}
-        maxLength={maxLength}
-        onChange={(e) => onPrompt(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onSubmit();
-        }}
-      />
-      <div className="row">
-        {canRef && (
-          <>
-            <input ref={file} type="file" accept="image/*" multiple hidden onChange={(e) => { onAddRefs(e.target.files); e.target.value = ""; }} />
-            {refs.map((r, i) => (
-              <span key={`${r.name}${i}`} className="pill ref-pill" aria-label={`Reference photo ${r.name}`}>
-                <span className="ref-thumb"><img src={r.src} alt="" /></span>
-                <span className="ref-name">Reference added</span>
-                <button type="button" className="ref-x" aria-label={`Remove ${r.name}`} onClick={() => onRemoveRef(i)}>
-                  <SutaeruIcon name="close" signal={false} className="ico" />
-                </button>
-              </span>
-            ))}
-            {refs.length < maxRefs && (
-              <button type="button" className="pill" onClick={() => file.current?.click()}>
-                <SutaeruIcon name="plus" signal={false} className="ico" />
-                Reference photo
-              </button>
-            )}
-          </>
-        )}
-        <span className="mono prompt-hint">Put words in quotes to print them</span>
-      </div>
-    </div>
+    <span className="mini-shape">
+      <span className="sh" style={{ width: w, height: h }}>
+        <StudioFrame shot={preview} width={Math.max(24, w)} />
+      </span>
+    </span>
   );
 }
 
@@ -397,7 +283,7 @@ function EngineCards({ engines, value, suggested, onChange }: { engines: Engine[
           <button key={e.id} type="button" role="radio" aria-checked={on} className={cn("engine", on && "is-on")} onClick={() => onChange(e.id)}>
             {on && <FocusBrackets />}
             <span className="ep">
-              {m.img ? <img src={m.img} alt="" loading="lazy" decoding="async" /> : null}
+              {m.img ? <Pic art={m.img} /> : null}
               <span className="badge"><EngineMark id={e.id} /></span>
               {suggested === e.id && <span className="sugg">Suggested</span>}
             </span>
@@ -428,6 +314,11 @@ function EngineCards({ engines, value, suggested, onChange }: { engines: Engine[
 }
 
 /* ── The studio ──────────────────────────────────────────────────────── */
+
+export interface RefPhoto {
+  name: string;
+  src: string;
+}
 
 export interface StudioScreenProps {
   shot: Shot;
@@ -465,86 +356,86 @@ export function StudioScreen(p: StudioScreenProps) {
   const meta = ENGINE_META[p.engine];
   const { secs } = estimate(p.engine, p.quality, p.count);
   const current = p.engines.find((e) => e.id === p.engine);
+  const folds = useFoldState("studio", FOLD_IDS, { first: "shot" });
+  const shape = shapeOf(p.shot.ratio);
 
   return (
     <section className="view wide view-enter" id="view-studio">
       <StudioHead
-        step={1}
         backLabel={p.backLabel ?? "Agent"}
         onBack={p.onBack}
         title="Set up the shot."
         lede="Each tile is your picture with that one choice changed. Pick what you see, and Sutaeru draws it."
+        action={<FoldAllButton state={folds} />}
       />
       <div className="studio-grid">
         <Viewfinder shot={p.shot} label={p.label} mode={p.vf} onMode={p.onVf} grid={p.grid} onGrid={p.onGrid} />
         <div className="opt-col">
-          <PromptCard
-            prompt={p.prompt}
-            onPrompt={p.onPrompt}
-            onSubmit={() => p.canBegin && p.onBegin()}
+          <PromptField
+            id="image-prompt-field"
+            value={p.prompt}
+            onChange={p.onPrompt}
+            placeholder="Describe your picture"
             maxLength={p.maxPrompt}
+            onSubmit={() => p.canBegin && p.onBegin()}
             refs={p.refs}
-            canRef={current?.supportsReference ?? true}
-            maxRefs={p.maxRefs}
-            onAddRefs={p.onAddRefs}
+            maxRefs={current?.supportsReference === false ? 0 : p.maxRefs}
+            onAddRefs={current?.supportsReference === false ? undefined : p.onAddRefs}
             onRemoveRef={p.onRemoveRef}
           />
           <StudioDirection shot={p.shot} on={p.directionOn} onChange={p.onDirection} />
-          {CAMERA_GROUPS.map((g) => (
-            <CameraGroupRow key={g} group={g} shot={p.shot} onPick={p.onPick} />
-          ))}
-          <ShapeRow shot={p.shot} onPick={p.onPick} />
-          <div className="opt-group">
-            <div className="between">
-              <span className="mono ink">Engine</span>
-              <span className="why">{p.why}</span>
-            </div>
-            <EngineCards engines={p.engines} value={p.engine} suggested={p.suggested} onChange={p.onEngine} />
-          </div>
-          <div className="opt-group">
-            <div className="between">
-              <span className="mono ink">Quality and count</span>
-              <span className="why">High is slower</span>
-            </div>
-            <div className="qty">
-              <SegSwitch
-                label="Quality"
-                value={p.quality}
-                onChange={p.onQuality}
-                options={[{ id: "standard", label: "Standard" }, { id: "high", label: "High" }]}
-              />
-              <div className="row" role="radiogroup" aria-label="How many pictures">
-                {[1, 2, 3, 4].map((n) => (
-                  <button key={n} type="button" role="radio" aria-checked={p.count === n} aria-label={`${n} picture${n > 1 ? "s" : ""}`} className="count-opt" onClick={() => p.onCount(n)}>
-                    <span className="stackf">
-                      {Array.from({ length: n }, (_, i) => (
-                        <i key={i} style={{ left: i * 3, top: 6 - i * 3 }} />
-                      ))}
-                    </span>
-                    <span>{n}</span>
-                  </button>
-                ))}
+          <FoldGroup state={folds} className="studio-folds">
+            {CAMERA_GROUPS.map((g, i) => {
+              const sel = optionOf(g, p.shot[g]);
+              return (
+                <FoldSection key={g} id={g} index={i + 1} label={GROUP_TITLES[g]} pick={`${sel.label} · ${sel.sub}`} mini={<MiniShot shot={previewShot(p.shot, g, p.shot[g])} />}>
+                  <PickTiles label={GROUP_TITLES[g]} items={cameraItems(g, p.shot)} value={p.shot[g]} onChange={(id) => p.onPick(g, id as Shot[typeof g])} />
+                </FoldSection>
+              );
+            })}
+            <FoldSection id="ratio" index={6} label={GROUP_TITLES.ratio} pick={`${shape.label} · ${shape.sub}`} mini={<MiniShape shot={p.shot} />}>
+              <PickTiles variant="shape" label="Shape" items={shapeItems(p.shot)} value={p.shot.ratio} onChange={(id) => p.onPick("ratio", id as Shot["ratio"])} />
+            </FoldSection>
+            <FoldSection id="engine" index={7} label="Engine" pick={meta.name} mini={meta.img ? <Pic art={meta.img} fallback={<EngineMark id={p.engine} />} /> : <EngineMark id={p.engine} />}>
+              <p className="why">{p.why}</p>
+              <EngineCards engines={p.engines} value={p.engine} suggested={p.suggested} onChange={p.onEngine} />
+            </FoldSection>
+            <FoldSection id="quality" index={8} label="Quality and count" pick={`${p.quality === "high" ? "High" : "Standard"} · ${p.count} picture${p.count > 1 ? "s" : ""}`}>
+              <div className="qty">
+                <SegSwitch
+                  label="Quality"
+                  value={p.quality}
+                  onChange={p.onQuality}
+                  options={[{ id: "standard", label: "Standard" }, { id: "high", label: "High" }]}
+                />
+                <div className="row" role="radiogroup" aria-label="How many pictures">
+                  {[1, 2, 3, 4].map((n) => (
+                    <button key={n} type="button" role="radio" aria-checked={p.count === n} aria-label={`${n} picture${n > 1 ? "s" : ""}`} className="count-opt" onClick={() => p.onCount(n)}>
+                      <span className="stackf">
+                        {Array.from({ length: n }, (_, i) => (
+                          <i key={i} style={{ left: i * 3, top: 6 - i * 3 }} />
+                        ))}
+                      </span>
+                      <span>{n}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          </div>
+            </FoldSection>
+          </FoldGroup>
           <details className="credits-line">
             <summary className="mono">Sample photos · Unsplash</summary>
             <p>{PHOTO_CREDITS.join(", ")}. Free to use under the Unsplash License.</p>
           </details>
         </div>
       </div>
-      <div className="go-bar">
-        <div className="sum">
-          <span className="mono">
-            {meta.name}{p.quality === "high" ? " · High" : ""} · {p.count} picture{p.count > 1 ? "s" : ""}
-          </span>
-          <b className="tnum">about {secs} s</b>
-        </div>
-        <button type="button" className="btn ink big" disabled={!p.canBegin} onClick={p.onBegin}>
-          Begin
-          <SutaeruIcon name="arrow" signal={false} className="ico" />
-        </button>
-      </div>
+      <GoBar
+        summary={`About ${p.engine === "forge" ? Math.round(secs / 60) + " min" : secs + " s"}`}
+        detail={`${meta.name}${p.quality === "high" ? " · High" : ""} · ${p.count} picture${p.count > 1 ? "s" : ""}`}
+        actionLabel="Begin"
+        onAction={p.onBegin}
+        disabled={!p.canBegin}
+      />
     </section>
   );
 }
