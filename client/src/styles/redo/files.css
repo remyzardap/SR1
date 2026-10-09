@@ -58,6 +58,8 @@
 .fend { position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 2; }
 .frow-live { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
 .frow-live .bar-holder { flex: 1; min-width: 0; max-width: 200px; }
+/* The countdown changes every frame: never let it re-wrap the row and jitter the layout. */
+.frow-live .mono { flex: none; white-space: nowrap; min-width: 88px; text-align: right; }
 canvas.bar { display: block; width: 100%; height: 14px; }
 canvas.bar.thick { height: 22px; }
 

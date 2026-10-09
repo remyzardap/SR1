@@ -13,6 +13,7 @@ import { FileTypeChips } from "./FileTypeChips";
 import type { FileActions } from "./FileRowMenu";
 import {
   CATEGORY_LABELS,
+  SORT_KEYS,
   TYPE_FILTERS,
   categoryOf,
   filterFiles,
@@ -116,6 +117,7 @@ export function FilesScreen({
   const folds = useFoldState("files", FOLD_IDS);
 
   const inView = useMemo(() => files.filter((f) => (view === "active" ? !f.trashed : f.trashed)), [files, view]);
+  const active = useMemo(() => files.filter((f) => !f.trashed), [files]);
   const visible = useMemo(() => sortFiles(filterFiles(inView, filter, query), sort), [inView, filter, query, sort]);
 
   const counts = useMemo(() => {
@@ -125,8 +127,8 @@ export function FilesScreen({
     return tally;
   }, [inView]);
 
-  const used = storageUsedBytes ?? sumBytes(inView);
-  const slices = useMemo(() => storageBreakdown(inView), [inView]);
+  const used = storageUsedBytes ?? sumBytes(active);
+  const slices = useMemo(() => storageBreakdown(active), [active]);
   const chipLabel = TYPE_FILTERS.find((c) => c.id === filter)?.label ?? "All";
   const searching = query.trim().length > 0;
   const countLabel =
@@ -143,8 +145,10 @@ export function FilesScreen({
         </div>
       </div>
 
-      <label className="search" htmlFor="fq">
-        <span className="sr">Search files</span>
+      <div className="search">
+        <label className="sr" htmlFor="fq">
+          Search files
+        </label>
         <SutaeruIcon name="search" className="ico" />
         <input
           id="fq"
@@ -158,7 +162,7 @@ export function FilesScreen({
             <SutaeruIcon name="up" className="ico" />
           </button>
         )}
-      </label>
+      </div>
 
       <FileTypeChips value={filter} onChange={onFilterChange} counts={counts} />
 
@@ -173,7 +177,7 @@ export function FilesScreen({
             </button>
           </div>
         ) : (
-          <span className="mono">Name</span>
+          <span className="mono">{SORT_KEYS.find((k) => k.id === sort.key)?.label ?? "Name"}</span>
         )}
         <FileSortButton sort={sort} onChange={onSortChange} />
       </div>
@@ -242,7 +246,7 @@ export function FilesScreen({
             <StorageMeter used={used} cap={storageCapBytes} />
             <p className="storage-line">
               <b className="tnum">{formatStorage(used, storageCapBytes)}</b>
-              <span className="quiet"> used across {inView.length} {inView.length === 1 ? "file" : "files"}</span>
+              <span className="quiet"> used across {active.length} {active.length === 1 ? "file" : "files"}</span>
             </p>
             {slices.length > 0 ? (
               <ul className="storage-splits">
