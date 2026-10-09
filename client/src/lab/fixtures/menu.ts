@@ -37,5 +37,16 @@ export const MENU_PILLS: MenuPill[] = [
 
 export const MENU_PILLS_MEMBER: MenuPill[] = MENU_PILLS.filter((p) => p.label !== "Admin");
 
-export const MENU_PERSON_ADMIN: MenuPerson = { name: "Remy", initial: "R", meta: "Admin" };
-export const MENU_PERSON_MEMBER: MenuPerson = { name: "Ana Souza", initial: "A", meta: "ana@sutaeru.studio" };
+export const MENU_PERSON_ADMIN: MenuPerson = {
+  name: "Remy",
+  initial: "R",
+  plan: "free plan · 38/50 messages",
+  meter: { used: 38, of: 50 },
+  meta: "Admin",
+};
+export const MENU_PERSON_MEMBER: MenuPerson = {
+  name: "Ana Souza",
+  initial: "A",
+  plan: "free plan · 4/50 messages",
+  meter: { used: 4, of: 50 },
+};

@@ -46,6 +46,10 @@ export interface MenuPerson {
   name: string;
   initial: string;
   meta?: string;
+  /** Plan and usage line, e.g. "free plan · 38 of 50 messages". */
+  plan?: string;
+  /** Ten-dot usage meter: `used` of `of`. */
+  meter?: { used: number; of: number } | null;
 }
 
 export interface LogoMenuSheetProps {
@@ -307,8 +311,17 @@ export function LogoMenuSheet({
             </span>
             <span className="lm-who">
               <b>{person.name}</b>
-              {person.meta && <span className="mono">{person.meta}</span>}
+              {(person.plan || person.meta) && (
+                <span className="mono">{[person.plan, person.meta].filter(Boolean).join(" · ")}</span>
+              )}
             </span>
+            {person.meter && person.meter.of > 0 && (
+              <span className="lm-dots" aria-hidden="true">
+                {Array.from({ length: 10 }, (_, i) => (
+                  <i key={i} className={i < Math.round((person.meter!.used / person.meter!.of) * 10) ? "on" : undefined} />
+                ))}
+              </span>
+            )}
           </div>
         )}
       </div>

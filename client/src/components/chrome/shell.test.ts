@@ -9,9 +9,12 @@ vi.mock("@/_core/hooks/useAuth", () => ({
   useAuth: () => ({ user: null, isAuthenticated: false, loading: false }),
 }));
 
-/* The logo menu asks for the session list while it is open; static markup never opens it. */
+/* The logo menu asks for the session list and the quota while it is open; static markup never opens it. */
 vi.mock("@/lib/trpc", () => ({
-  trpc: { chat: { listSessions: { useQuery: () => ({ data: [] }) } } },
+  trpc: {
+    chat: { listSessions: { useQuery: () => ({ data: [] }) } },
+    kemma: { quota: { useQuery: () => ({ data: null }) } },
+  },
 }));
 
 describe("Shell and AppHeader", () => {

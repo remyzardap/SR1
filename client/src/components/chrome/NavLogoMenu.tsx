@@ -192,6 +192,8 @@ export function NavLogoMenu({ variant = "header", className }: NavLogoMenuProps)
 
   /* Past chats: the same list the chat sidebar shows, fetched only while the menu is up. */
   const sessions = trpc.chat.listSessions.useQuery(undefined, { enabled: shown, retry: false });
+  /* The footer's plan line: the same quota the sidebar footer reads. */
+  const quota = trpc.kemma.quota.useQuery(undefined, { enabled: shown && !!user, retry: false, staleTime: 5 * 60_000 });
 
   /* Working for you: code threads still running on the server (admin-only feature). */
   const [codeSessions, setCodeSessions] = useState<CodeSession[]>([]);
@@ -240,7 +242,11 @@ export function NavLogoMenu({ variant = "header", className }: NavLogoMenuProps)
     ? {
         name: user.name || user.email || "Signed in",
         initial: (user.name || user.email || "S").trim().charAt(0).toUpperCase(),
-        meta: user.role === "admin" ? "Admin" : user.email ?? undefined,
+        plan: quota.data
+          ? `${quota.data.tier} plan · ${quota.data.messages.used}/${quota.data.messages.limit} messages`
+          : undefined,
+        meter: quota.data ? { used: quota.data.messages.used, of: quota.data.messages.limit } : null,
+        meta: user.role === "admin" ? "Admin" : quota.data ? undefined : user.email ?? undefined,
       }
     : null;
 

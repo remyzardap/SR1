@@ -87,6 +87,8 @@ describe("logo menu sheet markup", () => {
     expect(html).toContain('aria-expanded="true"');
     expect(html).toContain('aria-current="page"');
     expect(html).toContain("/studio/o/nav-chat.webp");
+    expect(html).toContain("lm-dots");
+    expect(html).toContain("free plan · 38/50 messages");
   });
 
   it("renders nothing while closed", () => {

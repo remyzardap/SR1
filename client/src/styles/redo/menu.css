@@ -144,9 +144,9 @@
 }
 .lm-foot .lm-who { flex: 1; min-width: 0; }
 .lm-foot .lm-who b { display: block; font: 600 15px/1.2 var(--body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lm-foot .lm-who .mono { display: block; margin-top: 3px; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lm-dots { display: flex; gap: 5px; flex: none; }
-.lm-dots i { width: 9px; height: 9px; border-radius: 3px; background: var(--seg, var(--panel)); }
+.lm-foot .lm-who .mono { display: block; margin-top: 3px; font-size: 10px; letter-spacing: 0.8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lm-dots { display: flex; gap: 4px; flex: none; }
+.lm-dots i { width: 8px; height: 8px; border-radius: 3px; background: var(--seg, var(--panel)); }
 .lm-dots i.on { background: var(--ink); }
 
 /* ── Phone: bottom sheet ───────────────────────────────────────────────── */
