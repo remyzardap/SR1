@@ -58,10 +58,42 @@ export const PICK_ART = {
   /* Menu destinations */
   "nav-chat": "Two cups of tea on a café table",
   "nav-agent": "A drafting desk with tools laid out",
+  "nav-images": "A vintage camera beside a paint palette",
+  "nav-documents": "A tall stack of paper under a desk lamp",
+  "nav-files": "An open filing drawer of folders",
+  "nav-video": "A film reel in a projector beam",
 
-  /* Not yet generated (image API credits ran out): nav-images, nav-documents,
-   * nav-files, nav-video, depth-*, tone-*, len-*, style-*, theme-*, motion-*,
-   * voice-*. Add the webp to public/studio/o/ and its id here. */
+  /* Depth */
+  "depth-quick": "A pebble skipping across a calm lake at dusk",
+  "depth-standard": "Sunlight reaching down into clear green water",
+  "depth-deep": "A spiral staircase descending into the dark",
+
+  /* Tone */
+  "tone-confident": "A chess king standing in a pool of light",
+  "tone-friendly": "Two mugs of cocoa clinking together",
+  "tone-formal": "A long, orderly boardroom table",
+  "tone-plain": "A plain white bowl and a wooden spoon",
+
+  /* Length */
+  "len-medium": "Two sheets of handwritten letter on a desk",
+  "len-long": "A thick manuscript tied with twine",
+
+  /* Style */
+  "style-keep": "An old book preserved under a glass dome",
+  "style-modern": "A clean desk with a slim laptop and a plant",
+  "style-classic": "A writing desk with inkwell, quill and wax seal",
+
+  /* Theme */
+  "theme-dark": "A phone on a desk at night by a small lamp",
+  "theme-light": "A phone on a desk in bright morning light",
+  "theme-auto": "A phone on a desk at dusk, half light and half shadow",
+
+  /* Motion */
+  "motion-full": "Light trails swirling around a hanging mobile",
+
+  /* Not yet generated (Vertex rate limits): len-short, motion-reduced,
+   * voice-warm, voice-bright, reformat-before, reformat-after. Add the webp to
+   * public/studio/o/ and its id here. */
 } as const;
 
 export type PickArtId = keyof typeof PICK_ART;
