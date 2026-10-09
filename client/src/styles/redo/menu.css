@@ -18,7 +18,6 @@
 .lm-scrim {
   position: fixed; inset: 0; z-index: 60;
   background: rgba(10, 9, 8, 0.55);
-  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
   animation: lm-fade-in 240ms var(--lm-ease-out) both;
 }
 .lm-scrim[data-closing="true"] { animation: lm-fade-out var(--lm-t-out) var(--lm-ease-in) both; }
@@ -108,8 +107,15 @@
 .lm-pick { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
 .lm-empty { margin: 6px 0 4px; font-size: 13px; line-height: 1.5; color: var(--quiet); }
 
-/* "Yours": the long tail as pills. */
+/* "Yours": the long tail as pills. The legacy neon `.pill` in index.css uppercases
+   everything; the menu keeps the board's quiet sentence-case chip. */
 .lm-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.lm-pills .pill {
+  min-height: 38px; padding: 0 15px; border-radius: 19px;
+  background: var(--panel); border-color: transparent; color: var(--ink);
+  font: 500 13.5px/1 var(--body); letter-spacing: 0; text-transform: none;
+}
+.lm-pills .pill.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
 /* ── Footer: who is signed in ──────────────────────────────────────────── */
 .lm-foot {
