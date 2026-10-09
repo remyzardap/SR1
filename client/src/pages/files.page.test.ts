@@ -1,174 +1,136 @@
 import { describe, it, expect, vi } from "vitest";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { FilesView, formatBytes, formatStorage, type FileItem } from "@/components/files/FilesView";
+import { FilesScreen } from "@/components/files/FilesScreen";
+import { categoryOf, typeLabel } from "@/components/files/fileModel";
 import { SAMPLE_FILES, FILES_LAB_STATES } from "@/lab/fixtures/files";
 
-describe("Files Page and Container Integration", () => {
-  it("maps files correctly to display miniature document cards and formatted metadata", () => {
-    const onPreview = vi.fn();
-    const html = renderToStaticMarkup(
-      React.createElement(FilesView, {
-        files: SAMPLE_FILES,
-        searchQuery: "",
-        onSearchChange: vi.fn(),
-        activeFilter: "all",
-        onFilterChange: vi.fn(),
-        storageUsedBytes: 2.4 * 1024 * 1024 * 1024,
-        storageCapBytes: 10 * 1024 * 1024 * 1024,
-        onPreviewFile: onPreview,
-      })
-    );
+const noop = vi.fn();
 
-    // Verifies report, deck, sheet, image kinds render proper card structures
-    expect(html).toContain("Off grid solar cost per kWh");
-    expect(html).toContain("doc-report");
-    expect(html).toContain("TGWI investor update Q3");
-    expect(html).toContain("doc-deck");
-    expect(html).toContain("Villa BOQ and budget");
-    expect(html).toContain("doc-sheet");
-    expect(html).toContain("Ceramic mug, morning light");
-    expect(html).toContain('class="ph-img"');
-  });
+const renderState = (key: keyof typeof FILES_LAB_STATES) => {
+  const cfg = FILES_LAB_STATES[key];
+  return renderToStaticMarkup(
+    React.createElement(FilesScreen, {
+      files: cfg.files,
+      query: cfg.query,
+      onQueryChange: noop,
+      filter: cfg.filter,
+      onFilterChange: noop,
+      sort: cfg.sort,
+      onSortChange: noop,
+      view: cfg.view,
+      onViewChange: noop,
+      storageUsedBytes: cfg.storageUsedBytes,
+      storageCapBytes: cfg.storageCapBytes,
+      isUploading: cfg.isUploading,
+      uploadingFileName: cfg.uploadingFileName,
+      uploadProgress: cfg.uploadProgress,
+      onUpload: noop,
+      onOpenFile: noop,
+      onPreviewFile: noop,
+      onRenameFile: noop,
+      onMoveFile: noop,
+      onTrashFile: noop,
+      onRestoreFile: noop,
+      onDeleteFile: noop,
+      onOpenAsBrief: noop,
+      onDownloadFile: noop,
+      onOpenFileInChat: noop,
+      onAskSutaeru: noop,
+    })
+  );
+};
 
-  it("handles empty list per kind (e.g., video filter) with designed empty state", () => {
-    const onAskSutaeru = vi.fn();
-    const html = renderToStaticMarkup(
-      React.createElement(FilesView, {
-        files: SAMPLE_FILES,
-        searchQuery: "",
-        onSearchChange: vi.fn(),
-        activeFilter: "video",
-        onFilterChange: vi.fn(),
-        storageUsedBytes: 2.4 * 1024 * 1024 * 1024,
-        storageCapBytes: 10 * 1024 * 1024 * 1024,
-        onAskSutaeru,
-      })
-    );
-
-    expect(html).toContain("Nothing here yet.");
-    expect(html).toContain("Videos Sutaeru makes will land here.");
-    expect(html).toContain("Ask Sutaeru to make one");
-    expect(html).toContain("empty-sphere");
-  });
-
-  it("handles search queries with no matches and allows clearing search", () => {
-    const onSearchChange = vi.fn();
-    const html = renderToStaticMarkup(
-      React.createElement(FilesView, {
-        files: SAMPLE_FILES,
-        searchQuery: "nonexistent term",
-        onSearchChange,
-        activeFilter: "all",
-        onFilterChange: vi.fn(),
-        storageUsedBytes: 2.4 * 1024 * 1024 * 1024,
-        storageCapBytes: 10 * 1024 * 1024 * 1024,
-      })
-    );
-
-    expect(html).toContain("No files match.");
-    expect(html).toContain("Nothing called “nonexistent term” in All.");
-    expect(html).toContain("Clear search");
-  });
-
-  it("handles live writing file with animated progress bar and ETA", () => {
-    const liveFile: FileItem = {
-      id: "live-1",
-      name: "Quarterly Energy Synthesis",
-      kind: "report",
-      meta: "Writing...",
-      live: true,
-    };
-
-    const html = renderToStaticMarkup(
-      React.createElement(FilesView, {
-        files: [liveFile],
-        searchQuery: "",
-        onSearchChange: vi.fn(),
-        activeFilter: "all",
-        onFilterChange: vi.fn(),
-        storageUsedBytes: 500 * 1024 * 1024,
-      })
-    );
-
-    expect(html).toContain("Writing");
-    expect(html).toContain("live-dot pulse");
-    expect(html).toContain("Quarterly Energy Synthesis");
-    expect(html).toContain("bar-holder");
-    expect(html).toContain("About 40 sec left");
-  });
-
-  it("handles storage nearly full state (23 segments filled)", () => {
-    const html = renderToStaticMarkup(
-      React.createElement(FilesView, {
-        files: SAMPLE_FILES,
-        searchQuery: "",
-        onSearchChange: vi.fn(),
-        activeFilter: "all",
-        onFilterChange: vi.fn(),
-        storageUsedBytes: 9.4 * 1024 * 1024 * 1024,
-        storageCapBytes: 10 * 1024 * 1024 * 1024,
-      })
-    );
-
-    expect(html).toContain("9.4 of 10 GB");
-    const onMatches = html.match(/<i\b[^>]*class="on"[^>]*>/g);
-    expect(onMatches?.length).toBe(23);
-  });
-
-  it("supports failure paths and edge cases gracefully", () => {
-    // Empty files array
-    const emptyHtml = renderToStaticMarkup(
-      React.createElement(FilesView, {
-        files: [],
-        searchQuery: "",
-        onSearchChange: vi.fn(),
-        activeFilter: "all",
-        onFilterChange: vi.fn(),
-        storageUsedBytes: 0,
-      })
-    );
-    expect(emptyHtml).toContain("Nothing here yet.");
-    expect(emptyHtml).toContain("0.0 of 10 GB");
-
-    // File with missing metadata / unusual kind
-    const weirdFile: FileItem = {
-      id: 999,
-      name: "untitled-binary.bin",
-      kind: "unknown",
-      meta: "0 B",
-    };
-    const weirdHtml = renderToStaticMarkup(
-      React.createElement(FilesView, {
-        files: [weirdFile],
-        searchQuery: "",
-        onSearchChange: vi.fn(),
-        activeFilter: "all",
-        onFilterChange: vi.fn(),
-        storageUsedBytes: 0,
-      })
-    );
-    expect(weirdHtml).toContain("untitled-binary.bin");
-    expect(weirdHtml).toContain("doc-report"); // falls back to report miniature safely
-  });
-
-  it("verifies all lab fixture states conform to schema", () => {
+describe("Files page fixtures", () => {
+  it("covers every screen state the page can land on", () => {
     expect(Object.keys(FILES_LAB_STATES)).toEqual([
       "populated",
-      "filtered",
+      "documents",
+      "images",
+      "sorted_by_size",
+      "sorted_by_name",
       "searching_no_match",
       "empty_per_kind",
       "uploading",
       "writing",
+      "trashed",
       "storage_nearly_full",
     ]);
+  });
 
+  it("keeps every state conforming to the schema", () => {
     for (const [key, state] of Object.entries(FILES_LAB_STATES)) {
       expect(state.name).toBe(key);
       expect(typeof state.label).toBe("string");
       expect(Array.isArray(state.files)).toBe(true);
-      expect(state.storageUsedBytes).toBeGreaterThanOrEqual(0);
+      expect(typeof state.query).toBe("string");
+      expect(["all", "documents", "images", "sheets", "slides", "pdfs", "other"]).toContain(state.filter);
+      expect(["name", "date", "size"]).toContain(state.sort.key);
+      expect(["asc", "desc"]).toContain(state.sort.dir);
+      expect(["active", "trashed"]).toContain(state.view);
       expect(state.storageCapBytes).toBeGreaterThan(0);
+      if (state.storageUsedBytes !== undefined) expect(state.storageUsedBytes).toBeGreaterThanOrEqual(0);
     }
+  });
+
+  it("gives every sample file a type the chips understand, plus a size and a date", () => {
+    for (const file of SAMPLE_FILES.filter((f) => !f.live)) {
+      expect(["documents", "images", "sheets", "slides", "pdfs", "other"]).toContain(categoryOf(file));
+      expect(typeof file.fileSizeBytes).toBe("number");
+      expect(file.createdAt).toBeTruthy();
+    }
+  });
+
+  it("never shows a model or vendor name", () => {
+    for (const file of SAMPLE_FILES) {
+      expect(typeLabel(file)).not.toMatch(/gemini|openai|claude|gpt|flux|wan|sora|vertex|anthropic/i);
+    }
+    for (const key of Object.keys(FILES_LAB_STATES)) {
+      expect(renderState(key as keyof typeof FILES_LAB_STATES)).not.toMatch(/Gemini|OpenAI|Claude|GPT-/i);
+    }
+  });
+});
+
+describe("Files page through the screen", () => {
+  it("renders the populated list with names, types, sizes and dates", () => {
+    const out = renderState("populated");
+    expect(out).toContain("Bakery loyalty card proposal");
+    expect(out).toContain("Word document · 38 KB · Today");
+    expect(out).toContain("PDF · 1.2 MB · Yesterday");
+    expect(out).toContain('role="radiogroup"');
+    expect(out).toContain('aria-expanded');
+  });
+
+  it("keeps the trashed file out of the active view and into the trash view", () => {
+    expect(renderState("populated")).not.toContain("Suppliers shortlist");
+    expect(renderState("trashed")).toContain("Suppliers shortlist");
+  });
+
+  it("orders by the chosen sort", () => {
+    const bySize = renderState("sorted_by_size");
+    expect(bySize.indexOf("Original photo roll")).toBeLessThan(bySize.indexOf("Bakery loyalty card"));
+    const byName = renderState("sorted_by_name");
+    expect(byName.indexOf("Bakery loyalty card")).toBeLessThan(byName.indexOf("City comparison"));
+  });
+
+  it("shows the live writing row with its bar, and the uploading row with its percentage", () => {
+    const writing = renderState("writing");
+    expect(writing).toContain("Writing · Today");
+    expect(writing).toContain("bar-holder");
+    const uploading = renderState("uploading");
+    expect(uploading).toContain("site-survey-2026.docx");
+    expect(uploading).toContain("65% complete");
+  });
+
+  it("shows the designed empty states", () => {
+    expect(renderState("searching_no_match")).toContain("Nothing called “quantum battery” in All.");
+    expect(renderState("empty_per_kind")).toContain("Spreadsheets Sutaeru makes will land here.");
+  });
+
+  it("fills the storage meter when it is nearly full", () => {
+    const out = renderState("storage_nearly_full");
+    expect(out).toContain("9.4 GB of 10 GB");
+    const segs = out.slice(out.indexOf('class="segs"'));
+    expect((segs.slice(0, segs.indexOf("</div>")).match(/class="on"/g) || []).length).toBe(23);
   });
 });

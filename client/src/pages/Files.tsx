@@ -10,8 +10,8 @@ import {
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { BriefDialog } from "@/components/BriefDialog";
-import { relativeTime } from "@/lib/relativeTime";
-import { FilesView, formatBytes, type FileItem } from "@/components/files/FilesView";
+import { FilesScreen } from "@/components/files/FilesScreen";
+import { usedBytes as sumUsedBytes, type FileFilterId, type FileItem, type FileSort } from "@/components/files/fileModel";
 
 type FileRecord = {
   id: number;
@@ -40,7 +40,8 @@ export default function Files() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [search, setSearch] = useState("");
-  const [filterKind, setFilterKind] = useState<string>("all");
+  const [filterKind, setFilterKind] = useState<FileFilterId>("all");
+  const [sort, setSort] = useState<FileSort>({ key: "date", dir: "desc" });
   const [view, setView] = useState<"active" | "trashed">("active");
 
   const [isUploading, setIsUploading] = useState(false);
@@ -185,9 +186,6 @@ export default function Files() {
     }
   };
 
-  const visibleFiles = files.filter((f) => (view === "active" ? !f.trashed : f.trashed));
-  const usedBytes = visibleFiles.reduce((sum, f) => sum + (f.fileSizeBytes ?? 0), 0);
-
   const fileMap = new Map<string | number, FileRecord>();
   files.forEach((f) => fileMap.set(f.id, f));
 
@@ -196,9 +194,6 @@ export default function Files() {
     name: f.name,
     kind: f.kind,
     format: f.format,
-    meta: isWriting(f)
-      ? "Writing..."
-      : `Edited ${relativeTime(f.updatedAt ?? f.createdAt)} · ${formatBytes(f.fileSizeBytes)}${f.styleLabel ? ` · ${f.styleLabel}` : ""}`,
     fileUrl: f.fileUrl,
     fileSizeBytes: f.fileSizeBytes,
     createdAt: f.createdAt,
@@ -220,13 +215,15 @@ export default function Files() {
         aria-hidden="true"
       />
 
-      <FilesView
+      <FilesScreen
         files={fileItems}
-        searchQuery={search}
-        onSearchChange={setSearch}
-        activeFilter={filterKind}
+        query={search}
+        onQueryChange={setSearch}
+        filter={filterKind}
         onFilterChange={setFilterKind}
-        storageUsedBytes={usedBytes}
+        sort={sort}
+        onSortChange={setSort}
+        storageUsedBytes={sumUsedBytes(files as FileItem[])}
         storageCapBytes={STORAGE_CAP_BYTES}
         view={view}
         onViewChange={setView}
@@ -234,7 +231,7 @@ export default function Files() {
         uploadingFileName={uploadingFileName}
         uploadProgress={uploadProgress}
         onUpload={handleUploadClick}
-        onPreviewFile={(item) => {
+        onOpenFile={(item) => {
           const rec = fileMap.get(item.id);
           if (rec) setPreviewFile(rec);
         }}
