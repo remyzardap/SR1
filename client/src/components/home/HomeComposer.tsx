@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { FocusBrackets, Sheet, Toggle } from "@/components/art";
+import { FocusBrackets, Sheet } from "@/components/art";
+import { ModeMenu, type ChatModeOption, type ModeSourceRow } from "@/components/chat/ModeMenu";
 import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
 import { MAX_MB } from "@/lib/attachments";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -23,12 +24,7 @@ export interface HomeAttachmentRow {
 }
 
 /** A source the chat may search, bound to one real tool id. */
-export interface HomeSourceRow {
-  /** The tool id this switch turns on and off in the thread settings. */
-  id: string;
-  label: string;
-  caption: string;
-}
+export type HomeSourceRow = ModeSourceRow;
 
 export interface HomeComposerProps {
   value: string;
@@ -41,6 +37,12 @@ export interface HomeComposerProps {
   listening: boolean;
   /** Offline keeps the composer usable; the question waits on the screen. */
   offline: boolean;
+  /** The current chat mode; the mode chip shows it and opens the mode sheet. */
+  mode: string;
+  modes: ChatModeOption[];
+  onModeChange(key: string): void;
+  /** Opens the thread's run settings from the mode sheet. */
+  onOpenSettings?(): void;
   thinking: boolean;
   onThinkingChange(next: boolean): void;
   privateChat: boolean;
@@ -60,7 +62,7 @@ export interface HomeComposerProps {
    * Which panel the composer opens with. The lab uses it to show a popover as a state;
    * a person clicking the button is the only way to get there on the screen itself.
    */
-  initialPanel?: "attach" | "sources" | null;
+  initialPanel?: "attach" | "mode" | null;
   /** Every keystroke pulses the hero ramp. */
   onActivity?(): void;
 }
@@ -85,6 +87,10 @@ export function HomeComposer({
   onStopListen,
   listening,
   offline,
+  mode,
+  modes,
+  onModeChange,
+  onOpenSettings,
   thinking,
   onThinkingChange,
   privateChat,
@@ -104,15 +110,11 @@ export function HomeComposer({
   const formRef = useRef<HTMLFormElement | null>(null);
   const areaRef = useRef<HTMLTextAreaElement | null>(null);
   const isPhone = useMediaQuery("(max-width: 759px)");
-  const [pop, setPop] = useState<null | "attach" | "sources">(isPhone ? null : initialPanel ?? null);
-  const [sheet, setSheet] = useState<null | "attach" | "sources">(isPhone ? initialPanel ?? null : null);
+  const attachFirst = initialPanel === "attach";
+  const [pop, setPop] = useState<null | "attach">(!isPhone && attachFirst ? "attach" : null);
+  const [sheet, setSheet] = useState<null | "attach">(isPhone && attachFirst ? "attach" : null);
 
   const hasContent = value.trim().length > 0 || attachments.length > 0;
-  const enabled = sourceRows.filter((row) => allowedTools.includes(row.id));
-  // The prototype's own summary: Web wins the label, the rest count up.
-  const srcLabel = allowedTools.includes("web_search")
-    ? enabled.length > 1 ? `Web +${enabled.length - 1}` : "Web"
-    : enabled.length ? `${enabled.length} sources` : "No sources";
 
   // grow(): auto-height up to the prototype's 220px ceiling.
   useEffect(() => {
@@ -141,8 +143,7 @@ export function HomeComposer({
     };
   }, [pop]);
 
-  function openKind(kind: "attach" | "sources") {
-    // The prototype toggles the same kind off and swaps straight between the two.
+  function openKind(kind: "attach") {
     if (isPhone) {
       setSheet((current) => (current === kind ? null : kind));
       setPop(null);
@@ -188,20 +189,6 @@ export function HomeComposer({
     </>
   );
 
-  const sourceItems = (
-    <>
-      <div className="pop-toggles">
-        {sourceRows.map((row) => (
-          <div className="toggle-row" key={row.id}>
-            <div className="tx"><b>{row.label}</b><small>{row.caption}</small></div>
-            <Toggle checked={allowedTools.includes(row.id)} onCheckedChange={() => onToggleTool(row.id)} label={row.label} />
-          </div>
-        ))}
-      </div>
-      {sheet && <button type="button" className="btn ink big sheet-done" onClick={() => setSheet(null)}>Done</button>}
-    </>
-  );
-
   return (
     <>
       <p className="private-note mono" id="privNote">
@@ -220,7 +207,7 @@ export function HomeComposer({
           <textarea
             id="q"
             ref={areaRef}
-            rows={1}
+            rows={3}
             value={value}
             onChange={(event) => {
               onChange(event.target.value);
@@ -241,22 +228,18 @@ export function HomeComposer({
             >
               <SutaeruIcon name="plus" signal={false} className="ico" />
             </button>
-            <button type="button" className="pill mode-pill" id="thinkBtn" aria-pressed={thinking} onClick={() => onThinkingChange(!thinking)}>
-              <SutaeruIcon name="make" signal={false} className="ico" />
-              Thinking
-            </button>
-            <button
-              type="button"
-              className="pill src-pill"
-              id="srcBtn"
-              aria-label="Choose sources"
-              aria-expanded={pop === "sources" || sheet === "sources"}
-              onClick={() => openKind("sources")}
-            >
-              <SutaeruIcon name="web" signal={false} className="ico" />
-              <span className="src-text" id="srcLabel">{srcLabel}</span>
-            </button>
-            <span className="spacer" />
+            <ModeMenu
+              mode={mode}
+              modes={modes}
+              onModeChange={onModeChange}
+              allowedTools={allowedTools}
+              onToggleTool={onToggleTool}
+              sourceRows={sourceRows}
+              thinking={thinking}
+              onThinkingChange={onThinkingChange}
+              onOpenSettings={onOpenSettings}
+              initialOpen={initialPanel === "mode"}
+            />
             <button
               type="button"
               className="icon-btn flat"
@@ -269,6 +252,7 @@ export function HomeComposer({
             >
               <SutaeruIcon name="eyeoff" signal={false} className="ico" />
             </button>
+            <span className="spacer" />
             <button type="submit" className="icon-btn ink send" id="sendBtn" aria-label={listening ? "Stop listening" : hasContent ? "Send" : "Talk to Sutaeru"}>
               <span className="mic-ico" id="sendIco"><SutaeruIcon name={hasContent ? "up" : "wave"} signal={false} className="ico" /></span>
               <span className="voice-meter" aria-hidden="true"><i /><i /><i /><i /></span>
@@ -276,13 +260,13 @@ export function HomeComposer({
           </div>
         </form>
         {pop && (
-          <div className="popover" role="dialog" aria-label={pop === "attach" ? "Add to this chat" : "Sources"}>
-            <p className="mono">{pop === "attach" ? "Add to this chat" : "Search in"}</p>
-            {pop === "attach" ? attachItems : sourceItems}
+          <div className="popover" role="dialog" aria-label="Add to this chat">
+            <p className="mono">Add to this chat</p>
+            {attachItems}
           </div>
         )}
-        <Sheet open={sheet !== null} onClose={() => setSheet(null)} title={sheet === "attach" ? "Add to this chat" : "Search in"}>
-          {sheet === "attach" ? attachItems : sourceItems}
+        <Sheet open={sheet !== null} onClose={() => setSheet(null)} title="Add to this chat">
+          {attachItems}
         </Sheet>
       </div>
     </>
