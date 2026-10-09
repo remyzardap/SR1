@@ -167,3 +167,9 @@
 /* The floating logo pill on phone chat carries a short ramp beside the glyph. */
 .skx-nav-floating-btn { gap: 6px; padding-right: 12px; }
 .skx-nav-floating-ramp { display: block; width: 64px; height: 22px; color: var(--r-ink, var(--ink)); flex: none; }
+
+/* Living background (components/art/LivingBackground): behind content, never in the way */
+.living-bg { position: fixed; inset: 0; width: 100vw; height: 100dvh; z-index: -1; pointer-events: none; display: block; }
+:root[data-living] [data-slot="sidebar-inset"],
+:root[data-living] [data-slot="sidebar-inset"] > div > main.bg-sutaeru { background: transparent; }
+@media print { .living-bg { display: none; } }
