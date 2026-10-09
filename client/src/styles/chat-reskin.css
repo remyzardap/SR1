@@ -75,11 +75,19 @@
 
 /* ── Composer ────────────────────────────────────────────────────────────── */
 .sutaeru-chat .sutaeru-run-composer { background: transparent !important; border-top: 0 !important; padding-bottom: max(18px, env(safe-area-inset-bottom)); }
-.sutaeru-chat .sutaeru-input-box { background: var(--r-card) !important; border: 1px solid var(--r-stroke) !important; border-radius: var(--r-radius-pill) !important; box-shadow: 0 18px 40px -22px var(--r-shadow) !important; padding: 8px 10px 8px 24px; min-height: 80px; }
-.sutaeru-chat .sutaeru-input-box textarea { color: var(--r-ink) !important; caret-color: var(--r-accent) !important; }
+/* The thread composer wears Home's numbers (redo/composer.css): field of three lines at 18px,
+   padding 20/22, radius 30, the tools row under it and a 50px button at the right. */
+.sutaeru-chat .sutaeru-run-controls .sutaeru-input-box { background: var(--r-card) !important; border: 1px solid var(--r-stroke) !important; border-radius: 30px !important; box-shadow: 0 18px 40px -22px var(--r-shadow) !important; padding: 20px 22px 14px; min-height: 0; }
+.sutaeru-chat .sutaeru-run-controls .sutaeru-input-box [data-slot="input-group"] { flex-direction: column; align-items: stretch; gap: 14px; height: auto; min-height: 0; }
+.sutaeru-chat .sutaeru-input-box textarea { color: var(--r-ink) !important; caret-color: var(--r-accent) !important; font: 400 18px/1.5 var(--r-font-body) !important; }
 .sutaeru-chat .sutaeru-input-box textarea::placeholder { color: var(--r-quiet) !important; }
-.sutaeru-chat .sutaeru-composer-textarea { min-height: 60px; max-height: 220px; padding: 18px 0 14px; line-height: 1.5; }
-.sutaeru-chat .sutaeru-composer-send { background: var(--r-ink) !important; color: var(--r-paper) !important; border-radius: 50% !important; width: 52px; height: 52px; }
+.sutaeru-chat .sutaeru-run-controls .sutaeru-composer-textarea { min-height: 81px; max-height: 220px; padding: 0; line-height: 1.5; }
+.sutaeru-chat .sutaeru-run-controls .sutaeru-composer-footer { order: 2; width: 100%; padding: 0; align-self: stretch; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sutaeru-chat .sutaeru-composer-tools { display: flex; align-items: center; gap: 4px; min-width: 0; flex: 1 1 auto; container-type: inline-size; }
+.sutaeru-chat .sutaeru-composer-tools .sk-attach-slot { padding: 0; flex: none; }
+.sutaeru-chat .sutaeru-composer-send, .sutaeru-chat .sutaeru-voice-button { flex: none; background: var(--r-ink) !important; color: var(--r-paper) !important; border-radius: 50% !important; width: 50px; height: 50px; }
+.sutaeru-chat .sutaeru-voice-button.is-recording { background: var(--r-alert) !important; }
+.sutaeru-chat .sutaeru-voice-button:disabled, .sutaeru-chat .sutaeru-composer-send:disabled { opacity: .45; }
 .sutaeru-chat .sutaeru-composer-send:hover { filter: brightness(1.2); }
 .sutaeru-chat .sutaeru-attach-button { color: var(--r-ink); }
 .sutaeru-chat .sutaeru-attach-button:hover { background: var(--r-panel); }
@@ -88,12 +96,6 @@
 /* Offline: the composer dims and says why; nothing can be sent. */
 .sutaeru-chat .sutaeru-run-controls[data-offline="true"] .sutaeru-input-box { background: var(--r-panel) !important; border-color: var(--r-stroke) !important; box-shadow: none !important; }
 .sutaeru-chat .sutaeru-run-controls[data-offline="true"] .sutaeru-composer-send { background: var(--r-rule) !important; color: var(--r-card) !important; }
-
-/* ── Bottom controls row (history, new chat, mode, settings, details, export) ── */
-.sutaeru-chat .sutaeru-run-actions { gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-.sutaeru-chat .sutaeru-run-actions > button { min-width: 44px; min-height: 44px; border-radius: 50% !important; background: var(--r-card); border: 1px solid var(--r-stroke); color: var(--r-ink); }
-.sutaeru-chat .sutaeru-run-actions > button:hover { background: var(--r-panel); border-color: var(--r-rule); color: var(--r-ink); }
-.sutaeru-chat .sutaeru-stop-run { border-radius: var(--r-radius-pill) !important; min-height: 44px; padding-inline: 18px; color: var(--r-alert) !important; border-color: var(--r-alert) !important; background: transparent !important; font-weight: 700; }
 
 /* ── Side panel + settings card (desktop) ────────────────────────────────── */
 .sutaeru-chat .neon-card { background: var(--r-card) !important; border: 1px solid var(--r-stroke) !important; border-radius: var(--r-radius-card) !important; box-shadow: none !important; }
@@ -106,60 +108,21 @@
 @media (max-width: 767px) {
   /* The floating logo button has no header around it: keep the first message clear of it. */
   .sutaeru-chat .sutaeru-chat-transcript .sutaeru-chat-content { padding-top: calc(max(14px, env(safe-area-inset-top, 0px)) + 52px); }
-  .sutaeru-chat .sutaeru-input-box { min-height: 72px; padding: 8px 10px 8px 18px; }
-  .sutaeru-chat .sutaeru-composer-textarea { min-height: 56px; padding: 16px 0 12px; }
-  .sutaeru-chat .sutaeru-composer-send { width: 48px; height: 48px; }
   .sutaeru-chat .sutaeru-run-controls { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
-}
-
-@media (max-width: 767px) {
-  .sutaeru-chat .sutaeru-run-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-  .sutaeru-chat .sutaeru-run-composer,
-  .sutaeru-chat .sutaeru-run-composer > div,
-  .sutaeru-chat .sutaeru-composer-row,
-  .sutaeru-chat .sutaeru-composer-row > div { display: contents; }
-  /* One row: the plus first, then the six round controls; the box gets its own line.
-     (Three classes: these must beat the 44px min-size rules in preview.css.) */
-  .sutaeru-chat .sutaeru-run-controls .sk-attach-slot { order: 1; padding: 0; flex: 0 0 auto; min-width: 0; }
-  .sutaeru-chat .sutaeru-run-controls .sutaeru-run-actions { order: 2; margin: 0; flex: 1 1 auto; min-width: 0; justify-content: flex-end; flex-wrap: wrap; }
-  .sutaeru-chat .sutaeru-run-controls .sutaeru-run-actions > button { flex: none; width: 40px; min-width: 40px; max-width: none; }
-  .sutaeru-chat .sutaeru-run-controls .sutaeru-run-actions > .sutaeru-stop-run { width: auto; flex: 0 0 auto; min-width: 0; max-width: none; margin-left: auto; }
-  .sutaeru-chat .sutaeru-chat-input { order: 3; flex: 1 0 100%; }
-  .sutaeru-chat .sutaeru-mobile-details { order: 0; flex: 1 0 100%; }
-}
-@media (max-width: 380px) {
-  .sutaeru-chat .sutaeru-run-controls, .sutaeru-chat .sutaeru-run-controls .sutaeru-run-actions { gap: 6px; }
-  .sutaeru-chat .sutaeru-run-controls .sutaeru-run-actions > button { width: 36px; min-width: 36px; }
-  .sutaeru-chat .sutaeru-run-controls .sk-attach-button { width: 36px; height: 36px; min-width: 36px; }
+  .sutaeru-chat .sutaeru-run-controls .sutaeru-composer-tools { gap: 2px; }
+  .sutaeru-chat .sutaeru-run-controls .icon-btn.flat, .sutaeru-chat .sutaeru-run-controls .sk-attach-button { width: 40px; min-width: 40px; }
 }
 
 /* Phones and tablets: the chat gets the whole screen. No header rows, no status strip;
-   history, new chat and the mode picker live in the bottom row. */
-.sk-chat-mobileonly { display: none; }
+   the composer is the only thing docked at the bottom (history and new chat are in the logo
+   menu, the mode and its sheet are the chip in the tools row). */
 @media (max-width: 1023px) {
-  .sk-chat-mobileonly { display: inline-flex; }
   .sutaeru-chat { height: 100dvh !important; }
   .sutaeru-chat .sutaeru-chat-header,
   .sutaeru-chat .sutaeru-chat-mobile-modes,
   .sutaeru-chat .sutaeru-run-status { display: none !important; }
   .sutaeru-chat .sk-attach-button span { display: none; }
   .sutaeru-chat .sk-attach-button { width: 44px; height: 44px; min-width: 44px; padding: 0; justify-content: center; border-radius: 50%; }
-  .sutaeru-chat .sutaeru-run-controls { position: relative; }
-  .sutaeru-chat .sk-mode-sheet {
-    position: absolute; left: 0; right: 0; bottom: 100%; margin-bottom: 10px; z-index: 30;
-    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 16px;
-    background: var(--r-card); border-radius: var(--r-radius-card); box-shadow: 0 18px 40px -18px var(--r-shadow), 0 0 0 1px var(--r-stroke);
-  }
-  .sutaeru-chat .sk-mode-card {
-    position: relative;
-    display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; min-height: 44px; border: 1px solid var(--r-stroke); text-align: left;
-    border-radius: 20px; background: var(--r-panel); color: var(--r-ink); font: inherit; cursor: pointer;
-    transition: background var(--r-motion) var(--r-ease-out), border-color var(--r-motion) var(--r-ease-out);
-  }
-  .sutaeru-chat .sk-mode-card.is-active { background: var(--r-card); border-color: var(--r-ink); }
-  .sutaeru-chat .sk-mode-card-icon { width: 30px; height: 30px; }
-  .sutaeru-chat .sk-mode-card-title { font: 800 16px/1.1 var(--r-font-title); letter-spacing: -0.3px; }
-  .sutaeru-chat .sk-mode-card-text { font: 400 13px/1.35 var(--r-font-body); color: var(--r-quiet); }
 }
 
 /* ── History drawer ──────────────────────────────────────────────────────── */

@@ -2,23 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-const HOURS = 3_600_000;
-
-// The container reads the person's own conversations and their Google connection, so the
-// test says what those queries answer and checks that the screen shows it.
-const { SESSIONS, DRIVE } = vi.hoisted(() => ({
-  SESSIONS: [
-    { id: "a", title: "Villa BOQ and budget", lastMessageAt: new Date(Date.now() - 26 * 3_600_000), updatedAt: null, createdAt: null },
-    { id: "b", title: "Off grid solar board brief", lastMessageAt: null, updatedAt: new Date(Date.now() - 3 * 3_600_000), createdAt: null },
-    { id: "c", title: null, lastMessageAt: new Date(Date.now() - 40_000), updatedAt: null, createdAt: null },
-  ],
-  DRIVE: { connected: true, email: "remy@example.com" },
-}));
-
+// The container reads the person's Google connection, so the test says what that query
+// answers and checks that the screen shows it.
 vi.mock("@/lib/trpc", () => ({
   trpc: {
-    chat: { listSessions: { useQuery: () => ({ data: SESSIONS, isLoading: false }) } },
-    google: { status: { useQuery: () => ({ data: DRIVE }) } },
+    google: { status: { useQuery: () => ({ data: { connected: true, email: "remy@example.com" } }) } },
   },
 }));
 
@@ -41,14 +29,14 @@ function render(overrides: Record<string, unknown> = {}) {
         onAttachmentsChange: () => {},
         allowedTools: ["web_search"],
         onToggleTool: () => {},
+        mode: "fast",
+        modes: [{ key: "fast", label: "Fast", text: "Quick answers", icon: "ask" }],
+        onModeChange: () => {},
         thinking: false,
         onThinkingChange: () => {},
         privateChat: false,
         onPrivateChange: () => {},
         offline: false,
-        running: false,
-        onOpenSession: () => {},
-        onHandoff: () => {},
         ...overrides,
       } as React.ComponentProps<typeof Home>)
     )
@@ -56,14 +44,11 @@ function render(overrides: Record<string, unknown> = {}) {
 }
 
 describe("Home container", () => {
-  it("lists the person's own conversations with real relative times", () => {
+  it("shows no list of past chats: those live in the logo menu", () => {
     const html = render();
-    expect(html).toContain("Villa BOQ and budget");
-    expect(html).toContain("Yesterday");
-    expect(html).toContain("3 hours ago");
-    // A thread with no title of its own is still a conversation they had.
-    expect(html).toContain("Untitled chat");
-    expect(html).toContain("Just now");
+    expect(html).not.toContain("Recently updated");
+    expect(html).not.toContain("Hand off a project");
+    expect(html).not.toContain("recent-row");
   });
 
   it("offers the real pickers behind the plus control", () => {
@@ -94,28 +79,11 @@ describe("Home container", () => {
     expect(html).toContain("Google Drive");
   });
 
-  it("shows the waiting row when a question is held offline", () => {
-    const html = render({ offline: true, queued: "Summarise the attached file" });
-    expect(html).toContain('class="recent-row queued"');
-    expect(html).toContain("Waiting to send");
-    expect(html).toContain("Ask now. It sends when you reconnect.");
+  it("says an offline question sends when the connection returns", () => {
+    expect(render({ offline: true })).toContain("Ask now. It sends when you reconnect.");
   });
 
-  it("draws the live row from the steps the run has reported", () => {
-    const activity = [
-      { id: "1", label: "Searching", status: "done" },
-      { id: "2", label: "Reading", status: "running" },
-      { id: "3", label: "Writing", status: "open" },
-    ];
-    const html = render({ running: true, runningTitle: "Rooftop solar payback", activity });
-    expect(html).toContain('class="orb run"');
-    expect(html).toContain("Rooftop solar payback");
-    // Two of three steps: the same measure the run card prints.
-    expect(html).toContain("50%");
-  });
-
-  it("does not invent a row for a run that is not happening", () => {
-    const html = render({ running: false });
-    expect(html).not.toContain('class="orb run"');
+  it("shows the mode the page is in on the chip", () => {
+    expect(render()).toContain("Mode: Fast.");
   });
 });
