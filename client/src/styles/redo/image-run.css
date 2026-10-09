@@ -74,7 +74,7 @@
 
 /* One calm mono line, a hairline of progress. */
 .rr { display: grid; gap: 12px; animation: run-text 520ms var(--m3-in) 120ms both; }
-.rr-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; }
+.rr-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 10.5px; letter-spacing: 1.2px; text-transform: uppercase; white-space: nowrap; min-height: 16px; }
 .rr-word { display: inline-flex; align-items: center; gap: 9px; color: var(--ink); }
 .rr-time { color: var(--quiet); text-align: right; }
 .rr-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; animation: rr-pulse 1.8s var(--m3-std) infinite; }

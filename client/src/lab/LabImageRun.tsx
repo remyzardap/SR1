@@ -42,10 +42,11 @@ const STATES: Record<string, { label: string; props: Partial<ImageRunProps> }> =
   cancelled: { label: "Cancelled", props: { status: "stopped", progress: 0.46, stopReason: null } },
   story: { label: "Story shape", props: { ...moment(PREP_MS + 5000), shot: { ...shot, ratio: "9:16", look: "film" } } },
   play: { label: "Play 12 s run", props: {} },
+  finish: { label: "Play the finish", props: {} },
 };
 
 /** A simulated 12 s run: the real progress logic, then the picture lands at 12 s. */
-function usePlay(active: boolean): Partial<ImageRunProps> {
+function usePlay(active: boolean, from = 0, landsAt = 12000): Partial<ImageRunProps> {
   const [t, setT] = React.useState(0);
   React.useEffect(() => {
     if (!active) return;
@@ -54,8 +55,8 @@ function usePlay(active: boolean): Partial<ImageRunProps> {
     return () => window.clearInterval(id);
   }, [active]);
   if (!active) return {};
-  if (t >= 12000) return { ...done, took: 12 };
-  return moment(t);
+  if (t >= landsAt) return { ...done, took: 12 };
+  return moment(from + t);
 }
 
 export default function LabImageRun() {
@@ -66,8 +67,9 @@ export default function LabImageRun() {
   const [pick, setPick] = React.useState(0);
   React.useEffect(() => setPick(0), [key]);
   useLabSettings();
-  const play = usePlay(key === "play");
-  const state = key === "play" ? play : STATES[key].props;
+  const play = usePlay(key === "play", 0, 12000);
+  const finish = usePlay(key === "finish", PREP_MS + 9000, 2500);
+  const state = key === "play" ? play : key === "finish" ? finish : STATES[key].props;
   if (params.get("bare") === "1") {
     return (
       <main style={{ padding: "16px 20px 24px", maxWidth: 1200, margin: "0 auto" }}>
