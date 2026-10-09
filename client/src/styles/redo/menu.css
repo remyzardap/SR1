@@ -41,6 +41,19 @@
 .lm-close { flex: none; }
 
 .lm-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
+/* Edge fades say "there is more" without a scrollbar; they leave once the edge is reached. */
+.lm-body[data-fade-bottom="true"] {
+  -webkit-mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 44px), transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 44px), transparent 100%);
+}
+.lm-body[data-fade-top="true"]:not([data-fade-bottom="true"]) {
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 44px, #000 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 44px, #000 100%);
+}
+.lm-body[data-fade-top="true"][data-fade-bottom="true"] {
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 44px, #000 calc(100% - 44px), transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 44px, #000 calc(100% - 44px), transparent 100%);
+}
 
 /* New chat / Past chats: the two chat actions, side by side, 48 px tall. */
 .lm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 8px 20px 0; }
@@ -148,6 +161,7 @@
 }
 .lm-grab { flex: none; width: 40px; height: 5px; border-radius: 3px; background: var(--seg, var(--panel)); margin: 10px auto 4px; }
 .lm-sheet[data-closing="true"] { animation: lm-sheet-out var(--lm-t-out) var(--lm-ease-in) both; }
+.lm-sheet.lm-settled:not([data-closing="true"]) { animation: none; }
 @keyframes lm-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes lm-sheet-out { from { transform: translateY(0); } to { transform: translateY(100%); } }
 
@@ -165,6 +179,7 @@
   animation: lm-pop-in 260ms var(--lm-ease-out) both;
 }
 .lm-pop[data-closing="true"] { animation: lm-pop-out 160ms var(--lm-ease-in) both; }
+.lm-pop.lm-settled:not([data-closing="true"]) { animation: none; }
 @keyframes lm-pop-in { from { opacity: 0; transform: scale(0.92) translateY(-8px); } to { opacity: 1; transform: none; } }
 @keyframes lm-pop-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(0.96) translateY(-6px); } }
 .lm-pop .lm-grab { display: none; }

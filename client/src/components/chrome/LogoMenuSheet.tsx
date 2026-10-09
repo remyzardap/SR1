@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { FoldGroup, FoldSection, Pic, useFoldState } from "@/components/fold";
 import { SutaeruGlyph } from "@/components/SutaeruGlyph";
@@ -91,7 +91,35 @@ export function LogoMenuSheet({
 }: LogoMenuSheetProps) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const [settled, setSettled] = useState(false);
   const fold = useFoldState("menu", FOLD_IDS, { first: "recent" });
+
+  /* Once the enter animation has played, drop it: a finished transform animation keeps the
+     surface on its own compositor layer, and Chromium then leaves the scroll body's
+     off-screen rows unpainted until the next scroll. */
+  useEffect(() => {
+    if (open) setSettled(false);
+  }, [open]);
+
+  /* Which edges of the scroll body still have content behind them. */
+  const [fade, setFade] = useState({ top: false, bottom: false });
+  const measure = useCallback((el: HTMLElement | null) => {
+    if (!el) return;
+    const top = el.scrollTop > 4;
+    const bottom = el.scrollHeight - el.clientHeight - el.scrollTop > 4;
+    setFade((prev) => (prev.top === top && prev.bottom === bottom ? prev : { top, bottom }));
+  }, []);
+  const bodyRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      measure(el);
+    },
+    [measure]
+  );
+  useEffect(() => {
+    if (!open) return;
+    const t = window.setTimeout(() => measure(surfaceRef.current?.querySelector(".lm-body") ?? null), 80);
+    return () => window.clearTimeout(t);
+  }, [open, measure, runs.length, chats.length, pills.length, fold.open]);
 
   /* Focus moves in when the surface appears and the Tab key stays inside it. */
   useEffect(() => {
@@ -157,8 +185,11 @@ export function LogoMenuSheet({
         aria-modal="true"
         aria-label="Menu"
         data-closing={closing ? "true" : "false"}
-        className={cn("lm-surface", mode === "sheet" ? "lm-sheet" : "lm-pop")}
+        className={cn("lm-surface", mode === "sheet" ? "lm-sheet" : "lm-pop", settled && "lm-settled")}
         style={mode === "popover" && anchor ? { top: anchor.top, left: anchor.left } : undefined}
+        onAnimationEnd={(e) => {
+          if (e.target === e.currentTarget && !closing) setSettled(true);
+        }}
       >
         <div className="lm-grab" aria-hidden="true" />
         <div className="lm-head">
@@ -171,7 +202,13 @@ export function LogoMenuSheet({
           </button>
         </div>
 
-        <div className="lm-body">
+        <div
+          ref={bodyRef}
+          className="lm-body"
+          data-fade-top={fade.top ? "true" : "false"}
+          data-fade-bottom={fade.bottom ? "true" : "false"}
+          onScroll={(e) => measure(e.currentTarget)}
+        >
           <div className="lm-actions">
             <button type="button" className="btn ink" onClick={onNewChat}>
               <SutaeruIcon name="plus" signal={false} width={18} height={18} />
