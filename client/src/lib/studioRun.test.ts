@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { DEFAULT_SHOT } from "./studio";
-import { PREP_MS, RUN_HOLD, engineBrief, estimate, labelFromPrompt, phaseOf, runProgress, runStatus, suggestEngine } from "./studioRun";
+import { ENGINE_STYLE, PREP_MS, PREVIEW_CLARITY, RESOLVE_HOLD_MS, RESOLVE_MS, RUN_HOLD, approach, clarityOf, resolveClarity, engineBrief, estimate, labelFromPrompt, phaseOf, runProgress, runStatus, suggestEngine } from "./studioRun";
 
 describe("labelFromPrompt", () => {
   it("takes the first quoted words, upper-cased", () => {
@@ -102,5 +102,37 @@ describe("runStatus", () => {
         expect(`${s.word} ${s.timeText}`).not.toMatch(/gemini|openai|wan|flux|qwen/i);
       }
     }
+  });
+});
+
+describe("reveal curve", () => {
+  it("stops short of sharp while drawing", () => {
+    expect(clarityOf(0)).toBe(0);
+    expect(clarityOf(RUN_HOLD)).toBeCloseTo(PREVIEW_CLARITY, 5);
+    expect(clarityOf(5)).toBeCloseTo(PREVIEW_CLARITY, 5);
+    expect(clarityOf(-1)).toBe(0);
+  });
+  it("approaches a target without depending on frame rate", () => {
+    let a = 0;
+    for (let i = 0; i < 60; i++) a = approach(a, 1, 1 / 60);
+    let b = 0;
+    for (let i = 0; i < 30; i++) b = approach(b, 1, 1 / 30);
+    expect(a).toBeCloseTo(b, 6);
+    expect(a).toBeLessThan(1);
+    expect(approach(0.5, 0.5, 0.1)).toBe(0.5);
+  });
+  it("holds, then eases out to exactly 1", () => {
+    expect(resolveClarity(0.7, 0)).toBe(0.7);
+    expect(resolveClarity(0.7, RESOLVE_HOLD_MS)).toBe(0.7);
+    expect(resolveClarity(0.7, RESOLVE_HOLD_MS + RESOLVE_MS)).toBe(1);
+    let last = 0.7;
+    for (let t = 0; t < 2000; t += 50) {
+      const c = resolveClarity(0.7, t);
+      expect(c).toBeGreaterThanOrEqual(last);
+      last = c;
+    }
+  });
+  it("names engines without vendors", () => {
+    for (const s of Object.values(ENGINE_STYLE)) expect(s).not.toMatch(/gemini|openai|wan|flux|qwen/i);
   });
 });

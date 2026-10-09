@@ -193,6 +193,43 @@ export function runStatus(i: RunStatusInput): RunStatus {
   return { progress, stage, word, timeText, etaSeconds, slow };
 }
 
+/* ── Reveal ─────────────────────────────────────────────────────────────
+   The picture on screen while drawing is a stand-in (the shot's own photograph). It resolves from
+   grain into soft colour masses and a halftone screen, and stops short of sharp: only the real
+   picture is allowed to arrive sharp. */
+
+/** How resolved the stand-in gets by the time the estimate holds. */
+export const PREVIEW_CLARITY = 0.72;
+/** Wait after the real picture lands, then the resolve to sharp. */
+export const RESOLVE_HOLD_MS = 160;
+export const RESOLVE_MS = 1500;
+
+const unit = (n: number) => Math.min(1, Math.max(0, n));
+
+/** Clarity the stand-in should have at a 0..1 progress. */
+export function clarityOf(progress: number): number {
+  return PREVIEW_CLARITY * unit(progress / RUN_HOLD);
+}
+
+/** Frame-rate independent ease toward a target, so a real signal never makes the picture jump. */
+export function approach(current: number, target: number, dtSeconds: number, rate = 3.2): number {
+  return current + (target - current) * (1 - Math.exp(-rate * Math.max(0, dtSeconds)));
+}
+
+/** Clarity `ms` after the real picture landed, resolving from `from` to 1 on an ease-out. */
+export function resolveClarity(from: number, ms: number): number {
+  const t = unit((ms - RESOLVE_HOLD_MS) / RESOLVE_MS);
+  return from + (1 - from) * (1 - Math.pow(1 - t, 3));
+}
+
+/** Neutral names for the engines: what each is good at, never the vendor. */
+export const ENGINE_STYLE: Record<EngineId, string> = {
+  gemini: "Clean and crisp",
+  openai: "Soft and cinematic",
+  qwen: "Fine detail",
+  forge: "Open GPU",
+};
+
 /** The calm explanation under "Taking longer than usual". */
 export function usualText(engine: EngineId): string {
   return engine === "forge" ? "A cold GPU can take up to 5 minutes to start." : "Busy engines sometimes need a little longer.";
