@@ -33,8 +33,6 @@ export const PICK_ART = {
   /* Improve a document */
   rewrite: "A hand reworking a page with a red pencil",
   reformat: "Messy papers on the left, a tidy stack on the right",
-  "reformat-before": "A messy pile of scattered papers",
-  "reformat-after": "The same papers in one tidy stack",
 
   /* Model */
   "model-auto": "A glowing compass choosing a direction",
@@ -60,40 +58,10 @@ export const PICK_ART = {
   /* Menu destinations */
   "nav-chat": "Two cups of tea on a café table",
   "nav-agent": "A drafting desk with tools laid out",
-  "nav-images": "A camera beside a paint palette",
-  "nav-documents": "A neat stack of paper",
-  "nav-files": "A filing drawer of folders",
-  "nav-video": "A film reel on a table",
 
-  /* Research depth */
-  "depth-quick": "A pebble skipping across a lake",
-  "depth-standard": "Sunlight reaching a few metres under water",
-  "depth-deep": "A spiral staircase going deep down",
-
-  /* Tone */
-  "tone-confident": "A chess king in a spotlight",
-  "tone-friendly": "Two mugs of cocoa clinking",
-  "tone-formal": "A boardroom table set in order",
-  "tone-plain": "A plain bowl and wooden spoon",
-
-  /* Length */
-  "len-short": "A single index card",
-  "len-medium": "A two-page letter",
-  "len-long": "A thick tied manuscript",
-
-  /* Style */
-  "style-keep": "An old book kept under glass",
-  "style-modern": "A clean modern desk",
-  "style-classic": "A classic desk with inkwell and seal",
-
-  /* Settings: theme, motion, voice */
-  "theme-dark": "A phone on a desk at night",
-  "theme-light": "A phone on a desk in daylight",
-  "theme-auto": "A phone on a desk at dusk",
-  "motion-full": "Light trails swirling around a mobile",
-  "motion-reduced": "A pendulum hanging still",
-  "voice-warm": "A guitar by a fireplace",
-  "voice-bright": "A wind chime in morning sun",
+  /* Not yet generated (image API credits ran out): nav-images, nav-documents,
+   * nav-files, nav-video, depth-*, tone-*, len-*, style-*, theme-*, motion-*,
+   * voice-*. Add the webp to public/studio/o/ and its id here. */
 } as const;
 
 export type PickArtId = keyof typeof PICK_ART;

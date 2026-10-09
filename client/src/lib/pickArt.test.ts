@@ -10,7 +10,7 @@ const MAX_BYTES = 140 * 1024;
 describe("pickArt manifest", () => {
   it("maps an id to /studio/o/<id>.webp", () => {
     expect(pickArt("fast")).toBe("/studio/o/fast.webp");
-    expect(pickArt("theme-dark")).toBe("/studio/o/theme-dark.webp");
+    expect(pickArt("forge-1")).toBe("/studio/o/forge-1.webp");
   });
 
   it("every id maps to an existing file", () => {
