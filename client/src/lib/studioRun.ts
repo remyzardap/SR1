@@ -26,7 +26,7 @@ export interface EngineMeta {
   cost: number;
   /** Seconds for one Standard picture. */
   secs: number;
-  /** Character photograph under /studio/t/, when there is one. */
+  /** Character photograph under /studio/t/ or /studio/o/, when there is one. A missing file falls back to the drawn mark. */
   img?: string;
 }
 
@@ -34,7 +34,7 @@ export const ENGINE_META: Record<EngineId, EngineMeta> = {
   gemini: { name: "Gemini", time: "10 to 17 s", line: "Best at clean text and crisp shapes.", meters: { Speed: 4, Detail: 3, Text: 5 }, cost: 2, secs: 13, img: "/studio/t/eng-gemini.webp" },
   openai: { name: "OpenAI", time: "12 to 20 s", line: "Soft light and a cinematic mood.", meters: { Speed: 3, Detail: 4, Text: 3 }, cost: 3, secs: 16, img: "/studio/t/eng-openai.webp" },
   qwen: { name: "Wan", time: "16 s and up", line: "Fine natural detail and texture.", meters: { Speed: 2, Detail: 5, Text: 2 }, cost: 2, secs: 18, img: "/studio/t/eng-wan.webp" },
-  forge: { name: "GPU", time: "Up to 5 min", line: "Open models on our own GPU, started on demand.", meters: { Speed: 1, Detail: 3, Text: 2 }, cost: 1, secs: 90 },
+  forge: { name: "GPU", time: "Up to 5 min", line: "Open models on our own GPU, started on demand.", meters: { Speed: 1, Detail: 3, Text: 2 }, cost: 1, secs: 90, img: "/studio/o/eng-forge.webp" },
 };
 
 export const FALLBACK_ENGINES: Engine[] = [
