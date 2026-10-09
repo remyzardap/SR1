@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useId, useState, type ReactNode } from "react";
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";

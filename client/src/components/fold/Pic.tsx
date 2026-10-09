@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useState, type ReactNode } from "react";
 
 /** Art for a tile, card or mini: an image url, or any drawn node. */

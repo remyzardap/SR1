@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 
 import { SutaeruIcon } from "@/components/SutaeruIcon";
