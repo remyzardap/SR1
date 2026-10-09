@@ -4,6 +4,7 @@ import LabIndex from "./LabIndex";
 import LabShell from "./LabShell";
 import LabBrand from "./LabBrand";
 import LabArt from "./LabArt";
+import LabMotion from "./LabMotion";
 import LabSettings from "./LabSettings";
 import LabDitherEdge from "./LabDitherEdge";
 import LabHalftoneFade from "./LabHalftoneFade";
@@ -52,6 +53,8 @@ export function LabRouter() {
       <Route path="/__lab/art/slider" component={LabSlider} />
       <Route path="/__lab/docs-states" component={LabDocsStates} />
       <Route path="/__lab/answer" component={LabAnswer} />
+      <Route path="/__lab/art/living" component={LabMotion} />
+      <Route path="/__lab/motion" component={LabMotion} />
       <Route path="/__lab/art" component={LabArt} />
       <Route path="/__lab/settings" component={LabSettings} />
       <Route path="/__lab/files" component={LabFiles} />
