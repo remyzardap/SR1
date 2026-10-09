@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { HomeScreen, type HomeRecentRow } from "./HomeScreen";
+import { chatModes } from "@/components/chat/ModeMenu";
+import { HomeScreen } from "./HomeScreen";
 import { HomeComposer, driveCaption } from "./HomeComposer";
 import type { HomeComposerProps } from "./HomeComposer";
 import { relativeTime } from "./relativeTime";
@@ -24,6 +25,9 @@ function composerProps(overrides: Partial<HomeComposerProps> = {}): HomeComposer
     onStopListen: () => {},
     listening: false,
     offline: false,
+    mode: "fast",
+    modes: chatModes(false),
+    onModeChange: () => {},
     thinking: false,
     onThinkingChange: () => {},
     privateChat: false,
@@ -41,25 +45,11 @@ function composerProps(overrides: Partial<HomeComposerProps> = {}): HomeComposer
 function screen(overrides: Partial<React.ComponentProps<typeof HomeScreen>> = {}) {
   return renderToStaticMarkup(
     React.createElement(HomeScreen, {
-      rows: [],
       composer: composerProps(),
-      onHandoff: () => {},
       ...overrides,
     })
   );
 }
-
-const RUNNING: HomeRecentRow = { id: "run", kind: "running", title: "Rooftop solar payback", when: "Now", progress: 0.42 };
-const DONE: HomeRecentRow = { id: "d", kind: "done", title: "Villa BOQ and budget", when: "Just now", tag: "Done" };
-const STOPPED: HomeRecentRow = { id: "s", kind: "stopped", title: "Off grid solar board brief", when: "Today", tag: "Stopped" };
-const QUEUED: HomeRecentRow = { id: "q", kind: "queued", title: "Summarise the attached file" };
-const PHOTO: HomeRecentRow = {
-  id: "p",
-  kind: "photo",
-  title: "Ceramic mug, morning light",
-  when: "2 days ago",
-  image: { src: "/studio/t/light-window.webp", alt: "Ceramic mug, morning light" },
-};
 
 describe("Home screen markup, ported from VIEWS.home", () => {
   it("carries the prototype's section, hero and wordmark lockup", () => {
@@ -105,6 +95,10 @@ describe("Home screen markup, ported from VIEWS.home", () => {
     expect(html).toMatch(/enterkeyhint="send"/i);
   });
 
+  it("gives the field three lines", () => {
+    expect(screen()).toMatch(/<textarea[^>]*rows="3"/);
+  });
+
   it("swaps the placeholders and the send button the way the prototype does", () => {
     expect(screen()).toContain('placeholder="Ask anything…"');
     expect(screen({ composer: composerProps({ offline: true }) })).toContain('placeholder="Ask now. It sends when you reconnect."');
@@ -118,17 +112,19 @@ describe("Home screen markup, ported from VIEWS.home", () => {
     expect(screen({ composer: composerProps({ value: "hello" }) })).toContain('aria-label="Send"');
   });
 
-  it("counts the sources the way the prototype's label does", () => {
-    expect(screen({ composer: composerProps({ allowedTools: ["web_search"] }) })).toContain(">Web<");
-    expect(screen({ composer: composerProps({ allowedTools: ["web_search", "browse"] }) })).toContain(">Web +1<");
-    expect(screen({ composer: composerProps({ allowedTools: ["browse", "safe_files"] }) })).toContain(">2 sources<");
-    expect(screen({ composer: composerProps({ allowedTools: [] }) })).toContain(">No sources<");
+  it("shows the current mode on a chip that opens the mode sheet", () => {
+    const fast = screen();
+    expect(fast).toContain("mode-chip");
+    expect(fast).toContain("Mode: Fast. Change mode and sources");
+    expect(fast).toContain('aria-haspopup="dialog"');
+    expect(screen({ composer: composerProps({ mode: "deep" }) })).toContain("Mode: Deep research.");
+    expect(screen({ composer: composerProps({ mode: "image" }) })).toContain("Mode: Image.");
   });
 
-  it("marks the toggles with the state the screen is in", () => {
-    const html = screen({ composer: composerProps({ thinking: true, allowedTools: ["web_search", "safe_files"] }) });
-    expect(html).toContain('aria-pressed="true"');
-    expect(html).toContain('aria-expanded="false"');
+  it("keeps the sources pill out of the tools row", () => {
+    const html = screen();
+    expect(html).not.toContain("src-text");
+    expect(html).not.toContain(">No sources<");
   });
 
   it("says why the private switch cannot be used yet", () => {
@@ -137,12 +133,17 @@ describe("Home screen markup, ported from VIEWS.home", () => {
     expect(html).toContain('title="Private chats are not available yet."');
   });
 
-  it("renders the handoff card with one blended halftone fade", () => {
+  it("has no recent list, hand-off card or example prompts", () => {
     const html = screen();
-    expect(html).toContain('class="handoff"');
-    expect(html).toContain("<b>Hand off a project</b><small>Works while you are away</small>");
-    expect(html).toContain('class="cols art-deco"');
-    expect(html).toContain('class="go"');
+    expect(html).not.toContain("Recently updated");
+    expect(html).not.toContain("Hand off a project");
+    expect(html).not.toContain("recent-row");
+  });
+
+  it("puts the banners between the hero and the composer", () => {
+    const html = screen({ banners: React.createElement("p", { className: "mono" }, "No connection.") });
+    expect(html.indexOf("No connection.")).toBeGreaterThan(html.indexOf("ramp"));
+    expect(html.indexOf("No connection.")).toBeLessThan(html.indexOf("composer-wrap"));
   });
 });
 
@@ -189,19 +190,6 @@ describe("the composer's file chips", () => {
     expect(html).toContain('aria-expanded="true"');
   });
 
-  it("opens the sources panel on the switches that own those tools", () => {
-    const html = renderToStaticMarkup(
-      React.createElement(HomeComposer, { ...composerProps({ initialPanel: "sources", allowedTools: ["web_search"] }) })
-    );
-    expect(html).toContain("Search in");
-    expect(html).toContain('class="pop-toggles"');
-    expect(html).toContain('role="switch"');
-    // Web is on, My files and Browse are off: three rows, one checked.
-    expect(html.match(/role="switch"/g)).toHaveLength(3);
-    expect(html.match(/aria-checked="true"/g)).toHaveLength(1);
-    expect(html).toContain("News, papers and public sites");
-  });
-
   it("shows the picture itself when the file is a photo", () => {
     const html = renderToStaticMarkup(
       React.createElement(HomeComposer, {
@@ -214,59 +202,26 @@ describe("the composer's file chips", () => {
   });
 });
 
-describe("Home's Recently updated rows", () => {
-  it("draws the running row with the live rings, the converging bar and the percent", () => {
-    const html = screen({ rows: [RUNNING] });
-    expect(html).toContain('class="orb run"');
-    expect(html).toContain('<canvas class="bar"');
-    expect(html).toContain("42%");
-    expect(html).toContain('<span class="when">Now</span>');
-    expect(html).toContain("Rooftop solar payback");
+describe("the mode chip and its sheet", () => {
+  it("opens on the modes, the sources, Thinking and the run settings", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(HomeComposer, {
+        ...composerProps({ initialPanel: "mode", allowedTools: ["web_search"], onOpenSettings: () => {} }),
+      })
+    );
+    expect(html).toContain('aria-label="Chat mode"');
+    expect(html).toContain("Quick answers, with search");
+    expect(html).toContain("Search in");
+    expect(html).toContain('class="pop-toggles"');
+    // Web, My files and Browse, plus the Thinking switch; only Web is on.
+    expect(html.match(/role="switch"/g)).toHaveLength(4);
+    expect(html).toContain("News, papers and public sites");
+    expect(html).toContain("Run settings");
   });
 
-  it("draws the finished and stopped rows with their chips", () => {
-    const html = screen({ rows: [DONE, STOPPED] });
-    expect(html).toContain('class="tag"');
-    expect(html).toContain(">Done<");
-    expect(html).toContain('class="tag alert"');
-    expect(html).toContain(">Stopped<");
-  });
-
-  it("keeps the waiting row a div with the dotted rail, as the prototype does", () => {
-    const html = screen({ rows: [QUEUED] });
-    expect(html).toContain('class="recent-row queued"');
-    expect(html).toContain(">Waiting to send<");
-    expect(html).toContain('<i class="dotline"');
-    expect(html).not.toContain('<button class="recent-row queued"');
-  });
-
-  it("puts the real picture in the leading box of a photo row", () => {
-    const html = screen({ rows: [PHOTO] });
-    expect(html).toContain('class="st thumb-ph"');
-    expect(html).toContain('src="/studio/t/light-window.webp"');
-    expect(html).toContain('alt="Ceramic mug, morning light"');
-  });
-
-  it("shows placeholders while the rows are still arriving", () => {
-    const html = screen({ loading: true, rows: [RUNNING] });
-    expect(html).toContain('aria-busy="true"');
-    expect(html).toContain('role="status"');
-    expect(html.match(/class="sk-line"/g)).toHaveLength(3);
-    expect(html).not.toContain("Rooftop solar payback");
-  });
-
-  it("says so when nothing has been updated", () => {
-    const html = screen({ rows: [] });
-    expect(html).toContain('class="mono recent-empty"');
-    expect(html).toContain("Nothing here yet.");
-  });
-
-  it("puts the banners above the rows, where the prototype keeps them", () => {
-    const html = screen({
-      rows: [DONE],
-      banners: React.createElement("p", { className: "mono" }, "No connection."),
-    });
-    expect(html.indexOf("No connection.")).toBeLessThan(html.indexOf("Recently updated"));
+  it("only offers Code mode to people who may use it", () => {
+    expect(chatModes(false).map((mode) => mode.key)).toEqual(["fast", "deep", "image", "document"]);
+    expect(chatModes(true).map((mode) => mode.key)).toContain("code");
   });
 });
 
@@ -289,27 +244,23 @@ describe("relativeTime", () => {
   });
 });
 
-describe("the CSS Home had to add to the shared sheet", () => {
-  const css = readFileSync(new URL("../../styles/redo/home.css", import.meta.url), "utf8");
+describe("the composer CSS", () => {
+  const css = readFileSync(new URL("../../styles/redo/composer.css", import.meta.url), "utf8");
+  const home = readFileSync(new URL("../../styles/redo/home.css", import.meta.url), "utf8");
 
-  it("carries the rules this screen's markup depends on", () => {
-    expect(css).toContain(".sec-label");
-    expect(css).toContain(".orb.run i");
-    expect(css).toContain("@keyframes ring");
-    expect(css).toContain(".recent-row .dotline");
-    expect(css).toContain(".pop-toggles .toggle-row");
-    expect(css).toContain(".recent-row .st.thumb-ph img");
-    expect(css).toContain(".recent-row .sk-line");
+  it("is spacious: 18px text, a 30px radius and a 50px send button", () => {
+    expect(css).toMatch(/\.composer \{[^}]*border-radius: 30px/);
+    expect(css).toMatch(/\.composer textarea \{[^}]*font: 400 18px/);
+    expect(css).toMatch(/\.send \{[^}]*width: 50px/);
+  });
+
+  it("lets the mode chip fall back to its short name instead of clipping", () => {
+    expect(css).toContain(".mode-chip");
+    expect(css).toContain("container-type: inline-size");
   });
 
   it("honours the two settings the art rules belong to", () => {
-    expect(css).toContain('[data-art="off"] .art-deco');
-    // Reduced motion still reads as running: the rings hold open instead of vanishing.
-    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.orb\.run i \{ animation: none/);
-  });
-
-  it("collapses the sources pill to its icon on a phone, as app.css 978-986 does", () => {
-    expect(css).toMatch(/@media \(max-width: 759px\)[\s\S]*?\.src-text \{ display: none;/);
+    expect(home).toContain('[data-art="off"] .art-deco');
   });
 });
 

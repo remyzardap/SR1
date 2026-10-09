@@ -116,6 +116,12 @@ export const NAV_DESTINATIONS: NavDestination[] = [
   },
 ];
 
+/** History and New chat used to sit in /chat's bottom bar; past chats live only here now. */
+const CHAT_ACTIONS: Array<{ label: string; path: string; icon: SutaeruIconName }> = [
+  { label: "New chat", path: "/chat?new=1", icon: "plus" },
+  { label: "Past chats", path: "/chat?history=1", icon: "bookmark" },
+];
+
 export interface NavLogoMenuProps {
   /**
    * "header" renders inside AppHeader row;
@@ -283,6 +289,22 @@ export function NavLogoMenu({ variant = "header", className }: NavLogoMenuProps)
                     </button>
                   );
                 })}
+                {/* Chat's own actions: the page opens them from the address (Chat.tsx). */}
+                {CHAT_ACTIONS.map((item) => (
+                  <button
+                    key={item.path}
+                    type="button"
+                    role="listitem"
+                    className="skx-nav-row"
+                    data-active="false"
+                    onClick={() => handleSelect(item.path)}
+                  >
+                    <span className="skx-nav-row-icon" aria-hidden="true">
+                      <SutaeruIcon name={item.icon} signal width={22} height={22} />
+                    </span>
+                    <span className="skx-nav-row-label">{item.label}</span>
+                  </button>
+                ))}
               </div>
 
               {/* More / Create Section */}

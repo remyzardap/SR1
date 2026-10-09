@@ -1,8 +1,8 @@
 import * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DrivePicker } from "@/components/DrivePicker";
-import type { ActivityItem } from "@/components/ActivityFeed";
 import { markIntroSeen, shouldPlayIntro } from "@/components/brand";
+import { PRIVATE_HINT, SOURCE_ROWS, type ChatModeOption } from "@/components/chat/ModeMenu";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import { trpc } from "@/lib/trpc";
 import {
@@ -20,9 +20,8 @@ import {
   type DriveAttachment,
 } from "@/lib/attachments";
 import { toast } from "sonner";
-import type { HomeAttachmentRow, HomeSourceRow } from "./HomeComposer";
-import { HomeScreen, type HomeRecentRow } from "./HomeScreen";
-import { relativeTime } from "./relativeTime";
+import type { HomeAttachmentRow } from "./HomeComposer";
+import { HomeScreen } from "./HomeScreen";
 
 /** A file the browser is still reading; its row shows the prototype's upload bar. */
 interface PendingFile {
@@ -43,38 +42,20 @@ export interface HomeProps {
   /** The thread's real tool allowlist, which is what the sources switches change. */
   allowedTools: string[];
   onToggleTool: (toolId: string) => void;
-  /** Slow, careful answers: the page's own deep mode. */
+  /** The thread's mode, which the composer's mode chip shows and changes. */
+  mode: string;
+  modes: ChatModeOption[];
+  onModeChange: (key: string) => void;
+  /** Opens the thread's run settings from the mode sheet. */
+  onOpenSettings?: () => void;
+  /** Slow, careful answers: the stream endpoint's own flag. */
   thinking: boolean;
   onThinkingChange: (next: boolean) => void;
   privateChat: boolean;
   onPrivateChange: (next: boolean) => void;
   offline: boolean;
-  /** The thread history is still being read, so the rows are placeholders. */
-  loading?: boolean;
-  /** A run this page is in the middle of, its step, and the question it started from. */
-  running: boolean;
-  runningTitle?: string | null;
-  activity?: ActivityItem[];
-  /** The question waiting on a connection, if there is one. */
-  queued?: string | null;
-  onOpenSession: (sessionId: string) => void;
-  onHandoff: () => void;
   banners?: ReactNode;
 }
-
-/**
- * The three sources the prototype offers, bound to tool ids the engine really has.
- * The prototype's third row is Memory; the API has no per-chat memory switch, so that
- * row is the `browse` tool and the difference is reported as a deviation.
- */
-const SOURCE_ROWS: HomeSourceRow[] = [
-  { id: "web_search", label: "Web", caption: "News, papers and public sites" },
-  { id: "safe_files", label: "My files", caption: "Everything in Files" },
-  { id: "browse", label: "Browse", caption: "Pages opened and read in full" },
-];
-
-/** The promise the switch makes is one no endpoint keeps yet, so the button says this instead. */
-const PRIVATE_HINT = "Private chats are not available yet.";
 
 /** The glyph a chip shows: photos, documents and Drive files, in the prototype's own set. */
 function iconFor(attachment: Attachment): HomeAttachmentRow["icon"] {
@@ -83,21 +64,8 @@ function iconFor(attachment: Attachment): HomeAttachmentRow["icon"] {
 }
 
 /**
- * How far a run has got when the server says none. This is the same measured estimate
- * ChatRunCard uses — the running step out of the steps it has reported — so the Home row
- * and the run card never disagree, and a run with no steps yet sits at the middle rather
- * than at an invented number.
- */
-function runProgress(activity: ActivityItem[]): number {
-  const total = Math.max(activity.length, 1);
-  const runningIndex = activity.findIndex((item) => item.status === "running");
-  const step = runningIndex >= 0 ? runningIndex + 1 : total;
-  return Math.min(0.95, Math.max(0.05, (step - 0.5) / total));
-}
-
-/**
- * Home with real data: the person's own conversations, the run this page is in, the
- * thread's own tool allowlist, and files from this device or from Google Drive.
+ * Home with real data: the thread's mode and tool allowlist, voice, and files from this
+ * device or from Google Drive. Past chats live in the logo menu, not here.
  */
 export function Home({
   onSend,
@@ -107,18 +75,15 @@ export function Home({
   onAttachmentsChange,
   allowedTools,
   onToggleTool,
+  mode,
+  modes,
+  onModeChange,
+  onOpenSettings,
   thinking,
   onThinkingChange,
   privateChat,
   onPrivateChange,
   offline,
-  loading,
-  running,
-  runningTitle,
-  activity = [],
-  queued,
-  onOpenSession,
-  onHandoff,
   banners,
 }: HomeProps) {
   const deviceInput = useRef<HTMLInputElement | null>(null);
@@ -131,7 +96,6 @@ export function Home({
   const readsRef = useRef<Promise<Attachment[]>[]>([]);
   const [driveOpen, setDriveOpen] = useState(false);
   const [intro, setIntro] = useState(shouldPlayIntro);
-  const { data: sessions = [], isLoading } = trpc.chat.listSessions.useQuery();
   const { data: google } = trpc.google.status.useQuery(undefined, { staleTime: 60_000 });
 
   const voice = useVoiceDictation((text) => {
@@ -143,32 +107,6 @@ export function Home({
     setIntro(false);
     markIntroSeen();
   }, [intro]);
-
-  const progress = useMemo(() => runProgress(activity), [activity]);
-
-  const rows: HomeRecentRow[] = useMemo(() => {
-    const out: HomeRecentRow[] = [];
-    if (queued) out.push({ id: "queued", kind: "queued", title: queued });
-    if (running) {
-      out.push({
-        id: "run",
-        kind: "running",
-        title: runningTitle || "Working on it",
-        when: "Now",
-        progress,
-      });
-    }
-    sessions.slice(0, 4).forEach((session) => {
-      out.push({
-        id: `session-${session.id}`,
-        kind: "done",
-        title: session.title || "Untitled chat",
-        when: relativeTime(session.lastMessageAt ?? session.updatedAt ?? session.createdAt),
-        onSelect: () => onOpenSession(session.id),
-      });
-    });
-    return out;
-  }, [queued, running, runningTitle, sessions, progress, onOpenSession]);
 
   const composerAttachments: HomeAttachmentRow[] = useMemo(() => {
     const reading = pending.map((file) => ({
@@ -245,12 +183,9 @@ export function Home({
   return (
     <>
       <HomeScreen
-        rows={rows}
-        loading={isLoading || !!loading}
         intro={intro}
         listening={voice.listening}
         banners={banners}
-        onHandoff={onHandoff}
         composer={{
           value,
           onChange: onValueChange,
@@ -269,6 +204,10 @@ export function Home({
           onStopListen: voice.stop,
           listening: voice.listening,
           offline,
+          mode,
+          modes,
+          onModeChange,
+          onOpenSettings,
           thinking,
           onThinkingChange: (next) => {
             onThinkingChange(next);
