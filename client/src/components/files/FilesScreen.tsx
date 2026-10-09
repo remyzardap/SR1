@@ -69,7 +69,7 @@ function StorageMeter({ used, cap }: { used: number; cap: number }) {
   return (
     <div className="segs" aria-hidden="true">
       {Array.from({ length: 24 }, (_, i) => (
-        <i key={i} className={i < filled ? "on" : ""} />
+        <i key={i} className={i < filled ? "on" : undefined} />
       ))}
     </div>
   );
@@ -80,7 +80,7 @@ function DotMeter({ used, cap }: { used: number; cap: number }) {
   return (
     <span className="dots" aria-hidden="true">
       {Array.from({ length: 5 }, (_, i) => (
-        <i key={i} className={i < filled ? "on" : ""} />
+        <i key={i} className={i < filled ? "on" : undefined} />
       ))}
     </span>
   );
@@ -238,7 +238,7 @@ export function FilesScreen({
           pick={formatStorage(used, storageCapBytes)}
           mini={<DotMeter used={used} cap={storageCapBytes} />}
         >
-          <div className="storage-body" role="meter" aria-valuenow={used} aria-valuemin={0} aria-valuemax={storageCapBytes} aria-label="Storage used">
+          <div className="storage-body" role="meter" aria-valuenow={Math.round(used)} aria-valuemin={0} aria-valuemax={Math.round(storageCapBytes)} aria-label="Storage used">
             <StorageMeter used={used} cap={storageCapBytes} />
             <p className="storage-line">
               <b className="tnum">{formatStorage(used, storageCapBytes)}</b>

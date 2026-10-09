@@ -1,3 +1,4 @@
+import * as React from "react";
 import { rovingIndex, radioKeyDown } from "@/components/fold/radioKeys";
 import { TYPE_FILTERS, type FileFilterId } from "./fileModel";
 

@@ -1,3 +1,4 @@
+import * as React from "react";
 import { cn } from "@/lib/utils";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { FileLiveBar } from "./FileLiveBar";
@@ -25,15 +26,13 @@ export function FileRow({
   className?: string;
 }) {
   const meta = metaLine(file, now);
-  const openable = Boolean(onOpen);
 
   return (
     <li className={cn("frow-wrap", file.live && "is-live", className)} data-file={String(file.id)}>
       <button
         type="button"
         className="frow"
-        disabled={!openable}
-        aria-label={openable ? `Open ${file.name}, ${meta}` : undefined}
+        aria-label={onOpen ? `Open ${file.name}, ${meta}` : undefined}
         onClick={() => onOpen?.(file)}
       >
         <FileTypeIcon file={file} />

@@ -61,9 +61,10 @@ describe("categoryOf — which chip a file belongs to", () => {
     });
   }
 
-  it("the extension wins over the kind", () => {
+  it("resolves a kind and an extension that disagree by the more specific one", () => {
     expect(categoryOf(file({ name: "x", kind: "report", format: "pdf" }))).toBe("pdfs");
-    expect(categoryOf(file({ name: "x", kind: "sheet", format: "md" }))).toBe("documents");
+    expect(categoryOf(file({ name: "x", kind: "brief", format: "xlsx" }))).toBe("sheets");
+    expect(categoryOf(file({ name: "x", kind: "sheet", format: "md" }))).toBe("sheets");
   });
 
   it("is case and dot insensitive", () => {
@@ -264,12 +265,13 @@ describe("sortFiles — Name, Date, Size, both directions", () => {
     expect(sortFiles(same, { key: "date", dir: "asc" }).map((f) => f.name)).toEqual(["Ant", "Moose", "Zebra"]);
   });
 
-  it("files with no date at all sit at the oldest end", () => {
+  it("files with no date at all go last when newest is first", () => {
     const mixed: FileItem[] = [
       file({ id: "n", name: "No date", kind: "report", format: "md" }),
-      file({ id: "y", name: "Yesteryear", kind: "report", format: "md", updatedAt: new Date("2020-01-01T00:00:00Z") }),
+      file({ id: "y", name: "Yesteryear", kind: "report", format: "md", updatedAt: local(2020, 1, 1) }),
     ];
-    expect(sortFiles(mixed, { key: "date", dir: "desc" }).map((f) => f.id)).toEqual(["n", "y"]);
+    expect(sortFiles(mixed, { key: "date", dir: "desc" }).map((f) => f.id)).toEqual(["y", "n"]);
+    expect(sortFiles(mixed, { key: "date", dir: "asc" }).map((f) => f.id)).toEqual(["n", "y"]);
   });
 
   it("sortLabel says what the list is doing", () => {
@@ -305,7 +307,7 @@ describe("storage", () => {
 
   it("groups by type, biggest first", () => {
     const slices = storageBreakdown(list);
-    expect(slices.map((s) => s.label)).toEqual(["Other", "Slides", "Images", "PDFs"]);
+    expect(slices.map((s) => s.label)).toEqual(["Other", "Images", "Slides", "PDFs"]);
     expect(slices.find((s) => s.label === "Images")?.count).toBe(2);
     expect(slices.find((s) => s.label === "Images")?.bytes).toBeCloseTo(4.2 * MB, 6);
   });

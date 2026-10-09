@@ -69,6 +69,9 @@ const base = {
   onFilterChange: vi.fn(),
   sort: { key: "date" as const, dir: "desc" as const },
   onSortChange: vi.fn(),
+  onOpenFile: vi.fn(),
+  onUpload: vi.fn(),
+  onAskSutaeru: vi.fn(),
   now: NOW,
 };
 
@@ -85,7 +88,7 @@ describe("FilesScreen rows", () => {
     const out = html();
     expect(out).toContain('class="frow-wrap"');
     expect((out.match(/class="frow"/g) || []).length).toBe(4); // the trashed file is not in the active view
-    expect((out.match(/class="ftype/g) || []).length).toBe(4);
+    expect((out.match(/class="ftype"/g) || []).length).toBe(4);
     expect(out).toContain("<em>DOCX</em>");
     expect(out).toContain("<em>PDF</em>");
   });
@@ -122,7 +125,7 @@ describe("FilesScreen controls", () => {
     const out = html();
     expect(out).toContain('role="radiogroup"');
     for (const label of ["All", "Documents", "Images", "Sheets", "Slides", "PDFs", "Other"]) {
-      expect(out).toContain(`>${label}</`);
+      expect(out).toContain(`>${label}<`);
     }
     expect(out).toContain('aria-checked="true"');
   });

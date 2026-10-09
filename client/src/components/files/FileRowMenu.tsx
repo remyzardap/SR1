@@ -1,3 +1,4 @@
+import * as React from "react";
 import { RotateCcw } from "lucide-react";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
 import {

@@ -168,21 +168,21 @@ export function dateLabel(file: FileItem, now: Date = new Date()): string {
   return capitalize(relativeTime(date, now));
 }
 
-export function formatBytes(bytes: number | null | undefined): string {
-  if (!bytes) return "0 B";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`;
-}
-
-/** Drops the ".0" a round cap or size would otherwise carry: "10 GB", not "10.0 GB". */
+/** Drops the ".0" a round size would otherwise carry: "38 KB", not "38.0 KB". */
 function trimZero(size: string): string {
   return size.replace(/(\d)\.0(?= [KMGT]?B)/, "$1");
 }
 
+export function formatBytes(bytes: number | null | undefined): string {
+  if (!bytes) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return trimZero(`${(bytes / 1024).toFixed(1)} KB`);
+  if (bytes < 1024 * 1024 * 1024) return trimZero(`${(bytes / 1024 / 1024).toFixed(1)} MB`);
+  return trimZero(`${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`);
+}
+
 export function formatStorage(usedBytes: number, capBytes: number): string {
-  return `${trimZero(formatBytes(usedBytes))} of ${trimZero(formatBytes(capBytes))}`;
+  return `${formatBytes(usedBytes)} of ${formatBytes(capBytes)}`;
 }
 
 /** "PDF · 1.2 MB · Yesterday". A file still being written has no size yet, so it says "Writing". */
