@@ -173,3 +173,4 @@
 :root[data-living] [data-slot="sidebar-inset"],
 :root[data-living] [data-slot="sidebar-inset"] > div > main.bg-sutaeru { background: transparent; }
 @media print { .living-bg { display: none; } }
+:root[data-living] .lab-wrap { background: transparent !important; }

@@ -21,10 +21,10 @@ export interface VariantSpec {
 }
 
 export const VARIANTS: Record<LivingVariant, VariantSpec> = {
-  home: { spacing: 22, maxRadius: 2.6, alpha: 0.16, speed: 1, reach: 1, coverage: 1 },
-  chat: { spacing: 26, maxRadius: 2, alpha: 0.09, speed: 0.7, reach: 0.7, coverage: 0.5 },
-  studio: { spacing: 24, maxRadius: 2.3, alpha: 0.12, speed: 0.85, reach: 0.9, coverage: 0.8 },
-  quiet: { spacing: 30, maxRadius: 1.7, alpha: 0.06, speed: 0.45, reach: 0.4, coverage: 0.6 },
+  home: { spacing: 22, maxRadius: 2.8, alpha: 0.3, speed: 1, reach: 1, coverage: 1 },
+  chat: { spacing: 26, maxRadius: 2.2, alpha: 0.17, speed: 0.7, reach: 0.7, coverage: 0.5 },
+  studio: { spacing: 24, maxRadius: 2.5, alpha: 0.23, speed: 0.85, reach: 0.9, coverage: 0.8 },
+  quiet: { spacing: 30, maxRadius: 1.9, alpha: 0.12, speed: 0.45, reach: 0.4, coverage: 0.6 },
 };
 
 export interface FieldInput {
