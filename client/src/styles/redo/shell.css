@@ -151,3 +151,19 @@
 
 /* Design lab: the lab frame already provides the gutter */
 .lab-wrap .view { padding-left: 0; padding-right: 0; min-height: 0; max-width: none; }
+
+/* ── Chat bar mark: the logo with the living dot ramp (components/chat/ChatBarMark) ── */
+.chat-bar-mark {
+  display: inline-flex; align-items: center; gap: 10px; flex: none;
+  height: 32px; color: var(--r-ink, var(--ink));
+}
+.chat-bar-mark-glyph { width: 44px; height: 24px; flex: none; }
+.chat-bar-mark-glyph path { stroke: currentColor; }
+.chat-bar-mark-ramp { display: block; width: 124px; height: 28px; flex: none; }
+.chat-bar-mark .chat-bar-mark-glyph { transition: opacity var(--m-dur-medium2, 300ms) var(--m-ease-standard, ease); }
+.chat-bar-mark[data-phase="error"] .chat-bar-mark-glyph { opacity: .6; }
+@media (max-width: 1279px) { .chat-bar-mark-ramp { width: 96px; } }
+
+/* The floating logo pill on phone chat carries a short ramp beside the glyph. */
+.skx-nav-floating-btn { gap: 6px; padding-right: 12px; }
+.skx-nav-floating-ramp { display: block; width: 64px; height: 22px; color: var(--r-ink, var(--ink)); flex: none; }
