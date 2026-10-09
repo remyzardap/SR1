@@ -25,12 +25,13 @@
 .pill.sm::after { content: ""; position: absolute; inset: -5px 0; } /* still a 44 px target */
 
 /* ── The list (Drive style): type tile, whole name, "type · size · date" ── */
-.fl-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin-top: 16px; }
-.fl-views { display: flex; align-items: center; gap: 6px; }
+.files-list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin-top: 16px; }
+.files-views { display: flex; align-items: center; gap: 6px; }
 .sort-btn { height: 34px; }
 
-.fl { list-style: none; margin: 0; padding: 0; }
-.fl > li + li { background: linear-gradient(90deg, transparent, var(--hair) 8%, var(--hair) 92%, transparent) top / 100% 1px no-repeat; }
+/* .fl is taken by the session timeline (session.css), so the list is .files-list here. */
+.files-list { list-style: none; margin: 0; padding: 0; }
+.files-list > li + li { background: linear-gradient(90deg, transparent, var(--hair) 8%, var(--hair) 92%, transparent) top / 100% 1px no-repeat; }
 .frow-wrap { position: relative; display: flex; align-items: stretch; }
 .frow {
   flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; text-align: left;
@@ -76,9 +77,10 @@ canvas.bar.thick { height: 22px; }
 }
 .ftype.thumb { overflow: visible; }
 .ftype.thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
+/* Static: the meta line's dot already breathes, the tile badge only has to say "in progress". */
 .ftype-live {
   position: absolute; right: -3px; bottom: -3px; width: 12px; height: 12px; border-radius: 50%;
-  background: var(--r-accent); box-shadow: 0 0 0 2px var(--card); animation: dotpulse 1.6s ease-in-out infinite;
+  background: var(--r-accent); box-shadow: 0 0 0 2px var(--card);
 }
 
 /* Storage, folded into one line at the bottom of the list. */
@@ -93,8 +95,9 @@ canvas.bar.thick { height: 22px; }
 .storage-splits li { display: flex; align-items: baseline; gap: 10px; min-height: 36px; }
 .storage-splits li + li { border-top: 1px solid var(--hair); }
 .storage-splits .ss-label { flex: 1; min-width: 0; font-size: 14px; }
-.storage-splits .ss-count { color: var(--quiet); }
-.storage-splits .ss-size { margin-left: auto; }
+/* The shared .mono tracking (1.54 px) blows numbers apart in a table: "66 MB" reads "6 6 MB". */
+.storage-splits .ss-count { color: var(--quiet); min-width: 24px; text-align: right; letter-spacing: .3px; }
+.storage-splits .ss-size { margin-left: 14px; min-width: 68px; text-align: right; letter-spacing: .3px; }
 .sort-menu { min-width: 210px; }
 .sort-dir { display: flex; align-items: center; gap: 8px; }
 .sort-dir .fi { width: 16px; height: 16px; }
@@ -111,20 +114,18 @@ canvas.bar.thick { height: 22px; }
 }
 .file-more-btn:hover, .file-more-btn:focus-visible { color: var(--ink); background: var(--panel); border-color: var(--rule); }
 .empty { padding: 40px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; position: relative; margin-top: 6px; }
-.fl-empty { display: block; }
+.files-empty-row { display: block; }
 .empty canvas { width: 150px; height: 150px; }
 .empty b { font: 800 28px/1.05 var(--disp); letter-spacing: -.03em; }
 .empty p { margin: 0; color: var(--quiet); max-width: 26em; }
 
 @media (prefers-reduced-motion: reduce) {
   .frow::after, .file-more-btn, .pill, .search { transition: none; }
-  .ftype-live { animation: none; }
 }
 [data-reduce-motion="true"] .frow::after,
 [data-reduce-motion="true"] .file-more-btn,
 [data-reduce-motion="true"] .pill,
 [data-reduce-motion="true"] .search { transition: none; }
-[data-reduce-motion="true"] .ftype-live { animation: none; }
 
 /* ── Document previews (docs.js) ──────────────────────────────────────── */
 :root { --page: #FFFFFF; --page-dim: 1; }

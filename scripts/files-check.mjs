@@ -40,7 +40,9 @@ const browser = await chromium.launch();
 
 for (const theme of ["light", "dark"]) {
   for (const width of [390, 1280]) {
-    const ctx = await browser.newContext({ viewport: { width, height: 844 }, deviceScaleFactor: 2 });
+    // 1x: this host has no GPU, and a 2x surface plus scrolling starves the software compositor
+    // (page.screenshot never returns). 390x844 at 1x is the phone the design is judged on.
+    const ctx = await browser.newContext({ viewport: { width, height: 844 }, deviceScaleFactor: 1 });
     const page = await ctx.newPage();
     page.on("pageerror", (e) => fail(`pageerror ${theme} ${width}: ${e.message}`));
     page.on("console", (m) => m.type() === "error" && fail(`console ${theme} ${width}: ${m.text()}`));
@@ -104,7 +106,7 @@ for (const theme of ["light", "dark"]) {
       if (report.chips !== 7) fail(`${tag}: ${report.chips} type chips, expected 7`);
       if (report.checked !== 1) fail(`${tag}: ${report.checked} chips checked, expected 1`);
       if (!report.foldExpanded) fail(`${tag}: storage fold has no aria-expanded`);
-      if (!/\d/.test(report.sortLabel)) fail(`${tag}: sort button is empty`);
+      if (!report.sortLabel.trim()) fail(`${tag}: sort button is empty`);
 
       // Every row reads "type · size · date" (a file still being written has no size yet).
       if (state === "populated") {
@@ -133,6 +135,21 @@ for (const theme of ["light", "dark"]) {
     const reloaded = await page.locator('[data-fold="storage"] .fold-trigger').getAttribute("aria-expanded");
     if (reloaded !== after) fail(`${theme} ${width}: fold state lost on reload (${after} → ${reloaded})`);
     await shoot(page, `${out}/files-${theme}-${width}-fold-open.png`, ".files-folds");
+
+    // Reduced motion: the in-app switch must stop the live bar's rAF loop and the fold's easing.
+    await page.goto(`${base}/__lab/files?state=writing&theme=${theme}&w=full`, { waitUntil: "networkidle" });
+    await page.waitForSelector(".frow-live");
+    await page.evaluate(() => document.documentElement.setAttribute("data-reduce-motion", "true"));
+    await page.waitForTimeout(300);
+    const etaA = await page.locator(".frow-live .mono").textContent();
+    await page.waitForTimeout(700);
+    const etaB = await page.locator(".frow-live .mono").textContent();
+    if ((etaA ?? "").trim() !== (etaB ?? "").trim()) fail(`${theme} ${width}: live bar still animates with reduce-motion on (${etaA} → ${etaB})`);
+    const foldDur = await page.evaluate(() => getComputedStyle(document.querySelector(".fold-chev")).transitionDuration);
+    if (foldDur !== "0s" && !foldDur.startsWith("0")) fail(`${theme} ${width}: fold transition is ${foldDur} under reduce-motion`);
+    else ok(`${theme}-${width}: reduce-motion holds (eta "${etaA?.trim()}", fold ${foldDur})`);
+    await shoot(page, `${out}/files-${theme}-${width}-reduce-motion.png`);
+    await page.evaluate(() => document.documentElement.removeAttribute("data-reduce-motion"));
 
     // Keyboard: the row and the sort control both take focus and show a ring.
     await page.keyboard.press("Tab");

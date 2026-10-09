@@ -64,9 +64,10 @@ export interface FilesScreenProps extends FileActions {
   className?: string;
 }
 
-/** The 24-step ink meter, folded inside the Storage line. */
+/** The 24-step ink meter, folded inside the Storage line. Any usage lights at least one step. */
 function StorageMeter({ used, cap }: { used: number; cap: number }) {
-  const filled = Math.min(24, Math.max(0, Math.round((used / (cap || 1)) * 24)));
+  const raw = Math.round((used / (cap || 1)) * 24);
+  const filled = Math.min(24, used > 0 ? Math.max(1, raw) : 0);
   return (
     <div className="segs" aria-hidden="true">
       {Array.from({ length: 24 }, (_, i) => (
@@ -166,9 +167,9 @@ export function FilesScreen({
 
       <FileTypeChips value={filter} onChange={onFilterChange} counts={counts} />
 
-      <div className="fl-head">
+      <div className="files-list-head">
         {onViewChange ? (
-          <div className="fl-views" role="group" aria-label="Show files">
+          <div className="files-views" role="group" aria-label="Show files">
             <button type="button" className="pill sm" aria-pressed={view === "active"} onClick={() => onViewChange("active")}>
               Active
             </button>
@@ -182,7 +183,7 @@ export function FilesScreen({
         <FileSortButton sort={sort} onChange={onSortChange} />
       </div>
 
-      <ul className="fl" id="fileList">
+      <ul className="files-list" id="fileList">
         {isUploading && (
           <li className="frow-wrap is-uploading" role="status" aria-label={`Uploading ${uploadingFileName || "file"}`}>
             <span className="frow">
@@ -207,7 +208,7 @@ export function FilesScreen({
         ))}
 
         {!visible.length && !isUploading && (
-          <li className="fl-empty">
+          <li className="files-empty-row">
             <div className="panel empty">
               <FocusBrackets className="show" />
               <DitherSphere width={150} height={150} />
