@@ -21,13 +21,13 @@ import type { ApprovalRequest } from "@/lib/sse";
 import { applyHistoryMetadata, type HistoryMetadata } from "@/lib/citations";
 import { callFunction } from "@/lib/kemmaCloud";
 import { AttachMenu } from "@/components/AttachMenu";
-import { FocusBrackets } from "@/components/art";
+import { ModeMenu, PRIVATE_HINT, SOURCE_ROWS, chatModes } from "@/components/chat/ModeMenu";
 import { useOnline } from "@/hooks/useAppearance";
 import { beginStream, type StreamHandle } from "@/lib/activeStreams";
 import { CodeAccessBar, CodeThreadView, rememberCodeSession, storedCodeSession, useCodeThread, type CodeAccess } from "@/components/CodeThread";
 import { MAX_FILES, attachmentName, type Attachment } from "@/lib/attachments";
 import { NEON_PAGE_BG, NOISE_OVERLAY, NEON, NEON_FD, NEON_FM } from "@/lib/design";
-import { Settings, X, Cpu, Wrench, Download, PanelRightOpen, PanelRightClose, Zap, Search, FileText, Image as ImageIcon, ExternalLink } from "lucide-react";
+import { Settings, X, Cpu, Wrench, PanelRightOpen, PanelRightClose, Zap, Search, FileText, Image as ImageIcon } from "lucide-react";
 import { Sparkles } from "@/components/brandIcons";
 import { Button } from "@/components/ui/button";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/select";
 
 import { createSseParser, decodeEvent, type RawSseEvent } from "@/lib/sse";
-import { initialStreamState, reduceStream, stepStatusPrefix, type AgentStep, type Source } from "@/lib/streamReducer";
+import { initialStreamState, reduceStream, type AgentStep, type Source } from "@/lib/streamReducer";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface StreamSettings {
@@ -71,15 +71,6 @@ const MODE_META: Record<string, { icon: React.ElementType; label: string; desc: 
   document: { icon: FileText, label: "Document", desc: "Files and generation" },
   image: { icon: ImageIcon, label: "Image", desc: "Image generation" },
 };
-
-/** Phone mode picker: one visual card per mode. */
-const CHAT_MODE_CARDS: Array<{ key: string; label: string; text: string; icon: "ask" | "research" | "image" | "report" | "code" }> = [
-  { key: "fast", label: "Fast", text: "Quick answers, with search", icon: "ask" },
-  { key: "deep", label: "Deep research", text: "Browse, read and verify", icon: "research" },
-  { key: "image", label: "Image", text: "Draw from a description", icon: "image" },
-  { key: "document", label: "Document", text: "Make files and reports", icon: "report" },
-  { key: "code", label: "Code mode", text: "Work on your server", icon: "code" },
-];
 
 const PLAN_REQUEST = /\b(design|build|create|make|redesign|website|page|screen|interface|dashboard|brand|visual|layout|app)\b/i;
 const PLAN_SKIP = /\b(fix|bug|error|broken|not working|change the text|rename)\b/i;
@@ -112,7 +103,6 @@ export default function Chat() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastInput, setLastInput] = useState("");
   const [lastAttachments, setLastAttachments] = useState<Attachment[]>([]);
@@ -348,6 +338,24 @@ export default function Chat() {
     setPendingApprovals([]);
     decidedApprovals.current.clear();
   }, [isStreaming]);
+
+  // ─── Logo menu: "New chat" and "Past chats" arrive as /chat?new=1 and /chat?history=1 ──
+  // The bottom bar that used to hold these is gone; the menu lives outside this page, so
+  // it asks through the address and the page puts the address back once it has acted.
+  const search = useSearch();
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const wantsNew = params.get("new") === "1";
+    const wantsHistory = params.get("history") === "1";
+    if (!wantsNew && !wantsHistory) return;
+    if (wantsNew) handleNewChat();
+    if (wantsHistory) setSidebarOpen(true);
+    params.delete("new");
+    params.delete("history");
+    const rest = params.toString();
+    navigate(rest ? `/chat?${rest}` : "/chat", { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   // ─── Load persisted history on mount ───────────────────────────────────────
   useEffect(() => {
@@ -757,7 +765,6 @@ export default function Chat() {
   }, [messages, sessionId]);
 
   const [exportPending, setExportPending] = useState(false);
-  const [modeSheetOpen, setModeSheetOpen] = useState(false);
   const exportThreadFromServer = useCallback(async (format: "md" | "pdf") => {
     setExportPending(true);
     try {
@@ -883,18 +890,15 @@ export default function Chat() {
                 onAttachmentsChange={setAttachments}
                 allowedTools={allowedTools}
                 onToggleTool={toggleTool}
+                mode={mode}
+                modes={chatModes(isAdmin)}
+                onModeChange={handleSetMode}
+                onOpenSettings={() => setSettingsOpen(true)}
                 thinking={thinking}
                 onThinkingChange={setThinking}
                 privateChat={privateChat}
                 onPrivateChange={setPrivateChat}
                 offline={!online}
-                running={isStreaming}
-                runningTitle={lastInput}
-                activity={activity}
-                loading={historyState === "loading"}
-                queued={messages.find((message) => message.queued)?.content ?? null}
-                onOpenSession={handleSelectSession}
-                onHandoff={() => setIsAgentMode(true)}
                 banners={
                   <>
                     {!online && <OfflineBanner />}
@@ -1057,51 +1061,54 @@ export default function Chat() {
             {isCode && (
               <CodeAccessBar access={codeAccess} onAccess={setCodeAccess} totp={codeTotp} onTotp={setCodeTotp} fullAvailable={code.fullAvailable} locked={!!code.session} />
             )}
-            <div className="sutaeru-run-controls" data-offline={online ? undefined : "true"}>
-              {modeSheetOpen && (
-                <div className="sk-mode-sheet" role="radiogroup" aria-label="Chat mode">
-                  {CHAT_MODE_CARDS.filter((m) => m.key !== "code" || isAdmin).map((m) => (
-                    <button key={m.key} type="button" role="radio" aria-checked={mode === m.key} className={`sk-mode-card${mode === m.key ? " is-active" : ""}`} onClick={() => { handleSetMode(m.key); setModeSheetOpen(false); }}>
-                      {mode === m.key && <FocusBrackets />}
-                      <SutaeruIcon name={m.icon} signal className="sk-mode-card-icon" />
-                      <span className="sk-mode-card-title">{m.label}</span>
-                      <span className="sk-mode-card-text">{m.text}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              <div className="sutaeru-run-actions">
-                <Button size="icon" variant="outline" className="sk-chat-mobileonly" onClick={() => setSidebarOpen((o) => !o)} aria-label="Chat history" title="Chat history"><SutaeruIcon name="files" className="h-5 w-5" /></Button>
-                <Button size="icon" variant="outline" className="sk-chat-mobileonly" onClick={handleNewChat} aria-label="New chat" title="New chat"><SutaeruIcon name="plus" className="h-5 w-5" /></Button>
-                <Button size="icon" variant="outline" className="sk-chat-mobileonly" onClick={() => setModeSheetOpen((o) => !o)} aria-label="Chat mode" aria-expanded={modeSheetOpen} title="Chat mode"><SutaeruIcon name={(CHAT_MODE_CARDS.find((m) => m.key === mode) ?? CHAT_MODE_CARDS[0]).icon} className="h-5 w-5" /></Button>
-                <Button size="icon" variant="outline" onClick={() => setSettingsOpen((o) => !o)} aria-label="Run settings" title="Run settings"><SutaeruIcon name="settings" className="h-5 w-5" /></Button>
-                <Button size="icon" variant="outline" onClick={() => setMobileDetailsOpen((o) => !o)} aria-label="Run details" title="Run details"><SutaeruIcon name="review" className="h-5 w-5" /></Button>
-                <Button size="icon" variant="outline" onClick={exportThread} disabled={messages.length === 0} aria-label="Export conversation" title="Export conversation"><SutaeruIcon name="download" className="h-5 w-5" /></Button>
-                {isStreaming && <Button variant="outline" className="sutaeru-stop-run" onClick={stopRun}>Stop run</Button>}
-              </div>
-              {mobileDetailsOpen && <div className="sutaeru-mobile-details"><strong>Run details</strong><p>{isStreaming ? currentStep || "Thinking…" : error ? "Run failed" : "No active run"}</p>{agentSteps.map(step => <p key={step.id}>{stepStatusPrefix(step)} {step.label}</p>)}{sources.length > 0 && <div className="sutaeru-inline-sources"><strong>Sources</strong>{sources.map((source, index) => <a key={`${source.url}-${index}`} href={source.url} target="_blank" rel="noreferrer"><span>{index + 1}. {source.title}</span><ExternalLink size={14} /></a>)}</div>}</div>}
-              {!showHome && !isAgentMode && (
-              <div className="sutaeru-run-composer">
-              <div className="sutaeru-composer-row mx-auto flex max-w-2xl items-center gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="sk-attach-slot">
-                    <AttachMenu attachments={attachments} onChange={setAttachments} disabled={isStreaming} />
-                  </div>
-                   <ChatInput
+            {/* The conversation's composer is the only thing docked at the bottom: history and
+                new chat live in the logo menu, mode, sources and run settings in the mode chip's
+                sheet, export in the header's menu. */}
+            {!showHome && !isAgentMode && (
+              <div className="sutaeru-run-controls" data-offline={online ? undefined : "true"}>
+                <div className="sutaeru-run-composer mx-auto w-full max-w-2xl">
+                  <ChatInput
                     value={input}
                     isStreaming={isCode ? code.running : isStreaming}
                     onChange={setInput}
                     onKeyDown={handleKeyDown}
-                     onSend={(message) => handleSend(message)}
+                    onSend={(message) => handleSend(message)}
                     onStop={isCode ? () => void code.stop() : stopRun}
-                     allowAttachments={false}
+                    allowAttachments={false}
                     offline={!online}
+                    tools={
+                      <>
+                        <div className="sk-attach-slot">
+                          <AttachMenu attachments={attachments} onChange={setAttachments} disabled={isStreaming} />
+                        </div>
+                        <ModeMenu
+                          mode={mode}
+                          modes={chatModes(isAdmin)}
+                          onModeChange={handleSetMode}
+                          allowedTools={allowedTools}
+                          onToggleTool={toggleTool}
+                          sourceRows={SOURCE_ROWS}
+                          thinking={thinking}
+                          onThinkingChange={setThinking}
+                          onOpenSettings={() => setSettingsOpen(true)}
+                        />
+                        <button
+                          type="button"
+                          className="icon-btn flat"
+                          aria-pressed={privateChat}
+                          aria-label="Private chat"
+                          aria-disabled
+                          title={PRIVATE_HINT}
+                          onClick={() => toast.error(PRIVATE_HINT)}
+                        >
+                          <SutaeruIcon name="eyeoff" signal={false} className="ico" />
+                        </button>
+                      </>
+                    }
                   />
                 </div>
               </div>
-              </div>
-              )}
-            </div>
+            )}
           </div>
 
           {/* Agent steps / status panel */}

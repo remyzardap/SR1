@@ -8,7 +8,6 @@ import {
   HOME_LAB_STATES,
   LAB_HOME_SOURCES,
   homeLabComposer,
-  homeLabRows,
   type HomeLabState,
 } from "./fixtures/home";
 
@@ -22,6 +21,8 @@ function composerProps(state: HomeLabState, sourceRows: HomeSourceRow[]): HomeCo
     onSubmit: noop,
     onListen: noop,
     onStopListen: noop,
+    onModeChange: noop,
+    onOpenSettings: noop,
     onThinkingChange: noop,
     onPrivateChange: noop,
     onToggleTool: noop,
@@ -50,13 +51,7 @@ export default function LabHome() {
           </Link>
         ))}
       </nav>
-      <HomeScreen
-        rows={homeLabRows(state)}
-        composer={composerProps(state, LAB_HOME_SOURCES)}
-        loading={state === "loading"}
-        listening={state === "recording"}
-        onHandoff={noop}
-      />
+      <HomeScreen composer={composerProps(state, LAB_HOME_SOURCES)} listening={state === "recording"} />
     </LabLayout>
   );
 }

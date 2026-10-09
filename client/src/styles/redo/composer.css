@@ -1,26 +1,78 @@
 /* ── Composer ─────────────────────────────────────────────────────────── */
 .composer-wrap { position: relative; margin-top: 28px; }
+/* Spacious: a field of at least three lines at 18px, padding 20/22, radius 30. The
+   thread composer (ChatInput) wears the same numbers in chat-reskin.css. */
 .composer {
   position: relative;
-  background: var(--card); border: 1px solid var(--stroke); border-radius: 26px;
-  padding: 18px 18px 14px;
-  display: flex; flex-direction: column; gap: 12px;
+  background: var(--card); border: 1px solid var(--stroke); border-radius: 30px;
+  padding: 20px 22px 14px;
+  display: flex; flex-direction: column; gap: 14px;
   box-shadow: var(--shadow);
   transition: border-color var(--t) var(--ease);
 }
 .composer:focus-within { border-color: var(--rule); }
 .composer textarea {
   border: 0; outline: 0; resize: none; background: transparent;
-  font: 400 17px/1.5 var(--body); min-height: 78px; max-height: 220px;
-  padding: 0 4px;
+  font: 400 18px/1.5 var(--body); min-height: 81px; max-height: 220px;
+  padding: 0;
 }
 .composer textarea::placeholder { color: var(--quiet); }
-@media (min-width: 760px) { .composer { padding: 24px 22px 18px; } .composer textarea { font-size: 20px; min-height: 64px; } }
-.composer .ctrls { display: flex; align-items: center; gap: 8px; }
-.composer .ctrls .pills { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 4px 2px; flex: 1; min-width: 0; }
-.composer .ctrls .pills::-webkit-scrollbar { display: none; }
-.send { width: 48px; height: 48px; }
+@media (min-width: 760px) { .composer textarea { font-size: 19px; min-height: 86px; } }
+.composer .ctrls { display: flex; align-items: center; gap: 8px; container-type: inline-size; min-width: 0; }
+.send { width: 50px; height: 50px; }
+
+/* The mode chip: the current mode's icon and name, never clipped. A narrow tools row swaps
+   in the short name, then drops the chevron; the chip itself is allowed to shrink. */
+.mode-chip { min-height: 40px; padding: 0 14px 0 12px; gap: 7px; flex: 0 1 auto; min-width: 0; background: var(--panel); border-color: transparent; }
+.mode-chip .ico { width: 18px; height: 18px; flex: none; }
+.mode-chip { text-transform: none; letter-spacing: 0; font: 600 14px/1 var(--body); }
+.mode-chip-name { min-width: 0; overflow: hidden; white-space: nowrap; }
+.mode-chip-name .short { display: none; }
+.mode-chip-chev { flex: none; opacity: .6; transition: transform var(--t) var(--ease); }
+.mode-chip[aria-expanded="true"] .mode-chip-chev { transform: rotate(180deg); }
+@container (max-width: 330px) {
+  .mode-chip-name .full { display: none; }
+  .mode-chip-name .short { display: inline; }
+  .mode-chip { padding: 0 11px 0 10px; gap: 6px; }
+}
+@container (max-width: 270px) {
+  .mode-chip-chev { display: none; }
+  .mode-chip { font-size: 13px; padding: 0 7px 0 8px; gap: 4px; }
+  .mode-chip .ico { width: 16px; height: 16px; }
+}
+
+/* The mode sheet: five mode cards, the sources, Thinking and the run settings. */
+.mode-menu { display: flex; flex-direction: column; gap: 10px; }
+.mode-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.mode-card {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  padding: 14px; min-height: 96px; text-align: left; color: var(--ink);
+  border: 1px solid var(--stroke); border-radius: 20px; background: var(--panel);
+  transition: background var(--t) var(--ease), border-color var(--t) var(--ease), transform 160ms var(--ease);
+}
+.mode-card:active { transform: scale(.98); }
+.mode-card.is-active { background: var(--card); border-color: var(--ink); }
+.mode-card-icon { width: 30px; height: 30px; }
+.mode-card-title { font: 800 16px/1.1 var(--disp); letter-spacing: -0.3px; }
+.mode-card-text { font: 400 13px/1.35 var(--body); color: var(--quiet); }
+.mode-menu-label { margin: 8px 4px 0; }
+.mode-settings { margin-top: 2px; }
+.sheet-done { width: 100%; margin-top: 14px; }
 .send[disabled] { background: var(--panel); color: var(--quiet); border-color: var(--panel); }
+/* Phones: tighter gaps so the chip keeps its name; the 40px glyph buttons keep a 44px touch target. */
+@media (max-width: 759px) {
+  .composer .ctrls { gap: 4px; }
+  .composer .ctrls .icon-btn.flat { width: 40px; }
+  .composer .ctrls .icon-btn.flat::after { content: ""; position: absolute; inset: -2px; }
+}
+/* 320px phones: a little less side padding and 36px glyph buttons (still a 44px target) leave
+   room for the icon and the whole short name. */
+@media (max-width: 359px) {
+  .composer { padding: 20px 16px 14px; }
+  .composer .ctrls .icon-btn.flat { width: 36px; }
+  .composer .ctrls .icon-btn.flat::after { inset: -4px; }
+  .mode-chip { padding: 0 8px 0 9px; gap: 5px; }
+}
 .attach-dot { position: absolute; top: 9px; right: 9px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 .attachments { display: flex; flex-wrap: wrap; gap: 8px; }
 .att {

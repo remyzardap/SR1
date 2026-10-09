@@ -31,6 +31,7 @@ import LabInstall from "./LabInstall";
 import LabSplash from "./LabSplash";
 
 import LabHome from "./LabHome";
+import LabComposer from "./LabComposer";
 
 import LabStudio from "./LabStudio";
 import LabParts from "./LabParts";
@@ -67,6 +68,7 @@ export function LabRouter() {
       <Route path="/__lab/install" component={LabInstall} />
       <Route path="/__lab/splash" component={LabSplash} />
       <Route path="/__lab/home" component={LabHome} />
+      <Route path="/__lab/composer" component={LabComposer} />
       <Route path="/__lab/studio" component={LabStudio} />
       <Route path="/__lab/parts" component={LabParts} />
       <Route path="/__lab/image-run" component={LabImageRun} />
