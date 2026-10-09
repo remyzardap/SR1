@@ -25,7 +25,8 @@
    in the short name, then drops the chevron; the chip itself is allowed to shrink. */
 .mode-chip { min-height: 40px; padding: 0 14px 0 12px; gap: 7px; flex: 0 1 auto; min-width: 0; background: var(--panel); border-color: transparent; }
 .mode-chip .ico { width: 18px; height: 18px; flex: none; }
-.mode-chip-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mode-chip { text-transform: none; letter-spacing: 0; font: 600 14px/1 var(--body); }
+.mode-chip-name { min-width: 0; overflow: hidden; white-space: nowrap; }
 .mode-chip-name .short { display: none; }
 .mode-chip-chev { flex: none; opacity: .6; transition: transform var(--t) var(--ease); }
 .mode-chip[aria-expanded="true"] .mode-chip-chev { transform: rotate(180deg); }
@@ -36,6 +37,8 @@
 }
 @container (max-width: 270px) {
   .mode-chip-chev { display: none; }
+  .mode-chip { font-size: 13px; padding: 0 7px 0 8px; gap: 4px; }
+  .mode-chip .ico { width: 16px; height: 16px; }
 }
 
 /* The mode sheet: five mode cards, the sources, Thinking and the run settings. */
@@ -61,6 +64,14 @@
   .composer .ctrls { gap: 4px; }
   .composer .ctrls .icon-btn.flat { width: 40px; }
   .composer .ctrls .icon-btn.flat::after { content: ""; position: absolute; inset: -2px; }
+}
+/* 320px phones: a little less side padding and 36px glyph buttons (still a 44px target) leave
+   room for the icon and the whole short name. */
+@media (max-width: 359px) {
+  .composer { padding: 20px 16px 14px; }
+  .composer .ctrls .icon-btn.flat { width: 36px; }
+  .composer .ctrls .icon-btn.flat::after { inset: -4px; }
+  .mode-chip { padding: 0 8px 0 9px; gap: 5px; }
 }
 .attach-dot { position: absolute; top: 9px; right: 9px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 .attachments { display: flex; flex-wrap: wrap; gap: 8px; }

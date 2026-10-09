@@ -113,6 +113,11 @@
   .sutaeru-chat .sutaeru-run-controls .icon-btn.flat, .sutaeru-chat .sutaeru-run-controls .sk-attach-button { width: 40px; min-width: 40px; }
 }
 
+@media (max-width: 359px) {
+  .sutaeru-chat .sutaeru-run-controls .sutaeru-input-box { padding-inline: 16px; }
+  .sutaeru-chat .sutaeru-run-controls .icon-btn.flat, .sutaeru-chat .sutaeru-run-controls .sk-attach-button { width: 36px; min-width: 36px; }
+}
+
 /* Phones and tablets: the chat gets the whole screen. No header rows, no status strip;
    the composer is the only thing docked at the bottom (history and new chat are in the logo
    menu, the mode and its sheet are the chip in the tools row). */
