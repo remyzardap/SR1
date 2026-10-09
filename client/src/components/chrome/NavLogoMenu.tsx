@@ -246,7 +246,7 @@ export function NavLogoMenu({ variant = "header", className }: NavLogoMenuProps)
           ? `${quota.data.tier} plan · ${quota.data.messages.used}/${quota.data.messages.limit} messages`
           : undefined,
         meter: quota.data ? { used: quota.data.messages.used, of: quota.data.messages.limit } : null,
-        meta: user.role === "admin" ? "Admin" : quota.data ? undefined : user.email ?? undefined,
+        meta: quota.data ? undefined : user.role === "admin" ? "Admin" : user.email ?? undefined,
       }
     : null;
 

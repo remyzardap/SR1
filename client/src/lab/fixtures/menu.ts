@@ -42,7 +42,6 @@ export const MENU_PERSON_ADMIN: MenuPerson = {
   initial: "R",
   plan: "free plan · 38/50 messages",
   meter: { used: 38, of: 50 },
-  meta: "Admin",
 };
 export const MENU_PERSON_MEMBER: MenuPerson = {
   name: "Ana Souza",

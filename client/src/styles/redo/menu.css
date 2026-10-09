@@ -144,10 +144,16 @@
 }
 .lm-foot .lm-who { flex: 1; min-width: 0; }
 .lm-foot .lm-who b { display: block; font: 600 15px/1.2 var(--body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lm-foot .lm-who .mono { display: block; margin-top: 3px; font-size: 10px; letter-spacing: 0.8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lm-foot .lm-who .mono { display: block; margin-top: 3px; font-size: 10px; letter-spacing: 0.6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lm-dots { display: flex; gap: 4px; flex: none; }
 .lm-dots i { width: 8px; height: 8px; border-radius: 3px; background: var(--seg, var(--panel)); }
 .lm-dots i.on { background: var(--ink); }
+/* On phones the plan line needs the width the meter would take. */
+@media (max-width: 759px) {
+  .lm-foot { padding-left: 16px; padding-right: 16px; }
+  .lm-dots { gap: 3px; }
+  .lm-dots i { width: 7px; height: 7px; }
+}
 
 /* ── Phone: bottom sheet ───────────────────────────────────────────────── */
 .lm-sheet {
