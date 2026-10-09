@@ -10,6 +10,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
+import { ChatBarMark } from "@/components/chat/ChatBarMark";
+import { useChatEnergyFeed } from "@/lib/motion/chatEnergy";
 
 const MODES: Array<{ key: string; label: string; icon: SutaeruIconName }> = [
   { key: "fast", label: "Fast", icon: "ask" },
@@ -65,6 +67,8 @@ export function ChatHeader({
 }: ChatHeaderProps) {
   const modes = [...MODES, ...extraModes];
   const reduceMotion = useReducedMotion();
+  // The bar mark follows the run even before Chat.tsx feeds token rates (lib/motion/chatEnergy.ts).
+  useChatEnergyFeed({ streaming: isStreaming });
   return (
     <>
        <div
@@ -92,13 +96,7 @@ export function ChatHeader({
              </Button>
           )}
 
-          <motion.div
-            className={cn("w-2 h-2 rounded-full shrink-0 transition-all duration-500", isStreaming ? "scale-125" : "")}
-            style={{
-              background: isStreaming ? NEON.orange : NEON.muted,
-              boxShadow: isStreaming ? `0 0 10px ${NEON.orange}80` : "none",
-            }}
-          />
+          <ChatBarMark className="chat-header-mark" />
 
           <div className="min-w-0">
             <span className="text-sm font-semibold truncate block" style={{ color: NEON.ink, fontFamily: NEON_FD, fontWeight: 700 }}>

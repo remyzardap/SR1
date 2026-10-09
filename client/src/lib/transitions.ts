@@ -3,6 +3,8 @@
  * Uses document.startViewTransition when available and reduced motion is not preferred.
  */
 
+import { routeDirection, runRouteTransition } from "@/lib/motion/routeTransition";
+
 export function prefersReducedMotion(): boolean {
   if (typeof window === "undefined") return false;
   try {
@@ -19,15 +21,7 @@ export function prefersReducedMotion(): boolean {
 }
 
 export function navigateWithTransition(navigate: (to: string) => void, to: string): void {
-  if (
-    typeof document !== "undefined" &&
-    typeof (document as any).startViewTransition === "function" &&
-    !prefersReducedMotion()
-  ) {
-    (document as any).startViewTransition(() => {
-      navigate(to);
-    });
-  } else {
-    navigate(to);
-  }
+  // The direction (M3 shared axis) is guessed from route depth; see lib/motion/routeTransition.ts.
+  const from = typeof window !== "undefined" ? (window.location?.pathname ?? "") : "";
+  runRouteTransition(() => navigate(to), routeDirection(from, to), prefersReducedMotion());
 }

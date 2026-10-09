@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { SutaeruGlyph } from "@/components/SutaeruGlyph";
 import { SutaeruSeal } from "@/components/brand/SutaeruSeal";
+import { DotRamp } from "@/components/art/DotRamp";
 import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
 import { navigateWithTransition } from "@/lib/transitions";
 
@@ -206,6 +207,7 @@ export function NavLogoMenu({ variant = "header", className }: NavLogoMenuProps)
           title="Open navigation menu"
         >
           <SutaeruGlyph className="skx-nav-floating-glyph" />
+          <DotRamp className="skx-nav-floating-ramp" />
         </button>
       ) : (
         <button
