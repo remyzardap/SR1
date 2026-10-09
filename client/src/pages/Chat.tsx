@@ -342,16 +342,20 @@ export default function Chat() {
   // ─── Logo menu: "New chat" and "Past chats" arrive as /chat?new=1 and /chat?history=1 ──
   // The bottom bar that used to hold these is gone; the menu lives outside this page, so
   // it asks through the address and the page puts the address back once it has acted.
+  // A past chat picked in the menu arrives as /chat?session=<id>.
   const search = useSearch();
   useEffect(() => {
     const params = new URLSearchParams(search);
     const wantsNew = params.get("new") === "1";
     const wantsHistory = params.get("history") === "1";
-    if (!wantsNew && !wantsHistory) return;
+    const wantsSession = params.get("session");
+    if (!wantsNew && !wantsHistory && !wantsSession) return;
     if (wantsNew) handleNewChat();
     if (wantsHistory) setSidebarOpen(true);
+    if (wantsSession) handleSelectSession(wantsSession);
     params.delete("new");
     params.delete("history");
+    params.delete("session");
     const rest = params.toString();
     navigate(rest ? `/chat?${rest}` : "/chat", { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps

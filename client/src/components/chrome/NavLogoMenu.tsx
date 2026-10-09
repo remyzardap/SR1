@@ -1,14 +1,19 @@
 import * as React from "react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "wouter";
-import { cn } from "@/lib/utils";
+
 import { useAuth } from "@/_core/hooks/useAuth";
+import { codeCall, type CodeSession } from "@/components/CodeThread";
+import { LogoMenuSheet, type MenuChat, type MenuPill, type MenuRun, type MenuTile } from "./LogoMenuSheet";
 import { SutaeruGlyph } from "@/components/SutaeruGlyph";
-import { SutaeruSeal } from "@/components/brand/SutaeruSeal";
 import { DotRamp } from "@/components/art/DotRamp";
-import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
-import { navigateWithTransition } from "@/lib/transitions";
+import type { SutaeruIconName } from "@/components/SutaeruIcon";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { pickArt, type PickArtId } from "@/lib/pickArt";
+import { navigateWithTransition, prefersReducedMotion } from "@/lib/transitions";
+import { trpc } from "@/lib/trpc";
+import { cn } from "@/lib/utils";
 
 export interface NavDestination {
   label: string;
@@ -111,8 +116,8 @@ export const NAV_DESTINATIONS: NavDestination[] = [
     label: "Admin",
     path: "/admin",
     icon: "admin",
-    group: "account",
     adminOnly: true,
+    group: "account",
     match: (l) => l === "/admin" || l.startsWith("/admin/"),
   },
 ];
@@ -122,6 +127,28 @@ const CHAT_ACTIONS: Array<{ label: string; path: string; icon: SutaeruIconName }
   { label: "New chat", path: "/chat?new=1", icon: "plus" },
   { label: "Past chats", path: "/chat?history=1", icon: "bookmark" },
 ];
+
+/* The workspace tiles, in the order the menu shows them, with their picture. */
+const TILE_ART: Record<string, PickArtId> = {
+  "/chat": "nav-chat",
+  "/generate": "nav-agent",
+  "/images": "nav-images",
+  "/documents": "nav-documents",
+  "/files": "nav-files",
+  "/video": "nav-video",
+};
+const TILE_ORDER = ["/chat", "/generate", "/images", "/documents", "/files", "/video"];
+
+const POP_WIDTH = 420;
+
+function relTime(ts: number | null | undefined): string {
+  if (!ts) return "";
+  const diff = Date.now() - ts;
+  if (diff < 60_000) return "now";
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h`;
+  return new Date(ts).toLocaleDateString();
+}
 
 export interface NavLogoMenuProps {
   /**
@@ -134,45 +161,84 @@ export interface NavLogoMenuProps {
 
 export function NavLogoMenu({ variant = "header", className }: NavLogoMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
   const [location, navigate] = useLocation();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const isWide = useMediaQuery("(min-width: 760px)");
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
+
+  /* The surface stays mounted for the length of its exit animation, then unmounts. */
+  useEffect(() => {
+    if (isOpen) {
+      wasOpen.current = true;
+      setClosing(false);
+      return;
+    }
+    if (!wasOpen.current) return;
+    wasOpen.current = false;
+    if (prefersReducedMotion()) return;
+    setClosing(true);
+    const t = window.setTimeout(() => setClosing(false), 240);
+    return () => window.clearTimeout(t);
+  }, [isOpen]);
+
+  /* Anchor the popover to the logo button; keep it on screen. */
+  useEffect(() => {
+    if (!isOpen || !isWide) {
+      setAnchor(null);
+      return;
+    }
+    const place = () => {
+      const rect = triggerRef.current?.getBoundingClientRect();
+      const left = Math.max(12, Math.min(rect ? rect.left : 16, window.innerWidth - POP_WIDTH - 12));
+      const maxH = Math.min(760, window.innerHeight - 24);
+      const top = Math.max(12, Math.min((rect ? rect.bottom : 56) + 10, window.innerHeight - maxH - 12));
+      setAnchor({ top, left });
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [isOpen, isWide]);
 
   // Close when location changes
   useEffect(() => {
     setIsOpen(false);
   }, [location]);
 
-  // Close on Escape key press
+  const shown = isOpen || closing;
+
+  /* Past chats: the same list the chat sidebar shows, fetched only while the menu is up. */
+  const sessions = trpc.chat.listSessions.useQuery(undefined, { enabled: shown, retry: false });
+
+  /* Working for you: code threads still running on the server (admin-only feature). */
+  const [codeSessions, setCodeSessions] = useState<CodeSession[]>([]);
   useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        setIsOpen(false);
-        triggerRef.current?.focus();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
-
-  // Lock body scroll when menu is open
-  useEffect(() => {
-    if (isOpen) {
-      const prevOverflow = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      // Auto focus close button for accessibility
-      setTimeout(() => closeButtonRef.current?.focus(), 50);
-      return () => {
-        document.body.style.overflow = prevOverflow;
-      };
+    if (!shown || !isAdmin) {
+      setCodeSessions([]);
+      return;
     }
-  }, [isOpen]);
+    let cancelled = false;
+    const load = () =>
+      codeCall<{ sessions: CodeSession[] }>("/")
+        .then((r) => {
+          if (!cancelled) setCodeSessions(r.sessions);
+        })
+        .catch(() => undefined);
+    void load();
+    const t = window.setInterval(load, 15_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(t);
+    };
+  }, [shown, isAdmin]);
+
+  const close = useCallback(() => {
+    setIsOpen(false);
+    triggerRef.current?.focus();
+  }, []);
 
   const handleSelect = useCallback(
     (path: string) => {
@@ -183,14 +249,41 @@ export function NavLogoMenu({ variant = "header", className }: NavLogoMenuProps)
   );
 
   const visibleItems = NAV_DESTINATIONS.filter((item) => !item.adminOnly || isAdmin);
+  const isCurrent = (item: NavDestination) => (item.match ? item.match(location) : location === item.path);
 
-  const workspaceItems = visibleItems.filter((i) => i.group === "workspace");
-  const moreItems = visibleItems.filter((i) => i.group === "more");
-  const accountItems = visibleItems.filter((i) => i.group === "account");
+  const tiles: MenuTile[] = TILE_ORDER.flatMap((path) => {
+    const item = visibleItems.find((i) => i.path === path && TILE_ART[path]);
+    return item ? [{ label: item.label, href: item.path, art: pickArt(TILE_ART[path]), active: isCurrent(item) }] : [];
+  });
 
-  const isCurrent = (item: NavDestination) => {
-    return item.match ? item.match(location) : location === item.path;
-  };
+  const pills: MenuPill[] = visibleItems
+    .filter((i) => !TILE_ART[i.path])
+    .map((i) => ({ label: i.label, href: i.path, active: isCurrent(i) }));
+
+  const runs: MenuRun[] = codeSessions
+    .filter((s) => s.status === "running" || s.status === "needs_approval")
+    .map((s) => ({
+      id: s.id,
+      label: s.title || "Code session",
+      detail: s.status === "running" ? "Code · working" : "Code · needs you",
+      href: `/chat?session=${s.id}`,
+      live: s.status === "running",
+    }));
+
+  const chats: MenuChat[] = (sessions.data ?? []).slice(0, 6).map((s) => ({
+    id: s.id,
+    title: s.title || "Untitled",
+    when: relTime(s.lastMessageAt),
+    href: `/chat?session=${s.id}`,
+  }));
+
+  const person = user
+    ? {
+        name: user.name || user.email || "Signed in",
+        initial: (user.name || user.email || "S").trim().charAt(0).toUpperCase(),
+        meta: user.role === "admin" ? "Admin" : user.email ?? undefined,
+      }
+    : null;
 
   return (
     <>
@@ -228,143 +321,26 @@ export function NavLogoMenu({ variant = "header", className }: NavLogoMenuProps)
         </button>
       )}
 
-      {/* Menu Drawer & Backdrop */}
-      {isOpen &&
+      {shown &&
         typeof document !== "undefined" &&
         createPortal(
-          <div className="skx-nav-overlay" role="presentation">
-            {/* Backdrop */}
-            <div
-              className="skx-nav-backdrop"
-              onClick={() => setIsOpen(false)}
-              aria-hidden="true"
-            />
-
-          {/* Drawer Sheet */}
-          <nav
-            className="skx-nav-drawer"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Navigation menu"
-          >
-            {/* Drawer Header */}
-            <div className="skx-nav-drawer-header">
-              <div className="skx-nav-drawer-brand">
-                <SutaeruGlyph className="skx-nav-drawer-glyph" />
-                <span className="skx-nav-drawer-title">Sutaeru</span>
-                <SutaeruSeal className="skx-nav-drawer-seal" rough={false} />
-              </div>
-              <button
-                ref={closeButtonRef}
-                type="button"
-                className="skx-nav-drawer-close"
-                onClick={() => setIsOpen(false)}
-                aria-label="Close navigation menu"
-                title="Close menu"
-              >
-                <SutaeruIcon name="close" signal={false} className="skx-nav-drawer-close-icon" />
-              </button>
-            </div>
-
-            {/* Destination List (vertical rows) */}
-            <div className="skx-nav-drawer-body">
-              {/* Workspace Section */}
-              <div className="skx-nav-group-label">Workspace</div>
-              <div className="skx-nav-list" role="list">
-                {workspaceItems.map((item) => {
-                  const active = isCurrent(item);
-                  return (
-                    <button
-                      key={item.path}
-                      type="button"
-                      role="listitem"
-                      className="skx-nav-row"
-                      data-active={active ? "true" : "false"}
-                      aria-current={active ? "page" : undefined}
-                      onClick={() => handleSelect(item.path)}
-                    >
-                      <span className="skx-nav-row-icon" aria-hidden="true">
-                        <SutaeruIcon name={item.icon} signal width={22} height={22} />
-                      </span>
-                      <span className="skx-nav-row-label">{item.label}</span>
-                      {active && <span className="skx-nav-row-dot" aria-hidden="true" />}
-                    </button>
-                  );
-                })}
-                {/* Chat's own actions: the page opens them from the address (Chat.tsx). */}
-                {CHAT_ACTIONS.map((item) => (
-                  <button
-                    key={item.path}
-                    type="button"
-                    role="listitem"
-                    className="skx-nav-row"
-                    data-active="false"
-                    onClick={() => handleSelect(item.path)}
-                  >
-                    <span className="skx-nav-row-icon" aria-hidden="true">
-                      <SutaeruIcon name={item.icon} signal width={22} height={22} />
-                    </span>
-                    <span className="skx-nav-row-label">{item.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* More / Create Section */}
-              <div className="skx-nav-divider" role="separator" />
-              <div className="skx-nav-group-label">More</div>
-              <div className="skx-nav-list" role="list">
-                {moreItems.map((item) => {
-                  const active = isCurrent(item);
-                  return (
-                    <button
-                      key={item.path}
-                      type="button"
-                      role="listitem"
-                      className="skx-nav-row"
-                      data-active={active ? "true" : "false"}
-                      aria-current={active ? "page" : undefined}
-                      onClick={() => handleSelect(item.path)}
-                    >
-                      <span className="skx-nav-row-icon" aria-hidden="true">
-                        <SutaeruIcon name={item.icon} signal width={22} height={22} />
-                      </span>
-                      <span className="skx-nav-row-label">{item.label}</span>
-                      {active && <span className="skx-nav-row-dot" aria-hidden="true" />}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Account & Settings Section */}
-              <div className="skx-nav-divider" role="separator" />
-              <div className="skx-nav-group-label">Account</div>
-              <div className="skx-nav-list" role="list">
-                {accountItems.map((item) => {
-                  const active = isCurrent(item);
-                  return (
-                    <button
-                      key={item.path}
-                      type="button"
-                      role="listitem"
-                      className="skx-nav-row"
-                      data-active={active ? "true" : "false"}
-                      aria-current={active ? "page" : undefined}
-                      onClick={() => handleSelect(item.path)}
-                    >
-                      <span className="skx-nav-row-icon" aria-hidden="true">
-                        <SutaeruIcon name={item.icon} signal width={22} height={22} />
-                      </span>
-                      <span className="skx-nav-row-label">{item.label}</span>
-                      {active && <span className="skx-nav-row-dot" aria-hidden="true" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </nav>
-        </div>,
-        document.body
-      )}
+          <LogoMenuSheet
+            open={isOpen}
+            closing={closing}
+            mode={isWide ? "popover" : "sheet"}
+            anchor={anchor}
+            tiles={tiles}
+            runs={runs}
+            chats={chats}
+            pills={pills}
+            person={person}
+            onNavigate={handleSelect}
+            onNewChat={() => handleSelect(CHAT_ACTIONS[0].path)}
+            onPastChats={() => handleSelect(CHAT_ACTIONS[1].path)}
+            onClose={close}
+          />,
+          document.body
+        )}
     </>
   );
 }
