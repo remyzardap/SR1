@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
 import { FocusBrackets } from "@/components/art/FocusBrackets";
 import { DitherSphere } from "@/components/art/DitherSphere";
-import { LinearDitherBar } from "@/components/art/LinearDitherBar";
 import { FoldGroup, FoldSection, useFoldState } from "@/components/fold";
+import { FileProgressBar } from "./FileLiveBar";
 import { FileRow } from "./FileRow";
 import { FileSortButton } from "./FileSortButton";
 import { FileGlyph } from "./FileTypeIcon";
@@ -195,9 +195,7 @@ export function FilesScreen({
                 <small>
                   <span className="live-dot" aria-hidden="true" /> Uploading · {Math.round(uploadProgress * 100)}% complete
                 </small>
-                <span className="bar-holder">
-                  <LinearDitherBar progress={uploadProgress} width={200} height={14} asCanvas />
-                </span>
+                <FileProgressBar progress={uploadProgress} />
               </span>
             </span>
           </li>

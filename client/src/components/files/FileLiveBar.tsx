@@ -85,6 +85,21 @@ export function drawLiveBar(
   }
 }
 
+/** A static bar for an upload, whose progress we are told rather than measured. */
+export function FileProgressBar({ progress }: { progress: number }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    if (canvasRef.current) drawLiveBar(canvasRef.current, Math.min(1, Math.max(0, progress)), { t: 0 });
+  }, [progress]);
+
+  return (
+    <span className="bar-holder">
+      <canvas ref={canvasRef} className="bar" width={200} height={14} role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100} aria-label="Upload progress" />
+    </span>
+  );
+}
+
 export function FileLiveBar() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [etaText, setEtaText] = useState("About 40 sec left");

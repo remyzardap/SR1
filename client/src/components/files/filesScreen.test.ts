@@ -211,10 +211,12 @@ describe("FilesScreen empty and busy states", () => {
     expect(out).toContain("Trash is empty.");
   });
 
-  it("shows the uploading row with its percentage", () => {
+  it("shows the uploading row with its percentage and a real progress bar", () => {
     const out = html({ isUploading: true, uploadingFileName: "site-survey-2026.docx", uploadProgress: 0.65 });
     expect(out).toContain("site-survey-2026.docx");
     expect(out).toContain("65% complete");
     expect(out).toContain("Uploading");
+    expect(out).toContain('aria-valuenow="65"');
+    expect(out).toContain('aria-label="Upload progress"');
   });
 });
