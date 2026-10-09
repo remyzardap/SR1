@@ -176,9 +176,13 @@ export default function LabIndex() {
         >
           <b style={{ font: "700 18px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Home</b>
           <p style={{ margin: 0, color: "var(--quiet)", fontSize: 14 }}>
-            The ask screen in every state: typing, files uploading, recording, stopped, waiting to send,
-            private, no recent items, loading and offline. Add ?state= to jump straight to one.
+            The ask screen: mark, wordmark, dot ramp and the spacious composer with its mode chip. States:
+            typing, files, attach, mode sheet, deep, image, recording, private and offline (?state=).
           </p>
+        </Link>
+        <Link href="/__lab/composer" className="card" style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}>
+          <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Composer</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>Every composer state stacked: modes, files, private, recording, offline.</p>
         </Link>
         <Link href="/__lab/studio" className="card" style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}>
           <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Image studio</b>
