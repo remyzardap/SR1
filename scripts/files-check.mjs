@@ -136,25 +136,57 @@ for (const theme of ["light", "dark"]) {
     if (reloaded !== after) fail(`${theme} ${width}: fold state lost on reload (${after} → ${reloaded})`);
     await shoot(page, `${out}/files-${theme}-${width}-fold-open.png`, ".files-folds");
 
-    // Reduced motion: the in-app switch must stop the live bar's rAF loop and the fold's easing.
+    // Reduced motion, applied the way lib/theme.ts applies it (attribute + appearance event,
+    // which is what the JS-driven canvas art listens for).
     await page.goto(`${base}/__lab/files?state=writing&theme=${theme}&w=full`, { waitUntil: "networkidle" });
     await page.waitForSelector(".frow-live");
-    await page.evaluate(() => document.documentElement.setAttribute("data-reduce-motion", "true"));
+    await page.evaluate(() => {
+      document.documentElement.setAttribute("data-reduce-motion", "true");
+      window.dispatchEvent(new Event("sutaeru:appearance"));
+    });
     await page.waitForTimeout(300);
     const etaA = await page.locator(".frow-live .mono").textContent();
-    await page.waitForTimeout(700);
+    await page.waitForTimeout(900);
     const etaB = await page.locator(".frow-live .mono").textContent();
     if ((etaA ?? "").trim() !== (etaB ?? "").trim()) fail(`${theme} ${width}: live bar still animates with reduce-motion on (${etaA} → ${etaB})`);
     const foldDur = await page.evaluate(() => getComputedStyle(document.querySelector(".fold-chev")).transitionDuration);
-    if (foldDur !== "0s" && !foldDur.startsWith("0")) fail(`${theme} ${width}: fold transition is ${foldDur} under reduce-motion`);
+    if (!foldDur.startsWith("0")) fail(`${theme} ${width}: fold transition is ${foldDur} under reduce-motion`);
     else ok(`${theme}-${width}: reduce-motion holds (eta "${etaA?.trim()}", fold ${foldDur})`);
     await shoot(page, `${out}/files-${theme}-${width}-reduce-motion.png`);
-    await page.evaluate(() => document.documentElement.removeAttribute("data-reduce-motion"));
+    await page.evaluate(() => {
+      document.documentElement.removeAttribute("data-reduce-motion");
+      window.dispatchEvent(new Event("sutaeru:appearance"));
+    });
 
-    // Keyboard: the row and the sort control both take focus and show a ring.
-    await page.keyboard.press("Tab");
-    const focused = await page.evaluate(() => document.activeElement?.className ?? "");
-    if (!focused) fail(`${theme} ${width}: nothing focusable after Tab`);
+    // Keyboard: walk the Files screen itself (the lab's own pickers hold 16 tab stops before it).
+    await page.goto(`${base}/__lab/files?state=populated&theme=${theme}&w=full`, { waitUntil: "networkidle" });
+    await page.waitForSelector(".frow");
+    await page.locator("#fq").focus();
+    const trail = [];
+    for (let i = 0; i < 10; i += 1) {
+      await page.keyboard.press("Tab");
+      const hit = await page.evaluate(() => {
+        const a = document.activeElement;
+        if (!a || !a.closest("#view-files")) return null;
+        const cs = getComputedStyle(a);
+        const before = getComputedStyle(a, "::before");
+        const cls = (a.className || "").split(" ")[0];
+        return {
+          key: `${a.tagName.toLowerCase()}.${cls}`,
+          // The rows draw their ring on a ::before, so check outline, own shadow and pseudo shadow.
+          ring: cs.outlineWidth !== "0px" || cs.boxShadow !== "none" || before.boxShadow !== "none",
+        };
+      });
+      if (hit) trail.push(hit);
+      if (trail.some((t) => t.key === "button.frow")) break;
+    }
+    const reached = [...new Set(trail.map((t) => t.key))];
+    for (const want of ["button.icon-btn", "button.pill", "button.fold-all", "button.frow"]) {
+      if (!reached.includes(want)) fail(`${theme} ${width}: keyboard never reaches ${want} (saw: ${reached.join(", ") || "nothing"})`);
+    }
+    if (!trail.length) fail(`${theme} ${width}: no Files control took keyboard focus`);
+    else if (!trail.every((t) => t.ring)) fail(`${theme} ${width}: a focused Files control shows no focus ring`);
+    else ok(`${theme}-${width}: keyboard order ${reached.join(" → ")}, all with rings`);
 
     await ctx.close();
   }
