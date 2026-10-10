@@ -88,9 +88,9 @@ Branch names are `wp/<ID>-<slug>`. Size: S ≈ 1 day, M ≈ 2–3, L ≈ 4–6 (
 | | ID | Slug | Size | Needs merged first | Wave |
 |---|---|---|---|---|---|
 | [x] | P1-01 | `ci-baseline` | M | — | done |
-| [ ] | P1-02 | `tool-runtime` | L | P1-01 | 1.A |
-| [ ] | P1-08 | `search-providers` | L | P1-01 | 1.A |
-| [ ] | P1-09 | `tiered-reader` | L | P1-01 | 1.A |
+| [x] | P1-02 | `tool-runtime` | L | P1-01 | 1.A |
+| [x] | P1-08 | `search-providers` | L | P1-01 | 1.A |
+| [x] | P1-09 | `tiered-reader` | L | P1-01 | 1.A |
 | [ ] | P1-03 | `stream-all-turns` | L | P1-02 | 1.B |
 | [ ] | P1-10 | `untrusted-fencing` | S | P1-02 | 1.B |
 | [ ] | P1-04 | `parallel-tools` | M | P1-02, P1-03 | 1.C |
@@ -159,14 +159,14 @@ Note: P4-01 and P4-02 may be started during Phase 3 (they only need Phase 2 done
 - Run the benchmark baseline once on the VPS. Steps: `HANDOVER.md` §9. Paste the result into `BASELINE.md`.
 - Create accounts and keys for search: Brave Search API key, Tavily API key. Put them in `.env`, not in git: `BRAVE_SEARCH_API_KEY`, `TAVILY_API_KEY`. Optional: `JINA_API_KEY`.
 
-### Wave 1.A (start now): 3 agents in parallel
-**P1-02 tool runtime · P1-08 search providers · P1-09 tiered reader**
+### Wave 1.A — done
+**P1-02 tool runtime (#7) · P1-08 search providers (#5) · P1-09 tiered reader (#6)**
 
 - Entry: `develop` is green (it is, at `d578f24`).
 - P1-08 and P1-09 only *add* optional fields to the tool definitions in `tools.ts` and pass them through `kemmaMax.ts`. P1-02 rewrites those files. Merge **P1-02 first**; P1-08 and P1-09 then pull `develop` in (0.4) and re-resolve the small overlap.
-- Exit: all three merged; `npm run check` and `npm test` green on `develop`.
+- Exit: all three merged; `npm run check` and `npm test` green on `develop`. Confirmed: 0 tsc errors, 225 test files / 3064 tests passing on `develop` at `d954694`.
 
-### Wave 1.B: 2 agents
+### Wave 1.B (start now): 2 agents in parallel
 **P1-03 streaming · P1-10 untrusted fencing**
 
 - Entry: P1-02 merged.
