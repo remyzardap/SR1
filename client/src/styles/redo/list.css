@@ -143,6 +143,16 @@
 .lst-form-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .lst-form-row > .lst-field { flex: 1 1 200px; }
 .lst-form-foot { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+/* A form inside the bottom sheet needs the same rhythm, without the sheet's own padding. */
+.sheet-form { padding: 4px 4px 8px; }
+
+/* ── Two columns where a page is a preview plus a form (Identity) ──────── */
+.lst-split { display: grid; gap: 22px; margin-top: 20px; min-width: 0; }
+@media (min-width: 1000px) { .lst-split { grid-template-columns: minmax(0, 360px) minmax(0, 1fr); align-items: start; } }
+.lst-split > * { min-width: 0; }
+/* The avatar slot in the Profile fold. */
+.lst-art.id-avatar { width: 76px; height: 76px; border-radius: 20px; margin: 2px 14px 2px 0; }
+.lst-art.id-avatar img { border-radius: inherit; }
 
 @media (min-width: 1100px) {
   .lst-row { padding: 14px 4px; }
