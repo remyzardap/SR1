@@ -18,7 +18,7 @@
 .slider input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--ink) var(--p, 50%), var(--seg-off) var(--p, 50%)); }
 .slider input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -10px; border-radius: 50%; background: var(--card); border: 2px solid var(--ink); }
 .slider input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--card); border: 2px solid var(--ink); }
-.voice-sample { margin-top: 18px; padding: 18px; border-radius: 20px; background: var(--panel); position: relative; min-height: 120px; }
+.voice-sample { margin-top: 18px; padding: 18px; border-radius: var(--r-radius-card, 24px); background: var(--panel); position: relative; min-height: 120px; }
 .voice-sample p { margin: 8px 0 0; font-size: 15px; line-height: 1.6; transition: opacity 200ms; }
 .intensity-demo { height: 70px; border-radius: 16px; background: var(--panel); margin-top: 14px; overflow: hidden; position: relative; }
 .intensity-demo {
@@ -47,7 +47,7 @@
    readable on the light card, as the old settings page did. */
 .set-qr { width: 176px; height: 176px; display: block; padding: 10px; background: #fff; border-radius: 10px; box-shadow: 0 0 0 1px var(--stroke); }
 .set-key { display: flex; flex-direction: column; gap: 6px; align-self: stretch; }
-.set-key-value { display: block; padding: 12px 14px; border-radius: 12px; background: var(--card); border: 1px solid var(--stroke); font: 500 13px/1.4 var(--mono); word-break: break-all; text-align: center; }
+.set-key-value { display: block; padding: 12px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--stroke); font: 500 13px/1.4 var(--mono); word-break: break-all; text-align: center; }
 .set-field-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
 .set-field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 220px; }
 .set-field-row .btn { flex: none; }

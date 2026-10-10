@@ -16,7 +16,6 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { formatDate } from "@/lib/utils";
-import { PageTitle } from "@/components/chrome/PageTitle";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
 import { inviteLinkFor } from "@/lib/inviteCapture";
 import { describeInviteUsage, inviteCodeStatus, sortCodesNewestFirst } from "@/lib/inviteCodes";
@@ -36,7 +35,7 @@ export function InvitesDenied({ message }: { message: string }) {
     <section className="view view-enter lst-page">
       <header className="head-row">
         <div>
-          <PageTitle className="lst-title">Invite links</PageTitle>
+          <h1 className="title lst-title">Invite links</h1>
         </div>
         <div className="lst-actions">
           <Link href="/admin" className="btn">

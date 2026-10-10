@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
 import { ConvergeBar, FocusBrackets } from "@/components/art";
 import { useTimedProgress } from "@/hooks/useTimedProgress";
-import { PageTitle } from "@/components/chrome/PageTitle";
 import { prefersReducedMotion } from "@/components/art/useMotion";
 import { FoldGroup, FoldSection, GoBar, PromptField, TwoUp, useFoldState } from "@/components/fold";
 import { pickArt } from "@/lib/pickArt";
@@ -578,7 +577,7 @@ export default function EditDocument({ embedded = false, onBack }: EditDocumentP
                 ← All documents
               </button>
             )}
-            <PageTitle className="skx-title-flush">What should change?</PageTitle>
+            <h1 className="title lst-title">What should change?</h1>
           </div>
         </div>
       )}

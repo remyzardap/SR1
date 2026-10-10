@@ -80,6 +80,10 @@ main:focus { outline: none; }
 }
 .pill::after { content: ""; position: absolute; inset: -4px 0; } /* 44px touch target */
 .pill:active { transform: scale(.96); }
+/* M3 state layer on the un-picked chip: a quiet wash, never a hard box. */
+@media (hover: hover) {
+  .pill:not([aria-pressed="true"]):not([aria-checked="true"]):not(.on):hover { background: var(--panel); }
+}
 .pill[aria-pressed="true"], .pill.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .pill .ico { width: 16px; height: 16px; }
 

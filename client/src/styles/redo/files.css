@@ -1,19 +1,21 @@
 /* Files and Document Previews */
 
 .files-head { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
-.files-head .title { font-size: 40px; flex: 1; }
+/* One head scale on every page: the list pages' clamp(34px, 9vw, 48px). */
+.files-head .title { font-size: clamp(34px, 9vw, 48px); flex: 1; }
 .files-count { flex: none; padding-bottom: 8px; }
-@media (min-width: 760px) { .files-head .title { font-size: 56px; } }
 .storage { padding: 18px 20px; margin-top: 20px; }
 .storage .segs, .storage-body .segs { display: flex; gap: 4px; margin-top: 12px; }
 .storage .segs:first-child, .storage-body .segs:first-child { margin-top: 0; }
 .storage .segs i, .storage-body .segs i { flex: 1; height: 22px; border-radius: 4px; background: var(--seg-off); }
 .storage .segs i.on, .storage-body .segs i.on { background: var(--ink); }
-.search { display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 4px 0 16px; border-radius: 26px; background: var(--card); border: 1px solid var(--stroke); margin-top: 14px; }
+/* Same field as the list pages' .lst-search: 48 tall, 24 round, a ring not a border. */
+.search { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 6px 0 14px; border-radius: 24px; background: var(--card); box-shadow: 0 0 0 1px var(--stroke); margin-top: 18px; transition: box-shadow var(--t) var(--ease); }
+.search:focus-within { box-shadow: 0 0 0 1.5px var(--ink); }
 .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 16px; align-self: stretch; }
 .search .ico { color: var(--quiet); width: 18px; height: 18px; }
 .search .search-upload { width: 44px; height: 44px; flex: none; }
-.hscroll { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 0 calc(var(--gutter) * -1); padding: 12px var(--gutter); scroll-padding-inline: var(--gutter); }
+.hscroll { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 0 calc(var(--gutter) * -1); padding: 14px var(--gutter) 8px; scroll-padding-inline: var(--gutter); }
 .hscroll::-webkit-scrollbar { display: none; }
 .hscroll > * { scroll-snap-align: start; flex: none; }
 .filters { display: flex; gap: 8px; margin-top: 4px; }
@@ -21,8 +23,8 @@
 .filters .pill[aria-checked="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .pill.chip .chip-n { font-size: 10px; letter-spacing: 1px; color: var(--quiet); }
 .pill.chip[aria-checked="true"] .chip-n { color: var(--paper); opacity: .72; }
-.pill.sm { min-height: 34px; padding: 0 12px; font-size: 13px; }
-.pill.sm::after { content: ""; position: absolute; inset: -5px 0; } /* still a 44 px target */
+.pill.sm { min-height: 36px; padding: 0 12px; font-size: 13px; }
+.pill.sm::after { content: ""; position: absolute; inset: -4px 0; } /* still a 44 px target */
 
 /* ── The list (Drive style): type tile, whole name, "type · size · date" ── */
 .files-list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin-top: 16px; }
@@ -113,11 +115,12 @@ canvas.bar.thick { height: 22px; }
   padding: 0;
 }
 .file-more-btn:hover, .file-more-btn:focus-visible { color: var(--ink); background: var(--panel); border-color: var(--rule); }
-.empty { padding: 40px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; position: relative; margin-top: 6px; }
+/* The family empty state (list.css .lst-empty): left-aligned, art then title then line. */
+.empty { padding: 26px 2px 30px; text-align: left; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; position: relative; margin-top: 6px; }
 .files-empty-row { display: block; }
-.empty canvas { width: 150px; height: 150px; }
-.empty b { font: 800 28px/1.05 var(--disp); letter-spacing: -.03em; }
-.empty p { margin: 0; color: var(--quiet); max-width: 26em; }
+.empty canvas { width: 120px; height: 120px; }
+.empty b { font: 800 24px/1.1 var(--disp); letter-spacing: -.03em; }
+.empty p { margin: 0; color: var(--quiet); font-size: 15px; line-height: 1.5; max-width: 30em; }
 
 @media (prefers-reduced-motion: reduce) {
   .frow::after, .file-more-btn, .pill, .search { transition: none; }
