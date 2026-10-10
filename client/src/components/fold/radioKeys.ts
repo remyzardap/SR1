@@ -10,10 +10,11 @@ export function rovingIndex(ids: string[], value: string | null | undefined, id:
 
 export function radioKeyDown(ids: string[], value: string | null | undefined, onChange: (id: string) => void) {
   return (e: KeyboardEvent<HTMLElement>) => {
-    const at = Math.max(0, value ? ids.indexOf(value) : 0);
+    /* Nothing picked yet (-1): forward lands on the first item, back on the last. */
+    const at = value ? ids.indexOf(value) : -1;
     let next = -1;
     if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (at + 1) % ids.length;
-    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (at - 1 + ids.length) % ids.length;
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = at < 0 ? ids.length - 1 : (at - 1 + ids.length) % ids.length;
     else if (e.key === "Home") next = 0;
     else if (e.key === "End") next = ids.length - 1;
     if (next < 0) return;

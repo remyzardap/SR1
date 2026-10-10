@@ -182,6 +182,8 @@
 .gobar .btn.big { flex: none; height: 50px; padding: 0 22px; border-radius: 25px; }
 .gobar .btn.big .ico { flex: none; }
 .kb-open .gobar { display: none; }
+/* Tabbing to a control must not leave it hidden under the docked bar. */
+.fold-trigger, .fold-b :is(button, input, textarea, select, a), .pfield textarea, .sc, .opt { scroll-margin-bottom: 128px; }
 
 /* ── Prompt field: one soft field, no label ───────────────────────────── */
 .pfield {

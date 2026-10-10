@@ -48,6 +48,7 @@ export default function Documents() {
           </div>
         </div>
         <TwoUp
+          action
           label="Start a document"
           value=""
           onChange={(id) => setStartBoth(id as Start)}
