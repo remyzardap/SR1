@@ -115,7 +115,7 @@ describe("Home screen markup, ported from VIEWS.home", () => {
   it("shows the current mode on a chip that opens the mode sheet", () => {
     const fast = screen();
     expect(fast).toContain("mode-chip");
-    expect(fast).toContain("Mode: Fast. Change mode and sources");
+    expect(fast).toContain("Mode: Fast. Change mode, model and sources");
     expect(fast).toContain('aria-haspopup="dialog"');
     expect(screen({ composer: composerProps({ mode: "deep" }) })).toContain("Mode: Deep research.");
     expect(screen({ composer: composerProps({ mode: "image" }) })).toContain("Mode: Image.");
@@ -203,20 +203,22 @@ describe("the composer's file chips", () => {
 });
 
 describe("the mode chip and its sheet", () => {
-  it("opens on the modes, the sources, Thinking and the run settings", () => {
+  it("opens on the mode carousel with Sources and the Thinking switch folded below", () => {
     const html = renderToStaticMarkup(
       React.createElement(HomeComposer, {
-        ...composerProps({ initialPanel: "mode", allowedTools: ["web_search"], onOpenSettings: () => {} }),
+        ...composerProps({ initialPanel: "mode", allowedTools: ["web_search"] }),
       })
     );
-    expect(html).toContain('aria-label="Chat mode"');
+    expect(html).toContain('aria-label="Mode"');
+    expect(html).toContain('role="radiogroup"');
     expect(html).toContain("Quick answers, with search");
-    expect(html).toContain("Search in");
-    expect(html).toContain('class="pop-toggles"');
-    // Web, My files and Browse, plus the Thinking switch; only Web is on.
-    expect(html.match(/role="switch"/g)).toHaveLength(4);
-    expect(html).toContain("News, papers and public sites");
-    expect(html).toContain("Run settings");
+    expect(html).toContain("/studio/o/fast.webp");
+    // The Mode section is open and Sources is a folded row naming what is on.
+    expect(html).toContain('data-fold="sources"');
+    expect(html).toContain(">Web<");
+    // Only the Thinking switch: the sources are picture tiles now.
+    expect(html.match(/role="switch"/g)).toHaveLength(1);
+    expect(html).not.toContain("Run settings");
   });
 
   it("only offers Code mode to people who may use it", () => {

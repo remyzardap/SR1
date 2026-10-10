@@ -254,7 +254,11 @@ function Popover({ onClose, anchor, children }: { onClose(): void; anchor?: Reac
       if (!rect) return setStyle({});
       const width = Math.min(520, window.innerWidth - 24);
       const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
-      setStyle({ left, bottom: Math.max(12, window.innerHeight - rect.top + 10), width, maxHeight: Math.max(280, rect.top - 24) });
+      const above = rect.top - 24;
+      const below = window.innerHeight - rect.bottom - 24;
+      // Above the chip when there is room (the docked composer), below it otherwise.
+      if (above >= 380 || above >= below) setStyle({ left, bottom: window.innerHeight - rect.top + 10, width, maxHeight: Math.max(240, above) });
+      else setStyle({ left, top: rect.bottom + 10, width, maxHeight: Math.max(240, below) });
     };
     place();
     window.addEventListener("resize", place);
