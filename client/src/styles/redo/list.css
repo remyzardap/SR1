@@ -114,8 +114,9 @@
 .lst-empty .title { font-size: 24px; }
 .lst-skeleton { display: block; border-radius: 10px; background: var(--panel); animation: lst-pulse 1.6s ease-in-out infinite; }
 @keyframes lst-pulse { 50% { opacity: .5; } }
-@media (prefers-reduced-motion: reduce) { .lst-skeleton { animation: none; } .lst-row::after, .lst-search { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .lst-skeleton { animation: none; } }
 [data-reduce-motion="true"] .lst-skeleton { animation: none; }
+@media (prefers-reduced-motion: reduce) { .lst-row::after, .lst-search { transition: none; } }
 [data-reduce-motion="true"] .lst-row::after, [data-reduce-motion="true"] .lst-search { transition: none; }
 
 /* ── Form fields on these pages (no shadcn) ────────────────────────────── */

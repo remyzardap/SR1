@@ -367,10 +367,10 @@ export function SettingsView(props: SettingsViewProps) {
     <section className="view wide view-enter settings-view">
       <header className="head-row">
         <div>
-          <h1 className="title lst-title">
+          <h1 className="title">
             Settings
           </h1>
-          <p className="lede lst-lede">
+          <p className="lede">
             Make Sutaeru feel like yours. Changes apply as you make them.
           </p>
         </div>

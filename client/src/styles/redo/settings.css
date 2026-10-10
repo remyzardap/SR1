@@ -54,8 +54,9 @@
 .set-input { min-height: 44px; padding: 0 16px; border-radius: 16px; border: 1px solid var(--stroke); background: var(--card); color: var(--ink); font: 400 15px/1.4 var(--body); outline: 0; }
 .set-input:focus { border-color: var(--rule); }
 .set-input::placeholder { color: var(--quiet); }
-/* .title/.lede are set per screen here, as every other ported view does (files.css:4). */
-.settings-view .title { margin: 0; font-family: var(--disp); font-weight: 800; letter-spacing: -.03em; }
-.settings-view .lede { margin: 0; color: var(--quiet); font-size: 16px; line-height: 1.55; max-width: 34em; text-wrap: pretty; }
+/* .title/.lede are set per screen here, as every other ported view does (files.css:4).
+   The scale is the family one: the list pages' clamp(34px, 9vw, 48px). */
+.settings-view .title { margin: 0; font-family: var(--disp); font-weight: 800; letter-spacing: -.03em; font-size: clamp(34px, 9vw, 48px); line-height: 1.02; }
+.settings-view .lede { margin: 10px 0 0; color: var(--quiet); font-size: 16px; line-height: 1.55; max-width: 34em; text-wrap: pretty; }
 @media (min-width: 760px) { .settings-view .lede { font-size: 18px; } }
 .settings-view .toggle[disabled] { opacity: .45; pointer-events: none; }
