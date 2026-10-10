@@ -2,8 +2,9 @@ import * as React from "react";
 import { useState, useEffect } from "react";
 import { useSearch, useLocation } from "wouter";
 import { LabLayout } from "./LabLayout";
-import { FilesView, type FileItem } from "@/components/files/FilesView";
-import { FILES_LAB_STATES, SAMPLE_FILES } from "./fixtures/files";
+import { FilesScreen } from "@/components/files/FilesScreen";
+import type { FileFilterId, FileItem, FileSort } from "@/components/files/fileModel";
+import { FILES_LAB_STATES } from "./fixtures/files";
 import { toast } from "sonner";
 
 export default function LabFiles() {
@@ -17,20 +18,20 @@ export default function LabFiles() {
 
   const widthParam = params.get("w") || "full";
 
-  // Local interactive state initialized from the fixture state
   const [files, setFiles] = useState<FileItem[]>(currentConfig.files);
-  const [searchQuery, setSearchQuery] = useState<string>(currentConfig.searchQuery);
-  const [activeFilter, setActiveFilter] = useState<string>(currentConfig.activeFilter);
-  const [storageUsedBytes, setStorageUsedBytes] = useState<number>(currentConfig.storageUsedBytes);
+  const [query, setQuery] = useState(currentConfig.query);
+  const [filter, setFilter] = useState<FileFilterId>(currentConfig.filter);
+  const [sort, setSort] = useState<FileSort>(currentConfig.sort);
+  const [view, setView] = useState<"active" | "trashed">(currentConfig.view);
   const [isUploading, setIsUploading] = useState<boolean>(Boolean(currentConfig.isUploading));
 
-  // Sync when stateKey changes
   useEffect(() => {
     const next = FILES_LAB_STATES[stateKey];
     setFiles(next.files);
-    setSearchQuery(next.searchQuery);
-    setActiveFilter(next.activeFilter);
-    setStorageUsedBytes(next.storageUsedBytes);
+    setQuery(next.query);
+    setFilter(next.filter);
+    setSort(next.sort);
+    setView(next.view);
     setIsUploading(Boolean(next.isUploading));
   }, [stateKey]);
 
@@ -114,13 +115,17 @@ export default function LabFiles() {
 
       {/* Frame Container */}
       <div style={frameWidthStyle}>
-        <FilesView
+        <FilesScreen
           files={files}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          activeFilter={activeFilter}
-          onFilterChange={setActiveFilter}
-          storageUsedBytes={storageUsedBytes}
+          query={query}
+          onQueryChange={setQuery}
+          filter={filter}
+          onFilterChange={setFilter}
+          sort={sort}
+          onSortChange={setSort}
+          view={view}
+          onViewChange={setView}
+          storageUsedBytes={currentConfig.storageUsedBytes}
           storageCapBytes={currentConfig.storageCapBytes}
           isUploading={isUploading}
           uploadingFileName={currentConfig.uploadingFileName}
@@ -130,13 +135,23 @@ export default function LabFiles() {
             toast("Choose files to upload");
             setTimeout(() => setIsUploading(false), 3000);
           }}
-          onPreviewFile={(f) => toast(`Preview: ${f.name}`)}
+          onOpenFile={(f) => toast(`Preview: ${f.name}`)}
           onOpenFileInChat={(f) => toast(`Open in chat: ${f.name}`)}
           onDownloadFile={(f) => toast(`Downloading ${f.name}`)}
           onRenameFile={(f) => toast(`Rename: ${f.name}`)}
           onMoveFile={(f) => toast(`Move to Space: ${f.name}`)}
+          onOpenAsBrief={(f) => toast(`Brief: ${f.name}`)}
+          onPreviewFile={(f) => toast(`Preview: ${f.name}`)}
           onTrashFile={(f) => {
             toast(`Moved to trash: ${f.name}`);
+            setFiles((prev) => prev.map((x) => (x.id === f.id ? { ...x, trashed: true } : x)));
+          }}
+          onRestoreFile={(f) => {
+            toast(`Restored: ${f.name}`);
+            setFiles((prev) => prev.map((x) => (x.id === f.id ? { ...x, trashed: false } : x)));
+          }}
+          onDeleteFile={(f) => {
+            toast(`Deleted for good: ${f.name}`);
             setFiles((prev) => prev.filter((x) => x.id !== f.id));
           }}
           onAskSutaeru={() => toast("Ask Sutaeru to make one")}

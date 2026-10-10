@@ -2,45 +2,109 @@
 
 .files-head { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
 .files-head .title { font-size: 40px; flex: 1; }
+.files-count { flex: none; padding-bottom: 8px; }
 @media (min-width: 760px) { .files-head .title { font-size: 56px; } }
 .storage { padding: 18px 20px; margin-top: 20px; }
-.storage .segs { display: flex; gap: 4px; margin-top: 12px; }
-.storage .segs i { flex: 1; height: 22px; border-radius: 4px; background: var(--seg-off); }
-.storage .segs i.on { background: var(--ink); }
-.search { display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 16px; border-radius: 24px; background: var(--card); border: 1px solid var(--stroke); margin-top: 14px; }
+.storage .segs, .storage-body .segs { display: flex; gap: 4px; margin-top: 12px; }
+.storage .segs:first-child, .storage-body .segs:first-child { margin-top: 0; }
+.storage .segs i, .storage-body .segs i { flex: 1; height: 22px; border-radius: 4px; background: var(--seg-off); }
+.storage .segs i.on, .storage-body .segs i.on { background: var(--ink); }
+.search { display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 4px 0 16px; border-radius: 26px; background: var(--card); border: 1px solid var(--stroke); margin-top: 14px; }
 .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 16px; align-self: stretch; }
 .search .ico { color: var(--quiet); width: 18px; height: 18px; }
+.search .search-upload { width: 44px; height: 44px; flex: none; }
 .hscroll { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 0 calc(var(--gutter) * -1); padding: 12px var(--gutter); scroll-padding-inline: var(--gutter); }
 .hscroll::-webkit-scrollbar { display: none; }
 .hscroll > * { scroll-snap-align: start; flex: none; }
 .filters { display: flex; gap: 8px; margin-top: 4px; }
-.file-grid { display: grid; gap: 12px; margin-top: 6px; }
-@media (min-width: 560px) { .file-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (min-width: 1000px) { .file-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; } }
-.file {
-  position: relative; text-align: left; padding: 10px 10px 16px;
-  border-radius: 24px; background: var(--card); border: 1px solid var(--stroke);
-  display: flex; flex-direction: column; gap: 12px;
-  transition: border-color var(--t), transform 160ms var(--ease), box-shadow var(--t);
-  cursor: pointer;
-  outline: none;
+/* The picked chip is ink, the same way the pressed pills already are (base.css covers aria-pressed). */
+.filters .pill[aria-checked="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.pill.chip .chip-n { font-size: 10px; letter-spacing: 1px; color: var(--quiet); }
+.pill.chip[aria-checked="true"] .chip-n { color: var(--paper); opacity: .72; }
+.pill.sm { min-height: 34px; padding: 0 12px; font-size: 13px; }
+.pill.sm::after { content: ""; position: absolute; inset: -5px 0; } /* still a 44 px target */
+
+/* ── The list (Drive style): type tile, whole name, "type · size · date" ── */
+.files-list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin-top: 16px; }
+.files-views { display: flex; align-items: center; gap: 6px; }
+.sort-btn { height: 34px; }
+
+/* .fl is taken by the session timeline (session.css), so the list is .files-list here. */
+.files-list { list-style: none; margin: 0; padding: 0; }
+.files-list > li + li { background: linear-gradient(90deg, transparent, var(--hair) 8%, var(--hair) 92%, transparent) top / 100% 1px no-repeat; }
+.frow-wrap { position: relative; display: flex; align-items: stretch; }
+.frow {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; text-align: left;
+  min-height: 68px; padding: 12px 10px 12px 0;
+  color: var(--ink); border-radius: 16px; position: relative;
 }
-.file:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-@media (hover: hover) {
-  .file:hover { border-color: var(--rule); }
+.fend { flex: none; display: grid; place-items: center; width: 46px; }
+/* M3 state layer, never a hard box. */
+.frow::after {
+  content: ""; position: absolute; inset: 4px 2px 4px -8px; border-radius: 16px;
+  background: var(--ink); opacity: 0; transition: opacity 200ms; pointer-events: none;
 }
-.file:active { transform: scale(.985); }
-.file .fp { height: 120px; border-radius: 16px; background: var(--panel); overflow: hidden; position: relative; isolation: isolate; }
-.file .fp svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.file .fp .ph { border-radius: inherit; }
-.file .fm { padding: 0 6px; display: flex; flex-direction: column; gap: 5px; }
-.file b { font: 600 16px/1.25 var(--body); }
-.file small { color: var(--quiet); font-size: 13px; }
-.file .bar-holder { margin-top: 4px; }
+@media (hover: hover) { .frow:hover::after { opacity: .035; } }
+.frow:active::after { opacity: .06; }
+.frow:focus-visible { outline: none; }
+.frow:focus-visible::before {
+  content: ""; position: absolute; inset: 6px 0 6px -10px; border-radius: 18px;
+  box-shadow: 0 0 0 2px var(--r-accent); pointer-events: none;
+}
+.ft { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+/* The whole name, on as many lines as it needs — never cut with an ellipsis. */
+.ft b { font: 600 15.5px/1.3 var(--body); overflow-wrap: anywhere; }
+.ft small { display: flex; align-items: center; gap: 6px; font-size: 12.5px; line-height: 1.35; color: var(--quiet); overflow-wrap: anywhere; }
+.ft .bar-holder { display: block; margin-top: 6px; max-width: 240px; }
+.fend { position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 2; }
+.frow-live { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.frow-live .bar-holder { flex: 1; min-width: 0; max-width: 200px; }
+/* The countdown changes every frame: never let it re-wrap the row and jitter the layout. */
+.frow-live .mono { flex: none; white-space: nowrap; min-width: 88px; text-align: right; }
 canvas.bar { display: block; width: 100%; height: 14px; }
 canvas.bar.thick { height: 22px; }
+
+.ftype {
+  position: relative; width: 44px; height: 44px; border-radius: 12px; flex: none;
+  background: var(--panel); color: var(--ink); display: grid; place-items: center;
+}
+.ftype .fi { width: 22px; height: 22px; }
+.ftype.accent { color: var(--r-accent); background: var(--seg-off); }
+.ftype em {
+  position: absolute; right: -4px; bottom: -4px; min-width: 22px; height: 16px; padding: 0 4px;
+  border-radius: 5px; background: var(--ink); color: var(--paper);
+  font: 700 8.5px/16px var(--mono); font-style: normal; letter-spacing: .4px; text-align: center;
+}
+.ftype.thumb { overflow: visible; }
+.ftype.thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
+/* Static: the meta line's dot already breathes, the tile badge only has to say "in progress". */
+.ftype-live {
+  position: absolute; right: -3px; bottom: -3px; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--r-accent); box-shadow: 0 0 0 2px var(--card);
+}
+
+/* Storage, folded into one line at the bottom of the list. */
+.files-folds { margin-top: 20px; }
+.fold-mini .dots { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 4px; }
+.fold-mini .dots i { width: 5px; height: 5px; border-radius: 2px; background: var(--seg-off); }
+.fold-mini .dots i.on { background: var(--ink); }
+.storage-body { padding-top: 2px; }
+.storage-body .storage-line { margin: 14px 0 0; font-size: 15px; }
+.storage-body .quiet, .storage-line .quiet { color: var(--quiet); }
+.storage-splits { list-style: none; margin: 10px 0 0; padding: 0; }
+.storage-splits li { display: flex; align-items: baseline; gap: 10px; min-height: 36px; }
+.storage-splits li + li { border-top: 1px solid var(--hair); }
+.storage-splits .ss-label { flex: 1; min-width: 0; font-size: 14px; }
+/* The shared .mono tracking (1.54 px) blows numbers apart in a table: "66 MB" reads "6 6 MB". */
+.storage-splits .ss-count { color: var(--quiet); min-width: 24px; text-align: right; letter-spacing: .3px; }
+.storage-splits .ss-size { margin-left: 14px; min-width: 68px; text-align: right; letter-spacing: .3px; }
+.sort-menu { min-width: 210px; }
+.sort-dir { display: flex; align-items: center; gap: 8px; }
+.sort-dir .fi { width: 16px; height: 16px; }
+.sort-rev { margin-left: auto; padding-left: 12px; font-size: 9px; letter-spacing: 1.2px; }
+
 .file-more-btn {
-  width: 28px; height: 28px; border-radius: 50%;
+  width: 44px; height: 44px; border-radius: 50%;
   display: inline-grid; place-items: center;
   border: 1px solid transparent; background: transparent; color: var(--quiet);
   transition: color var(--t), background var(--t), border-color var(--t);
@@ -48,12 +112,20 @@ canvas.bar.thick { height: 22px; }
   cursor: pointer;
   padding: 0;
 }
-.file-more-btn::after { content: ""; position: absolute; inset: -8px; } /* 44px hit target */
 .file-more-btn:hover, .file-more-btn:focus-visible { color: var(--ink); background: var(--panel); border-color: var(--rule); }
 .empty { padding: 40px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; position: relative; margin-top: 6px; }
+.files-empty-row { display: block; }
 .empty canvas { width: 150px; height: 150px; }
 .empty b { font: 800 28px/1.05 var(--disp); letter-spacing: -.03em; }
 .empty p { margin: 0; color: var(--quiet); max-width: 26em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .frow::after, .file-more-btn, .pill, .search { transition: none; }
+}
+[data-reduce-motion="true"] .frow::after,
+[data-reduce-motion="true"] .file-more-btn,
+[data-reduce-motion="true"] .pill,
+[data-reduce-motion="true"] .search { transition: none; }
 
 /* ── Document previews (docs.js) ──────────────────────────────────────── */
 :root { --page: #FFFFFF; --page-dim: 1; }

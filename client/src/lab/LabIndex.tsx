@@ -136,7 +136,7 @@ export default function LabIndex() {
         >
           <b style={{ font: "700 15px/1.2 var(--disp)", display: "block", marginBottom: 4 }}>Files</b>
           <p style={{ margin: 0, color: "var(--quiet)", fontSize: 12 }}>
-            Files screen with storage meter, pill search, filters, miniature documents, live writing bar, and empty states.
+            Files as a Drive-style list: type tile, full name and “type · size · date” per row, type chips, sort, trash view, live writing bar, and storage folded into one line.
           </p>
         </Link>
         <Link
