@@ -12,6 +12,8 @@ import AtelierGuided, {
   type ExportFormat,
   type ReportStructure,
 } from "./AtelierGuided";
+import { FoldGroup, FoldSection, GoBar, PickTiles, PromptField, Showcase, useFoldState } from "@/components/fold";
+import { pickArt } from "@/lib/pickArt";
 import "@/styles/new-document.css";
 
 // ─── The contract (SPEC-DOCUMENTS.md) ─────────────────────────────────────────
@@ -92,44 +94,20 @@ const KINDS: KindPlan[] = [
   },
 ];
 
-/** Small illustrations for the kind cards. They use the page tokens, so they follow light and dark. */
-const kindArt: Record<DocKind, ReactNode> = {
-  short: (
-    <svg viewBox="0 0 240 140" aria-hidden="true">
-      <rect x="66" y="18" width="80" height="104" rx="10" className="a-paper" />
-      <rect x="78" y="34" width="56" height="12" rx="6" className="a-spot" />
-      <path d="M78 60h44M78 74h52M78 88h30" className="a-line" />
-      <circle cx="170" cy="46" r="20" className="a-spot" />
-      <path d="M170 37v18M161 46h18" className="a-plus" />
-    </svg>
-  ),
-  medium: (
-    <svg viewBox="0 0 240 140" aria-hidden="true">
-      <rect x="58" y="14" width="92" height="112" rx="10" className="a-paper" />
-      <path d="M72 36h64M72 50h64M72 64h40" className="a-line" />
-      <rect x="72" y="78" width="64" height="10" rx="4" className="a-mark" />
-      <path d="M72 100h48" className="a-line" />
-      <rect x="162" y="30" width="44" height="80" rx="8" className="a-paper" />
-      <path d="M172 46h24M172 58h24M172 70h16" className="a-line" />
-    </svg>
-  ),
-  academic: (
-    <svg viewBox="0 0 240 140" aria-hidden="true">
-      <rect x="58" y="16" width="92" height="110" rx="10" className="a-paper" />
-      <rect x="72" y="30" width="64" height="18" rx="5" className="a-mark" />
-      <path d="M72 60h64M72 72h64M72 84h44" className="a-line" />
-      <path d="M72 104h64M72 116h36" className="a-line" />
-      <path d="M164 34l30-10 30 10v46c0 18-12 28-30 34-18-6-30-16-30-34V34Z" className="a-paper" />
-      <path d="m176 62 10 10 20-22" className="a-line" />
-    </svg>
-  ),
+/* Closest existing pictures: a letter for a short note, a proposal folder for a researched
+   document, printed charts for an academic one. */
+const KIND_ART: Record<DocKind, string> = {
+  short: pickArt("doc-letter"),
+  medium: pickArt("doc-proposal"),
+  academic: pickArt("doc-report"),
 };
 
-/** Example briefs shown in the empty textarea, one at a time. */
-const PLACEHOLDER_EXAMPLES = [
-  "e.g. A board brief comparing off-grid solar with grid batteries for rural clinics in East Africa: costs, reliability and what to recommend next quarter.",
-  "e.g. A short explainer on what our churn numbers mean for the sales plan, for people who have not read the dashboard.",
-  "e.g. An academic review of the evidence on remote working and team performance, with a reference list in APA.",
+type ToneId = "" | "confident" | "friendly" | "formal" | "plain";
+const TONES: Array<{ id: Exclude<ToneId, "">; label: string }> = [
+  { id: "confident", label: "Confident" },
+  { id: "friendly", label: "Friendly" },
+  { id: "formal", label: "Formal" },
+  { id: "plain", label: "Plain" },
 ];
 
 function excerpt(text: string, max = 180): string {
@@ -206,6 +184,8 @@ export default function NewDocument({ startInInterview = false }: { startInInter
   const [htmlDraft, setHtmlDraft] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [interview, setInterview] = useState(startInInterview);
+  const [tone, setTone] = useState<ToneId>("");
+  const folds = useFoldState("new-document", ["kind", "tone", "format", "sources"], { first: "kind" });
 
   const htmlFileRef = useRef<HTMLInputElement>(null);
 
@@ -235,14 +215,6 @@ export default function NewDocument({ startInInterview = false }: { startInInter
 
   const plan = KINDS.find((k) => k.id === kind) ?? KINDS[1];
   const timed = useTimedProgress(running, plan.estimateSeconds);
-
-  // The empty brief box cycles through example asks, unless motion is reduced.
-  const [exampleAt, setExampleAt] = useState(0);
-  useEffect(() => {
-    if (brief || folded || prefersReducedMotion()) return;
-    const id = window.setInterval(() => setExampleAt((i) => (i + 1) % PLACEHOLDER_EXAMPLES.length), 7000);
-    return () => window.clearInterval(id);
-  }, [brief, folded]);
 
   // Nothing outlives the page: an aborted request stops the model spend.
   useEffect(() => () => abortRef.current?.abort(), []);
@@ -414,7 +386,7 @@ export default function NewDocument({ startInInterview = false }: { startInInter
         credentials: "include",
         signal: ctrl.signal,
         body: JSON.stringify({
-          brief: text.slice(0, MAX_BRIEF),
+          brief: (tone ? `${text}\n\nWrite it in a ${tone} tone.` : text).slice(0, MAX_BRIEF),
           kind,
           ...(kind === "academic" ? { style } : {}),
           ...(Object.keys(sources).length ? { sources } : {}),
@@ -448,7 +420,7 @@ export default function NewDocument({ startInInterview = false }: { startInInter
     } finally {
       if (!ctrl.signal.aborted) setRunning(false);
     }
-  }, [brief, kind, style, attachments, urls, htmlBlobs, handleEvent]);
+  }, [brief, kind, style, tone, attachments, urls, htmlBlobs, handleEvent]);
 
   const cancel = () => {
     abortRef.current?.abort();
@@ -530,69 +502,34 @@ export default function NewDocument({ startInInterview = false }: { startInInter
     <div className="sk-nd">
       {/* ── 1. The brief ─────────────────────────────────────────────────────── */}
       {!folded && (
-        <section className="sk-nd-card">
-          <label className="sk-label" htmlFor="nd-brief">The brief</label>
-          <textarea
-            id="nd-brief"
-            className="sk-textarea sk-nd-brief"
-            value={brief}
-            onChange={(e) => setBrief(e.target.value)}
-            maxLength={MAX_BRIEF}
-            placeholder={PLACEHOLDER_EXAMPLES[exampleAt]}
-          />
-          <p className="sk-empty-text sk-nd-hint">Say what it is for, who reads it and what it should decide.</p>
-          <div className="sk-nd-brief-foot">
+        <PromptField
+          id="nd-brief"
+          value={brief}
+          onChange={setBrief}
+          placeholder="What do you need?"
+          maxLength={MAX_BRIEF}
+          minRows={3}
+          extra={
             <button type="button" className="sk-nd-link" onClick={() => setInterview(true)}>
               <SutaeruIcon name="ask" />
               Interview me first
             </button>
-            <span className="sk-label sk-num">{brief.length} / {MAX_BRIEF}</span>
-          </div>
-        </section>
+          }
+        />
       )}
 
-      {/* ── 2. The kind ──────────────────────────────────────────────────────── */}
       {!folded && (
-        <section>
-          <span className="sk-label sk-section">Kind</span>
-          <div className="sk-nd-kinds" role="radiogroup" aria-label="Document kind">
-            {KINDS.map((k) => {
-              const active = kind === k.id;
-              return (
-                <span key={k.id} className="sk-nd-cell">
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    className="sk-nd-kind"
-                    onClick={() => setKind(k.id)}
-                  >
-                    <span className="sk-nd-kind-art">{kindArt[k.id]}</span>
-                    <span className="sk-nd-kind-body">
-                      <span className="sk-nd-kind-pages">{k.pages}</span>
-                      <span className="sk-nd-kind-title">{k.label}</span>
-                      <span className="sk-nd-kind-text">{k.text}</span>
-                      <span className="sk-nd-kind-meta">{k.words}</span>
-                      <span className="sk-nd-kind-eta">
-                        ABOUT {k.estimateSeconds >= 60 ? `${Math.round(k.estimateSeconds / 60)} MIN` : `${k.estimateSeconds} S`}
-                      </span>
-                    </span>
-                    {active ? (
-                      <span className="sk-nd-kind-check" aria-hidden="true">
-                        <SutaeruIcon name="check" />
-                      </span>
-                    ) : null}
-                  </button>
-                  {active ? <FocusBrackets /> : null}
-                </span>
-              );
-            })}
-          </div>
-
-          {kind === "academic" ? (
-            <div className="sk-nd-styles">
-              <span className="sk-label">Citation style</span>
-              <div className="sk-row" role="radiogroup" aria-label="Citation style">
+        <FoldGroup state={folds} className="nd-folds">
+          {/* ── 1. The kind ─────────────────────────────────────────────────── */}
+          <FoldSection id="kind" index={1} label="Type" pick={plan.label} mini={KIND_ART[kind]}>
+            <Showcase
+              label="Document kind"
+              value={kind}
+              onChange={(id) => setKind(id as DocKind)}
+              items={KINDS.map((k) => ({ id: k.id, name: k.label, art: KIND_ART[k.id], description: `${k.pages.toLowerCase()}, ${k.words}` }))}
+            />
+            {kind === "academic" ? (
+              <div className="sk-row nd-styles" role="radiogroup" aria-label="Citation style">
                 {CITATION_STYLES.map((s) => (
                   <button
                     key={s.value}
@@ -607,16 +544,41 @@ export default function NewDocument({ startInInterview = false }: { startInInter
                   </button>
                 ))}
               </div>
-            </div>
-          ) : null}
-        </section>
-      )}
+            ) : null}
+          </FoldSection>
 
-      {/* ── 3. The sources ───────────────────────────────────────────────────── */}
-      {!folded && (
-        <section className="sk-nd-card">
-          <span className="sk-label">Sources</span>
-          <p className="sk-empty-text">The more you give it, the better the report: your own files and pictures, web links, and pages you paste.</p>
+          {/* ── 2. Tone: a plain sentence added to the brief ───────────────── */}
+          <FoldSection id="tone" index={2} label="Tone" pick={tone ? TONES.find((t) => t.id === tone)?.label : "Auto"} mini={tone ? pickArt(`tone-${tone}`) : undefined}>
+            <PickTiles
+              label="Tone"
+              value={tone}
+              onChange={(id) => setTone(id as ToneId)}
+              items={TONES.map((t) => ({ id: t.id, label: t.label, art: pickArt(`tone-${t.id}`) }))}
+            />
+          </FoldSection>
+
+          {/* ── 3. Format of the download ──────────────────────────────────── */}
+          <FoldSection id="format" index={3} label="Format" pick={EXPORT_FORMATS.find((f) => f.value === exportFormat)?.label}>
+            <div className="sk-row" role="radiogroup" aria-label="Download format">
+              {EXPORT_FORMATS.map((f) => (
+                <button
+                  key={f.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={exportFormat === f.value}
+                  className="art-chip art-chip-sm"
+                  data-active={exportFormat === f.value ? "true" : "false"}
+                  onClick={() => setExportFormat(f.value)}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </FoldSection>
+
+          {/* ── 4. The sources ─────────────────────────────────────────────── */}
+          <FoldSection id="sources" index={4} label="Extra sources" pick={sourceCount === 0 ? "None added" : `${sourceCount} added`}>
+        <div className="nd-sources">
 
           <AttachMenu attachments={attachments} onChange={setAttachments} max={MAX_FILES} />
 
@@ -704,16 +666,22 @@ export default function NewDocument({ startInInterview = false }: { startInInter
             </ul>
           ) : null}
 
-          {formError ? <p className="sk-nd-formerror" role="alert">{formError}</p> : null}
-        </section>
+        </div>
+          </FoldSection>
+        </FoldGroup>
       )}
 
-      {/* ── 4. Generate ──────────────────────────────────────────────────────── */}
+      {!folded && formError ? <p className="sk-nd-formerror" role="alert">{formError}</p> : null}
+
+      {/* ── Generate: the one docked bar ─────────────────────────────────────── */}
       {!folded && (
-        <button type="button" className="sk-btn sk-nd-cta" onClick={() => void start()} disabled={!brief.trim()}>
-          <SutaeruIcon name="make" className="size-4" />
-          Generate {plan.label.toLowerCase()} document
-        </button>
+        <GoBar
+          summary={`${plan.label}${tone ? ` · ${TONES.find((t) => t.id === tone)?.label.toLowerCase()}` : ""}`}
+          detail={`${plan.words} · ${EXPORT_FORMATS.find((f) => f.value === exportFormat)?.label}`}
+          actionLabel="Build"
+          onAction={() => void start()}
+          disabled={!brief.trim()}
+        />
       )}
 
       {/* ── The request, folded into a summary in the same place ─────────────── */}

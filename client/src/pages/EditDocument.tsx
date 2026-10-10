@@ -5,6 +5,8 @@ import { ConvergeBar, FocusBrackets } from "@/components/art";
 import { useTimedProgress } from "@/hooks/useTimedProgress";
 import { PageTitle } from "@/components/chrome/PageTitle";
 import { prefersReducedMotion } from "@/components/art/useMotion";
+import { FoldGroup, FoldSection, GoBar, PromptField, TwoUp, useFoldState } from "@/components/fold";
+import { pickArt } from "@/lib/pickArt";
 import "@/styles/documents-start.css";
 import "@/styles/atelier-reskin.css";
 import "@/styles/edit-document.css";
@@ -74,6 +76,12 @@ const STAGES = [
   { id: "finalise", label: "Finalising file", mono: "FINALISING" },
 ];
 
+/** One short line of the instructions for a folded row. */
+const excerptOf = (text: string, max = 40) => {
+  const t = text.trim().replace(/\s+/g, " ");
+  return t.length > max ? `${t.slice(0, max).trimEnd()}…` : t;
+};
+
 function formatBytes(bytes?: number): string {
   if (!bytes || bytes <= 0) return "";
   if (bytes < 1024) return `${bytes} B`;
@@ -98,30 +106,6 @@ function parseSse(raw: string): { events: Array<{ event: string; data: string }>
   }
   return { events, remainder };
 }
-
-// ─── Visual Illustrations for the Two Option Cards ───────────────────────────
-
-const art: Record<string, ReactNode> = {
-  rewrite: (
-    <svg viewBox="0 0 240 140" aria-hidden="true">
-      <rect x="70" y="12" width="88" height="116" rx="10" className="a-paper" />
-      <path d="M84 38h60M84 64h60M84 78h34" className="a-line" />
-      <rect x="82" y="46" width="64" height="14" rx="4" className="a-mark" />
-      <path d="M178 36l22 22-48 48-26 4 4-26z" className="a-pen" />
-    </svg>
-  ),
-  reformat: (
-    <svg viewBox="0 0 240 140" aria-hidden="true">
-      <rect x="52" y="12" width="136" height="116" rx="10" className="a-paper" />
-      <rect x="66" y="24" width="108" height="16" rx="4" className="a-spot" />
-      <path d="M78 32h56" className="a-line a-line-light" />
-      <rect x="66" y="48" width="50" height="68" rx="4" className="a-paper" />
-      <path d="M74 58h34M74 68h34M74 78h34M74 88h22" className="a-line" />
-      <rect x="124" y="48" width="50" height="68" rx="4" className="a-paper" />
-      <path d="M132 58h34M132 68h34M132 78h34M132 88h22" className="a-line" />
-    </svg>
-  ),
-};
 
 // ─── Report Section Renderers ─────────────────────────────────────────────────
 
@@ -284,6 +268,7 @@ export interface EditDocumentProps {
 }
 
 export default function EditDocument({ embedded = false, onBack }: EditDocumentProps) {
+  const folds = useFoldState("edit-document", ["change", "sources"], { first: "change" });
   // Form input state
   const [uploadedDoc, setUploadedDoc] = useState<UploadedDoc | null>(null);
   const [uploadParsing, setUploadParsing] = useState(false);
@@ -593,8 +578,7 @@ export default function EditDocument({ embedded = false, onBack }: EditDocumentP
                 ← All documents
               </button>
             )}
-            <PageTitle className="skx-title-flush">Edit document</PageTitle>
-            <p className="sk-sub">Upload the file you want to change.</p>
+            <PageTitle className="skx-title-flush">What should change?</PageTitle>
           </div>
         </div>
       )}
@@ -654,7 +638,6 @@ export default function EditDocument({ embedded = false, onBack }: EditDocumentP
         <>
           {/* 1. UPLOAD ZONE */}
           <div>
-            <span className="sk-edit-section-label">Source Document</span>
             {uploadedDoc ? (
               <div className="sk-edit-filecard">
                 <FocusBrackets />
@@ -716,12 +699,6 @@ export default function EditDocument({ embedded = false, onBack }: EditDocumentP
                 <p className="sk-edit-dropzone-title">
                   {uploadParsing ? "Reading document..." : "Upload a document to change"}
                 </p>
-                <p className="sk-edit-dropzone-desc">
-                  Drag and drop your file here, or tap to browse
-                </p>
-                <span className="sk-edit-dropzone-types">
-                  PDF, DOCX, MD, TXT, CSV, XLSX
-                </span>
                 <input
                   ref={mainFileInputRef}
                   type="file"
@@ -736,88 +713,42 @@ export default function EditDocument({ embedded = false, onBack }: EditDocumentP
             )}
           </div>
 
-          {/* 2. WHAT TO DO (TWO VISUAL CARDS WITH ILLUSTRATION) */}
-          <div>
-            <span className="sk-edit-section-label">What to do</span>
-            <div className="sk-edit-modes" role="radiogroup" aria-label="What to do">
-              {/* Rewrite card */}
-              <div className="sk-edit-card-cell">
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={uploadMode === "rewrite"}
-                  className="sk-edit-card"
-                  onClick={() => setUploadMode("rewrite")}
-                >
-                  <span className="sk-edit-card-art">{art.rewrite}</span>
-                  <span className="sk-edit-card-body">
-                    <span className="sk-edit-card-label">Rewrite</span>
-                    <span className="sk-edit-card-title">Improve writing & content</span>
-                    <span className="sk-edit-card-text">
-                      Polish phrasing, tighten arguments, elevate tone, and enhance the content.
-                    </span>
-                  </span>
-                </button>
-                {uploadMode === "rewrite" ? <FocusBrackets /> : null}
-              </div>
+          {/* 2. WHAT TO DO: two picture cards. The reformat pair is the closest existing art
+              (messy papers beside a tidy stack) until reformat-before/after are generated. */}
+          <TwoUp
+            label="Kind of change"
+            value={uploadMode}
+            onChange={(id) => setUploadMode(id as UploadMode)}
+            items={[
+              { id: "rewrite", name: "Rewrite", art: pickArt("rewrite"), description: "Improve the writing and the content" },
+              { id: "reformat", name: "Keep content, fix layout", art: pickArt("reformat"), description: "Keep the exact content, fix structure and layout" },
+            ]}
+          />
 
-              {/* Reformat card */}
-              <div className="sk-edit-card-cell">
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={uploadMode === "reformat"}
-                  className="sk-edit-card"
-                  onClick={() => setUploadMode("reformat")}
-                >
-                  <span className="sk-edit-card-art">{art.reformat}</span>
-                  <span className="sk-edit-card-body">
-                    <span className="sk-edit-card-label">Reformat only</span>
-                    <span className="sk-edit-card-title">Keep content, fix layout</span>
-                    <span className="sk-edit-card-text">
-                      Keep the exact content, fix structure, typography, sections, and layout.
-                    </span>
-                  </span>
-                </button>
-                {uploadMode === "reformat" ? <FocusBrackets /> : null}
-              </div>
-            </div>
-          </div>
-
+          <FoldGroup state={folds} className="edit-folds">
           {/* 3. OPTIONAL INSTRUCTIONS */}
-          <div className="sk-edit-field">
-            <label className="sk-edit-label" htmlFor="edit-instructions">
-              <span>What should change?</span>
-              <span className="opacity-60">(Optional)</span>
-            </label>
-            <textarea
+          <FoldSection id="change" index={2} label="What should change" pick={instructions.trim() ? excerptOf(instructions) : "Anything"}>
+            <PromptField
               id="edit-instructions"
               value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-              placeholder="e.g. Make executive summary more concise, adopt an analytical tone, add bullet takeaways..."
-              className="sk-edit-textarea"
+              onChange={setInstructions}
+              placeholder="Make the summary shorter, use a table for pricing, keep my headings"
               maxLength={3000}
+              minRows={3}
             />
-          </div>
+          </FoldSection>
 
           {/* 4. OPTIONAL EXTRA SOURCES */}
+          <FoldSection
+            id="sources"
+            index={3}
+            label="Extra sources"
+            pick={uploadMode === "reformat" ? "Not used" : extraSources.length > 0 ? `${extraSources.length} added` : "None added"}
+          >
           <div className="sk-edit-sources-card">
-            <div className="flex items-center justify-between gap-4">
-              <span className="sk-edit-section-label" style={{ margin: 0 }}>
-                Extra sources (optional)
-              </span>
-              {uploadMode === "reformat" ? (
-                <span className="sk-edit-sources-notice">
-                  Extra sources are ignored in Reformat only mode
-                </span>
-              ) : null}
-            </div>
-
-            <p className="sk-empty-text" style={{ margin: 0 }}>
-              {uploadMode === "rewrite"
-                ? "Add extra files, pictures, web links, or HTML snippets to provide reference material for the rewrite."
-                : "Reformat only preserves your uploaded text and does not take extra material."}
-            </p>
+            {uploadMode === "reformat" ? (
+              <p className="sk-edit-sources-notice">Not used when only the layout changes.</p>
+            ) : null}
 
             {/* Icon-only controls row */}
             <div className="sk-edit-sources-toolbar">
@@ -952,21 +883,17 @@ export default function EditDocument({ embedded = false, onBack }: EditDocumentP
               </ul>
             )}
           </div>
+          </FoldSection>
+          </FoldGroup>
 
-          {/* 5. GENERATE BUTTON */}
-          <button
-            type="button"
-            className="sk-btn sk-edit-cta"
+          {/* 5. GENERATE: the one docked bar */}
+          <GoBar
+            summary={uploadMode === "rewrite" ? "Rewrite" : "Reformat only"}
+            detail={uploadedDoc ? uploadedDoc.name : "Upload a document first"}
+            actionLabel={uploadMode === "rewrite" ? "Rewrite" : "Fix layout"}
             disabled={!uploadedDoc || uploadParsing}
-            onClick={() => void handleStartGenerate()}
-          >
-            <SutaeruIcon name="make" className="size-4" />
-            {!uploadedDoc
-              ? "Upload a document to continue"
-              : uploadMode === "rewrite"
-              ? "Rewrite document"
-              : "Reformat document"}
-          </button>
+            onAction={() => void handleStartGenerate()}
+          />
         </>
       )}
 
