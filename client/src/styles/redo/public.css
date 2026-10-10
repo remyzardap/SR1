@@ -112,7 +112,7 @@
 .sk-field { display: flex; flex-direction: column; gap: 8px; }
 .sk-label { font: 500 11px/1 var(--mono); letter-spacing: 1.54px; text-transform: uppercase; color: var(--quiet); }
 .sk-field input, .sk-field select, .sk-field textarea { min-height: 48px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--stroke); background: var(--card); font: 400 16px/1.5 var(--body); color: var(--ink); outline: none; transition: border-color var(--t) var(--ease); }
-.sk-field input:focus, .sk-field select:focus, .sk-field textarea:focus { border-color: var(--rule); }
+.sk-field input:focus, .sk-field select:focus, .sk-field textarea:focus { border-color: var(--accent-deep); }
 .sk-field input::placeholder { color: var(--quiet); }
 .sk-field-error { margin: 0; font-size: 13px; color: var(--alert); }
 .sk-field-hint { margin: 4px 0 0; font-size: 12px; color: var(--quiet); }
@@ -286,7 +286,7 @@
   border: 0;
   border-radius: 999px;
   background: var(--accent);
-  color: var(--paper);
+  color: var(--r-accent-ink);
   font-family: var(--disp);
   font-size: 17px;
   font-weight: 700;
@@ -300,7 +300,7 @@
 }
 
 .sr-first-run-done:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-deep);
   outline-offset: 3px;
 }
 

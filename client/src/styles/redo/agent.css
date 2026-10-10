@@ -38,7 +38,7 @@
   padding: 18px 20px; border-radius: 22px; border: 1px solid var(--stroke); background: var(--card);
   font: 400 16px/1.55 var(--body); outline: 0;
 }
-.brief textarea:focus { border-color: var(--rule); }
+.brief textarea:focus { border-color: var(--accent-deep); }
 .depths { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .depth {
   position: relative; text-align: left;

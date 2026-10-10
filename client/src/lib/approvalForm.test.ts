@@ -7,12 +7,14 @@ import {
   deriveFields,
   editedArgsIfChanged,
   EXPIRED_COPY,
+  fieldLabel,
   fieldsFromJsonText,
   formToJsonText,
   formatRemaining,
   isLongText,
   mergeApprovals,
   toArgsObject,
+  toExpiresAtMs,
   valuesFromFields,
   type ApprovalField,
   type JsonField,
@@ -415,5 +417,34 @@ describe("putting restored cards next to live ones", () => {
     const live = [{ id: "a" }];
     expect(mergeApprovals(live, [{ id: "a" }])).toBe(live);
     expect(mergeApprovals([], [])).toEqual([]);
+  });
+});
+
+describe("fieldLabel", () => {
+  it("spreads snake, kebab and camel case into one sentence", () => {
+    expect(fieldLabel("needs_review")).toBe("Needs review");
+    expect(fieldLabel("max-total-mb")).toBe("Max total mb");
+    expect(fieldLabel("maxTotalMb")).toBe("Max total mb");
+    expect(fieldLabel("a__b")).toBe("A b");
+    expect(fieldLabel("  spaced   out ")).toBe("Spaced out");
+  });
+
+  it("lower-cases the whole label, so an acronym is not shouted", () => {
+    expect(fieldLabel("URL")).toBe("Url");
+  });
+
+  it("falls back to Value when the key says nothing", () => {
+    for (const empty of ["", "___", "---", "   "]) expect(fieldLabel(empty)).toBe("Value");
+  });
+});
+
+describe("toExpiresAtMs", () => {
+  it("passes a real timestamp through and refuses the unusable ones", () => {
+    const ms = Date.parse("2026-03-05T12:00:00.000Z");
+    expect(toExpiresAtMs(ms)).toBe(ms);
+    expect(toExpiresAtMs(new Date(ms).toISOString())).toBe(ms);
+    for (const bad of [null, undefined, "", "   ", NaN, Infinity, -Infinity, "next Tuesday?"]) {
+      expect(toExpiresAtMs(bad as string | number | null | undefined), String(bad)).toBeNull();
+    }
   });
 });

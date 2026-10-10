@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { FoldSection } from "./FoldSection";
 import { FoldAllButton, FoldGroup } from "./FoldGroup";
-import { PickTiles } from "./PickTiles";
+import { PickTiles, tileHeight } from "./PickTiles";
 import { Showcase } from "./Showcase";
 import { GoBar } from "./GoBar";
 import { PromptField } from "./PromptField";
@@ -235,5 +235,18 @@ describe("GoBar and PromptField", () => {
     expect(html).toContain('placeholder="Describe your picture"');
     expect(html).toContain('aria-label="Describe your picture"');
     expect(html).toContain('aria-label="Add a reference photo"');
+  });
+});
+
+describe("tileHeight", () => {
+  it("keeps a narrow tile short and a wide one tall", () => {
+    expect(tileHeight(127)).toBe(86);
+    expect(tileHeight(128)).toBe(96);
+    expect(tileHeight(220)).toBe(96);
+  });
+
+  it("answers the sizes the rows actually use", () => {
+    for (const w of [116, 128, 160, 213]) expect(tileHeight(w) >= 86).toBe(true);
+    expect(tileHeight(0)).toBe(86);
   });
 });

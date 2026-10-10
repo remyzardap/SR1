@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_SHOT } from "./studio";
-import { ENGINE_STYLE, PREP_MS, PREVIEW_CLARITY, RESOLVE_HOLD_MS, RESOLVE_MS, RUN_HOLD, approach, clarityOf, resolveClarity, engineBrief, estimate, labelFromPrompt, phaseOf, runProgress, runStatus, suggestEngine } from "./studioRun";
+import { DEFAULT_SHOT, type Shot } from "./studio";
+import { ENGINE_STYLE, PREP_MS, PREVIEW_CLARITY, RESOLVE_HOLD_MS, RESOLVE_MS, RUN_HOLD, approach, clarityOf, resolveClarity, engineBrief, estimate, labelFromPrompt, phaseOf, runProgress, runStatus, suggestEngine, timeLeftText, usualText } from "./studioRun";
 
 describe("labelFromPrompt", () => {
   it("takes the first quoted words, upper-cased", () => {
@@ -134,5 +134,70 @@ describe("reveal curve", () => {
   });
   it("names engines without vendors", () => {
     for (const s of Object.values(ENGINE_STYLE)) expect(s).not.toMatch(/gemini|openai|wan|flux|qwen/i);
+  });
+});
+
+/** The engine behind a picture is ours to choose, not ours to name. */
+const VENDOR = /gemini|qwen|openai|claude|gpt|flux|kimi|anthropic|vertex|wan|sora|gemini-|\bgpt-/i;
+
+describe("engine copy the person reads", () => {
+  const all = ["gemini", "openai", "qwen"] as const;
+  const picks: { label: string; shot: Shot }[] = [
+    { label: "HELLO", shot: DEFAULT_SHOT },
+    { label: "", shot: { ...DEFAULT_SHOT, look: "film" as const } },
+    { label: "", shot: { ...DEFAULT_SHOT, light: "night" as const } },
+    { label: "", shot: { ...DEFAULT_SHOT, look: "painted" as const } },
+    { label: "", shot: { ...DEFAULT_SHOT, look: "clay" as const } },
+    { label: "", shot: { ...DEFAULT_SHOT, look: "ink" as const } },
+    { label: "", shot: DEFAULT_SHOT },
+  ];
+
+  it("explains every suggestion without naming a vendor or model", () => {
+    for (const { label, shot } of picks) {
+      const { why } = suggestEngine(shot, label, [...all]);
+      expect(why.length, label || shot.look).toBeGreaterThan(0);
+      expect(why, `${shot.look}/${shot.light}`).not.toMatch(VENDOR);
+    }
+  });
+
+  it("stays silent about the vendor when the pick falls back", () => {
+    const busy = [
+      ["openai"] as const,
+      ["forge"] as const,
+      ["qwen", "forge"] as const,
+    ];
+    for (const available of busy) {
+      for (const { label, shot } of picks) {
+        expect(suggestEngine(shot, label, [...available]).why).not.toMatch(VENDOR);
+      }
+    }
+  });
+});
+
+describe("timeLeftText", () => {
+  it("keeps the last few seconds in their own words", () => {
+    expect(timeLeftText(0)).toBe("A few seconds left");
+    expect(timeLeftText(4)).toBe("A few seconds left");
+    expect(timeLeftText(-2)).toBe("A few seconds left");
+  });
+
+  it("rounds seconds up, then switches to minutes at exactly 60", () => {
+    expect(timeLeftText(4.5)).toBe("About 5 s left");
+    expect(timeLeftText(20.2)).toBe("About 21 s left");
+    expect(timeLeftText(59)).toBe("About 59 s left");
+    expect(timeLeftText(59.4)).toBe("About 60 s left");
+    expect(timeLeftText(60)).toBe("About 1 min left");
+    expect(timeLeftText(61)).toBe("About 2 min left");
+    expect(timeLeftText(120)).toBe("About 2 min left");
+  });
+});
+
+describe("usualText", () => {
+  it("warns about a cold GPU only for the GPU", () => {
+    expect(usualText("forge")).toContain("cold GPU");
+    for (const engine of ["gemini", "openai", "qwen"] as const) {
+      expect(usualText(engine)).toBe("Busy engines sometimes need a little longer.");
+      expect(usualText(engine)).not.toMatch(VENDOR);
+    }
   });
 });
