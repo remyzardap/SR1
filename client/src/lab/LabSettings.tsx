@@ -16,7 +16,7 @@
 import { useEffect } from "react";
 import { Link, useSearch } from "wouter";
 
-import { SettingsView } from "@/components/settings/SettingsView";
+import { SettingsView, SETTINGS_FOLD_IDS } from "@/components/settings/SettingsView";
 import { applyArtIntensity, applyBackgroundArt, applyReduceMotion } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import {
@@ -74,7 +74,7 @@ export default function LabSettings() {
         </nav>
 
         {single ? (
-          <SettingsView {...settingsFixture(state)} />
+          <SettingsView {...settingsFixture(state)} foldKey="lab-settings" openSections={openAll ? SETTINGS_FOLD_IDS : undefined} />
         ) : (
           SETTINGS_STATE_NAMES.map((name) => (
             <section key={name}>
@@ -86,7 +86,11 @@ export default function LabSettings() {
                   overflow: "hidden",
                 }}
               >
-                <SettingsView {...settingsFixture(name)} />
+                <SettingsView
+                  {...settingsFixture(name)}
+                  foldKey={`lab-settings-${name}`}
+                  openSections={openAll ? SETTINGS_FOLD_IDS : undefined}
+                />
               </div>
             </section>
           ))
