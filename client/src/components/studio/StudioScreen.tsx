@@ -113,6 +113,7 @@ export function Viewfinder({
   onMode,
   grid,
   onGrid,
+  footer,
 }: {
   shot: Shot;
   label: string;
@@ -120,6 +121,8 @@ export function Viewfinder({
   onMode: (m: "photo" | "sketch") => void;
   grid: boolean;
   onGrid: (g: boolean) => void;
+  /** Pinned under the preview (the desktop go bar). */
+  footer?: ReactNode;
 }) {
   const dock = useRef<HTMLDivElement>(null);
   const marker = useRef<HTMLDivElement>(null);
@@ -193,6 +196,7 @@ export function Viewfinder({
           ) : null}
           <span className="mono ph-credit">{credit}</span>
         </div>
+        {footer}
       </div>
     </div>
   );
@@ -358,6 +362,17 @@ export function StudioScreen(p: StudioScreenProps) {
   const current = p.engines.find((e) => e.id === p.engine);
   const folds = useFoldState("studio", FOLD_IDS, { first: "shot" });
   const shape = shapeOf(p.shot.ratio);
+  /* From 1100 px the go bar rides under the sticky preview; below that it docks at the bottom. */
+  const wide = folds.layout === "desktop";
+  const go = (
+    <GoBar
+      summary={`About ${p.engine === "forge" ? Math.round(secs / 60) + " min" : secs + " s"}`}
+      detail={`${meta.name}${p.quality === "high" ? " · High" : ""} · ${p.count} picture${p.count > 1 ? "s" : ""}`}
+      actionLabel="Begin"
+      onAction={p.onBegin}
+      disabled={!p.canBegin}
+    />
+  );
 
   return (
     <section className="view wide view-enter" id="view-studio">
@@ -369,7 +384,7 @@ export function StudioScreen(p: StudioScreenProps) {
         action={<FoldAllButton state={folds} />}
       />
       <div className="studio-grid">
-        <Viewfinder shot={p.shot} label={p.label} mode={p.vf} onMode={p.onVf} grid={p.grid} onGrid={p.onGrid} />
+        <Viewfinder shot={p.shot} label={p.label} mode={p.vf} onMode={p.onVf} grid={p.grid} onGrid={p.onGrid} footer={wide ? go : undefined} />
         <div className="opt-col">
           <PromptField
             id="image-prompt-field"
@@ -429,13 +444,7 @@ export function StudioScreen(p: StudioScreenProps) {
           </details>
         </div>
       </div>
-      <GoBar
-        summary={`About ${p.engine === "forge" ? Math.round(secs / 60) + " min" : secs + " s"}`}
-        detail={`${meta.name}${p.quality === "high" ? " · High" : ""} · ${p.count} picture${p.count > 1 ? "s" : ""}`}
-        actionLabel="Begin"
-        onAction={p.onBegin}
-        disabled={!p.canBegin}
-      />
+      {wide ? null : go}
     </section>
   );
 }
