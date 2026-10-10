@@ -127,9 +127,9 @@ export const doneFixtures: Record<string, ResultCardProps> = {
   "finished-image": {
     kind: "image",
     title: "Ceramic mug, morning light",
-    summary: "A ceramic mug on a wooden table in soft morning light. Generated with Gemini at 1:1 ratio.",
+    summary: "A ceramic mug on a wooden table in soft morning light. Made at 1:1 ratio.",
     figures: [
-      { label: "Engine", value: "Gemini" },
+      { label: "Engine", value: "Crisp" },
       { label: "Ratio", value: "1:1" },
       { label: "Quality", value: "Standard" },
     ],

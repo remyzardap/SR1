@@ -51,7 +51,7 @@ export default function LabDocsStates() {
         </Block>
         <Block title="Selected card marks (FocusBrackets)">
           <div style={{ position: "relative", margin: 10 }}>
-            <div className="vd-engine is-active" style={{ margin: 0 }}><span className="vd-engine-name">Gemini</span></div>
+            <div className="vd-engine is-active" style={{ margin: 0 }}><span className="vd-engine-name">Fast</span></div>
             <FocusBrackets />
           </div>
         </Block>

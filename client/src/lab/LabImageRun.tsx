@@ -86,9 +86,7 @@ export default function LabImageRun() {
           </Link>
         ))}
       </div>
-      <div style={{ margin: "0 -24px" }}>
-        <ImageRunScreen {...base} {...state} shot={state.shot ?? shot} pick={pick} onPick={setPick} />
-      </div>
+      <ImageRunScreen {...base} {...state} shot={state.shot ?? shot} pick={pick} onPick={setPick} />
     </LabLayout>
   );
 }

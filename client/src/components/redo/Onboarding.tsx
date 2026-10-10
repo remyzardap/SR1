@@ -182,7 +182,7 @@ export function ApiKeyStep({ initialData, onNext, onBack, onSkip, className }: A
   const providers = [
     { id: "openai", name: "OpenAI", env: "OPENAI_API_KEY" },
     { id: "anthropic", name: "Anthropic", env: "ANTHROPIC_API_KEY" },
-    { id: "google", name: "Google (Gemini)", env: "GOOGLE_API_KEY" },
+    { id: "google", name: "Google", env: "GOOGLE_API_KEY" },
     { id: "other", name: "Other (OpenAI-compatible)", env: "CUSTOM_API_KEY" },
   ];
 

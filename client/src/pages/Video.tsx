@@ -44,6 +44,10 @@ const ENGINE_META: Record<string, EngineMeta> = {
 };
 const FALLBACK_META: EngineMeta = { blurb: "Turns your description into a short clip." };
 
+/** The server sends vendor labels; people see our own names. */
+const ENGINE_NAMES: Record<string, string> = { gemini: "Fast", openai: "Cinematic", qwen: "Crisp", forge: "GPU" };
+const engineName = (e: { id: string; label: string }) => ENGINE_NAMES[e.id] ?? "Engine";
+
 /** Abstract marks in the app's own icon style. Not vendor logos. */
 function EngineMark({ id }: { id: string }) {
   const common = { viewBox: "0 0 96 96", fill: "none", stroke: "currentColor", strokeWidth: 6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
@@ -196,7 +200,7 @@ export default function Video() {
     abortRef.current?.abort();
     abortRef.current = controller;
     clearVideo();
-    setRanWith({ label: `${current.label} · ${quality === "high" ? "High" : "Standard"}`, prompt: text, ratio, duration });
+    setRanWith({ label: `${engineName(current)} · ${quality === "high" ? "High" : "Standard"}`, prompt: text, ratio, duration });
     setStage("QUEUED");
     setProgress(0);
     setEta(null);
@@ -256,9 +260,9 @@ export default function Video() {
 
   const stageIndex = Math.max(0, STAGES.indexOf(stage));
   const subtitle =
-    phase === "running" ? `${current?.label ?? "The engine"} is filming your clip.`
+    phase === "running" ? `${current ? engineName(current) : "The engine"} is filming your clip.`
     : phase === "done" ? "Ready, and saved to My Files."
-    : phase === "failed" ? `${current?.label ?? "The engine"} couldn't finish this one.`
+    : phase === "failed" ? `${current ? engineName(current) : "The engine"} couldn't finish this one.`
     : "";
   const title = "Video";
 
@@ -304,14 +308,14 @@ export default function Video() {
 
           <FoldGroup state={folds} className="vd-folds">
             {engines.length > 1 && (
-              <FoldSection id="engine" index={1} label="Engine" pick={current.label} mini={<EnginePoster id={current.id} />}>
+              <FoldSection id="engine" index={1} label="Engine" pick={engineName(current)} mini={<EnginePoster id={current.id} />}>
                 <Showcase
                   label="Video engine"
                   value={current.id}
                   onChange={(id) => setEngineId(id as VideoEngineId)}
                   items={engines.map((e) => ({
                     id: e.id,
-                    name: e.label,
+                    name: engineName(e),
                     description: (ENGINE_META[e.id] ?? FALLBACK_META).blurb,
                     art: e.id === "forge" ? pickArt("eng-forge") : <EnginePoster id={e.id} />,
                     badge: formatEstimate(e) || undefined,
@@ -364,7 +368,7 @@ export default function Video() {
           </FoldGroup>
 
           <GoBar
-            summary={`${current.label} · ${duration} s`}
+            summary={`${engineName(current)} · ${duration} s`}
             detail={`${ratio} · ${quality === "high" ? "High" : "Standard"}${formatEstimate(current) ? ` · about ${formatEstimate(current)}` : ""}`}
             actionLabel="Create video"
             onAction={() => void generate()}
@@ -453,7 +457,7 @@ function EngineRow({ title, engines, active, onPick }: { title: string; engines:
       <span className="vd-label">{title}</span>
       <div className="vd-row" role="group" aria-label={title}>
         {engines.map((e) => (
-          <Chip key={e.id} active={e.id === active} onClick={() => onPick(e.id)}>{e.label}</Chip>
+          <Chip key={e.id} active={e.id === active} onClick={() => onPick(e.id)}>{engineName(e)}</Chip>
         ))}
       </div>
     </div>
