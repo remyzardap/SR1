@@ -693,7 +693,7 @@ export function SettingsView(props: SettingsViewProps) {
         <FoldSection
           id="models"
           index={8}
-          label="Models"
+          label="Engines"
           pick={
             models.status === "ready" && models.data?.length
               ? `${models.data.filter((m) => m.hasKey).length} of ${models.data.length} ready`
@@ -705,18 +705,13 @@ export function SettingsView(props: SettingsViewProps) {
           {models.status === "error" && <LoadError onRetry={props.onModelsRetry} />}
           {models.status === "ready" &&
             (models.data?.length ? (
-              <div className="set-list">
-                {models.data.map((model) => (
-                  <div className="toggle-row" key={model.id}>
-                    <div className="tx">
-                      <b>{model.label}</b>
-                    </div>
-                    {model.hasKey ? <span className="tag">Ready</span> : <span className="tag quiet">Not configured</span>}
-                  </div>
-                ))}
-              </div>
+              <p className="set-note">
+                {models.data.every((m) => m.hasKey)
+                  ? "Every engine is ready."
+                  : `${models.data.filter((m) => !m.hasKey).length} engine(s) are not set up yet. Ask an admin.`}
+              </p>
             ) : (
-              <p className="set-note">No models available.</p>
+              <p className="set-note">No engines available.</p>
             ))}
         </FoldSection>
 

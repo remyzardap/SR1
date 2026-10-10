@@ -70,7 +70,7 @@ describe("the ported screen", () => {
       "Account",
       "Two-factor sign-in",
       "Plan",
-      "Models",
+      "Engines",
       "Purge password",
       "Connections",
     ]) {
