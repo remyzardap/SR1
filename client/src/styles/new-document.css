@@ -63,6 +63,7 @@
   border: 0;
   background: transparent;
   padding: 6px 2px;
+  position: relative;
   color: var(--r-quiet);
   font: 600 13.5px var(--r-font-body);
   cursor: pointer;
@@ -70,6 +71,7 @@
   text-underline-offset: 3px;
   text-decoration-color: color-mix(in srgb, var(--r-quiet) 45%, transparent);
 }
+.sk-nd-link::after { content: ""; position: absolute; inset: -8px -4px; } /* 44 px target */
 .sk-nd-link:hover { color: var(--r-ink); }
 .sk-nd-link svg { width: 16px; height: 16px; }
 

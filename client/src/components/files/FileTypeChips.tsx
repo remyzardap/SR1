@@ -19,7 +19,12 @@ export function FileTypeChips({
   const ids = TYPE_FILTERS.map((f) => f.id);
 
   return (
-    <div className="hscroll filters" role="radiogroup" aria-label="Filter by file type">
+    <div
+      className="hscroll filters"
+      role="radiogroup"
+      aria-label="Filter by file type"
+      onKeyDown={radioKeyDown(ids, value, (id) => onChange(id as FileFilterId))}
+    >
       {TYPE_FILTERS.map((chip) => (
         <button
           key={chip.id}
@@ -29,7 +34,7 @@ export function FileTypeChips({
           data-filter={chip.id}
           data-id={chip.id}
           tabIndex={rovingIndex(ids, value, chip.id)}
-          onKeyDown={radioKeyDown(ids, value, (id) => onChange(id as FileFilterId))}
+          onClick={() => onChange(chip.id)}
           className="pill chip"
         >
           {chip.label}
