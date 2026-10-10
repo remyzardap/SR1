@@ -56,7 +56,8 @@ export default function LabSettings() {
   }, [single, state]);
 
   return (
-    <LabLayout title="Settings">
+    <LabLayout title="Settings" bleed>
+      <div className="lab-gutter">
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <p className="mono" style={{ margin: 0, fontSize: 12, color: "var(--quiet)" }}>
           Sample data — no login, no network, no saved preferences. Pick a state, or scroll
@@ -111,6 +112,7 @@ export default function LabSettings() {
           ))
         )}
       </div>
+          </div>
     </LabLayout>
   );
 }

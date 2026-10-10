@@ -278,7 +278,7 @@ export default function Connections() {
                       key={connection.id}
                       title={name}
                       initials={name.charAt(0).toUpperCase()}
-                      meta={`${connectionTypeLabels[connection.type]} · PROVIDER ${connection.provider}${
+                      meta={`${connectionTypeLabels[connection.type]} · ${connection.provider}${
                         connection.lastUsedAt ? ` · LAST USED ${format(new Date(connection.lastUsedAt), "MMM d, yyyy")}` : ""
                       } · ADDED ${format(new Date(connection.createdAt), "MMM d, yyyy")}`}
                       quiet={!isActive}
