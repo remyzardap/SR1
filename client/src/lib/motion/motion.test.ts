@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { createChatEnergyStore, nextPhase, TOKEN_WINDOW_MS } from "./chatEnergy";
-import { intensityScale, isLowEndDevice, livingMode } from "./gate";
+import { intensityScale, isLowEndDevice, livingMode, readDeviceHints } from "./gate";
 import { mix, parseColor } from "./color";
 import {
   approach,
@@ -245,5 +245,40 @@ describe("colour helpers", () => {
   it("mixes", () => {
     expect(mix([0, 0, 0], [100, 200, 50], 0.5)).toEqual([50, 100, 25]);
     expect(mix([0, 0, 0], [100, 200, 50], 3)).toEqual([100, 200, 50]);
+  });
+});
+
+describe("device hints", () => {
+  const withNavigator = <T>(nav: unknown, run: () => T): T => {
+    const had = "navigator" in globalThis;
+    const before = (globalThis as { navigator?: unknown }).navigator;
+    if (nav === undefined) delete (globalThis as { navigator?: unknown }).navigator;
+    else (globalThis as { navigator?: unknown }).navigator = nav;
+    try {
+      return run();
+    } finally {
+      if (had) (globalThis as { navigator?: unknown }).navigator = before;
+      else delete (globalThis as { navigator?: unknown }).navigator;
+    }
+  };
+
+  it("reads nothing where there is no navigator", () => {
+    expect(withNavigator(undefined, readDeviceHints)).toEqual({});
+  });
+
+  it("takes the cores and memory the browser reports", () => {
+    const hints = withNavigator({ hardwareConcurrency: 8, deviceMemory: 2 }, readDeviceHints);
+    expect(hints).toEqual({ cores: 8, memory: 2, saveData: undefined });
+  });
+
+  it("notices a data-saver, and survives a browser that reports none", () => {
+    expect(withNavigator({ hardwareConcurrency: 4, connection: { saveData: true } }, readDeviceHints).saveData).toBe(true);
+    expect(withNavigator({ hardwareConcurrency: 4 }, readDeviceHints)).toEqual({ cores: 4, memory: undefined, saveData: undefined });
+  });
+
+  it("pairs with the low-end check, where zero cores is unknown rather than weak", () => {
+    expect(isLowEndDevice({ cores: 0 })).toBe(false);
+    expect(isLowEndDevice({ cores: 2 })).toBe(true);
+    expect(isLowEndDevice({ saveData: true })).toBe(true);
   });
 });
