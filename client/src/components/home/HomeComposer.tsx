@@ -193,7 +193,7 @@ export function HomeComposer({
     <>
       <p className="private-note mono" id="privNote">
         <SutaeruIcon name="eyeoff" signal={false} className="ico s" />
-        Private · not saved to history or memory
+        Private · nothing is added to memory
       </p>
       <div className={cn("composer-wrap", "is-on", listening && "listening")} ref={wrapRef} id="cw">
         <FocusBrackets />

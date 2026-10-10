@@ -32,9 +32,6 @@ export const SOURCE_ROWS: ModeSourceRow[] = [
   { id: "drive_search", label: "Drive", caption: "Your Google Drive" },
 ];
 
-/** The promise the private switch makes is one no endpoint keeps yet, so Home's button says this instead. */
-export const PRIVATE_HINT = "Private chats are not available yet.";
-
 export interface ModeMenuProps extends Omit<ModeSheetBodyProps, "foldKey"> {
   /** Kept for callers that still pass it; the sheet has no run-settings row any more. */
   onOpenSettings?(): void;
