@@ -51,7 +51,7 @@
 .frow:focus-visible { outline: none; }
 .frow:focus-visible::before {
   content: ""; position: absolute; inset: 6px 0 6px -10px; border-radius: 18px;
-  box-shadow: 0 0 0 2px var(--r-accent); pointer-events: none;
+  box-shadow: 0 0 0 2px var(--accent-deep); pointer-events: none;
 }
 .ft { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 /* The whole name, on as many lines as it needs — never cut with an ellipsis. */
@@ -71,7 +71,7 @@ canvas.bar.thick { height: 22px; }
   background: var(--panel); color: var(--ink); display: grid; place-items: center;
 }
 .ftype .fi { width: 22px; height: 22px; }
-.ftype.accent { color: var(--r-accent); background: var(--seg-off); }
+.ftype.accent { color: var(--accent-deep); background: var(--seg-off); }
 .ftype em {
   position: absolute; right: -4px; bottom: -4px; min-width: 22px; height: 16px; padding: 0 4px;
   border-radius: 5px; background: var(--ink); color: var(--paper);

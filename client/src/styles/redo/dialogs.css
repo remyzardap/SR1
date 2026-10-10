@@ -18,7 +18,7 @@
   transition: background var(--r-motion) var(--r-ease-out), color 160ms ease;
 }
 [data-slot="dialog-close"]:hover { background: var(--r-panel); color: var(--r-ink); }
-[data-slot="dialog-close"]:focus-visible { outline: 2px solid var(--r-accent); outline-offset: 0; box-shadow: none; }
+[data-slot="dialog-close"]:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 0; box-shadow: none; }
 [data-slot="dialog-close"] svg { width: 18px; height: 18px; }
 .sk-dialog .sk-empty { padding: 8px 0 4px; }
 .sk-dialog .sk-btn-ghost { background: transparent; border: 1px solid var(--r-stroke); color: var(--r-ink); }

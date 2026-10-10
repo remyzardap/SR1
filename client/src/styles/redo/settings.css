@@ -52,7 +52,7 @@
 .set-field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 220px; }
 .set-field-row .btn { flex: none; }
 .set-input { min-height: 44px; padding: 0 16px; border-radius: 16px; border: 1px solid var(--stroke); background: var(--card); color: var(--ink); font: 400 15px/1.4 var(--body); outline: 0; }
-.set-input:focus { border-color: var(--rule); }
+.set-input:focus { border-color: var(--accent-deep); }
 .set-input::placeholder { color: var(--quiet); }
 /* .title/.lede are set per screen here, as every other ported view does (files.css:4).
    The scale is the family one: the list pages' clamp(34px, 9vw, 48px). */
