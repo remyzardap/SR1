@@ -75,6 +75,7 @@ export const PICK_ART = {
   "tone-plain": "A plain white bowl and a wooden spoon",
 
   /* Length */
+  "len-short": "A single blank index card and a pencil",
   "len-medium": "Two sheets of handwritten letter on a desk",
   "len-long": "A thick manuscript tied with twine",
 
@@ -90,10 +91,15 @@ export const PICK_ART = {
 
   /* Motion */
   "motion-full": "Light trails swirling around a hanging mobile",
+  "motion-reduced": "A brass pendulum hanging perfectly still",
 
-  /* Not yet generated (Vertex rate limits): len-short, motion-reduced,
-   * voice-warm, voice-bright, reformat-before, reformat-after. Add the webp to
-   * public/studio/o/ and its id here. */
+  /* Voice */
+  "voice-warm": "An acoustic guitar by a glowing fireplace",
+  "voice-bright": "A wind chime in bright morning sun",
+
+  /* Reformat */
+  "reformat-before": "A chaotic pile of crumpled papers",
+  "reformat-after": "The same papers squared into one tidy stack",
 } as const;
 
 export type PickArtId = keyof typeof PICK_ART;
