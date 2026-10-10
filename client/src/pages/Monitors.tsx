@@ -1,3 +1,9 @@
+/**
+ * Monitors — the container, on the shared list pattern.
+ *
+ * The three numbers are one strip, the new-monitor form and the watched topics are folds,
+ * and each briefing a monitor filed opens inside its own row instead of pushing the page out.
+ */
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { Streamdown } from "streamdown";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
@@ -5,7 +11,8 @@ import { callFunction } from "@/lib/kemmaCloud";
 import { downloadResearchMarkdown, downloadResearchPdf } from "@/lib/researchReports";
 import { toast } from "sonner";
 import { Chip, SteppedMeter, StatusPill, type StatusPillStatus } from "@/components/art";
-import { PageTitle } from "@/components/chrome/PageTitle";
+import { ListEmpty, ListFold, ListFolds, ListPage, Row, Rows, RowsSkeleton, StatStrip, useListFolds } from "@/components/list";
+import { pickArt } from "@/lib/pickArt";
 import "@/styles/list-pages.css";
 
 interface Monitor {
@@ -28,6 +35,7 @@ interface MonitorRun {
 
 /** Activity meter window: one segment per day, so eight days fill the eight segments. */
 const ACTIVITY_DAYS = 8;
+const FOLD_IDS = ["new", "watching"];
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "--";
@@ -81,6 +89,9 @@ export default function Monitors() {
   const [creating, setCreating] = useState(false);
   const [openRun, setOpenRun] = useState<MonitorRun | null>(null);
 
+  // A page with nothing to look at opens on the form; once there are topics it opens on them.
+  const folds = useListFolds("monitors", FOLD_IDS, { first: monitors.length === 0 ? "new" : "watching" });
+
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -98,7 +109,9 @@ export default function Monitors() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   async function create() {
     if (topic.trim().length < 5 || creating) return;
@@ -108,6 +121,7 @@ export default function Monitors() {
       setTopic("");
       toast.success("Monitor created — the first briefing runs shortly.");
       await load();
+      folds.setOpen("watching", true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not create the monitor.");
     } finally {
@@ -157,111 +171,93 @@ export default function Monitors() {
       : new Date(nextRunAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
   return (
-    <div className="lp-page">
-      <header className="lp-head">
-        <div className="lp-head-main">
-          <PageTitle className="lp-title">Monitors</PageTitle>
-          <p className="lp-lede">
-            Sutaeru re-investigates your topics on a schedule and files a fresh cited briefing each run.
-          </p>
-        </div>
-      </header>
-
-      {/* New monitor */}
-      <section className="lp-card lp-stack" style={{ gap: 14 }}>
-        <span className="lp-mono">New monitor</span>
-        <input
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && void create()}
-          placeholder="e.g. Indonesian nickel export policy changes"
-          aria-label="Topic to monitor"
-          className="lp-field"
-        />
-        <div className="lp-chips lp-chips-scroll" role="group" aria-label="Frequency">
-          {(["daily", "weekly"] as const).map((f) => (
-            <Chip key={f} active={frequency === f} onClick={() => setFrequency(f)}>
-              {f === "daily" ? "Every day" : "Every week"}
-            </Chip>
-          ))}
-        </div>
-        <button
-          type="button"
-          className="lp-btn lp-btn-self"
-          onClick={() => void create()}
-          disabled={creating || topic.trim().length < 5}
-        >
-          {creating ? "Adding..." : "Add monitor"}
-        </button>
-      </section>
-
-      {loading && (
-        <ul className="lp-rows" style={{ marginTop: 20 }} aria-label="Loading monitors">
-          {[0, 1, 2].map((i) => (
-            <li key={i} className="lp-row">
-              <div className="lp-row-main">
-                <span className="lp-skeleton" style={{ width: "52%", height: 20 }} />
-                <span className="lp-skeleton" style={{ width: "26%", height: 11 }} />
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {error && (
-        <section className="lp-empty" style={{ marginTop: 20 }}>
-          <span className="lp-mono" style={{ color: "var(--r-alert)" }}>Error</span>
-          <p className="lp-empty-text">{error}</p>
-          <button type="button" className="lp-btn lp-btn-sm" onClick={() => void load()}>Try again</button>
-        </section>
-      )}
-
-      {!loading && !error && monitors.length === 0 && (
-        <section className="lp-empty" style={{ marginTop: 20 }}>
-          <span className="lp-empty-mark"><SutaeruIcon name="schedule" width={44} height={44} /></span>
-          <h2 className="lp-empty-title">Nothing watched yet.</h2>
-          <p className="lp-empty-text">Add a topic above and Sutaeru will keep an eye on it.</p>
-        </section>
-      )}
-
+    <ListPage
+      title="Monitors"
+      lede="Sutaeru re-investigates your topics on a schedule and files a fresh cited briefing each run."
+      fold={folds}
+    >
       {monitors.length > 0 && (
-        <>
-          <div className="lp-stats lp-section">
-            <div className="lp-stat">
-              <span className="lp-mono">Active</span>
-              <span className="lp-stat-num lp-num">{activeCount}</span>
-            </div>
-            <div className="lp-stat">
-              <span className="lp-mono">Runs today</span>
-              <span className="lp-stat-num lp-num">{runsToday}</span>
-            </div>
-            <div className="lp-stat">
-              <span className="lp-mono">Next</span>
-              <span className="lp-stat-num lp-stat-num-sm lp-num">{nextRunLabel}</span>
-            </div>
-          </div>
+        <StatStrip
+          items={[
+            { label: "Active", value: activeCount, meter: monitors.length ? activeCount / monitors.length : 0, meterLabel: `${activeCount} of ${monitors.length} running` },
+            { label: "Runs today", value: runsToday },
+            { label: "Next", value: nextRunLabel },
+          ]}
+        />
+      )}
 
-          <ul className="lp-rows" style={{ marginTop: 20 }}>
-            {monitors.map((m) => {
-              const monitorRuns = runs.filter((r) => r.monitor_id === m.id);
-              const status = monitorStatus(m, now);
-              return (
-                <Fragment key={m.id}>
-                  <li className="lp-card lp-mon">
-                    <div className="lp-mon-top">
-                      <h2 className="lp-mon-title">{m.topic}</h2>
-                      <SteppedMeter
-                        value={activeDays(monitorRuns, now) / ACTIVITY_DAYS}
-                        segments={ACTIVITY_DAYS}
-                        variant="col"
-                        ariaLabel={`${activeDays(monitorRuns, now)} of the last ${ACTIVITY_DAYS} days with a briefing`}
-                        className="lp-mon-meter"
-                      />
-                    </div>
-                    <div className="lp-mon-bottom">
-                      <span className="lp-mono">{scheduleLabel(m)}</span>
-                      <div className="lp-row-side">
-                        <StatusPill status={status} />
+      <ListFolds fold={folds}>
+        <ListFold
+          id="new"
+          index={1}
+          fold={folds}
+          label="New monitor"
+          pick={frequency === "daily" ? "Every day" : "Every week"}
+          mini={pickArt("out-monitor")}
+        >
+          <div className="lp-field-group">
+            <input
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && void create()}
+              placeholder="e.g. Indonesian nickel export policy changes"
+              aria-label="Topic to monitor"
+              className="lp-field"
+            />
+            <div className="lp-chips lp-chips-scroll" role="group" aria-label="Frequency">
+              {(["daily", "weekly"] as const).map((f) => (
+                <Chip key={f} active={frequency === f} onClick={() => setFrequency(f)}>
+                  {f === "daily" ? "Every day" : "Every week"}
+                </Chip>
+              ))}
+            </div>
+            <button type="button" className="lp-btn lp-btn-self" onClick={() => void create()} disabled={creating || topic.trim().length < 5}>
+              {creating ? "Adding..." : "Add monitor"}
+            </button>
+          </div>
+        </ListFold>
+
+        <ListFold
+          id="watching"
+          index={2}
+          fold={folds}
+          label="Watching"
+          pick={loading ? "Checking" : monitors.length === 0 ? "Nothing yet" : `${activeCount} of ${monitors.length} running`}
+          mini={pickArt("depth-standard")}
+        >
+          {loading && <RowsSkeleton rows={3} />}
+
+          {error && (
+            <div className="lst-empty">
+              <p className="mono" style={{ color: "var(--r-alert)" }}>
+                Error
+              </p>
+              <p className="lst-body">{error}</p>
+              <button type="button" className="btn" onClick={() => void load()}>
+                Try again
+              </button>
+            </div>
+          )}
+
+          {!loading && !error && monitors.length === 0 && (
+            <ListEmpty title="Nothing watched yet." text="Add a topic above and Sutaeru will keep an eye on it." icon="schedule" />
+          )}
+
+          {monitors.length > 0 && (
+            <Rows label="Monitors">
+              {monitors.map((m) => {
+                const monitorRuns = runs.filter((r) => r.monitor_id === m.id);
+                const status = monitorStatus(m, now);
+                const days = activeDays(monitorRuns, now);
+                return (
+                  <Row
+                    key={m.id}
+                    title={m.topic}
+                    meta={`${scheduleLabel(m)} · ${days} of the last ${ACTIVITY_DAYS} days briefed`}
+                    quiet={!m.active}
+                    status={<StatusPill status={status} />}
+                    actions={
+                      <>
                         <button
                           type="button"
                           className="lp-icon-btn"
@@ -280,41 +276,55 @@ export default function Monitors() {
                         >
                           <SutaeruIcon name="delete" />
                         </button>
-                      </div>
+                      </>
+                    }
+                  >
+                    <div className="lp-mon-activity">
+                      <SteppedMeter
+                        value={days / ACTIVITY_DAYS}
+                        segments={ACTIVITY_DAYS}
+                        variant="col"
+                        ariaLabel={`${days} of the last ${ACTIVITY_DAYS} days with a briefing`}
+                      />
                     </div>
                     {monitorRuns.length > 0 && (
                       <div className="lp-mon-runs">
                         <hr className="lp-hairline" />
                         {monitorRuns.slice(0, 3).map((run) => (
-                          <button
-                            key={run.id}
-                            type="button"
-                            onClick={() => setOpenRun(openRun?.id === run.id ? null : run)}
-                            className="lp-run-link"
-                          >
-                            Briefing from {fmtDate(run.created_at)} ({run.sources.length} sources)
-                          </button>
+                          <Fragment key={run.id}>
+                            <button
+                              type="button"
+                              onClick={() => setOpenRun(openRun?.id === run.id ? null : run)}
+                              className="lp-run-link"
+                            >
+                              Briefing from {fmtDate(run.created_at)} ({run.sources.length} sources)
+                            </button>
+                            {openRun?.id === run.id && (
+                              <div className="lp-report">
+                                <div className="mb-2 flex flex-wrap justify-end gap-2">
+                                  <button type="button" className="lp-btn lp-btn-quiet lp-btn-sm" onClick={() => exportRun(run, "md")}>
+                                    Markdown
+                                  </button>
+                                  <button type="button" className="lp-btn lp-btn-quiet lp-btn-sm" onClick={() => exportRun(run, "pdf")}>
+                                    PDF
+                                  </button>
+                                </div>
+                                <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+                                  <Streamdown>{run.report}</Streamdown>
+                                </div>
+                              </div>
+                            )}
+                          </Fragment>
                         ))}
                       </div>
                     )}
-                    {openRun && openRun.monitor_id === m.id && (
-                      <div className="lp-report">
-                        <div className="mb-2 flex flex-wrap justify-end gap-2">
-                          <button type="button" className="lp-btn lp-btn-quiet lp-btn-sm" onClick={() => exportRun(openRun, "md")}>Markdown</button>
-                          <button type="button" className="lp-btn lp-btn-quiet lp-btn-sm" onClick={() => exportRun(openRun, "pdf")}>PDF</button>
-                        </div>
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-                          <Streamdown>{openRun.report}</Streamdown>
-                        </div>
-                      </div>
-                    )}
-                  </li>
-                </Fragment>
-              );
-            })}
-          </ul>
-        </>
-      )}
-    </div>
+                  </Row>
+                );
+              })}
+            </Rows>
+          )}
+        </ListFold>
+      </ListFolds>
+    </ListPage>
   );
 }

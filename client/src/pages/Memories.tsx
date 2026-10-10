@@ -1,3 +1,11 @@
+/**
+ * Memories — the container for the shared list pattern.
+ *
+ * Everything folds: the remembered things sit in one section per kind (only the kinds that
+ * have something to show get a row), and the Living-memory switch is a section of its own.
+ * The search line and the type chips filter the same list they always did; a folded header
+ * says how much is behind it.
+ */
 import { useState, useMemo, useEffect } from "react";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
 import { trpc } from "@/lib/trpc";
@@ -5,8 +13,10 @@ import { callFunction } from "@/lib/kemmaCloud";
 import { motion, AnimatePresence } from "framer-motion";
 import SutaeruIcon from "@/components/SutaeruIcon";
 import { Chip, HalftoneRamp, Toggle } from "@/components/art";
-import { PageTitle } from "@/components/chrome/PageTitle";
+import type { SutaeruIconName } from "@/components/SutaeruIcon";
 import { relativeTime } from "@/lib/relativeTime";
+import { ListEmpty, ListFold, ListFolds, ListPage, NoResults, Rows, RowsSkeleton, SearchBar, useListFolds } from "@/components/list";
+import { pickArt } from "@/lib/pickArt";
 import "@/styles/list-pages.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -28,10 +38,14 @@ const TYPE_LABELS: Record<string, string> = {
   interaction: "Interaction",
 };
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-function Skeleton({ w, h = 14 }: { w: string; h?: number }) {
-  return <span className="lp-skeleton" style={{ width: w, height: h }} />;
-}
+/** The tile each kind carries, so a row reads the same everywhere. */
+const TYPE_ICONS: Record<MemoryType, SutaeruIconName> = {
+  preference: "settings",
+  fact: "check",
+  project: "plan",
+  document: "report",
+  interaction: "ask",
+};
 
 // ─── Add Memory Modal ─────────────────────────────────────────────────────────
 function AddMemoryModal({
@@ -158,12 +172,8 @@ function AddMemoryModal({
   );
 }
 
-// ─── Memory Card ──────────────────────────────────────────────────────────────
-function MemoryCard({
-  memory,
-}: {
-  memory: any;
-}) {
+// ─── Memory Row ───────────────────────────────────────────────────────────────
+function MemoryRow({ memory }: { memory: any }) {
   const [confirming, setConfirming] = useState(false);
   const utils = trpc.useUtils();
 
@@ -182,81 +192,68 @@ function MemoryCard({
     deleteMutation.mutate({ id: memory.id });
   }
 
+  const type = (memory.type as MemoryType) ?? "fact";
+  const source = memory.sourceApp ?? memory.source;
+
   return (
     <motion.li
       layout
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -4, scale: 0.98 }}
+      exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.2 }}
-      className="lp-row"
+      className="lst-row"
     >
-      <div className="lp-row-main">
-        <span className="lp-mono">{TYPE_LABELS[memory.type] ?? memory.type}</span>
-        <p className="lp-row-title line-clamp-3" style={{ fontWeight: 600 }}>
+      <span className="lst-art round" aria-hidden="true">
+        <SutaeruIcon name={TYPE_ICONS[type] ?? "memory"} signal={false} />
+      </span>
+      <div className="lst-main">
+        <p className="lst-body clamp" style={{ fontWeight: 600, color: "var(--r-ink)" }}>
           {memory.content}
         </p>
-        <span className="lp-body">
-          Added {memory.createdAt ? relativeTime(memory.createdAt) : "recently"}
-          {memory.sourceApp ?? memory.source ? ` · from ${memory.sourceApp ?? memory.source}` : ""}
-        </span>
+        <p className="mono lst-meta">
+          {memory.createdAt ? relativeTime(memory.createdAt) : "recently"}
+          {source ? ` · from ${source}` : ""}
+        </p>
       </div>
-
-      {/* Delete button */}
-      <button
-        onClick={handleDelete}
-        disabled={deleteMutation.isPending}
-        className="lp-icon-btn"
-        style={confirming ? { background: "var(--r-accent-tint)", color: "var(--r-accent)" } : undefined}
-        title={confirming ? "Click again to confirm" : "Delete memory"}
-        aria-label={confirming ? "Confirm delete memory" : "Delete memory"}
-      >
-        <SutaeruIcon name="delete" width={16} height={16} />
-      </button>
+      <div className="lst-side">
+        <button
+          onClick={handleDelete}
+          disabled={deleteMutation.isPending}
+          className="lp-icon-btn"
+          style={confirming ? { background: "var(--r-accent-tint)", color: "var(--r-accent)" } : undefined}
+          title={confirming ? "Click again to confirm" : "Delete memory"}
+          aria-label={confirming ? "Confirm delete memory" : "Delete memory"}
+        >
+          <SutaeruIcon name="delete" width={16} height={16} />
+        </button>
+      </div>
     </motion.li>
   );
 }
 
-// ─── Empty State ──────────────────────────────────────────────────────────────
-function EmptyState({ onAdd }: { onAdd: () => void }) {
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="lp-empty">
-      <HalftoneRamp columns={7} rows={9} className="lp-empty-mark" />
-      <h2 className="lp-empty-title">Nothing remembered yet.</h2>
-      <p className="lp-empty-text">
-        Store facts, preferences, and context your agent should remember.
-      </p>
-      <button onClick={onAdd} className="lp-btn">
-        Add first memory
-      </button>
-    </motion.div>
-  );
-}
-
-// ─── No Results State ─────────────────────────────────────────────────────────
-function NoResults({ query }: { query: string }) {
-  return (
-    <div className="lp-empty">
-      <span className="lp-mono">No results</span>
-      <p className="lp-empty-text">
-        No memories matching &quot;{query}&quot;
-      </p>
-    </div>
-  );
-}
-
 // ─── Living Memory Switch ─────────────────────────────────────────────────────
-function MemorySwitch() {
+function MemorySwitch({ onState }: { onState(next: boolean | null): void }) {
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     callFunction<{ enabled: boolean }>("memories", { action: "getSetting" })
-      .then((r) => { if (!cancelled) setEnabled(r.enabled); })
-      .catch(() => { if (!cancelled) setEnabled(true); });
-    return () => { cancelled = true; };
-  }, []);
+      .then((r) => {
+        if (cancelled) return;
+        setEnabled(r.enabled);
+        onState(r.enabled);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setEnabled(true);
+        onState(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [onState]);
 
   async function toggle() {
     if (enabled === null || saving) return;
@@ -265,6 +262,7 @@ function MemorySwitch() {
       const next = !enabled;
       await callFunction("memories", { action: "setSetting", enabled: next });
       setEnabled(next);
+      onState(next);
     } catch {
       // keep the previous state
     } finally {
@@ -275,15 +273,8 @@ function MemorySwitch() {
   return (
     <section className="lp-dark">
       <HalftoneRamp columns={8} rows={10} className="lp-dark-ramp" />
-      <SutaeruIcon
-        name="admin"
-        width={30}
-        height={30}
-        className="lp-dark-icon"
-        aria-hidden="true"
-      />
+      <SutaeruIcon name="admin" width={30} height={30} className="lp-dark-icon" aria-hidden="true" />
       <div className="lp-dark-body">
-        <span className="lp-mono">Living memory</span>
         <p className="lp-dark-text">
           {enabled === false
             ? "Off. Sutaeru stops noting new things from your chats. Existing memories stay."
@@ -308,6 +299,7 @@ export default function Memories() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | MemoryType>("all");
   const [showModal, setShowModal] = useState(false);
+  const [living, setLiving] = useState<boolean | null>(null);
 
   const { data: memories = [], isLoading } = trpc.memories.list.useQuery();
 
@@ -319,126 +311,105 @@ export default function Memories() {
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
-        (m: any) =>
-          m.content?.toLowerCase().includes(q) || (m.sourceApp ?? m.source)?.toLowerCase().includes(q)
+        (m: any) => m.content?.toLowerCase().includes(q) || (m.sourceApp ?? m.source)?.toLowerCase().includes(q)
       );
     }
     return result;
   }, [memories, activeTab, search]);
 
   const tabs = ["all", ...MEMORY_TYPES] as const;
-
   const total = (memories as any[]).length;
+
+  /** One fold per kind that has something to show, in the order the chips list them. */
+  const groups = MEMORY_TYPES.map((type) => ({
+    type,
+    rows: filtered.filter((m: any) => m.type === type),
+  })).filter((group) => group.rows.length > 0);
+  const ids = [...groups.map((g) => `kind-${g.type}`), "living"];
+  const fold = useListFolds("memories", ids, { first: "living" });
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="lp-page w-full min-w-0"
+      <ListPage
+        title="Memories"
+        lede="What Sutaeru knows about you. Private, editable, yours."
+        fold={fold}
+        actions={
+          <button onClick={() => setShowModal(true)} className="btn">
+            <SutaeruIcon name="plus" className="ico" /> Add Memory
+          </button>
+        }
       >
-        {/* ── Header ── */}
-        <header className="lp-head">
-          <div className="lp-head-main">
-            <PageTitle className="lp-title">Memories</PageTitle>
-            <p className="lp-lede">
-              What Sutaeru knows about you. Private, editable, yours.
-            </p>
-          </div>
-          <div className="lp-actions">
-            <button
-              onClick={() => setShowModal(true)}
-              className="lp-btn lp-btn-quiet lp-btn-sm"
-            >
-              <SutaeruIcon name="plus" /> Add Memory
-            </button>
-          </div>
-        </header>
-
-        {/* ── Search + filters ── */}
-        <div className="lp-section" style={{ marginTop: 0 }}>
-          <div className="lp-search">
-            <SutaeruIcon name="search" width={16} height={16} />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search memories..."
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="lp-icon-btn"
-                style={{ width: 32, height: 32 }}
-                aria-label="Clear search"
-              >
-                <SutaeruIcon name="close" width={14} height={14} />
-              </button>
-            )}
-          </div>
-          <div className="lp-chips-row">
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          label="Search memories"
+          placeholder="Search memories…"
+          count={isLoading ? undefined : `${filtered.length} / ${total}`}
+          extra={
             <div className="lp-chips lp-chips-scroll" role="group" aria-label="Memory type filter">
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab;
-              return (
-                <Chip key={tab} active={isActive} onClick={() => setActiveTab(tab)}>
+              {tabs.map((tab) => (
+                <Chip key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)} small>
                   {tab === "all" ? "All" : TYPE_LABELS[tab]}
                 </Chip>
-              );
-            })}
-            </div>
-            {!isLoading && (
-              <span className="lp-mono lp-chips-count lp-num">
-                {filtered.length} / {total}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* ── Content ── */}
-        {isLoading ? (
-          <ul className="lp-rows" aria-label="Loading memories">
-            {[0, 1, 2].map((i) => (
-              <li key={i} className="lp-row">
-                <div className="lp-row-main">
-                  <Skeleton w="22%" h={11} />
-                  <Skeleton w="86%" h={20} />
-                  <Skeleton w="34%" h={14} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : total === 0 ? (
-          <EmptyState onAdd={() => setShowModal(true)} />
-        ) : filtered.length === 0 ? (
-          <NoResults query={search || activeTab} />
-        ) : (
-          <motion.ul layout className="lp-rows">
-            <AnimatePresence mode="popLayout">
-              {filtered.map((memory: any) => (
-                <MemoryCard
-                  key={memory.id}
-                  memory={memory}
-                />
               ))}
-            </AnimatePresence>
-          </motion.ul>
-        )}
+            </div>
+          }
+        />
 
-        {/* ── Privacy ── */}
-        <div className="lp-section">
-          <MemorySwitch />
-        </div>
-      </motion.div>
+        {isLoading ? (
+          <RowsSkeleton rows={3} />
+        ) : total === 0 ? (
+          <ListEmpty
+            title="Nothing remembered yet."
+            text="Store facts, preferences, and context your agent should remember."
+            icon="memory"
+            action={
+              <button onClick={() => setShowModal(true)} className="btn">
+                Add first memory
+              </button>
+            }
+          />
+        ) : filtered.length === 0 ? (
+          <NoResults query={search.trim() || TYPE_LABELS[activeTab] || activeTab} onClear={() => setSearch("")} />
+        ) : (
+          <ListFolds fold={fold}>
+            {groups.map((group, i) => (
+              <ListFold
+                key={group.type}
+                id={`kind-${group.type}`}
+                index={i + 1}
+                fold={fold}
+                label={TYPE_LABELS[group.type]}
+                pick={`${group.rows.length} ${group.rows.length === 1 ? "note" : "notes"}`}
+                mini={pickArt("src-files")}
+              >
+                <Rows label={TYPE_LABELS[group.type]}>
+                  {group.rows.map((memory: any) => (
+                    <MemoryRow key={memory.id} memory={memory} />
+                  ))}
+                </Rows>
+              </ListFold>
+            ))}
+
+            <ListFold
+              id="living"
+              index={groups.length + 1}
+              fold={fold}
+              label="Living memory"
+              pick={living === null ? "Checking" : living ? "On" : "Off"}
+              mini={pickArt("nav-agent")}
+            >
+              <MemorySwitch onState={setLiving} />
+            </ListFold>
+          </ListFolds>
+        )}
+      </ListPage>
 
       {/* ── Add Memory Modal ── */}
       <AnimatePresence>
         {showModal && (
-          <AddMemoryModal
-            onClose={() => setShowModal(false)}
-            onSuccess={() => setShowModal(false)}
-          />
+          <AddMemoryModal onClose={() => setShowModal(false)} onSuccess={() => setShowModal(false)} />
         )}
       </AnimatePresence>
     </>

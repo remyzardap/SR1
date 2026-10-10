@@ -1,3 +1,11 @@
+/**
+ * Connections — the container, on the shared list pattern.
+ *
+ * Four folds: Google Workspace, the messaging links, the services you added yourself, and
+ * the form that adds one. Each folded header says what is behind it, so the phone opens on
+ * one thing at a time instead of five cards at once. Everything the page did before still
+ * works — the OAuth round trip, connect/disconnect, add, revoke, and the same test ids.
+ */
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useSearch } from "wouter";
@@ -5,9 +13,11 @@ import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
 import SutaeruIcon from "@/components/SutaeruIcon";
-import { HalftoneRamp } from "@/components/art";
-import { PageTitle } from "@/components/chrome/PageTitle";
+import { HalftoneRamp, StatusPill } from "@/components/art";
 import MessagingCard from "@/components/MessagingLink";
+import { ListEmpty, ListFold, ListFolds, ListPage, Row, Rows, RowsSkeleton, SearchBar, useAutoOpen, useListFolds } from "@/components/list";
+import { PickTiles, type PickItem } from "@/components/fold";
+import { pickArt } from "@/lib/pickArt";
 import "@/styles/connections.css";
 
 const connectionTypeLabels = {
@@ -16,11 +26,11 @@ const connectionTypeLabels = {
   generic_api_key: "API Key",
 };
 
-// Status pills follow the canvas: active = ink, the rest read as inactive.
+// Status pills follow the canvas: active = live, the rest read as inactive.
 const statusConfig = {
-  active: { label: "Active", cls: "sk-connected" },
-  revoked: { label: "Revoked", cls: "sk-chip sk-chip-idle" },
-  expired: { label: "Expired", cls: "sk-chip sk-chip-paused" },
+  active: { label: "Active", pill: "live" as const },
+  revoked: { label: "Revoked", pill: "paused" as const },
+  expired: { label: "Expired", pill: "failed" as const },
 };
 
 const CONNECTION_TYPES: Array<{ value: "llm_api_key" | "oauth2" | "generic_api_key"; label: string }> = [
@@ -29,7 +39,16 @@ const CONNECTION_TYPES: Array<{ value: "llm_api_key" | "oauth2" | "generic_api_k
   { value: "llm_api_key", label: "LLM API Key" },
 ];
 
-function GoogleWorkspaceCard() {
+/** The picture each kind of credential is shown with in the add form. */
+const TYPE_TILES: PickItem[] = [
+  { id: "generic_api_key", label: "API Key", art: pickArt("src-files") },
+  { id: "oauth2", label: "OAuth 2.0", art: pickArt("src-drive") },
+  { id: "llm_api_key", label: "LLM API Key", art: pickArt("model-best") },
+];
+
+const FOLD_IDS = ["google", "messaging", "linked", "add", "privacy"];
+
+function GoogleWorkspace({ onState }: { onState(next: string): void }) {
   const utils = trpc.useUtils();
   const { data: configured } = trpc.google.configured.useQuery();
   const { data: status, isLoading: statusLoading } = trpc.google.status.useQuery(undefined, {
@@ -47,78 +66,69 @@ function GoogleWorkspaceCard() {
     onError: (err) => toast.error(err.message),
   });
 
+  useEffect(() => {
+    if (!configured) return;
+    onState(configured.configured ? (status?.connected ? "connected" : "ready") : "off");
+  }, [configured, status, onState]);
+
   if (!configured?.configured) {
     return (
-      <section className="sk-card sk-row" style={{ marginBottom: 28 }} data-testid="card-google-not-configured">
-        <span className="skx-letter-tile" aria-hidden="true">G</span>
-        <div className="sk-col" style={{ flex: "1 1 260px", gap: 2 }}>
-          <h2 className="sk-tile-title">Google Workspace</h2>
-          <p className="sk-muted" style={{ margin: 0 }}>
-            Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable Gmail, Calendar & Drive
-          </p>
-        </div>
-        <span className="skx-outline-pill">Not Configured</span>
-      </section>
+      <div data-testid="card-google-not-configured">
+        <Row
+          title="Google Workspace"
+          initials="G"
+          body="Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable Gmail, Calendar & Drive"
+          meta="OAUTH 2 · NOT CONFIGURED"
+          status={<span className="tag quiet">Not Configured</span>}
+        />
+      </div>
     );
   }
 
   return (
-    <section className="sk-card sk-col" style={{ marginBottom: 28, gap: 18 }} data-testid="card-google-workspace">
-      <div className="sk-between">
-        <div className="sk-row" style={{ gap: 14 }}>
-          <span className="skx-letter-tile" aria-hidden="true">G</span>
-          <div className="sk-col" style={{ gap: 2 }}>
-            <h2 className="sk-tile-title">Google Workspace</h2>
-            <p className="sk-muted" style={{ margin: 0 }}>
-              {status?.connected
-                ? `Connected as ${status.email}`
-                : "Connect Gmail, Calendar & Drive to Sutaeru"}
-            </p>
-          </div>
+    <div data-testid="card-google-workspace">
+    <Rows label="Google Workspace">
+      <Row
+        title="Google Workspace"
+        initials="G"
+        meta={status?.connected ? `CONNECTED AS ${status.email}` : "CONNECT GMAIL, CALENDAR & DRIVE TO SUTAERU"}
+        status={status?.connected ? <StatusPill status="live" /> : <span className="tag quiet">Disconnected</span>}
+        actions={
+          status?.connected ? (
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => disconnectMutation.mutate()}
+              disabled={disconnectMutation.isPending}
+              data-testid="button-disconnect-google"
+            >
+              {disconnectMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Disconnect
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                if (authUrlData?.url) window.location.href = authUrlData.url;
+              }}
+              disabled={statusLoading || !authUrlData?.url}
+              data-testid="button-connect-google"
+            >
+              {statusLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+              Connect Google Account
+            </button>
+          )
+        }
+      >
+        <div className="row wrap">
+          <span className="sk-chip">Gmail</span>
+          <span className="sk-chip">Calendar</span>
+          <span className="sk-chip">Drive</span>
         </div>
-        {status?.connected ? (
-          <span className="sk-connected">
-            Connected
-          </span>
-        ) : (
-          <span className="skx-outline-pill">Disconnected</span>
-        )}
-      </div>
-
-      <div className="sk-row" style={{ gap: 8 }}>
-        <span className="sk-chip">Gmail</span>
-        <span className="sk-chip">Calendar</span>
-        <span className="sk-chip">Drive</span>
-      </div>
-
-      {status?.connected ? (
-        <button
-          type="button"
-          className="sk-btn"
-          style={{ width: "100%" }}
-          onClick={() => disconnectMutation.mutate()}
-          disabled={disconnectMutation.isPending}
-          data-testid="button-disconnect-google"
-        >
-          {disconnectMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-          Disconnect Google
-        </button>
-      ) : (
-        <button
-          type="button"
-          className="sk-btn"
-          style={{ width: "100%" }}
-          onClick={() => {
-            if (authUrlData?.url) window.location.href = authUrlData.url;
-          }}
-          disabled={statusLoading || !authUrlData?.url}
-          data-testid="button-connect-google"
-        >
-          {statusLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-          Connect Google Account
-        </button>
-      )}
-    </section>
+      </Row>
+    </Rows>
+    </div>
   );
 }
 
@@ -127,11 +137,16 @@ export default function Connections() {
   const searchString = useSearch();
   const [isAdding, setIsAdding] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
+  const [googleState, setGoogleState] = useState("checking");
 
   const [provider, setProvider] = useState("");
   const [type, setType] = useState<"llm_api_key" | "oauth2" | "generic_api_key">("generic_api_key");
   const [displayName, setDisplayName] = useState("");
   const [credentials, setCredentials] = useState("");
+  const [query, setQuery] = useState("");
+
+  const fold = useListFolds("connections", FOLD_IDS, { first: "google" });
+  useAutoOpen(fold, "add", isAdding);
 
   useEffect(() => {
     const params = new URLSearchParams(searchString);
@@ -194,211 +209,173 @@ export default function Connections() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="sk-page">
-        <div className="mx-auto w-full max-w-[1200px]">
-          <div className="sk-card sk-empty">
-            <span className="sk-label">Connections</span>
-            <p className="sk-empty-text" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading connections...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const all = connections ?? [];
+  const active = all.filter((c) => c.status === "active").length;
+  const list = query.trim()
+    ? all.filter((c) => `${c.displayName ?? ""} ${c.provider}`.toLowerCase().includes(query.trim().toLowerCase()))
+    : all;
 
   return (
-    <div className="sk-page sk-connections">
-      <div className="mx-auto w-full max-w-[1200px]">
-        {/* Page header */}
-        <header className="sk-header">
-          <div>
-            <PageTitle className="skx-title-flush">Connections</PageTitle>
-            <p className="sk-sub">Manage external service connections for your agent</p>
-          </div>
-          <div className="sk-actions">
-            <button type="button" className="sk-btn" onClick={() => setIsAdding(!isAdding)}>
-              {isAdding ? "Cancel" : "Add Connection"}
-            </button>
-          </div>
-        </header>
+    <ListPage
+      title="Connections"
+      lede="What Sutaeru can reach. Keys stay on the server."
+      fold={fold}
+      wide
+      className="sk-connections"
+      actions={
+        <button type="button" className="btn" onClick={() => setIsAdding(!isAdding)}>
+          {isAdding ? "Cancel" : "Add Connection"}
+        </button>
+      }
+    >
+      <ListFolds fold={fold}>
+        <ListFold
+          id="google"
+          index={1}
+          fold={fold}
+          label="Google Workspace"
+          pick={googleState === "connected" ? "Connected" : googleState === "off" ? "Not configured" : googleState === "ready" ? "Not connected" : "Checking"}
+          mini={pickArt("src-drive")}
+        >
+          <GoogleWorkspace onState={setGoogleState} />
+        </ListFold>
 
-        {/* Google Workspace */}
-        <GoogleWorkspaceCard />
+        <ListFold id="messaging" index={2} fold={fold} label="Messaging" pick="WhatsApp and Telegram" mini={pickArt("nav-chat")}>
+          <MessagingCard />
+        </ListFold>
 
-        {/* WhatsApp and Telegram (owner only) */}
-        <MessagingCard />
+        <ListFold
+          id="linked"
+          index={3}
+          fold={fold}
+          label="Linked services"
+          pick={isLoading ? "Checking" : `${active} of ${all.length} active`}
+          mini={pickArt("src-files")}
+        >
+          {isLoading ? (
+            <RowsSkeleton rows={3} />
+          ) : all.length === 0 ? (
+            <ListEmpty
+              title="No connections yet."
+              text="Add connections to enable your Sutaeru agent to interact with external services"
+              icon="connections"
+              action={
+                <button type="button" className="btn" onClick={() => setIsAdding(true)}>
+                  Add Connection
+                </button>
+              }
+            />
+          ) : (
+            <>
+              <SearchBar value={query} onChange={setQuery} label="Search connections" placeholder="Search connections…" count={`${list.length} / ${all.length}`} />
+              <Rows label="Connections">
+                {list.map((connection) => {
+                  const status = statusConfig[connection.status];
+                  const isActive = connection.status === "active";
+                  const name = connection.displayName || connection.provider;
 
-        {/* Add Connection Form */}
-        {isAdding && (
-          <section className="sk-card sk-col" style={{ marginBottom: 28, gap: 20 }}>
-            <div className="sk-col" style={{ gap: 4 }}>
-              <h2 className="sk-tile-title" style={{ fontSize: 20 }}>Add New Connection</h2>
-              <p className="sk-muted" style={{ margin: 0 }}>
-                Connect your agent to external services and APIs
-              </p>
-            </div>
+                  return (
+                    <Row
+                      key={connection.id}
+                      title={name}
+                      initials={name.charAt(0).toUpperCase()}
+                      meta={`${connectionTypeLabels[connection.type]} · ${connection.provider}${
+                        connection.lastUsedAt ? ` · LAST USED ${format(new Date(connection.lastUsedAt), "MMM d, yyyy")}` : ""
+                      } · ADDED ${format(new Date(connection.createdAt), "MMM d, yyyy")}`}
+                      quiet={!isActive}
+                      status={<StatusPill status={status.pill} />}
+                      actions={
+                        isActive ? (
+                          <button
+                            type="button"
+                            className="btn ghost"
+                            onClick={() => handleRevoke(connection.id)}
+                            disabled={revokeMutation.isPending}
+                          >
+                            Revoke
+                          </button>
+                        ) : null
+                      }
+                    />
+                  );
+                })}
+              </Rows>
+            </>
+          )}
+        </ListFold>
 
-            <div className="sk-grid-2">
-              <div className="sk-field">
-                <label className="sk-label" htmlFor="provider">Provider *</label>
-                <input
-                  id="provider"
-                  className="sk-input"
-                  placeholder="e.g., OpenAI, Slack, GitHub"
-                  value={provider}
-                  onChange={(e) => setProvider(e.target.value)}
-                />
+        <ListFold id="add" index={4} fold={fold} label="Add a connection" pick={provider || "provider, type, key"} mini={pickArt("forge-mountain")}>
+          <div className="lst-form">
+            <div className="lst-form-row">
+              <div className="lst-field">
+                <label className="mono" htmlFor="provider">
+                  Provider
+                </label>
+                <input id="provider" className="lst-input" placeholder="e.g., Slack, GitHub" value={provider} onChange={(e) => setProvider(e.target.value)} />
               </div>
-
-              <div className="sk-field">
-                <span className="sk-label" id="conn-type-label">Type *</span>
-                <div className="sk-row" role="radiogroup" aria-labelledby="conn-type-label">
-                  {CONNECTION_TYPES.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={type === opt.value}
-                      onClick={() => setType(opt.value)}
-                      className={`sk-pill sk-pill-sm${type === opt.value ? " is-active" : ""}`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
+              <div className="lst-field">
+                <label className="mono" htmlFor="connDisplayName">
+                  Display name
+                </label>
+                <input id="connDisplayName" className="lst-input" placeholder="My Slack key" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
               </div>
             </div>
 
-            <div className="sk-field">
-              <label className="sk-label" htmlFor="connDisplayName">Display Name</label>
-              <input
-                id="connDisplayName"
-                className="sk-input"
-                placeholder="My OpenAI Key"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-              />
+            <div className="lst-field">
+              <span className="mono">Type</span>
+              <PickTiles label="Connection type" items={TYPE_TILES} value={type} onChange={(id) => setType(id as typeof type)} />
             </div>
 
-            <div className="sk-field">
-              <label className="sk-label" htmlFor="credentials">Credentials *</label>
-              <div className="relative">
+            <div className="lst-field">
+              <label className="mono" htmlFor="credentials">
+                Credentials
+              </label>
+              <div className="row" style={{ gap: 8 }}>
                 <input
                   id="credentials"
                   type={showCredentials ? "text" : "password"}
-                  className="sk-input pr-12"
+                  className="lst-input"
                   placeholder="API key, token, or credentials"
                   value={credentials}
                   onChange={(e) => setCredentials(e.target.value)}
                 />
                 <button
                   type="button"
-                  className="sk-icon-btn absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10"
+                  className="icon-btn"
                   aria-label={showCredentials ? "Hide credentials" : "Show credentials"}
                   onClick={() => setShowCredentials(!showCredentials)}
                 >
-                  {showCredentials ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showCredentials ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="sk-muted" style={{ fontSize: 12, margin: 0 }}>
-                Your credentials are encrypted before storage
-              </p>
+              <p className="lst-note">Your credentials are encrypted before storage</p>
             </div>
 
-            <div className="sk-row" style={{ justifyContent: "flex-end" }}>
-              <button type="button" className="sk-btn sk-btn-ghost" onClick={() => setIsAdding(false)}>
+            <div className="lst-form-foot">
+              <button type="button" className="btn ghost" onClick={() => setIsAdding(false)}>
                 Cancel
               </button>
-              <button
-                type="button"
-                className="sk-btn"
-                onClick={handleAdd}
-                disabled={!provider || !credentials || addMutation.isPending}
-              >
+              <button type="button" className="btn" onClick={handleAdd} disabled={!provider || !credentials || addMutation.isPending}>
                 {addMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Add Connection
               </button>
             </div>
-          </section>
-        )}
-
-        {/* Connections list */}
-        {connections && connections.length > 0 ? (
-          <div className="skx-conn-list">
-            {connections.map((connection) => {
-              const status = statusConfig[connection.status];
-              const isActive = connection.status === "active";
-              const name = connection.displayName || connection.provider;
-
-              return (
-                <article key={connection.id} className="sk-card skx-conn-row" style={{ opacity: isActive ? 1 : 0.75 }}>
-                  <span className="skx-letter-tile" aria-hidden="true">{name.charAt(0).toUpperCase()}</span>
-
-                  <div className="sk-col skx-conn-copy">
-                    <h3 className="sk-tile-title">{name}</h3>
-                    <p className="sk-muted" style={{ margin: 0, fontSize: 13 }}>
-                      {connectionTypeLabels[connection.type]}
-                    </p>
-                    <p className="skx-conn-meta">
-                      Provider {connection.provider}
-                      {connection.lastUsedAt ? ` · Last used ${format(new Date(connection.lastUsedAt), "MMM d, yyyy")}` : ""}
-                      {` · Added ${format(new Date(connection.createdAt), "MMM d, yyyy")}`}
-                    </p>
-                  </div>
-
-                  <div className="skx-conn-side">
-                    <span className={status.cls}>
-                      {status.label}
-                    </span>
-                    {isActive && (
-                      <button
-                        type="button"
-                        className="sk-btn sk-btn-ghost sk-btn-sm"
-                        onClick={() => handleRevoke(connection.id)}
-                        disabled={revokeMutation.isPending}
-                      >
-                        Revoke Connection
-                      </button>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
           </div>
-        ) : (
-          <div className="sk-card sk-empty">
-            <span className="sk-icon-tile">
-              <SutaeruIcon name="connections" width={26} height={26} />
-            </span>
-            <span className="sk-label">No connections yet</span>
-            <p className="sk-empty-text" style={{ maxWidth: 420 }}>
-              Add connections to enable your Sutaeru agent to interact with external services
-            </p>
-            <button type="button" className="sk-btn" style={{ marginTop: 8 }} onClick={() => setIsAdding(true)}>
-              Add Connection
-            </button>
-          </div>
-        )}
+        </ListFold>
 
-        {/* Privacy note */}
-        <section className="sk-card-dark skx-conn-privacy" style={{ marginTop: 28 }}>
-          <div className="sk-row" style={{ gap: 18, minWidth: 0 }}>
-            <SutaeruIcon name="admin" width={30} height={30} style={{ color: "var(--art-paper)", flex: "none" }} />
-            <div className="sk-col">
-              <p className="sk-dark-title">Your credentials are encrypted before storage</p>
+        <ListFold id="privacy" index={5} fold={fold} label="Your keys" pick="Encrypted at rest" mini={pickArt("theme-auto")}>
+          <section className="sk-card-dark skx-conn-privacy">
+            <div className="sk-row" style={{ gap: 18, minWidth: 0 }}>
+              <SutaeruIcon name="lock" width={30} height={30} style={{ color: "var(--art-paper)", flex: "none" }} />
+              <div className="sk-col">
+                <p className="sk-dark-title">Your credentials are encrypted before storage</p>
+              </div>
             </div>
-          </div>
-          <HalftoneRamp columns={8} rows={6} className="skx-conn-ramp" />
-        </section>
-      </div>
-    </div>
+            <HalftoneRamp columns={8} rows={6} className="skx-conn-ramp" />
+          </section>
+        </ListFold>
+      </ListFolds>
+    </ListPage>
   );
 }
+

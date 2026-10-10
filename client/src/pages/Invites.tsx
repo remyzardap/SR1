@@ -1,3 +1,16 @@
+/**
+ * Invite links (T-74 / F-12) — the owner's own screen, built for a thumb.
+ *
+ * Making a link and sending it have to be one thought each: make it, then share it
+ * from the phone in their hand. So the page is two folds: "Make a link", which holds the
+ * button and the link it just produced, and "Links you made", whose header already says how
+ * many are still open. The row data underneath is counters and timestamps, so it is read
+ * out as "Not used yet" / "Used" / "Expired" / "Switched off" plus a sentence about who has
+ * used it.
+ *
+ * Right to sign up is decided by the server, not here. `listCodes` and `generateCode`
+ * answer "Access Denied" for anyone who is not an admin, and that answer is what shows.
+ */
 import { useState } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
@@ -8,27 +21,48 @@ import { SutaeruIcon } from "@/components/SutaeruIcon";
 import { inviteLinkFor } from "@/lib/inviteCapture";
 import { describeInviteUsage, inviteCodeStatus, sortCodesNewestFirst } from "@/lib/inviteCodes";
 import { copyInviteLinkFromWindow, shareInviteLinkFromWindow } from "@/lib/inviteShare";
-import "@/styles/invites.css";
+import { ListEmpty, ListFold, ListFolds, ListPage, Row, Rows, RowsSkeleton, useAutoOpen, useListFolds } from "@/components/list";
+import { pickArt } from "@/lib/pickArt";
+
 
 const SHARED_NOTE = "Sent on its way.";
 const COPIED_NOTE = "Copied. Paste it wherever you like.";
 
-/**
- * Invite links (T-74 / F-12) — the owner's own screen, built for a thumb.
- *
- * Making a link and sending it have to be one thought each: make it, then share it
- * from the phone in their hand. The row data underneath is counters and timestamps,
- * so it is read out as "Not used yet" / "Used" / "Expired" / "Switched off" plus a
- * sentence about who has used it.
- *
- * Right to sign up is decided by the server, not here. `listCodes` and `generateCode`
- * answer "Access Denied" for anyone who is not an admin, and that answer is what shows.
- */
+const FOLD_IDS = ["make", "links"];
+
+/** What the server's "Access Denied" answer looks like on this page. */
+export function InvitesDenied({ message }: { message: string }) {
+  return (
+    <section className="view view-enter lst-page">
+      <header className="head-row">
+        <div>
+          <PageTitle className="lst-title">Invite links</PageTitle>
+        </div>
+        <div className="lst-actions">
+          <Link href="/admin" className="btn">
+            Admin
+          </Link>
+        </div>
+      </header>
+      <p className="mono" style={{ margin: "26px 0 0" }}>
+        Access Denied
+      </p>
+      <p className="lede" style={{ marginTop: 8 }}>
+        {message}
+      </p>
+    </section>
+  );
+}
+
 export default function Invites() {
   const utils = trpc.useUtils();
   const { data: codes, isLoading, error } = trpc.admin.betaInvites.listCodes.useQuery();
   const [link, setLink] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+
+  const fold = useListFolds("invites", FOLD_IDS, { first: "make" });
+  // A fresh link must never be waiting behind a fold.
+  useAutoOpen(fold, "make", !!link);
 
   const create = trpc.admin.betaInvites.generateCode.useMutation({
     onSuccess: (data) => {
@@ -61,123 +95,118 @@ export default function Invites() {
     setNote(outcome.status === "copied" ? COPIED_NOTE : outcome.status === "unavailable" ? outcome.message : null);
   }
 
-  const header = (
-    <header className="sk-header">
-      <div>
-        <PageTitle className="skx-title-flush">Invite links</PageTitle>
-        <p className="sk-sub">Make a link, then send it to someone you trust.</p>
-      </div>
-      <div className="sk-actions">
-        <Link href="/admin" className="sk-btn sk-btn-ghost">Admin</Link>
-      </div>
-    </header>
-  );
-
   if (error) {
-    return (
-      <div className="sk-page sk-invites">
-        {header}
-        <div className="sk-card sk-empty">
-          <span className="sk-label">Access Denied</span>
-          <p className="sk-empty-text">{error.message}</p>
-        </div>
-      </div>
-    );
+    return <InvitesDenied message={error.message} />;
   }
 
   const rows = sortCodesNewestFirst(codes ?? []);
+  const open = rows.filter((code) => inviteCodeStatus(code).state === "open" || inviteCodeStatus(code).state === "used").length;
 
   return (
-    <div className="sk-page sk-invites">
-      {header}
-
-      <div className="sk-stack">
-        <section className="sk-card skx-inv-make">
-          <span className="sk-label">Make a link</span>
-          <p className="skx-inv-plain">A link lets one person in. You can switch it off again any time.</p>
-          <button
-            type="button"
-            className="sk-btn skx-inv-make-btn"
-            onClick={() => create.mutate({})}
-            disabled={create.isPending}
-            data-testid="button-make-invite"
-          >
-            <SutaeruIcon name="plus" className="skx-inv-btn-icon" />
-            {create.isPending ? "Making a link..." : "Make a new link"}
-          </button>
-          {create.isError ? (
-            <p className="skx-inv-error" role="alert">{create.error.message}</p>
-          ) : null}
-        </section>
-
-        {link ? (
-          <section className="sk-card skx-inv-link" aria-live="polite">
-            <span className="sk-label">Your new link</span>
-            <p className="skx-inv-link-url">{link}</p>
-            <div className="skx-inv-send">
-              <button
-                type="button"
-                className="sk-btn skx-inv-share"
-                onClick={share}
-                data-testid="button-share-invite"
-              >
-                <SutaeruIcon name="share" className="skx-inv-btn-icon" />
-                Share
-              </button>
-              <button
-                type="button"
-                className="sk-btn sk-btn-ghost skx-inv-copy"
-                onClick={copy}
-                data-testid="button-copy-invite"
-              >
-                <SutaeruIcon name="copy" className="skx-inv-btn-icon" />
-                Copy link
-              </button>
-            </div>
-            {note ? <p className="skx-inv-note">{note}</p> : null}
-          </section>
-        ) : null}
-
-        <section>
-          <p className="sk-label skx-inv-list-label">Links you made</p>
-          <div className="sk-card skx-inv-list">
-            {isLoading ? (
-              <p className="sk-empty-text">Loading links...</p>
-            ) : rows.length === 0 ? (
-              <p className="sk-empty-text">No links yet. Make one above and send it to someone.</p>
+    <ListPage
+      title="Invite links"
+      lede="Make a link, then send it to someone you trust."
+      fold={fold}
+      actions={
+        <Link href="/admin" className="btn ghost">
+          Admin
+        </Link>
+      }
+    >
+      <ListFolds fold={fold}>
+        <ListFold id="make" index={1} fold={fold} label="Make a link" pick={link ? "Ready to send" : "One person per link"} mini={pickArt("tone-friendly")}>
+          <div className="lst-form">
+            {!link ? (
+              <>
+                <p className="lst-note">A link lets one person in. You can switch it off again any time.</p>
+                <button
+                  type="button"
+                  className="btn lp-btn-self"
+                  onClick={() => create.mutate({})}
+                  disabled={create.isPending}
+                  data-testid="button-make-invite"
+                >
+                  <SutaeruIcon name="plus" className="ico" />
+                  {create.isPending ? "Making a link..." : "Make a new link"}
+                </button>
+                {create.isError ? (
+                  <p className="set-alert" role="alert">
+                    {create.error.message}
+                  </p>
+                ) : null}
+              </>
             ) : (
-              rows.map((code, i) => {
+              <div aria-live="polite" data-testid="panel-new-link">
+                <Rows label="Your new link">
+                  <Row
+                    title={<span className="mono ink">{link}</span>}
+                    meta={note ?? "Send it, or copy it and paste it wherever you like"}
+                    art={pickArt("tone-friendly")}
+                    actions={
+                      <>
+                        <button type="button" className="btn" onClick={share} data-testid="button-share-invite">
+                          <SutaeruIcon name="share" className="ico" />
+                          Share
+                        </button>
+                        <button type="button" className="btn ghost" onClick={copy} data-testid="button-copy-invite">
+                          <SutaeruIcon name="copy" className="ico" />
+                          Copy link
+                        </button>
+                      </>
+                    }
+                  />
+                </Rows>
+              </div>
+            )}
+          </div>
+        </ListFold>
+
+        <ListFold
+          id="links"
+          index={2}
+          fold={fold}
+          label="Links you made"
+          pick={isLoading ? "Checking" : `${open} open · ${rows.length} made`}
+          mini={pickArt("src-web")}
+        >
+          {isLoading ? (
+            <RowsSkeleton rows={3} />
+          ) : rows.length === 0 ? (
+            <ListEmpty title="No links yet." text="Make one above and send it to someone." icon="share" />
+          ) : (
+            <Rows label="Links you made">
+              {rows.map((code) => {
                 const status = inviteCodeStatus(code);
                 return (
-                  <div key={code.id} className={`skx-inv-row${i === 0 ? " is-first" : ""}`}>
-                    <div className="skx-inv-row-main">
-                      <p className="skx-inv-row-code">{code.code}</p>
-                      <p className="skx-inv-row-meta">{describeInviteUsage(code)}</p>
-                      <p className="skx-inv-row-when">
-                        Made {formatDate(code.createdAt)}
-                        {code.expiresAt ? ` · Runs out ${formatDate(code.expiresAt)}` : ""}
-                      </p>
-                    </div>
-                    <div className="skx-inv-row-side">
-                      <span className="skx-inv-status" data-state={status.state}>{status.label}</span>
-                      {code.isActive !== false ? (
+                  <Row
+                    key={code.id}
+                    title={<span className="mono ink">{code.code}</span>}
+                    meta={`${describeInviteUsage(code)} · Made ${formatDate(code.createdAt)}${code.expiresAt ? ` · Runs out ${formatDate(code.expiresAt)}` : ""}`}
+                    quiet={status.state === "expired" || status.state === "switchedOff"}
+                    status={
+                      <span className={status.state === "open" || status.state === "used" ? "tag" : "tag quiet"}>
+                        {status.label}
+                      </span>
+                    }
+                    actions={
+                      code.isActive !== false ? (
                         <button
                           type="button"
-                          className="sk-btn sk-btn-ghost sk-btn-sm skx-inv-off"
+                          className="btn ghost"
                           onClick={() => switchOff.mutate({ id: code.id })}
                           disabled={switchOff.isPending}
                         >
                           Switch off
                         </button>
-                      ) : null}
-                    </div>
-                  </div>
+                      ) : null
+                    }
+                  />
                 );
-              })
-            )}
-          </div>
-        </section>
-      </div>
-    </div>
+              })}
+            </Rows>
+          )}
+        </ListFold>
+      </ListFolds>
+    </ListPage>
   );
 }

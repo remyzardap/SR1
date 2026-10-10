@@ -1,0 +1,168 @@
+/* ── Studio-standard list pages (components/list) ───────────────────────
+   One pattern for Connections, Skills, Memories, Monitors, Identity, Invites,
+   Audit logs, More and Admin: a head, an optional search, an optional stats
+   strip, then folding sections of rows. Reads the same tokens as fold.css, so
+   light/dark and reduce-motion come free with it. */
+
+.lst-page { display: block; }
+.lst-head { margin-bottom: 6px; }
+.lst-title { margin: 0; font-size: clamp(34px, 9vw, 48px); }
+.lst-lede { margin: 10px 0 0; }
+.lst-actions { flex: none; display: flex; align-items: center; gap: 8px; }
+.lst-tools { display: flex; align-items: center; gap: 10px; margin: 18px 0 4px; }
+.lst-tools > :first-child { flex: 1; min-width: 0; }
+.lst-folds { margin-top: 4px; }
+.lst-folds > .fold + .fold { margin-top: 2px; }
+
+/* ── Search field ─────────────────────────────────────────────────────── */
+.lst-search {
+  position: relative; display: flex; align-items: center; gap: 10px;
+  min-height: 48px; padding: 0 14px; border-radius: 24px;
+  background: var(--card); box-shadow: 0 0 0 1px var(--stroke);
+  transition: box-shadow var(--t) var(--ease);
+}
+.lst-search:focus-within { box-shadow: 0 0 0 1.5px var(--ink); }
+.lst-search .fi { flex: none; width: 18px; height: 18px; color: var(--quiet); }
+.lst-search input {
+  flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); outline: 0;
+  font: 400 16px/1.4 var(--body); padding: 12px 0;
+}
+.lst-search input::placeholder { color: var(--quiet); }
+.lst-x {
+  flex: none; width: 32px; height: 32px; margin-right: -4px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--panel); color: var(--ink);
+  position: relative;
+}
+.lst-x::after { content: ""; position: absolute; inset: -6px; }
+.lst-count { flex: none; font-variant-numeric: tabular-nums; }
+
+/* ── Rows ─────────────────────────────────────────────────────────────── */
+.lst-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.lst-row {
+  position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+  min-height: 62px; padding: 12px 2px; border-radius: 16px;
+}
+.lst-row + .lst-row::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--hair) 7%, var(--hair) 93%, transparent);
+}
+.lst-row:has(.lst-more) { flex-wrap: wrap; align-items: flex-start; }
+.lst-art {
+  position: relative; flex: none; width: 46px; height: 36px; border-radius: 10px;
+  overflow: hidden; background: var(--panel); box-shadow: 0 0 0 1px var(--stroke); color: var(--ink);
+  display: grid; place-items: center;
+}
+.lst-art > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.lst-art > svg { width: 20px; height: 20px; }
+.lst-art.round {
+  width: 38px; height: 38px; border-radius: 50%;
+  font: 700 14px/1 var(--disp); letter-spacing: 0; text-transform: none;
+}
+.lst-art.tall { width: 56px; height: 42px; }
+.lst-main { flex: 1 1 190px; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.lst-name {
+  margin: 0; font: 600 16px/1.3 var(--body); color: var(--ink);
+  overflow-wrap: break-word; text-wrap: pretty;
+}
+.lst-name.one { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lst-body { margin: 0; font: 400 14px/1.5 var(--body); color: var(--quiet); text-wrap: pretty; }
+.lst-body.clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.lst-meta { margin: 0; font-size: 10.5px; letter-spacing: 1.2px; }
+.lst-side { flex: 0 1 auto; margin-left: auto; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.lst-side .btn { min-height: 44px; padding: 0 16px; font-size: 14px; }
+.lst-more { flex: 1 1 100%; min-width: 0; margin-top: 6px; padding-top: 10px; }
+.lst-ini { position: relative; z-index: 1; }
+/* A row whose name is a link: the link carries the whole tap target. */
+.lst-name a { color: inherit; text-decoration: none; display: block; position: relative; }
+.lst-name a::after { content: ""; position: absolute; inset: -14px -10px; }
+.lst-go { flex: none; width: 24px; height: 24px; display: grid; place-items: center; color: var(--quiet); }
+.lst-go .fi { width: 16px; height: 16px; }
+.lst-row:has(.lst-name a:hover), .lst-row:has(.lst-name a:focus-visible) { background: var(--panel); }
+.lst-row.quiet { opacity: .62; }
+.lst-plain { margin: 18px 0 4px; min-width: 0; }
+.lst-plain > .mono { font-size: 10px; letter-spacing: 1.3px; }
+
+/* ── Stats strip: one card, the numbers side by side ───────────────────── */
+.lst-strip {
+  display: grid; gap: 2px; margin: 20px 0 4px; padding: 16px 6px;
+  border-radius: var(--r-lg, 20px); background: var(--card); box-shadow: 0 0 0 1px var(--stroke);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 760px) { .lst-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.lst-stat { position: relative; min-width: 0; padding: 4px 14px; display: flex; flex-direction: column; gap: 7px; }
+.lst-stat + .lst-stat::before {
+  content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 1px; background: var(--hair);
+}
+.lst-stat > .mono { font-size: 10px; letter-spacing: 1.3px; }
+.lst-num { font: 800 26px/1 var(--disp); letter-spacing: -.03em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.lst-num.sm { font-size: 19px; letter-spacing: -.02em; }
+.lst-stat > .art-meter { flex-wrap: wrap; gap: 3px; }
+
+/* ── Empty, loading, no results ────────────────────────────────────────── */
+.lst-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 26px 2px 30px; }
+.lst-empty .title { font-size: 24px; }
+.lst-skeleton { display: block; border-radius: 10px; background: var(--panel); animation: lst-pulse 1.6s ease-in-out infinite; }
+@keyframes lst-pulse { 50% { opacity: .5; } }
+@media (prefers-reduced-motion: reduce) { .lst-skeleton { animation: none; } }
+[data-reduce-motion="true"] .lst-skeleton { animation: none; }
+
+/* ── Form fields on these pages (no shadcn) ────────────────────────────── */
+.lst-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.lst-field > .mono { font-size: 10px; letter-spacing: 1.3px; }
+.lst-input, .lst-area, .lst-select {
+  width: 100%; min-height: 48px; padding: 12px 16px; border-radius: 16px;
+  border: 1px solid var(--stroke); background: var(--card); color: var(--ink);
+  font: 400 15px/1.45 var(--body); outline: 0;
+  transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+.lst-area { min-height: 96px; resize: vertical; }
+.lst-input:focus, .lst-area:focus, .lst-select:focus { border-color: var(--ink); }
+.lst-note { margin: 0; font-size: 13px; color: var(--quiet); line-height: 1.45; }
+.lst-traits {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 48px;
+  padding: 8px 10px; border-radius: 18px; background: var(--card); border: 1px solid var(--stroke);
+}
+.lst-trait {
+  display: inline-flex; align-items: center; gap: 2px; padding: 4px 4px 4px 12px;
+  border-radius: 999px; background: var(--ink); color: var(--paper); font: 600 13px/1 var(--body);
+}
+.lst-trait button {
+  position: relative; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  color: var(--paper); opacity: .8;
+}
+.lst-trait button::after { content: ""; position: absolute; inset: -8px; }
+.lst-trait button:hover { opacity: 1; }
+.lst-traits input { flex: 1; min-width: 8rem; border: 0; background: transparent; color: var(--ink); outline: 0; font: 400 15px/1.4 var(--body); padding: 6px 4px; }
+/* A native select keeps all eighteen languages without a picture tile per one. */
+.lst-select-wrap { position: relative; }
+.lst-select { appearance: none; -webkit-appearance: none; padding-right: 44px; }
+.lst-select-wrap .fi { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--quiet); width: 16px; height: 16px; }
+
+/* ── Sheet body (add / edit forms) ─────────────────────────────────────── */
+.lst-form { display: flex; flex-direction: column; gap: 18px; }
+.lst-form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.lst-form-row > .lst-field { flex: 1 1 200px; }
+.lst-form-foot { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+/* A form inside the bottom sheet needs the same rhythm, without the sheet's own padding. */
+.sheet-form { padding: 4px 4px 8px; }
+
+/* ── Two columns where a page is a preview plus a form (Identity) ──────── */
+.lst-split { display: grid; gap: 22px; margin-top: 20px; min-width: 0; }
+@media (min-width: 1000px) { .lst-split { grid-template-columns: minmax(0, 360px) minmax(0, 1fr); align-items: start; } }
+.lst-split > * { min-width: 0; }
+/* The avatar slot in the Profile fold. */
+.lst-art.id-avatar { width: 76px; height: 76px; border-radius: 20px; margin: 2px 14px 2px 0; }
+.lst-art.id-avatar img { border-radius: inherit; }
+
+@media (min-width: 1100px) {
+  .lst-row { padding: 14px 4px; }
+  .lst-name { font-size: 17px; }
+}
+
+/* The lab's own gutter: .lab-wrap .view drops the page gutter, so a full-bleed lab
+   screen re-adds it here and the tile rows reach the edge exactly as they do in the app. */
+.lab-gutter { padding: 0 var(--gutter); }
+
+/* An icon button borrowed from another sheet still gets a 44 px hit area inside a row. */
+.lst-side .lp-icon-btn { position: relative; }
+.lst-side .lp-icon-btn::after { content: ""; position: absolute; inset: -2px; }

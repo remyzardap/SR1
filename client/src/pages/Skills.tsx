@@ -1,31 +1,23 @@
+/**
+ * Skills — the container, on the shared list pattern (no shadcn).
+ *
+ * One fold per kind of skill, the built-in panel folded under them, and the form that
+ * teaches Sutaeru something new in a sheet: a picture tile per skill type, native fields,
+ * nothing from components/ui. Deleting is a second press on the same button, the way
+ * Memories does it, so there is no dialog in the way.
+ */
 import type React from "react";
 import { useState } from "react";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
+import { Sheet } from "@/components/art";
 import { toast } from "sonner";
 import { AgentSkillsPanel } from "@/components/AgentSkillsPanel";
-import { FocusBrackets } from "@/components/art";
-import { PageTitle } from "@/components/chrome/PageTitle";
+import { ListEmpty, ListFold, ListFolds, ListPage, NoResults, Row, Rows, RowsSkeleton, SearchBar, useListFolds } from "@/components/list";
+import { PickTiles, type PickItem } from "@/components/fold";
+import { pickArt } from "@/lib/pickArt";
 import "@/styles/list-pages.css";
 
 const skillTypes = ["prompt", "workflow", "tool_definition", "behavior"] as const;
@@ -42,137 +34,186 @@ interface Skill {
   createdAt: Date | string;
 }
 
-const typeConfig: Record<
-  SkillType,
-  { label: string; icon: SutaeruIconName; text: string }
-> = {
-  prompt: {
-    label: "Prompt",
-    icon: "make",
-    text: "A standing instruction Sutaeru follows.",
-  },
-  workflow: {
-    label: "Workflow",
-    icon: "plan",
-    text: "A run of steps, done in order.",
-  },
-  tool_definition: {
-    label: "Tool",
-    icon: "settings",
-    text: "Something Sutaeru can call and read back.",
-  },
-  behavior: {
-    label: "Behavior",
-    icon: "agent",
-    text: "How Sutaeru should act on every answer.",
-  },
+const typeConfig: Record<SkillType, { label: string; icon: SutaeruIconName; text: string; art: string }> = {
+  prompt: { label: "Prompt", icon: "make", text: "A standing instruction Sutaeru follows.", art: pickArt("document") },
+  workflow: { label: "Workflow", icon: "plan", text: "A run of steps, done in order.", art: pickArt("nav-agent") },
+  tool_definition: { label: "Tool", icon: "settings", text: "Something Sutaeru can call and read back.", art: pickArt("code") },
+  behavior: { label: "Behavior", icon: "agent", text: "How Sutaeru should act on every answer.", art: pickArt("nav-chat") },
 };
 
-function SkillCard({
-  skill,
-  onDelete,
-}: {
-  skill: Skill;
-  onDelete: (id: number) => void;
-}) {
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+const TYPE_ITEMS: PickItem[] = skillTypes.map((type) => ({
+  id: type,
+  label: typeConfig[type].label,
+  art: typeConfig[type].art,
+}));
+
+const FOLD_IDS = ["prompt", "workflow", "tool", "behavior", "teach"];
+const FOLD_OF: Record<SkillType, string> = {
+  prompt: "prompt",
+  workflow: "workflow",
+  tool_definition: "tool",
+  behavior: "behavior",
+};
+
+/** A skill row: the kind's tile, the name, what it does, how often it has been used. */
+function SkillRow({ skill, onDelete }: { skill: Skill; onDelete: (id: number) => void }) {
+  const [confirming, setConfirming] = useState(false);
   const typeInfo = typeConfig[skill.type];
   const uses = skill.usageCount ?? 0;
 
-  return (
-    <>
-      <motion.li
-        layout
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -4, scale: 0.98 }}
-        transition={{ duration: 0.2 }}
-        className="lp-row group"
-      >
-        {/* The row waiting for a delete decision is the active one. */}
-        {showDeleteDialog && <FocusBrackets />}
-        <span className="lp-tile" aria-hidden="true">
-          <SutaeruIcon name={typeInfo.icon} />
-        </span>
-        <div className="lp-row-main">
-          <p className="lp-row-title truncate">{skill.name}</p>
-          {/* One line, like the canvas: the description, then the type and its use count. */}
-          <p className="lp-body lp-one-line">
-            {skill.description || "No description provided"}
-          </p>
-          <span className="lp-mono">
-            {typeInfo.label} · {uses} use{uses === 1 ? "" : "s"}
-          </span>
-        </div>
-        <div className="lp-row-side">
-          <button
-            type="button"
-            onClick={() => setShowDeleteDialog(true)}
-            aria-label={`Delete ${skill.name}`}
-            className="lp-icon-btn opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
-          >
-            <SutaeruIcon name="delete" />
-          </button>
-        </div>
-      </motion.li>
+  function handleDelete() {
+    if (!confirming) {
+      setConfirming(true);
+      setTimeout(() => setConfirming(false), 2500);
+      return;
+    }
+    onDelete(skill.id);
+  }
 
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="sk-dialog lp-dialog w-[calc(100%-2rem)] sm:mx-auto">
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Delete Skill
-            </AlertDialogTitle>
-            <AlertDialogDescription className="lp-body">
-              Are you sure you want to delete &quot;{skill.name}&quot;? This action cannot be
-              undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-            <AlertDialogCancel className="lp-btn lp-btn-quiet border-0">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => onDelete(skill.id)}
-              className="lp-btn"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+  return (
+    <motion.li
+      layout
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.98 }}
+      transition={{ duration: 0.2 }}
+      className="lst-row"
+    >
+      <span className="lst-art round" aria-hidden="true">
+        <SutaeruIcon name={typeInfo.icon} signal={false} />
+      </span>
+      <div className="lst-main">
+        <p className="lst-name">{skill.name}</p>
+        <p className="lst-body clamp">{skill.description || "No description provided"}</p>
+        <p className="mono lst-meta">
+          {uses} use{uses === 1 ? "" : "s"}
+        </p>
+      </div>
+      <div className="lst-side">
+        <button
+          type="button"
+          onClick={handleDelete}
+          aria-label={confirming ? `Confirm delete ${skill.name}` : `Delete ${skill.name}`}
+          title={confirming ? "Click again to confirm" : "Delete skill"}
+          className="lp-icon-btn"
+          style={confirming ? { background: "var(--r-accent-tint)", color: "var(--r-accent)" } : undefined}
+        >
+          <SutaeruIcon name="delete" width={16} height={16} />
+        </button>
+      </div>
+    </motion.li>
   );
 }
 
 function SkillSkeleton() {
   return (
-    <li className="lp-row">
-      <span className="lp-skeleton lp-tile" style={{ width: 56, height: 56, borderRadius: "var(--r-radius-thumb)" }} />
-      <div className="lp-row-main">
-        <span className="lp-skeleton" style={{ height: 20, width: "58%" }} />
-        <span className="lp-skeleton" style={{ height: 14, width: "82%" }} />
-        <span className="lp-skeleton" style={{ height: 11, width: "30%" }} />
+    <li className="lst-row">
+      <span className="lst-art round" aria-hidden="true">
+        <span className="lst-skeleton" style={{ width: "100%", height: "100%", borderRadius: 999 }} />
+      </span>
+      <div className="lst-main">
+        <span className="lst-skeleton" style={{ height: 18, width: "58%" }} />
+        <span className="lst-skeleton" style={{ height: 12, width: "82%" }} />
       </div>
     </li>
   );
 }
 
-function EmptyState({ onAdd }: { onAdd: () => void }) {
+/* ── The add-skill sheet (presentational: every value and handler comes from the page) ── */
+
+export interface SkillDraft {
+  name: string;
+  type: SkillType;
+  description: string;
+  content: string;
+}
+
+export function SkillSheet({
+  open,
+  draft,
+  busy,
+  onChange,
+  onSubmit,
+  onClose,
+}: {
+  open: boolean;
+  draft: SkillDraft;
+  busy: boolean;
+  onChange(next: SkillDraft): void;
+  onSubmit(): void;
+  onClose(): void;
+}) {
   return (
-    <motion.section
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="lp-empty"
-    >
-      <FocusBrackets />
-      <span className="lp-empty-mark"><SutaeruIcon name="make" width={44} height={44} /></span>
-      <h2 className="lp-empty-title">No skills yet.</h2>
-      <p className="lp-empty-text">
-        Skills are reusable prompts, workflows, tools, and behaviors that define what
-        Sutaeru can do.
-      </p>
-      <button type="button" onClick={onAdd} className="lp-btn">
-        Add Skill
-      </button>
-    </motion.section>
+    <Sheet open={open} onClose={onClose} title="Add Skill">
+      <form
+        className="lst-form sheet-form"
+        onSubmit={(event: React.FormEvent) => {
+          event.preventDefault();
+          onSubmit();
+        }}
+      >
+        <p className="lede" style={{ fontSize: 15 }}>
+          Teach Sutaeru something it can do again.
+        </p>
+
+        <div className="lst-field">
+          <label className="mono" htmlFor="skill-name">
+            Name
+          </label>
+          <input
+            id="skill-name"
+            value={draft.name}
+            onChange={(e) => onChange({ ...draft, name: e.target.value })}
+            placeholder="e.g., Research Assistant"
+            className="lst-input"
+          />
+        </div>
+
+        <div className="lst-field">
+          <span className="mono">Type</span>
+          <PickTiles label="Skill type" items={TYPE_ITEMS} value={draft.type} onChange={(id) => onChange({ ...draft, type: id as SkillType })} />
+          <p className="lst-note">{typeConfig[draft.type].text}</p>
+        </div>
+
+        <div className="lst-field">
+          <label className="mono" htmlFor="skill-description">
+            Description
+          </label>
+          <textarea
+            id="skill-description"
+            value={draft.description}
+            onChange={(e) => onChange({ ...draft, description: e.target.value })}
+            placeholder="Brief description of what this skill does..."
+            rows={3}
+            className="lst-area"
+          />
+        </div>
+
+        <div className="lst-field">
+          <label className="mono" htmlFor="skill-content">
+            Content
+          </label>
+          <textarea
+            id="skill-content"
+            value={draft.content}
+            onChange={(e) => onChange({ ...draft, content: e.target.value })}
+            placeholder="The actual prompt, instructions, or code for this skill..."
+            rows={6}
+            className="lst-area"
+            style={{ fontFamily: "var(--r-font-mono)", fontSize: 13 }}
+          />
+        </div>
+
+        <div className="lst-form-foot">
+          <button type="button" onClick={onClose} className="btn ghost">
+            Cancel
+          </button>
+          <button type="submit" disabled={busy} className="btn">
+            {busy ? "Creating..." : "Create Skill"}
+          </button>
+        </div>
+      </form>
+    </Sheet>
   );
 }
 
@@ -182,7 +223,7 @@ export default function Skills() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<SkillDraft>({
     name: "",
     type: "prompt" as SkillType,
     description: "",
@@ -209,17 +250,13 @@ export default function Skills() {
     },
   });
 
-  const filteredSkills =
-    skills?.filter((skill) =>
-      skill.name.toLowerCase().includes(searchQuery.toLowerCase())
-    ) ?? [];
+  const filteredSkills = skills?.filter((skill) => skill.name.toLowerCase().includes(searchQuery.toLowerCase())) ?? [];
 
   const resetForm = () => {
     setFormData({ name: "", type: "prompt", description: "", content: "" });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = () => {
     if (!formData.name.trim()) {
       toast.error("Name is required");
       return;
@@ -231,195 +268,103 @@ export default function Skills() {
     deleteMutation.mutate({ id });
   };
 
+  const groups = skillTypes
+    .map((type) => ({ type, rows: filteredSkills.filter((skill) => skill.type === type) }))
+    .filter((group) => group.rows.length > 0);
+
+  const fold = useListFolds("skills", FOLD_IDS, { first: "prompt" });
+
   return (
-    <div className="lp-page min-h-screen">
-      {/* ── Page header ── */}
-      <header className="lp-head">
-        <div className="lp-head-main">
-          <PageTitle className="lp-title">Skills</PageTitle>
-          <p className="lp-lede">
-            Reusable abilities Sutaeru can call. Turn them on, or teach it new ones.
-          </p>
-        </div>
-        <div className="lp-actions">
-          <button type="button" onClick={() => setIsModalOpen(true)} className="lp-btn lp-btn-quiet lp-btn-sm">
-            <SutaeruIcon name="plus" /> Add Skill
+    <>
+      <ListPage
+        title="Skills"
+        lede="Reusable abilities Sutaeru can call. Turn them on, or teach it new ones."
+        fold={fold}
+        actions={
+          <button type="button" onClick={() => setIsModalOpen(true)} className="btn">
+            <SutaeruIcon name="plus" className="ico" /> Add Skill
           </button>
-        </div>
-      </header>
-
-      <AgentSkillsPanel />
-
-      {/* Search bar */}
-      <div className="lp-section" style={{ marginTop: 0, marginBottom: 20 }}>
-        <div className="lp-search">
-          <SutaeruIcon name="search" />
-          <input
-            type="text"
-            placeholder="Search skills..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Skills list */}
-      {isLoading ? (
-        <ul className="lp-rows" aria-label="Loading skills">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <SkillSkeleton key={i} />
-          ))}
-        </ul>
-      ) : filteredSkills.length === 0 ? (
-        searchQuery ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="lp-empty"
-          >
-            <span className="lp-mono">Skills</span>
-            <p className="lp-empty-text">
-              No skills found matching &quot;{searchQuery}&quot;
-            </p>
-          </motion.div>
-        ) : (
-          <EmptyState onAdd={() => setIsModalOpen(true)} />
-        )
-      ) : (
-        <motion.ul layout className="lp-rows">
-          <AnimatePresence mode="popLayout">
-            {filteredSkills.map((skill) => (
-              <SkillCard key={skill.id} skill={skill} onDelete={handleDelete} />
-            ))}
-          </AnimatePresence>
-        </motion.ul>
-      )}
-
-      {/* Teach a new skill */}
-      <button
-        type="button"
-        onClick={() => setIsModalOpen(true)}
-        className="lp-row"
+        }
       >
-        <span className="lp-tile" aria-hidden="true">
-          <SutaeruIcon name="plus" />
-        </span>
-        <span className="lp-row-main">
-          <span className="lp-row-title">
-            Teach Sutaeru a new skill
-          </span>
-          <span className="lp-body">
-            Describe a routine once. Sutaeru turns it into a skill you can reuse.
-          </span>
-        </span>
-      </button>
+        <SearchBar value={searchQuery} onChange={setSearchQuery} label="Search skills" placeholder="Search skills…" count={isLoading ? undefined : `${filteredSkills.length}`} />
 
-      {/* ── Add Skill Modal ── */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sk-dialog lp-dialog w-[calc(100%-2rem)] sm:max-w-lg max-h-[90vh] overflow-y-auto mx-auto">
-          <DialogHeader>
-            <DialogTitle>
-              Add Skill
-            </DialogTitle>
-            <DialogDescription className="lp-body">
-              Create a new skill to enhance your AI agent&apos;s capabilities.
-            </DialogDescription>
-          </DialogHeader>
+        <div className="lp-section" style={{ marginTop: 4 }}>
+          <AgentSkillsPanel />
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5 mt-4">
-            <div className="lp-field-group">
-              <label className="lp-mono" htmlFor="skill-name">
-                Name
-              </label>
-              <input
-                id="skill-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Research Assistant"
-                className="lp-field"
-                style={{ marginTop: 8 }}
+        {isLoading ? (
+          <Rows label="Loading skills">
+            <SkillSkeleton />
+            <SkillSkeleton />
+            <SkillSkeleton />
+          </Rows>
+        ) : (
+          <ListFolds fold={fold}>
+            {searchQuery && filteredSkills.length === 0 ? null : groups.map((group, i) => (
+              <ListFold
+                key={group.type}
+                id={FOLD_OF[group.type]}
+                index={i + 1}
+                fold={fold}
+                label={typeConfig[group.type].label}
+                pick={`${group.rows.length} ${group.rows.length === 1 ? "skill" : "skills"}`}
+                mini={typeConfig[group.type].art}
+              >
+                <Rows label={typeConfig[group.type].label}>
+                  {group.rows.map((skill) => (
+                    <SkillRow key={skill.id} skill={skill} onDelete={handleDelete} />
+                  ))}
+                </Rows>
+              </ListFold>
+            ))}
+
+            {searchQuery && filteredSkills.length === 0 ? (
+              <NoResults query={searchQuery} onClear={() => setSearchQuery("")} />
+            ) : filteredSkills.length === 0 ? (
+              <ListEmpty
+                title="No skills yet."
+                text="Skills are reusable prompts, workflows, tools, and behaviors that define what Sutaeru can do."
+                icon="make"
               />
-            </div>
+            ) : null}
 
-            <div className="lp-field-group">
-              <span className="lp-mono">Type</span>
-              {/* The choice is shown as cards, one per skill type. */}
-              <div className="lp-choice-grid" role="radiogroup" aria-label="Skill type">
-                {skillTypes.map((type) => {
-                  const config = typeConfig[type];
-                  const active = formData.type === type;
-                  return (
-                    <button
-                      key={type}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      className={`lp-choice${active ? " is-active" : ""}`}
-                      onClick={() => setFormData({ ...formData, type })}
-                    >
-                      <span className="lp-choice-icon" aria-hidden="true">
-                        <SutaeruIcon name={config.icon} />
-                      </span>
-                      <span className="lp-choice-label">{config.label}</span>
-                      <span className="lp-choice-text">{config.text}</span>
+            <ListFold
+              id="teach"
+              index={groups.length + 1}
+              fold={fold}
+              label="Teach a new skill"
+              pick="one form"
+              mini={typeConfig.prompt.art}
+            >
+              <Rows label="Teach a new skill">
+                <Row
+                  title="Teach Sutaeru a new skill"
+                  body="Describe a routine once. Sutaeru turns it into a skill you can reuse."
+                  meta="PROMPT · WORKFLOW · TOOL · BEHAVIOR"
+                  icon="plus"
+                  actions={
+                    <button type="button" className="btn" onClick={() => setIsModalOpen(true)}>
+                      Add Skill
                     </button>
-                  );
-                })}
-              </div>
-            </div>
+                  }
+                />
+              </Rows>
+            </ListFold>
+          </ListFolds>
+        )}
+      </ListPage>
 
-            <div className="lp-field-group">
-              <label className="lp-mono" htmlFor="skill-description">
-                Description
-              </label>
-              <Textarea
-                id="skill-description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Brief description of what this skill does..."
-                rows={3}
-                className="lp-field lp-area"
-                style={{ marginTop: 8 }}
-              />
-            </div>
-
-            <div className="lp-field-group">
-              <label className="lp-mono" htmlFor="skill-content">
-                Content
-              </label>
-              <Textarea
-                id="skill-content"
-                value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                placeholder="The actual prompt, instructions, or code for this skill..."
-                rows={6}
-                className="lp-field lp-area"
-                style={{ marginTop: 8, fontFamily: "var(--r-font-mono)", fontSize: 13 }}
-              />
-            </div>
-
-            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsModalOpen(false);
-                  resetForm();
-                }}
-                className="lp-btn lp-btn-quiet"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={createMutation.isPending}
-                className="lp-btn"
-              >
-                {createMutation.isPending ? "Creating..." : "Create Skill"}
-              </button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </div>
+      <SkillSheet
+        open={isModalOpen}
+        draft={formData}
+        busy={createMutation.isPending}
+        onChange={setFormData}
+        onSubmit={handleSubmit}
+        onClose={() => {
+          setIsModalOpen(false);
+          resetForm();
+        }}
+      />
+    </>
   );
 }
