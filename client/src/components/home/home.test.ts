@@ -79,7 +79,7 @@ describe("Home screen markup, ported from VIEWS.home", () => {
   it("shows the private note and the dashed composer only when private is on", () => {
     const plain = screen();
     expect(plain).toContain("private-note mono");
-    expect(plain).toContain("Private · not saved to history or memory");
+    expect(plain).toContain("Private · nothing is added to memory");
     expect(plain).not.toContain("private-on");
     expect(screen({ composer: composerProps({ privateChat: true }) })).toContain("view home view-enter private-on");
   });

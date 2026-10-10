@@ -145,11 +145,12 @@ export default function Chat() {
   const [messageModel, setMessageModel] = useState<ModelChoice>("auto");
   const [taggedSkills, setTaggedSkills] = useState<number[]>([]);
   // Home's two composer switches. Thinking asks for the slower, more careful run, and the
-  // stream endpoint reads it straight off the body. Private has no state here beyond the
-  // one the composer shows: no endpoint keeps a chat out of history or memory yet, so
-  // Home leaves the switch honest about that rather than flipping something inert.
+  // stream endpoint reads it straight off the body. Private keeps the run out of memory
+  // extraction (the client's part); the server still keeps its own history for the thread.
   const [thinking, setThinking] = useState(false);
   const [privateChat, setPrivateChat] = useState(false);
+  const privateRef = useRef(false);
+  privateRef.current = privateChat;
 
   // Agent run state
   const [agentSteps, setAgentSteps] = useState<AgentStep[]>([]);
@@ -187,6 +188,10 @@ export default function Chat() {
   const [codeTotp, setCodeTotp] = useState("");
   const isCode = mode === "code" && isAdmin;
   const code = useCodeThread(sessionId, isCode);
+  // Code is admin-only: a ?mode=code address must not leave anyone else on the Code chip.
+  useEffect(() => {
+    if (me.isFetched && !isAdmin && mode === "code") setMode("fast");
+  }, [me.isFetched, isAdmin, mode]);
   // Opening a thread that already has a code session puts it back in Code mode.
   useEffect(() => {
     if (isAdmin && storedCodeSession(sessionId)) setMode("code");
@@ -659,6 +664,7 @@ export default function Chat() {
         // Memories page master switch; the Cloud function only proposes items).
         void (async () => {
           try {
+            if (privateRef.current) return;
             const latest = messagesRef.current;
             const assistantText = latest.find((m) => m.id === assistantId)?.content ?? "";
             if (!assistantText.trim()) return;
@@ -794,7 +800,7 @@ export default function Chat() {
   // The chat bar's dot ramp: the phase follows the run, the token rate follows the reply text.
   const lastReply = messages[messages.length - 1];
   useChatEnergyFeed({
-    streaming: isStreaming,
+    streaming: isStreaming || (isCode && code.running),
     text: lastReply?.role === "assistant" ? lastReply.content : undefined,
     error: !!error,
   });
