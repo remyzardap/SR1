@@ -21,26 +21,19 @@ import type { ApprovalRequest } from "@/lib/sse";
 import { applyHistoryMetadata, type HistoryMetadata } from "@/lib/citations";
 import { callFunction } from "@/lib/kemmaCloud";
 import { AttachMenu } from "@/components/AttachMenu";
-import { ModeMenu, PRIVATE_HINT, SOURCE_ROWS, chatModes } from "@/components/chat/ModeMenu";
+import { ModeMenu, SOURCE_ROWS, chatModes } from "@/components/chat/ModeMenu";
+import { CHAT_TOOLS } from "@/components/chat/ModeSheet";
+import { modelIdFor, type ModelChoice } from "@/components/chat/modelChoice";
+import { useChatEnergyFeed } from "@/lib/motion/chatEnergy";
 import { useOnline } from "@/hooks/useAppearance";
 import { beginStream, type StreamHandle } from "@/lib/activeStreams";
 import { CodeAccessBar, CodeThreadView, rememberCodeSession, storedCodeSession, useCodeThread, type CodeAccess } from "@/components/CodeThread";
 import { MAX_FILES, attachmentName, type Attachment } from "@/lib/attachments";
 import { NEON_PAGE_BG, NOISE_OVERLAY, NEON, NEON_FD, NEON_FM } from "@/lib/design";
-import { Settings, X, Cpu, Wrench, PanelRightOpen, PanelRightClose, Zap, Search, FileText, Image as ImageIcon } from "lucide-react";
-import { Sparkles } from "@/components/brandIcons";
+import { PanelRightOpen, PanelRightClose, Zap, Search, FileText, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SutaeruIcon } from "@/components/SutaeruIcon";
 import type { ActivityItem } from "@/components/ActivityFeed";
 import type { ChatMessageData as Message, PlanDirection } from "@/types/chat";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
 import { createSseParser, decodeEvent, type RawSseEvent } from "@/lib/sse";
 import { initialStreamState, reduceStream, type AgentStep, type Source } from "@/lib/streamReducer";
 
@@ -50,13 +43,8 @@ interface StreamSettings {
   taggedSkills?: number[];
 }
 
-const ALL_TOOLS = [
-  { id: "web_search", label: "Search" },
-  { id: "browse", label: "Browse" },
-  { id: "run_code", label: "Sandbox" },
-  { id: "safe_files", label: "Files" },
-  { id: "generate_file", label: "Documents" },
-];
+/** Turning Drive on or off turns the whole Drive toolset on or off: search alone could not read a file. */
+const DRIVE_TOOLS = ["drive_search", "drive_read", "drive_create", "drive_edit", "drive_move"];
 
 const MODE_DEFAULTS: Record<string, string[]> = {
   fast: ["web_search"],
@@ -121,7 +109,6 @@ export default function Chat() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAgentMode, setIsAgentMode] = useState(() => new URLSearchParams(window.location.search).get("mode") === "agent");
   const [, navigate] = useLocation();
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [agentPanelOpen, setAgentPanelOpen] = useState(false);
   type ChatWidth = "normal" | "wide" | "full";
   const [chatWidth, setChatWidth] = useState<ChatWidth>(() => {
@@ -155,7 +142,7 @@ export default function Chat() {
   });
 
   // Message-level settings
-  const [messageModel, setMessageModel] = useState<string>("auto");
+  const [messageModel, setMessageModel] = useState<ModelChoice>("auto");
   const [taggedSkills, setTaggedSkills] = useState<number[]>([]);
   // Home's two composer switches. Thinking asks for the slower, more careful run, and the
   // stream endpoint reads it straight off the body. Private has no state here beyond the
@@ -275,9 +262,10 @@ export default function Chat() {
   };
 
   const toggleTool = (toolId: string) => {
+    const group = toolId === DRIVE_TOOLS[0] ? DRIVE_TOOLS : [toolId];
     const next = allowedTools.includes(toolId)
-      ? allowedTools.filter((t) => t !== toolId)
-      : [...allowedTools, toolId];
+      ? allowedTools.filter((t) => !group.includes(t))
+      : [...allowedTools.filter((t) => !group.includes(t)), ...group];
     setAllowedTools(next);
     persistMode(mode, next);
   };
@@ -536,7 +524,7 @@ export default function Chat() {
 
       const conversationSoFar = [...messages, userMsg];
       const settings: StreamSettings = {
-        model: messageModel === "auto" ? undefined : messageModel,
+        model: modelIdFor(messageModel, availableModels),
         taggedSkills: taggedSkills.length > 0 ? taggedSkills : undefined,
       };
 
@@ -726,7 +714,7 @@ export default function Chat() {
         if (streamRef.current === stream) streamRef.current = null;
       }
     },
-    [input, isStreaming, messages, sessionId, mode, messageModel, taggedSkills, attachments, isCode, code, codeAccess, codeTotp, thinking]
+    [input, isStreaming, messages, sessionId, mode, messageModel, availableModels, taggedSkills, attachments, isCode, code, codeAccess, codeTotp, thinking]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -802,6 +790,14 @@ export default function Chat() {
   }, [sessionId, exportThread]);
   const exportThreadFromServerRef = useRef(exportThreadFromServer);
   exportThreadFromServerRef.current = exportThreadFromServer;
+
+  // The chat bar's dot ramp: the phase follows the run, the token rate follows the reply text.
+  const lastReply = messages[messages.length - 1];
+  useChatEnergyFeed({
+    streaming: isStreaming,
+    text: lastReply?.role === "assistant" ? lastReply.content : undefined,
+    error: !!error,
+  });
 
   const meta = MODE_META[mode] ?? MODE_META.fast;
   const ModeIcon = meta.icon;
@@ -897,7 +893,6 @@ export default function Chat() {
                 mode={mode}
                 modes={chatModes(isAdmin)}
                 onModeChange={handleSetMode}
-                onOpenSettings={() => setSettingsOpen(true)}
                 thinking={thinking}
                 onThinkingChange={setThinking}
                 privateChat={privateChat}
@@ -959,109 +954,6 @@ export default function Chat() {
               </>
             )}
 
-            {/* Settings panel */}
-            {settingsOpen && (
-              <div className="flex-none px-4 pb-2">
-                <div className="neon-card mx-auto max-w-2xl p-4 relative">
-                  <div className="mb-3 flex items-center justify-between">
-                    <h3 className="flex items-center gap-2 text-sm font-semibold" style={{ color: NEON.ink, fontFamily: NEON_FD }}>
-                      <Settings className="h-4 w-4" /> Message & thread settings
-                    </h3>
-                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setSettingsOpen(false)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="neon-label mb-1 flex items-center gap-1">
-                        <Cpu className="h-3 w-3" /> Model
-                      </label>
-                      <Select value={messageModel} onValueChange={setMessageModel}>
-                        <SelectTrigger className="w-full rounded-xl border-black/10 bg-white">
-                          <SelectValue placeholder="Auto" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="auto">Auto (router picks)</SelectItem>
-                          {availableModels
-                            .filter((m) => m.id !== "auto" && m.hasKey)
-                            .map((m) => (
-                              <SelectItem key={m.id} value={m.id}>
-                                {m.label} · {m.tier}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <label className="neon-label mb-1 flex items-center gap-1">
-                        <Sparkles className="h-3 w-3" /> Mode
-                      </label>
-                      <Select value={mode} onValueChange={handleSetMode}>
-                        <SelectTrigger className="w-full rounded-xl border-black/10 bg-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="fast">Fast</SelectItem>
-                          <SelectItem value="deep">Deep Research</SelectItem>
-                          <SelectItem value="document">Document</SelectItem>
-                          <SelectItem value="image">Image</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <label className="neon-label mb-2 flex items-center gap-1">
-                      <Wrench className="h-3 w-3" /> Tools for this thread
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {ALL_TOOLS.map((tool) => (
-                         <Button
-                          key={tool.id}
-                          onClick={() => toggleTool(tool.id)}
-                           aria-pressed={allowedTools.includes(tool.id)}
-                          className={cn(
-                            "neon-pill text-[11px]",
-                            allowedTools.includes(tool.id) ? "neon-pill-active" : ""
-                          )}
-                        >
-                          {tool.label}
-                         </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {approvedSkills.length > 0 && (
-                    <div className="mt-4">
-                      <label className="neon-label mb-2">Tag skills for this message</label>
-                      <div className="flex flex-wrap gap-2">
-                        {approvedSkills.map((skill) => (
-                           <Button
-                            key={skill.id}
-                             variant={taggedSkills.includes(skill.id) ? "default" : "outline"}
-                             aria-pressed={taggedSkills.includes(skill.id)}
-                            className={cn(
-                               "cursor-pointer rounded-full text-[10px]",
-                               taggedSkills.includes(skill.id) ? "bg-primary text-primary-foreground border-primary" : "border-border text-foreground"
-                            )}
-                            onClick={() =>
-                              setTaggedSkills((prev) =>
-                                prev.includes(skill.id) ? prev.filter((id) => id !== skill.id) : [...prev, skill.id]
-                              )
-                            }
-                          >
-                            {skill.name}
-                           </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
             {isCode && (
               <CodeAccessBar access={codeAccess} onAccess={setCodeAccess} totp={codeTotp} onTotp={setCodeTotp} fullAvailable={code.fullAvailable} locked={!!code.session} />
             )}
@@ -1092,21 +984,16 @@ export default function Chat() {
                           allowedTools={allowedTools}
                           onToggleTool={toggleTool}
                           sourceRows={SOURCE_ROWS}
+                          tools={CHAT_TOOLS}
+                          model={messageModel}
+                          onModelChange={setMessageModel}
+                          skills={approvedSkills}
+                          taggedSkills={taggedSkills}
+                          onToggleSkill={(id) => setTaggedSkills((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))}
                           thinking={thinking}
                           onThinkingChange={setThinking}
-                          onOpenSettings={() => setSettingsOpen(true)}
+                          foldKey="chat-sheet"
                         />
-                        <button
-                          type="button"
-                          className="icon-btn flat"
-                          aria-pressed={privateChat}
-                          aria-label="Private chat"
-                          aria-disabled
-                          title={PRIVATE_HINT}
-                          onClick={() => toast.error(PRIVATE_HINT)}
-                        >
-                          <SutaeruIcon name="eyeoff" signal={false} className="ico" />
-                        </button>
                       </>
                     }
                   />
