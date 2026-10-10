@@ -367,10 +367,10 @@ export function SettingsView(props: SettingsViewProps) {
     <section className="view wide view-enter settings-view">
       <header className="head-row">
         <div>
-          <h1 className="title" style={{ fontSize: "clamp(40px,7vw,56px)" }}>
+          <h1 className="title">
             Settings
           </h1>
-          <p className="lede" style={{ marginTop: 8 }}>
+          <p className="lede">
             Make Sutaeru feel like yours. Changes apply as you make them.
           </p>
         </div>

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
 import NewDocument from "./NewDocument";
 import EditDocument from "./EditDocument";
-import { PageTitle } from "@/components/chrome/PageTitle";
 import { TwoUp } from "@/components/fold";
 import { pickArt } from "@/lib/pickArt";
 import "@/styles/documents-start.css";
@@ -44,7 +43,7 @@ export default function Documents() {
       <div className="sk-page sk-documents">
         <div className="sk-header">
           <div>
-            <PageTitle className="skx-title-flush">Documents</PageTitle>
+            <h1 className="title lst-title">Documents</h1>
           </div>
         </div>
         <TwoUp
@@ -66,7 +65,7 @@ export default function Documents() {
       <div className="sk-header">
         <div>
           <button type="button" className="sk-doc-back" onClick={() => setStartBoth(null)}>← All documents</button>
-          <PageTitle className="skx-title-flush">{start === "new" ? "New document" : "Improve document"}</PageTitle>
+          <h1 className="title lst-title">{start === "new" ? "New document" : "Improve document"}</h1>
         </div>
       </div>
       {start === "new" ? (
