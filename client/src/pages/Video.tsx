@@ -18,6 +18,8 @@ import {
   type VideoJobState,
   type VideoQuality,
 } from "@/lib/video";
+import { FoldAllButton, FoldGroup, FoldSection, GoBar, PickTiles, PromptField, Showcase, useFoldState } from "@/components/fold";
+import { pickArt } from "@/lib/pickArt";
 import "@/styles/video.css";
 
 type Phase = "engine" | "prompt" | "running" | "done" | "failed";
@@ -65,6 +67,16 @@ function EnginePoster({ id }: { id: string }) {
       <circle cx={128 + shift} cy="68" r="9" className="p-dot p-dot-1" />
       <circle cx={150 + shift} cy="68" r="15" className="p-spot" />
       <path d="M146 61l12 7-12 7z" className="p-play" />
+    </svg>
+  );
+}
+
+/** The frame shape drawn at its ratio, for a tile or a folded row. */
+function ShapeMark({ ratio }: { ratio: VideoAspectRatio }) {
+  const s = SHAPES.find((x) => x.value === ratio) ?? SHAPES[0];
+  return (
+    <svg viewBox="0 0 40 40" width="100%" height="100%" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x={20 - s.w / 2} y={20 - s.h / 2} width={s.w} height={s.h} rx="5" />
     </svg>
   );
 }
@@ -117,7 +129,8 @@ export default function Video() {
   const [prompt, setPrompt] = useState("");
   const [refs, setRefs] = useState<Attachment[]>([]);
 
-  const [phase, setPhase] = useState<Phase>("engine");
+  const [phase, setPhase] = useState<Phase>("prompt");
+  const folds = useFoldState("video", ["engine", "shape", "length", "quality"], { first: "engine" });
   const [stage, setStage] = useState<VideoJobState>("QUEUED");
   const [progress, setProgress] = useState(0);
   const [eta, setEta] = useState<number | null>(null);
@@ -243,164 +256,120 @@ export default function Video() {
 
   const stageIndex = Math.max(0, STAGES.indexOf(stage));
   const subtitle =
-    phase === "engine" ? "Describe a clip and choose which engine films it. Every video is saved to My Files."
-    : phase === "prompt" ? `${current?.label ?? "The engine"} will film it.`
-    : phase === "running" ? `${current?.label ?? "The engine"} is filming your clip.`
+    phase === "running" ? `${current?.label ?? "The engine"} is filming your clip.`
     : phase === "done" ? "Ready, and saved to My Files."
-    : `${current?.label ?? "The engine"} couldn't finish this one.`;
-  const title = phase === "prompt" ? "Your video" : "Video";
+    : phase === "failed" ? `${current?.label ?? "The engine"} couldn't finish this one.`
+    : "";
+  const title = "Video";
 
   return (
     <div className="sk-page vd-page h-full overflow-y-auto">
       <header className="sk-header vd-header">
         <div>
           <h1 className="sk-h1 vd-title">{title}</h1>
-          <p className="sk-sub">{subtitle}</p>
+          {subtitle ? <p className="sk-sub">{subtitle}</p> : null}
         </div>
+        {phase === "prompt" && current ? <FoldAllButton state={folds} /> : null}
       </header>
 
-      {phase === "engine" && enginesLoading && (
+      {phase === "prompt" && enginesLoading && (
         <div className="vd-note" role="status">Loading video engines...</div>
       )}
-      {phase === "engine" && enginesError && (
+      {phase === "prompt" && enginesError && (
         <div className="vd-note">
           <p>{enginesError}</p>
           <button type="button" className="vd-btn vd-btn-ghost" onClick={() => void loadEngines()}>Try again</button>
         </div>
       )}
-      {phase === "engine" && !enginesLoading && !enginesError && engines.length === 0 && (
+      {phase === "prompt" && !enginesLoading && !enginesError && engines.length === 0 && (
         <div className="vd-note">No video engine is set up on this server yet. Ask the owner to add one.</div>
       )}
 
-      {phase === "engine" && !enginesLoading && !enginesError && engines.length > 0 && (
-        <div className="vd-stack">
-          <div className="vd-field">
-            <span className="vd-label">Engine</span>
-            <div className="vd-engines" role="radiogroup" aria-label="Video engine">
-              {engines.map((e) => {
-                const meta = ENGINE_META[e.id] ?? FALLBACK_META;
-                const active = engineId === e.id;
-                const est = formatEstimate(e);
-                return (
-                  <button
-                    key={e.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    className={`vd-engine${active ? " is-active" : ""}`}
-                    onClick={() => setEngineId(e.id)}
-                  >
-                    <span className="vd-poster">
-                      <EnginePoster id={e.id} />
-                      <span className="vd-mark" aria-hidden="true"><EngineMark id={e.id} /></span>
-                    </span>
-                    <span className="vd-engine-body">
-                      <span className="vd-engine-name">{e.label}</span>
-                      <span className="vd-engine-blurb">{meta.blurb}</span>
-                      {est && <span className="vd-mono">{est}</span>}
-                    </span>
-                    <span className={`vd-radio${active ? " is-on" : ""}`} aria-hidden="true">
-                      {active && <SutaeruIcon name="check" className="size-4" />}
-                    </span>
-                    {active && <FocusBrackets />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="vd-field">
-            <span className="vd-label">Quality</span>
-            <div className="vd-seg" role="group" aria-label="Quality">
-              {(["standard", "high"] as const).map((q) => (
-                <button key={q} type="button" aria-pressed={quality === q} className={`vd-seg-item${quality === q ? " is-on" : ""}`} onClick={() => setQuality(q)}>
-                  {q === "standard" ? "Standard" : "High"}
-                </button>
-              ))}
-            </div>
-            <p className="vd-hint">High uses the larger model and takes longer.</p>
-          </div>
-
-          <button type="button" className="vd-btn vd-btn-ink" disabled={!current} onClick={() => setPhase("prompt")}>
-            Continue
-          </button>
-        </div>
-      )}
-
       {phase === "prompt" && current && (
-        <div className="vd-stack">
-          <button type="button" className="vd-back" onClick={() => setPhase("engine")}>← Change engine</button>
-
-          <div className="vd-field">
-            <span className="vd-label">Shape</span>
-            <div className="vd-shapes" role="radiogroup" aria-label="Aspect ratio">
-              {shapes.map((s) => (
-                <button key={s.value} type="button" role="radio" aria-checked={ratio === s.value} className={`vd-shape${ratio === s.value ? " is-on" : ""}`} onClick={() => setRatio(s.value)}>
-                  <svg viewBox="0 0 40 40" aria-hidden="true">
-                    <rect x={20 - s.w / 2} y={20 - s.h / 2} width={s.w} height={s.h} rx="5" />
-                  </svg>
-                  <span className="vd-mono">{s.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="vd-field">
-            <span className="vd-label">Length</span>
-            {maxDur > minDur ? (
-              <div className="vd-step" role="group" aria-label="Length in seconds">
-                <button type="button" className="vd-step-btn" aria-label="Shorter" disabled={duration <= minDur} onClick={() => setDuration((d) => Math.max(minDur, d - 1))}>
-                  <span aria-hidden="true">−</span>
-                </button>
-                <span className="vd-step-body">
-                  <span className="vd-step-value" aria-live="polite">{duration} s</span>
-                  <span className="vd-step-ticks" aria-hidden="true">
-                    {Array.from({ length: maxDur - minDur + 1 }, (_, i) => (
-                      <i key={i} className={minDur + i <= duration ? "is-on" : ""} />
-                    ))}
-                  </span>
-                </span>
-                <button type="button" className="vd-step-btn" aria-label="Longer" disabled={duration >= maxDur} onClick={() => setDuration((d) => Math.min(maxDur, d + 1))}>
-                  <span aria-hidden="true">+</span>
-                </button>
-              </div>
-            ) : (
-              <div className="vd-step is-fixed">
-                <span className="vd-step-value">{minDur} s</span>
-                <span className="vd-hint">This engine makes clips of one length.</span>
-              </div>
-            )}
-          </div>
-
-          <div className="vd-field">
-            <label className="vd-label" htmlFor="video-prompt">Prompt</label>
-            <div className="vd-prompt">
-              <textarea
-                id="video-prompt"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value.slice(0, MAX_PROMPT))}
-                onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && canCreate) void generate(); }}
-                rows={4}
-                placeholder="A slow push-in on a ceramic mug of coffee, steam rising in soft morning light"
-              />
-              <span className="vd-mono vd-count">{prompt.length} / {MAX_PROMPT}</span>
-              <FocusBrackets />
-            </div>
-          </div>
-
-          {current.supportsReference && (
-            <div className="vd-field">
-              <div className="vd-attach">
+        <div className="vd-stack vd-studio">
+          <PromptField
+            id="video-prompt"
+            value={prompt}
+            onChange={(v) => setPrompt(v.slice(0, MAX_PROMPT))}
+            onSubmit={() => canCreate && void generate()}
+            placeholder="Describe your clip"
+            maxLength={MAX_PROMPT}
+            minRows={3}
+            extra={
+              current.supportsReference ? (
                 <AttachMenu attachments={refs} onChange={setRefs} max={MAX_REFERENCE} imagesOnly label="Reference photo" />
-                <p className="vd-hint">One photo the clip should start from or look like.</p>
-              </div>
-            </div>
-          )}
+              ) : undefined
+            }
+          />
 
-          <button type="button" className="vd-btn vd-btn-accent" disabled={!canCreate} onClick={() => void generate()}>
-            Create video
-          </button>
-          <p className="vd-mono vd-foot">{current.label} · {quality} · {duration} s{formatEstimate(current) ? ` · about ${formatEstimate(current)}` : ""}</p>
+          <FoldGroup state={folds} className="vd-folds">
+            {engines.length > 1 && (
+              <FoldSection id="engine" index={1} label="Engine" pick={current.label} mini={<EnginePoster id={current.id} />}>
+                <Showcase
+                  label="Video engine"
+                  value={current.id}
+                  onChange={(id) => setEngineId(id as VideoEngineId)}
+                  items={engines.map((e) => ({
+                    id: e.id,
+                    name: e.label,
+                    description: (ENGINE_META[e.id] ?? FALLBACK_META).blurb,
+                    art: e.id === "forge" ? pickArt("eng-forge") : <EnginePoster id={e.id} />,
+                    badge: formatEstimate(e) || undefined,
+                  }))}
+                />
+              </FoldSection>
+            )}
+            <FoldSection id="shape" index={engines.length > 1 ? 2 : 1} label="Shape" pick={ratio} mini={<ShapeMark ratio={ratio} />}>
+              <PickTiles
+                variant="shape"
+                label="Aspect ratio"
+                value={ratio}
+                onChange={(id) => setRatio(id as VideoAspectRatio)}
+                items={shapes.map((s) => ({ id: s.value, label: s.label, art: <ShapeMark ratio={s.value} /> }))}
+              />
+            </FoldSection>
+            <FoldSection id="length" index={engines.length > 1 ? 3 : 2} label="Length" pick={`${duration} s`}>
+              {maxDur > minDur ? (
+                <div className="vd-step" role="group" aria-label="Length in seconds">
+                  <button type="button" className="vd-step-btn" aria-label="Shorter" disabled={duration <= minDur} onClick={() => setDuration((d) => Math.max(minDur, d - 1))}>
+                    <span aria-hidden="true">−</span>
+                  </button>
+                  <span className="vd-step-body">
+                    <span className="vd-step-value" aria-live="polite">{duration} s</span>
+                    <span className="vd-step-ticks" aria-hidden="true">
+                      {Array.from({ length: maxDur - minDur + 1 }, (_, i) => (
+                        <i key={i} className={minDur + i <= duration ? "is-on" : ""} />
+                      ))}
+                    </span>
+                  </span>
+                  <button type="button" className="vd-step-btn" aria-label="Longer" disabled={duration >= maxDur} onClick={() => setDuration((d) => Math.min(maxDur, d + 1))}>
+                    <span aria-hidden="true">+</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="vd-step is-fixed">
+                  <span className="vd-step-value">{minDur} s</span>
+                </div>
+              )}
+            </FoldSection>
+            <FoldSection id="quality" index={engines.length > 1 ? 4 : 3} label="Quality" pick={quality === "high" ? "High" : "Standard"}>
+              <div className="vd-seg" role="group" aria-label="Quality">
+                {(["standard", "high"] as const).map((q) => (
+                  <button key={q} type="button" aria-pressed={quality === q} className={`vd-seg-item${quality === q ? " is-on" : ""}`} onClick={() => setQuality(q)}>
+                    {q === "standard" ? "Standard" : "High"}
+                  </button>
+                ))}
+              </div>
+            </FoldSection>
+          </FoldGroup>
+
+          <GoBar
+            summary={`${current.label} · ${duration} s`}
+            detail={`${ratio} · ${quality === "high" ? "High" : "Standard"}${formatEstimate(current) ? ` · about ${formatEstimate(current)}` : ""}`}
+            actionLabel="Create video"
+            onAction={() => void generate()}
+            disabled={!canCreate}
+          />
         </div>
       )}
 
