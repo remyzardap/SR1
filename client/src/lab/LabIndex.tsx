@@ -184,6 +184,10 @@ export default function LabIndex() {
           <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Composer</b>
           <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>Every composer state stacked: modes, files, private, recording, offline.</p>
         </Link>
+        <Link href="/__lab/mode-sheet" className="card" style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}>
+          <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Mode and thread sheet</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>Mode, Model, Sources, Tools as folds; the answer's one-line panels (?view=answer).</p>
+        </Link>
         <Link href="/__lab/studio" className="card" style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}>
           <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Image studio</b>
           <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>Set up the shot: viewfinder, every option tile group, style references, engines, sticky Begin bar.</p>

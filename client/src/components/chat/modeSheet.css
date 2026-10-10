@@ -1,0 +1,56 @@
+/* ── Mode sheet (components/chat/ModeSheet) and answer fold panels (AnswerFold) ──
+   Transform/opacity only; stops under prefers-reduced-motion and [data-reduce-motion="true"]. */
+
+.mode-sheet { --gutter: 16px; }
+.mode-menu { --gutter: 16px; display: flex; flex-direction: column; gap: 4px; }
+.mode-menu .fold-bi { padding-bottom: 14px; }
+.mode-menu .folds::after { display: none; }
+.mode-pills { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0 2px; }
+.mode-switches { margin-top: 2px; }
+.mode-switches .toggle-row { padding: 12px 0; }
+.mode-switches .toggle-row:last-child { border-bottom: 0; }
+.mode-menu + .sheet-done, .mode-pop .sheet-done { margin-top: 10px; }
+
+/* Wide screens: a card above the chip instead of the bottom sheet. */
+.mode-pop {
+  --gutter: 20px;
+  position: fixed; z-index: 70; width: 520px; max-width: calc(100vw - 24px); overflow-y: auto; overscroll-behavior: contain;
+  padding: 18px 20px 18px; border-radius: 28px; background: var(--card); color: var(--ink);
+  box-shadow: 0 0 0 1px var(--stroke), 0 30px 70px -28px rgba(0, 0, 0, .5);
+  transform-origin: 20% 100%; animation: mode-pop-in 320ms var(--ease-emph, cubic-bezier(.2, 0, 0, 1));
+}
+.mode-pop:focus-visible { outline: none; }
+.mode-pop-title { display: block; padding: 0 0 6px; }
+@keyframes mode-pop-in { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .mode-pop { animation: none; } }
+[data-reduce-motion="true"] .mode-pop { animation: none; }
+
+/* On a popover the showcase cards are the smaller size so a section does not fill the screen. */
+@media (min-width: 760px) {
+  .mode-pop .sc { width: 230px; height: 172px; border-radius: 24px; }
+  .mode-pop .sc .nm { font-size: 20px; left: 16px; bottom: 14px; }
+}
+
+/* ── Answer fold: Sources, Thinking and Turn this into as one-line panels ── */
+.afold { margin: 10px 0; border-radius: 20px; background: var(--panel); color: var(--ink); overflow: hidden; }
+.afold-btn {
+  position: relative; display: flex; width: 100%; align-items: center; gap: 12px; min-height: 52px; padding: 0 14px 0 16px;
+  text-align: left; color: var(--ink); background: transparent; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.afold-btn:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--r-accent); border-radius: 20px; }
+.afold-btn::after { content: ""; position: absolute; inset: 0; background: var(--ink); opacity: 0; transition: opacity 200ms; pointer-events: none; }
+@media (hover: hover) { .afold-btn:hover::after { opacity: .035; } }
+.afold-btn:active::after { opacity: .06; }
+.afold-ico { flex: none; width: 18px; height: 18px; color: var(--quiet); }
+.afold-lbl { flex: none; }
+.afold-sum { flex: 1; min-width: 0; text-align: right; font: 500 13px/1.2 var(--body); color: var(--quiet); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.afold-chev { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: var(--quiet); transition: transform var(--fold-t, 380ms) var(--ease-emph, cubic-bezier(.2, 0, 0, 1)); }
+.afold[data-state="open"] .afold-chev { transform: rotate(180deg); color: var(--ink); }
+.afold-bi { padding: 0 0 14px; }
+.afold-bi > .sources { margin-top: 0; }
+@media (prefers-reduced-motion: reduce) { .afold-chev { transition: none; } }
+[data-reduce-motion="true"] .afold-chev { transition: none; }
+
+/* Inside a fold the old per-section left rule and label are redundant. */
+.afold .sutaeru-message-sources { border: 0; padding: 0; margin: 0; }
+.afold .think-body { border-top: 0; padding: 0 16px 14px; }

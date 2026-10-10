@@ -1,19 +1,9 @@
 import * as React from "react";
-import { useState } from "react";
-import { FocusBrackets, Sheet, Toggle } from "@/components/art";
-import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
-import { cn } from "@/lib/utils";
+import { useRef, useState } from "react";
+import { SutaeruIcon } from "@/components/SutaeruIcon";
+import { ModeSheet, type ChatModeOption, type ModeSheetBodyProps, type ModeSourceRow } from "./ModeSheet";
 
-/** One chat mode as the composer chip and the mode sheet show it. */
-export interface ChatModeOption {
-  key: string;
-  label: string;
-  /** What the chip says when the tools row is too narrow for `label`. */
-  short?: string;
-  text: string;
-  icon: SutaeruIconName;
-  adminOnly?: boolean;
-}
+export type { ChatModeOption, ModeSourceRow };
 
 /** The five modes. Code mode is the admin's Claude Code thread and only shows for admins. */
 export const CHAT_MODES: ChatModeOption[] = [
@@ -32,76 +22,48 @@ export function chatMode(key: string): ChatModeOption {
   return CHAT_MODES.find((mode) => mode.key === key) ?? CHAT_MODES[0];
 }
 
-/** A source the chat may search, bound to one real tool id. */
-export interface ModeSourceRow {
-  /** The tool id this switch turns on and off in the thread settings. */
-  id: string;
-  label: string;
-  caption: string;
-}
-
 /**
- * The sources the composer offers, bound to tool ids the engine really has. The
- * prototype's third row is Memory; the API has no per-chat memory switch, so that row is
- * the `browse` tool.
+ * The sources the sheet offers, bound to tool ids the engine really has: the web search, the
+ * person's files and their Google Drive (the `drive_search` tool). Browsing pages is a tool pill.
  */
 export const SOURCE_ROWS: ModeSourceRow[] = [
   { id: "web_search", label: "Web", caption: "News, papers and public sites" },
   { id: "safe_files", label: "My files", caption: "Everything in Files" },
-  { id: "browse", label: "Browse", caption: "Pages opened and read in full" },
+  { id: "drive_search", label: "Drive", caption: "Your Google Drive" },
 ];
 
-/** The promise the private switch makes is one no endpoint keeps yet, so the button says this instead. */
+/** The promise the private switch makes is one no endpoint keeps yet, so Home's button says this instead. */
 export const PRIVATE_HINT = "Private chats are not available yet.";
 
-export interface ModeMenuProps {
-  mode: string;
-  modes: ChatModeOption[];
-  onModeChange(key: string): void;
-  /** The thread's real tool allowlist, which the Search in switches change. */
-  allowedTools: string[];
-  onToggleTool(id: string): void;
-  sourceRows: ModeSourceRow[];
-  /** The slower, more careful run the stream endpoint reads off the body. Omit to hide the row. */
-  thinking?: boolean;
-  onThinkingChange?(next: boolean): void;
-  /** Opens the thread's run settings (model, tools, skills). Omit to hide the row. */
+export interface ModeMenuProps extends Omit<ModeSheetBodyProps, "foldKey"> {
+  /** Kept for callers that still pass it; the sheet has no run-settings row any more. */
   onOpenSettings?(): void;
   /** The lab shows the sheet open as a state. */
   initialOpen?: boolean;
+  /** Fold memory key for the sheet; one per page. */
+  foldKey?: string;
 }
 
 /**
- * The composer's mode chip and the sheet it opens. The chip shows the current mode's
- * icon and name and never clips: a narrow tools row swaps in the short name (a
- * container query in composer.css). The sheet holds the modes, the Search in sources
- * (the globe pill that used to crowd the tools row), Thinking and Run settings.
+ * The composer's mode chip and the sheet it opens (ModeSheet). The chip shows the current mode's
+ * icon and name and never clips: a narrow tools row swaps in the short name (a container query in
+ * composer.css).
  */
-export function ModeMenu({
-  mode,
-  modes,
-  onModeChange,
-  allowedTools,
-  onToggleTool,
-  sourceRows,
-  thinking,
-  onThinkingChange,
-  onOpenSettings,
-  initialOpen = false,
-}: ModeMenuProps) {
+export function ModeMenu({ initialOpen = false, onOpenSettings: _unused, ...sheet }: ModeMenuProps) {
   const [open, setOpen] = useState(initialOpen);
-  const current = chatMode(mode);
-  const close = () => setOpen(false);
+  const chip = useRef<HTMLButtonElement>(null);
+  const current = chatMode(sheet.mode);
 
   return (
     <>
       <button
+        ref={chip}
         type="button"
         className="pill mode-chip"
         id="modeBtn"
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`Mode: ${current.label}. Change mode and sources`}
+        aria-label={`Mode: ${current.label}. Change mode, model and sources`}
         onClick={() => setOpen((value) => !value)}
       >
         <SutaeruIcon name={current.icon} signal={false} className="ico" />
@@ -113,81 +75,7 @@ export function ModeMenu({
           <path d="M3 4.5L6 7.5L9 4.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      <Sheet open={open} onClose={close} title="Mode" className="mode-sheet">
-        <ModeMenuBody
-          mode={mode}
-          modes={modes}
-          onModeChange={(key) => { onModeChange(key); close(); }}
-          allowedTools={allowedTools}
-          onToggleTool={onToggleTool}
-          sourceRows={sourceRows}
-          thinking={thinking}
-          onThinkingChange={onThinkingChange}
-          onOpenSettings={onOpenSettings ? () => { close(); onOpenSettings(); } : undefined}
-        />
-        <button type="button" className="btn ink big sheet-done" onClick={close}>Done</button>
-      </Sheet>
+      <ModeSheet open={open} onClose={() => setOpen(false)} anchor={chip} {...sheet} />
     </>
-  );
-}
-
-/** The sheet's content, exported on its own for the lab and the tests. */
-export function ModeMenuBody({
-  mode,
-  modes,
-  onModeChange,
-  allowedTools,
-  onToggleTool,
-  sourceRows,
-  thinking,
-  onThinkingChange,
-  onOpenSettings,
-}: Omit<ModeMenuProps, "initialOpen">) {
-  return (
-    <div className="mode-menu">
-      <div className="mode-grid" role="radiogroup" aria-label="Chat mode">
-        {modes.map((option) => {
-          const active = option.key === mode;
-          return (
-            <button
-              key={option.key}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              className={cn("mode-card", active && "is-active")}
-              onClick={() => onModeChange(option.key)}
-            >
-              {active && <FocusBrackets />}
-              <SutaeruIcon name={option.icon} signal className="mode-card-icon" />
-              <span className="mode-card-title">{option.label}</span>
-              <span className="mode-card-text">{option.text}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <p className="mono mode-menu-label">Search in</p>
-      <div className="pop-toggles" role="group" aria-label="Search in">
-        {sourceRows.map((row) => (
-          <div className="toggle-row" key={row.id}>
-            <div className="tx"><b>{row.label}</b><small>{row.caption}</small></div>
-            <Toggle checked={allowedTools.includes(row.id)} onCheckedChange={() => onToggleTool(row.id)} label={row.label} />
-          </div>
-        ))}
-        {onThinkingChange && (
-          <div className="toggle-row">
-            <div className="tx"><b>Thinking</b><small>Slower, more careful answers</small></div>
-            <Toggle checked={!!thinking} onCheckedChange={(next) => onThinkingChange(next)} label="Thinking" />
-          </div>
-        )}
-      </div>
-
-      {onOpenSettings && (
-        <button type="button" className="pop-item mode-settings" onClick={onOpenSettings}>
-          <span className="pi"><SutaeruIcon name="settings" signal={false} className="ico" /></span>
-          <span><b>Run settings</b><small>Model, tools and skills for this thread</small></span>
-        </button>
-      )}
-    </div>
   );
 }

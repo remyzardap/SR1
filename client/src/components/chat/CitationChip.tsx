@@ -3,6 +3,7 @@ import type { MouseEvent, ReactNode } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { CitationChipProps } from "@/lib/citations";
 import { prefersReducedMotion } from "@/components/art/useMotion";
+import { CITE_EVENT } from "./AnswerFold";
 
 /**
  * An inline `[n]` citation, rendered by Streamdown from the `<citationchip>` nodes that
@@ -24,7 +25,16 @@ export function CitationChip({
     // Modifier keys keep the browser's own behaviour (open in a new tab).
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
     event.preventDefault();
-    document.getElementById(anchor)?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
+    const behavior = prefersReducedMotion() ? "auto" : "smooth";
+    // The Sources panel may be folded: ask it to open, then scroll once the card is on screen.
+    window.dispatchEvent(new CustomEvent(CITE_EVENT, { detail: anchor }));
+    let tries = 0;
+    const land = () => {
+      const card = document.getElementById(anchor);
+      if (card) card.scrollIntoView({ behavior, block: "start" });
+      else if (++tries < 12) requestAnimationFrame(land);
+    };
+    land();
   };
 
   return (

@@ -1,44 +1,30 @@
-import { useState } from "react";
-import { ChevronRight, Brain } from "lucide-react";
+import { Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AnswerFold } from "./AnswerFold";
 
 interface ThinkingBlockProps {
   thinking: string;
   className?: string;
 }
 
-export function ThinkingBlock({ thinking, className }: ThinkingBlockProps) {
-  const [isOpen, setIsOpen] = useState(false);
+/** The first words of the reasoning, so the folded panel says what is inside. */
+function preview(thinking: string): string {
+  return thinking.trim().replace(/\s+/g, " ").slice(0, 80);
+}
 
+export function ThinkingBlock({ thinking, className }: ThinkingBlockProps) {
   if (!thinking || !thinking.trim()) {
     return null;
   }
 
   return (
-    <div
-      className={cn(
-        "think",
-        className
-      )}
+    <AnswerFold
+      className={cn("think", className)}
+      label="Thinking"
+      icon={<Brain size={18} />}
+      summary={preview(thinking)}
     >
-      <button
-        type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
-        className="think-btn"
-        aria-expanded={isOpen}
-      >
-        <Brain className="h-3.5 w-3.5 text-muted-foreground/70" aria-hidden="true" />
-        <span className="mono flex-1">Thinking process</span>
-        <ChevronRight
-          className={cn("h-3.5 w-3.5 transition-transform duration-200", isOpen && "rotate-90")}
-          aria-hidden="true"
-        />
-      </button>
-      {isOpen && (
-        <div className="think-body">
-          {thinking}
-        </div>
-      )}
-    </div>
+      <div className="think-body">{thinking}</div>
+    </AnswerFold>
   );
 }
