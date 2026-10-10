@@ -84,7 +84,7 @@ const ghost = (text: string) => el("button", { type: "button", className: "btn g
 export const LIST_ROWS: RowProps[] = [
   {
     title: "Google Workspace",
-    meta: "OAUTH 2 · CONNECTED · LAST USED 9 OCT 2026",
+    meta: "OAUTH 2 · LAST USED 9 OCT 2026",
     art: pickArt("src-drive"),
     status: tag("Connected"),
     actions: ghost("Disconnect"),

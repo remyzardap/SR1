@@ -162,7 +162,7 @@ export function AdminView({
                     key={person.id}
                     title={person.name}
                     body={person.email}
-                    meta={`${person.role} · ${person.files} files · Joined ${person.joined} · Last seen ${person.lastSeen}`}
+                    meta={`${person.role} · ${person.files} ${person.files === 1 ? "file" : "files"} · Joined ${person.joined} · Last seen ${person.lastSeen}`}
                     initials={person.name.charAt(0).toUpperCase() || "-"}
                     status={<StatusPill status={person.live ? "live" : "away"} />}
                   />

@@ -28,7 +28,8 @@ export default function LabAdmin() {
   const body = (name: AdminState) => <AdminView {...adminFixture(name)} openSections={openAll ? ADMIN_FOLD_IDS : undefined} />;
 
   return (
-    <LabLayout title="Admin">
+    <LabLayout title="Admin" bleed>
+      <div className="lab-gutter">
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <p className="mono" style={{ margin: 0, fontSize: 12, color: "var(--quiet)" }}>
           Sample data — nothing here reads the server. The buttons and links do nothing.
@@ -70,6 +71,7 @@ export default function LabAdmin() {
           </>
         )}
       </div>
+          </div>
     </LabLayout>
   );
 }

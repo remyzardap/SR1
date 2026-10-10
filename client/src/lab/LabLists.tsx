@@ -42,7 +42,8 @@ export default function LabLists() {
   const matched = LIST_ROWS.filter((row) => !query || String(row.title).toLowerCase().includes(query.toLowerCase()));
 
   return (
-    <LabLayout title="List pages">
+    <LabLayout title="List pages" bleed>
+      <div className="lab-gutter">
       <nav aria-label="List options" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
         <Link href="/__lab/lists" className={cn("pill", !openAll && "is-active")}>
           real folds
@@ -109,6 +110,7 @@ export default function LabLists() {
           </ListFold>
         </ListFolds>
       </ListPage>
+          </div>
     </LabLayout>
   );
 }
