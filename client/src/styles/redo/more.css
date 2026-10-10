@@ -15,7 +15,7 @@
 .sk-btn.sk-btn-ghost:hover { background: var(--r-panel); border-color: var(--r-rule); }
 .sk-btn-sm { min-height: 40px; }
 @media (pointer: coarse) { .sk-btn-sm { min-height: 44px; } }
-.sk-btn:focus-visible, .sk-icon-btn:focus-visible { outline: 2px solid var(--r-accent); outline-offset: 2px; }
+.sk-btn:focus-visible, .sk-icon-btn:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 2px; }
 
 /* One phone gutter for every page in the group (main pads 12, page adds 8 = 20). */
 .sk-page { padding: 0 8px 40px; }
@@ -87,7 +87,7 @@
 .sk-pill { border: 1px solid var(--r-stroke); }
 .sk-pill.is-active, .sk-pill[aria-pressed="true"], .sk-pill[aria-checked="true"] { border-color: var(--r-ink); background: var(--r-ink); color: var(--r-paper); }
 .sk-pill-sm { min-height: 40px; }
-.sk-pill:focus-visible { outline: 2px solid var(--r-accent); outline-offset: 2px; }
+.sk-pill:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 2px; }
 
 /* Identity status line stays on one flow so the dot never sits alone. */
 .sk-identity .skx-id-stats { flex-wrap: nowrap; }

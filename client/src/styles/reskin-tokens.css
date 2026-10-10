@@ -26,6 +26,10 @@
   --seg-off: #DAD7CF;
   --accent: #F4511E;
   --accent-tint: #FCE9DE;
+  /* --accent is a signal colour for dots and fills only. Anything a user has to find or read —
+     a focus ring, an accent glyph — uses --accent-deep, which mixes the accent toward the ink so
+     it clears 3:1 against paper, card and panel in both themes (it re-resolves per theme). */
+  --accent-deep: color-mix(in srgb, var(--accent) 72%, var(--ink));
   --alert: #B3402A;
   --alert-tint: rgba(179, 64, 42, .10);
   --hair: rgba(36, 35, 32, .14);
@@ -63,6 +67,7 @@
   --r-rule: var(--rule);
   --r-seg-off: var(--seg-off);
   --r-accent: #F4511E; /* literal: the shadcn block below re-points --accent at the panel colour */
+  --r-accent-deep: color-mix(in srgb, var(--r-accent) 72%, var(--r-ink));
   --r-accent-ink: var(--ink);
   --r-alert: var(--alert);
   --r-alert-tint: var(--alert-tint);
@@ -114,8 +119,8 @@
     --seg-off: #403F3A;
     --accent: #F4511E;
     --accent-tint: rgba(244, 81, 30, .16);
-    --alert: #E0694E;
-    --alert-tint: rgba(224, 105, 78, .16);
+    --alert: #EE8266;
+    --alert-tint: rgba(238, 130, 102, .16);
     --hair: rgba(244, 242, 236, .12);
     --hero: #131211;
     --hero-ink: #F4F2EC;
@@ -146,8 +151,8 @@
   --seg-off: #403F3A;
   --accent: #F4511E;
   --accent-tint: rgba(244, 81, 30, .16);
-  --alert: #E0694E;
-  --alert-tint: rgba(224, 105, 78, .16);
+  --alert: #EE8266;
+  --alert-tint: rgba(238, 130, 102, .16);
   --hair: rgba(244, 242, 236, .12);
   --hero: #131211;
   --hero-ink: #F4F2EC;

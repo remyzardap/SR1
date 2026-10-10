@@ -1,14 +1,16 @@
-/* Settings */
+/* Settings — the folds of SettingsView (components/settings/SettingsView.tsx).
+   The groups themselves are FoldSections (see fold.css); this file carries only the
+   settings-specific bodies: the sliders, the dither demo, the voice sample, the meters
+   and the 2FA panel. */
 
-.set-grid { display: grid; gap: 18px; margin-top: 24px; }
-@media (min-width: 1000px) { .set-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; } }
-.set-card { padding: 22px; }
-.themes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
-.theme-opt { position: relative; display: flex; flex-direction: column; gap: 8px; text-align: left; }
-.theme-opt .tp { position: relative; height: 92px; border-radius: 16px; overflow: hidden; outline: 2px solid transparent; outline-offset: 2px; transition: outline-color var(--t); }
-.theme-opt .tp svg { width: 100%; height: 100%; }
-.theme-opt[aria-checked="true"] .tp { outline-color: var(--ink); }
-.theme-opt span { font: 600 14px/1 var(--body); padding-left: 2px; }
+.settings-folds { margin-top: 8px; }
+/* One measure on a big screen: a fold row 1240px wide reads as a table, not a page. */
+.settings-view .head-row,
+.settings-view .settings-folds { max-width: 900px; margin-left: auto; margin-right: auto; }
+/* The two fine-adjust sliders under the voice tiles. */
+.set-fine { margin-top: 6px; }
+.set-fine .slider { margin-top: 10px; }
+.set-list { min-width: 0; }
 .slider { margin-top: 18px; }
 .slider .between .mono { font-size: 11px; }
 .slider input[type="range"] { width: 100%; margin: 10px 0 0; appearance: none; -webkit-appearance: none; height: 44px; margin-top: 4px; background: transparent; }
@@ -16,7 +18,7 @@
 .slider input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--ink) var(--p, 50%), var(--seg-off) var(--p, 50%)); }
 .slider input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -10px; border-radius: 50%; background: var(--card); border: 2px solid var(--ink); }
 .slider input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--card); border: 2px solid var(--ink); }
-.voice-sample { margin-top: 18px; padding: 18px; border-radius: 20px; background: var(--panel); position: relative; min-height: 120px; }
+.voice-sample { margin-top: 18px; padding: 18px; border-radius: var(--r-radius-card, 24px); background: var(--panel); position: relative; min-height: 120px; }
 .voice-sample p { margin: 8px 0 0; font-size: 15px; line-height: 1.6; transition: opacity 200ms; }
 .intensity-demo { height: 70px; border-radius: 16px; background: var(--panel); margin-top: 14px; overflow: hidden; position: relative; }
 .intensity-demo {
@@ -30,7 +32,7 @@
 
 /* Long strings (a TOTP secret) must not widen a column, and the 20-segment meter
    needs the prototype's layout guard, which lived in app.css:970. */
-.set-grid > * { min-width: 0; }
+.settings-folds > * { min-width: 0; }
 
 /* Below: the states the prototype never had — it only ever rendered settings with
    data present. Loading, error and empty are real here, so they get rules of their
@@ -45,15 +47,16 @@
    readable on the light card, as the old settings page did. */
 .set-qr { width: 176px; height: 176px; display: block; padding: 10px; background: #fff; border-radius: 10px; box-shadow: 0 0 0 1px var(--stroke); }
 .set-key { display: flex; flex-direction: column; gap: 6px; align-self: stretch; }
-.set-key-value { display: block; padding: 12px 14px; border-radius: 12px; background: var(--card); border: 1px solid var(--stroke); font: 500 13px/1.4 var(--mono); word-break: break-all; text-align: center; }
+.set-key-value { display: block; padding: 12px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--stroke); font: 500 13px/1.4 var(--mono); word-break: break-all; text-align: center; }
 .set-field-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
 .set-field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 220px; }
 .set-field-row .btn { flex: none; }
 .set-input { min-height: 44px; padding: 0 16px; border-radius: 16px; border: 1px solid var(--stroke); background: var(--card); color: var(--ink); font: 400 15px/1.4 var(--body); outline: 0; }
-.set-input:focus { border-color: var(--rule); }
+.set-input:focus { border-color: var(--accent-deep); }
 .set-input::placeholder { color: var(--quiet); }
-/* .title/.lede are set per screen here, as every other ported view does (files.css:4). */
-.settings-view .title { margin: 0; font-family: var(--disp); font-weight: 800; letter-spacing: -.03em; }
-.settings-view .lede { margin: 0; color: var(--quiet); font-size: 16px; line-height: 1.55; max-width: 34em; text-wrap: pretty; }
+/* .title/.lede are set per screen here, as every other ported view does (files.css:4).
+   The scale is the family one: the list pages' clamp(34px, 9vw, 48px). */
+.settings-view .title { margin: 0; font-family: var(--disp); font-weight: 800; letter-spacing: -.03em; font-size: clamp(34px, 9vw, 48px); line-height: 1.02; }
+.settings-view .lede { margin: 10px 0 0; color: var(--quiet); font-size: 16px; line-height: 1.55; max-width: 34em; text-wrap: pretty; }
 @media (min-width: 760px) { .settings-view .lede { font-size: 18px; } }
 .settings-view .toggle[disabled] { opacity: .45; pointer-events: none; }

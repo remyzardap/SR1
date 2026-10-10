@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { RotateCcw, WifiOff } from "lucide-react";
 import { PaperGrain, useReducedMotion } from "@/components/art";
 import { cn } from "@/lib/utils";
+import { AnswerFold } from "@/components/chat/AnswerFold";
 import {
   AnswerChart,
   AnswerTools,
@@ -140,13 +141,19 @@ export function AnswerScreen(p: AnswerScreenProps) {
             <h1 className="title q-title">{p.question}</h1>
             <SearchLine state={searchState} text={searchText} />
             {showSources && (
-              <SourceCards
-                sources={p.sources}
-                activeId={active}
-                landed={state === "searching" ? landed : undefined}
-                onSelect={(s) => setActive(s.id)}
-                label="Sources for this answer"
-              />
+              <AnswerFold
+                label="Sources"
+                summary={`${p.sources.length} · ${[...new Set(p.sources.map((s) => s.host))].slice(0, 3).join(", ")}`}
+                defaultOpen={state === "searching"}
+              >
+                <SourceCards
+                  sources={p.sources}
+                  activeId={active}
+                  landed={state === "searching" ? landed : undefined}
+                  onSelect={(s) => setActive(s.id)}
+                  label="Sources for this answer"
+                />
+              </AnswerFold>
             )}
 
             {state === "error" && (

@@ -1,9 +1,18 @@
+/**
+ * Admin — the container.
+ *
+ * `components/admin/AdminView.tsx` is the screen and takes everything through props. This
+ * file is where those props come from: the people and the four numbers from the admin
+ * query, the invite links and the recent activity from the two trails the platform already
+ * keeps. Rights are decided on the server, not here: `admin.userStats` answers "Access
+ * Denied" to anyone who is not an admin, and that answer is what the page shows.
+ */
+
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { formatDate } from "@/lib/utils";
-import { SteppedMeter, StatusPill } from "@/components/art";
-import { PageTitle } from "@/components/chrome/PageTitle";
-import "@/styles/admin.css";
+import { describeInviteUsage, inviteCodeStatus, sortCodesNewestFirst } from "@/lib/inviteCodes";
+import { AdminDenied, AdminView, type AdminEvent, type AdminHealth, type AdminInvite, type AdminPerson, type AdminResource } from "@/components/admin/AdminView";
 
 /** Compact mono "last seen": 12 MIN, 2 H, YESTERDAY, then the date. */
 function lastSeenLabel(iso: string | Date): string {
@@ -25,98 +34,122 @@ function isLive(iso: string | Date): boolean {
 }
 
 export default function Admin() {
-  const { data: users, isLoading, error } = trpc.admin.userStats.useQuery();
+  const users = trpc.admin.userStats.useQuery(undefined, { retry: false });
+  const codes = trpc.admin.betaInvites.listCodes.useQuery(undefined, { retry: false });
+  const recent = trpc.audit.list.useQuery({ limit: 6, offset: 0 }, { retry: false });
+  const auditStats = trpc.audit.getStats.useQuery(undefined, { retry: false });
 
-  const header = (
-    <header className="sk-header">
-      <div>
-        <PageTitle className="skx-title-flush">Admin</PageTitle>
-        <p className="sk-sub">Workspace health, people and activity.</p>
-      </div>
-      <div className="sk-actions">
-        <Link href="/admin/audit-logs" className="sk-btn">Audit logs</Link>
-      </div>
-    </header>
+  const headerActions = (
+    <>
+      <Link href="/admin/invites" className="btn">
+        Invite links
+      </Link>
+      <Link href="/admin/audit-logs" className="btn">
+        Audit logs
+      </Link>
+    </>
   );
 
-  if (error) {
-    return (
-      <div className="sk-page sk-admin">
-        {header}
-        <div className="sk-card sk-empty">
-          <span className="sk-label">Access Denied</span>
-          <p className="sk-empty-text">{error.message}</p>
-        </div>
-      </div>
-    );
+  if (users.error) {
+    return <AdminDenied message={users.error.message} actions={headerActions} />;
   }
 
-  const list = users ?? [];
+  const list = users.data ?? [];
   const total = list.length;
   const admins = list.filter((u) => u.role === "admin").length;
   const filesTotal = list.reduce((acc, u) => acc + (u.filesGenerated || 0), 0);
   const onboarded = list.filter((u) => u.onboarded).length;
   const withFiles = list.filter((u) => (u.filesGenerated || 0) > 0).length;
-  const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
   const activeToday = list.filter((u) => new Date(u.lastSignedIn).getTime() >= startOfDay.getTime()).length;
   const share = (n: number) => (total > 0 ? n / total : 0);
 
-  const stats = [
-    { label: "Users", value: total, meter: share(onboarded), meterLabel: `${onboarded} of ${total} profiles set up` },
-    { label: "Files", value: filesTotal, meter: share(withFiles), meterLabel: `${withFiles} of ${total} people have files` },
-    { label: "Admins", value: admins, meter: share(admins), meterLabel: `${admins} of ${total} are admins` },
-    { label: "Active today", value: activeToday, meter: share(activeToday), meterLabel: `${activeToday} of ${total} signed in today` },
-  ];
+  const people: AdminResource<AdminPerson[]> = users.isLoading
+    ? { status: "loading" }
+    : {
+        status: "ready",
+        data: list.map((user) => ({
+          id: user.id,
+          name: user.name ?? "-",
+          email: user.email ?? "-",
+          role: user.role === "admin" ? "Admin" : "Member",
+          files: user.filesGenerated ?? 0,
+          joined: formatDate(user.createdAt).toUpperCase(),
+          lastSeen: lastSeenLabel(user.lastSignedIn),
+          live: isLive(user.lastSignedIn),
+        })),
+      };
+
+  const invites: AdminResource<AdminInvite[]> = codes.isLoading
+    ? { status: "loading" }
+    : codes.error
+      ? { status: "error" }
+      : {
+          status: "ready",
+          data: sortCodesNewestFirst(codes.data ?? []).map((code) => {
+            const status = inviteCodeStatus(code);
+            return {
+              id: code.id,
+              code: code.code,
+              status: status.label,
+              state: status.state,
+              line: describeInviteUsage(code),
+              when: `Made ${formatDate(code.createdAt)}${code.expiresAt ? ` · runs out ${formatDate(code.expiresAt)}` : ""}`,
+            } satisfies AdminInvite;
+          }),
+        };
+
+  const activity: AdminResource<AdminEvent[]> = recent.isLoading
+    ? { status: "loading" }
+    : recent.error
+      ? { status: "error" }
+      : {
+          status: "ready",
+          data: (recent.data?.logs ?? []).map((log) => ({
+            id: log.id,
+            when: new Date(log.createdAt).toLocaleString(),
+            action: log.action,
+            user: log.userId || "system",
+            severity: log.severity || "info",
+            ok: log.status !== "failure",
+          })),
+        };
+
+  const health: AdminResource<AdminHealth | null> = auditStats.isLoading
+    ? { status: "loading" }
+    : auditStats.error
+      ? { status: "error" }
+      : {
+          status: "ready",
+          data: auditStats.data
+            ? {
+                events: auditStats.data.total,
+                failures: auditStats.data.failures,
+                critical: auditStats.data.critical,
+                last24h: auditStats.data.last24h,
+              }
+            : null,
+        };
 
   return (
-    <div className="sk-page sk-admin">
-      {header}
-
-      <div className="sk-stack">
-        {/* Stats */}
-        <div className="skx-admin-stats">
-          {stats.map((s) => (
-            <div key={s.label} className="sk-card skx-admin-stat">
-              <span className="sk-label">{s.label}</span>
-              <p className="skx-admin-num">{s.value.toLocaleString()}</p>
-              <SteppedMeter value={s.meter} segments={10} ariaLabel={s.meterLabel} />
-            </div>
-          ))}
-        </div>
-
-        {/* People */}
-        <section>
-          <p className="skx-admin-people-label">People</p>
-          <div className="sk-card skx-admin-people">
-            {isLoading ? (
-              <p className="sk-empty-text">Loading people...</p>
-            ) : total === 0 ? (
-              <p className="sk-empty-text">No users found</p>
-            ) : (
-              list.map((user, i) => (
-                <div key={user.id} className={`skx-admin-person${i === 0 ? " is-first" : ""}`}>
-                  <span className="skx-admin-avatar" aria-hidden="true">
-                    {(user.name || user.email || "").trim().charAt(0).toUpperCase() || "-"}
-                  </span>
-                  <div className="skx-admin-person-main">
-                    <div className="skx-admin-person-top">
-                      <p className="skx-admin-person-name">{user.name ?? "-"}</p>
-                      <StatusPill status={isLive(user.lastSignedIn) ? "live" : "away"} />
-                    </div>
-                    <p className="skx-admin-person-meta">
-                      {user.role === "admin" ? "Admin" : "Member"}
-                      {` · ${user.filesGenerated ?? 0} files`}
-                      {` · Joined ${formatDate(user.createdAt).toUpperCase()}`}
-                      {` · Last seen ${lastSeenLabel(user.lastSignedIn)}`}
-                    </p>
-                    <p className="skx-admin-person-email">{user.email ?? "-"}</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-      </div>
-    </div>
+    <AdminView
+      foldKey="admin"
+      stats={[
+        { label: "Users", value: total.toLocaleString(), meter: share(onboarded), meterLabel: `${onboarded} of ${total} profiles set up` },
+        { label: "Files", value: filesTotal.toLocaleString(), meter: share(withFiles), meterLabel: `${withFiles} of ${total} people have files` },
+        { label: "Admins", value: admins.toLocaleString(), meter: share(admins), meterLabel: `${admins} of ${total} are admins` },
+        { label: "Active today", value: activeToday.toLocaleString(), meter: share(activeToday), meterLabel: `${activeToday} of ${total} signed in today` },
+      ]}
+      people={people}
+      invites={invites}
+      activity={activity}
+      health={health}
+      actions={headerActions}
+      onRetryPeople={() => users.refetch()}
+      onRetryInvites={() => codes.refetch()}
+      onRetryActivity={() => recent.refetch()}
+      onRetryHealth={() => auditStats.refetch()}
+    />
   );
 }

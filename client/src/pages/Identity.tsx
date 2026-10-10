@@ -1,22 +1,20 @@
-import { useState, useEffect, useRef, KeyboardEvent } from "react";
+/**
+ * Identity — the agent's own profile, on the shared list pattern (no shadcn).
+ *
+ * The preview card stays on the left at desktop; the editor to its right is three folds —
+ * Profile, Language, Personality — each naming what is set inside it when folded. Fields are
+ * native inputs on the redo form styles, and the language list keeps all eighteen entries in
+ * one control rather than eighteen tiles.
+ */
+import { useState, useEffect, useRef, type ChangeEvent, type KeyboardEvent } from "react";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
 import { trpc } from "@/lib/trpc";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Upload } from "lucide-react";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
-import { FocusBrackets, HalftoneRamp } from "@/components/art";
-import { PageTitle } from "@/components/chrome/PageTitle";
+import { HalftoneRamp } from "@/components/art";
 import { LogoMark } from "@/components/chrome/AppHeader";
+import { ListFold, ListFolds, ListPage, useListFolds } from "@/components/list";
+import { pickArt } from "@/lib/pickArt";
 import "@/styles/identity.css";
 
 const LANGUAGES = [
@@ -40,6 +38,93 @@ const LANGUAGES = [
   { value: "th", label: "Thai" },
 ];
 
+const FOLD_IDS = ["profile", "language", "personality"];
+
+/** The trait field: Enter or comma adds, Backspace on an empty box drops the last one. */
+export function TraitEditor({
+  traits,
+  value,
+  onValue,
+  onAdd,
+  onRemove,
+  onKeyDown,
+}: {
+  traits: string[];
+  value: string;
+  onValue(next: string): void;
+  onAdd(): void;
+  onRemove(trait: string): void;
+  onKeyDown(event: KeyboardEvent<HTMLInputElement>): void;
+}) {
+  const full = traits.length >= 10;
+  return (
+    <>
+      <div className="lst-traits">
+        {traits.map((trait) => (
+          <span className="lst-trait" key={trait}>
+            {trait}
+            <button type="button" onClick={() => onRemove(trait)} aria-label={`Remove ${trait}`}>
+              <SutaeruIcon name="close" signal={false} />
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onValue(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder={traits.length === 0 ? "Type a trait and press Enter..." : full ? "" : "Add another..."}
+          disabled={full}
+          aria-label="Personality trait"
+        />
+        {value.trim() && (
+          <button type="button" onClick={onAdd} aria-label="Add trait">
+            <SutaeruIcon name="plus" signal={false} />
+          </button>
+        )}
+      </div>
+      <p className="lst-note">Press Enter or , to add. Up to 10 traits.</p>
+    </>
+  );
+}
+
+/** The avatar picker: a hidden file input, the same five-MB and format rules as before. */
+export function AvatarField({
+  avatarUrl,
+  uploading,
+  onRemove,
+  onFile,
+}: {
+  avatarUrl: string;
+  uploading: boolean;
+  onRemove(): void;
+  onFile(event: ChangeEvent<HTMLInputElement>): void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  return (
+    <div className="lst-field">
+      <span className="mono">Avatar</span>
+      <div className="row wrap">
+        <span className="lst-art id-avatar" aria-hidden="true">
+          {avatarUrl ? <img src={avatarUrl} alt="Avatar preview" /> : <SutaeruIcon name="image" signal={false} />}
+        </span>
+        <div className="stack">
+          <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={onFile} />
+          <button type="button" className="btn" onClick={() => inputRef.current?.click()} disabled={uploading}>
+            {uploading ? "Uploading…" : "Upload image"}
+          </button>
+          {avatarUrl && (
+            <button type="button" className="btn ghost" onClick={onRemove}>
+              Remove avatar
+            </button>
+          )}
+        </div>
+      </div>
+      <p className="lst-note">JPG, PNG, GIF or WebP · max 5 MB</p>
+    </div>
+  );
+}
+
 export default function Identity() {
   useSeoMeta({ title: "Identity", path: "/identity" });
 
@@ -58,7 +143,6 @@ export default function Identity() {
   const [personalityTraits, setPersonalityTraits] = useState<string[]>([]);
   const [traitInput, setTraitInput] = useState("");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // ─── Avatar upload mutation ────────────────────────────────────────────────
   const uploadAvatarMutation = trpc.settings.uploadAvatar.useMutation({
@@ -72,7 +156,7 @@ export default function Identity() {
     },
   });
 
-  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -98,7 +182,7 @@ export default function Identity() {
     } finally {
       setIsUploadingAvatar(false);
       // Reset file input so same file can be re-selected
-      if (avatarInputRef.current) avatarInputRef.current.value = "";
+      if (e.target) e.target.value = "";
     }
   };
 
@@ -110,9 +194,7 @@ export default function Identity() {
       setBio(identity.bio ?? "");
       setAvatarUrl(identity.avatarUrl ?? "");
       setPrimaryLanguage(identity.primaryLanguage ?? "");
-      setPersonalityTraits(
-        Array.isArray(identity.personalityTraits) ? identity.personalityTraits : []
-      );
+      setPersonalityTraits(Array.isArray(identity.personalityTraits) ? identity.personalityTraits : []);
     }
   }, [identity]);
 
@@ -177,67 +259,53 @@ export default function Identity() {
 
   const isNewIdentity = !identity?.displayName && !identity?.handle;
 
-  // ─── Stats ─────────────────────────────────────────────────────────────────
   const statItems = [
     { label: "Skills", value: stats?.skillsCount ?? 0 },
     { label: "Memories", value: stats?.memoriesCount ?? 0 },
     { label: "Connections", value: stats?.connectionsCount ?? 0 },
   ];
 
-  const languageLabel = primaryLanguage
-    ? LANGUAGES.find((l) => l.value === primaryLanguage)?.label ?? primaryLanguage
-    : "";
+  const languageLabel = primaryLanguage ? LANGUAGES.find((l) => l.value === primaryLanguage)?.label ?? primaryLanguage : "";
+
+  const fold = useListFolds("identity", FOLD_IDS, { first: "profile" });
 
   // ─── Loading state ─────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="sk-page">
-        <div className="sk-card sk-empty max-w-md">
-          <span className="sk-label">Identity</span>
-          <p className="sk-empty-text">Loading identity...</p>
-        </div>
-      </div>
+      <section className="view view-enter lst-page">
+        <h1 className="title lst-title">Identity</h1>
+        <p className="lede" style={{ marginTop: 8 }}>
+          Loading identity...
+        </p>
+      </section>
     );
   }
 
   return (
-    <div className="sk-page sk-identity">
-      {/* ── Page header ───────────────────────────────────────────────────── */}
-      <div className="sk-header">
-        <div>
-          <PageTitle className="skx-title-flush">
-            {isNewIdentity ? "Create Your Identity" : "Identity Profile"}
-          </PageTitle>
-          <p className="sk-sub">
-            {isNewIdentity
-              ? "Set up your Sutaeru agent identity to personalise your AI experience."
-              : "Manage your Sutaeru agent identity and public profile."}
-          </p>
-        </div>
-        <div className="sk-actions">
-          <button
-            onClick={handleSave}
-            disabled={upsertMutation.isPending}
-            className="sk-btn"
-          >
-            {upsertMutation.isPending
-              ? "Saving..."
-              : isNewIdentity
-              ? "Create Identity"
-              : "Save Changes"}
-          </button>
-        </div>
-      </div>
-
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+    <ListPage
+      title={isNewIdentity ? "Create Your Identity" : "Identity Profile"}
+      lede={
+        isNewIdentity
+          ? "Set up your Sutaeru agent identity to personalise your AI experience."
+          : "How your agent introduces itself."
+      }
+      fold={fold}
+      wide
+      className="id-view"
+      actions={
+        <button onClick={handleSave} disabled={upsertMutation.isPending} className="btn">
+          {upsertMutation.isPending ? "Saving..." : isNewIdentity ? "Create Identity" : "Save Changes"}
+        </button>
+      }
+    >
+      <div className="lst-split">
         {/* ── Assistant preview (dark hero card) ──────────────────────────── */}
-        <aside className="sk-card-dark skx-id-hero self-start">
+        <aside className="sk-card-dark skx-id-hero">
           <div className="skx-id-hero-top">
             <LogoMark className="skx-id-logo" />
             <HalftoneRamp columns={9} rows={7} className="skx-id-ramp" />
           </div>
 
-          {/* Glyph / avatar block */}
           <div className="skx-id-avatar">
             {avatarUrl ? (
               <img src={avatarUrl} alt="avatar" className="h-full w-full object-cover" />
@@ -250,33 +318,21 @@ export default function Identity() {
 
           <div>
             <h2 className="skx-id-name">
-              {displayName || (
-                <span className="skx-id-placeholder">Your Display Name</span>
-              )}
+              {displayName || <span className="skx-id-placeholder">Your Display Name</span>}
             </h2>
             <p className="sk-dark-sub">
-              @
-              {handle || (
-                <span className="skx-id-placeholder">username</span>
-              )}
+              @{handle || <span className="skx-id-placeholder">username</span>}
             </p>
           </div>
 
-          {/* Status line */}
           <div className="skx-id-stats">
             <span className="sk-dot" aria-hidden="true" />
-            <span className="sk-label">
-              {statItems.map((s) => `${s.value} ${s.label}`).join(" · ")}
-            </span>
+            <span className="sk-label">{statItems.map((s) => `${s.value} ${s.label}`).join(" · ")}</span>
           </div>
 
           <div>
             <p className="sk-dark-sub">
-              {bio || (
-                <span className="skx-id-placeholder">
-                  No bio yet. Add one below to tell others about your agent.
-                </span>
-              )}
+              {bio || <span className="skx-id-placeholder">No bio yet. Add one below to tell others about your agent.</span>}
             </p>
           </div>
 
@@ -307,207 +363,102 @@ export default function Identity() {
           )}
         </aside>
 
-        {/* ── Editor sections ─────────────────────────────────────────────── */}
-        <div className="sk-stack">
-          {/* Profile */}
-          <section className="sk-card skx-id-profile">
-            <FocusBrackets />
-            <p className="sk-label">Profile</p>
-            <h2 className="mt-3 text-[22px] font-semibold tracking-tight">
-              {isNewIdentity ? "Create Profile" : "Edit Profile"}
-            </h2>
-            <p className="sk-sub">
-              {isNewIdentity
-                ? "Fill in the details below to create your agent identity."
-                : "Update your agent's identity information."}
-            </p>
+        {/* ── The three folds ─────────────────────────────────────────────── */}
+        <ListFolds fold={fold}>
+          <ListFold
+            id="profile"
+            index={1}
+            fold={fold}
+            label="Profile"
+            pick={displayName || handle || "Not filled in"}
+            mini={avatarUrl ? avatarUrl : pickArt("nav-agent")}
+          >
+            <AvatarField avatarUrl={avatarUrl} uploading={isUploadingAvatar} onRemove={() => setAvatarUrl("")} onFile={handleAvatarFileChange} />
 
-            {/* Avatar Upload */}
-            <div className="sk-field mt-7">
-              <Label className="sk-label">Avatar</Label>
-              <div className="sk-row">
-                {/* Preview */}
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[20px] bg-[var(--r-panel)] text-[var(--art-ink)]">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt="avatar preview" className="h-full w-full object-cover" />
-                  ) : (
-                    <SutaeruIcon name="image" className="h-6 w-6" />
-                  )}
-                </div>
-                {/* Upload button */}
-                <div className="sk-col">
-                  <input
-                    ref={avatarInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    className="hidden"
-                    onChange={handleAvatarFileChange}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => avatarInputRef.current?.click()}
-                    disabled={isUploadingAvatar}
-                    className="sk-btn sk-btn-sm self-start"
-                  >
-                    {isUploadingAvatar ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Upload className="h-3.5 w-3.5" />
-                    )}
-                    {isUploadingAvatar ? "Uploading…" : "Upload image"}
-                  </button>
-                  {avatarUrl && (
-                    <button
-                      type="button"
-                      onClick={() => { setAvatarUrl(""); }}
-                      className="sk-muted min-h-11 text-sm transition-colors hover:underline"
-                    >
-                      Remove avatar
-                    </button>
-                  )}
-                  <p className="sk-meta">JPG, PNG, GIF or WebP · max 5 MB</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="my-7">
-              <hr className="sk-hairline" />
-            </div>
-
-            {/* Handle */}
-            <div className="sk-field">
-              <Label htmlFor="handle" className="sk-label">
+            <div className="lst-field">
+              <label className="mono" htmlFor="handle">
                 Handle
-              </Label>
-              <Input
+              </label>
+              <input
                 id="handle"
-                className="sk-input focus-visible:ring-0"
+                className="lst-input"
                 placeholder="username"
                 value={handle}
                 onChange={(e) => setHandle(e.target.value.replace(/[^a-z0-9_-]/gi, ""))}
                 maxLength={64}
               />
-              <p className="sk-muted mt-2 text-xs">
-                Your unique @handle. Letters, numbers, underscores and hyphens only.
-              </p>
+              <p className="lst-note">Letters, numbers, underscores and hyphens only.</p>
             </div>
 
-            {/* Display Name */}
-            <div className="sk-field mt-6">
-              <Label htmlFor="displayName" className="sk-label">
+            <div className="lst-field">
+              <label className="mono" htmlFor="displayName">
                 Display Name
-              </Label>
-              <Input
-                id="displayName"
-                className="sk-input focus-visible:ring-0"
-                placeholder="Your Name"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                maxLength={255}
-              />
+              </label>
+              <input id="displayName" className="lst-input" placeholder="Your Name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={255} />
             </div>
 
-            {/* Bio */}
-            <div className="sk-field mt-6">
-              <Label htmlFor="bio" className="sk-label">
+            <div className="lst-field">
+              <label className="mono" htmlFor="bio">
                 Bio
-              </Label>
-              <Textarea
+              </label>
+              <textarea
                 id="bio"
+                className="lst-area"
                 placeholder="Tell others about your agent - your goals, expertise, or what makes you unique..."
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 rows={4}
-                className="sk-textarea focus-visible:ring-0"
               />
-              <p className="sk-meta mt-2">{bio.length} characters</p>
+              <p className="lst-note">{bio.length} characters</p>
             </div>
+          </ListFold>
 
-            <div className="my-7">
-              <hr className="sk-hairline" />
-            </div>
-
-            {/* Primary Language */}
-            <div className="sk-field">
-              <Label htmlFor="primaryLanguage" className="sk-label">
+          <ListFold id="language" index={2} fold={fold} label="Language" pick={languageLabel || "Not set"} mini={pickArt("tone-plain")}>
+            <div className="lst-field">
+              <label className="mono" htmlFor="primaryLanguage">
                 Primary Language
-              </Label>
-              <Select value={primaryLanguage} onValueChange={setPrimaryLanguage}>
-                <SelectTrigger
+              </label>
+              <div className="lst-select-wrap">
+                <select
                   id="primaryLanguage"
-                  className="h-12 w-full rounded-[var(--r-radius-pill)] border border-[var(--r-stroke)] bg-[var(--r-paper)] px-5 text-[15px] text-[var(--r-ink)] shadow-none data-[placeholder]:text-[var(--r-quiet)] data-[size=default]:h-12 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-[var(--r-accent)]"
+                  className="lst-select"
+                  value={primaryLanguage}
+                  onChange={(e) => setPrimaryLanguage(e.target.value)}
                 >
-                  <SelectValue placeholder="Select a language..." />
-                </SelectTrigger>
-                <SelectContent className="rounded-[20px] border-0 bg-[var(--r-card)] shadow-lg">
+                  <option value="">Select a language...</option>
                   {LANGUAGES.map((lang) => (
-                    <SelectItem key={lang.value} value={lang.value}>
+                    <option key={lang.value} value={lang.value}>
                       {lang.label}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
-              <p className="sk-muted mt-2 text-xs">
-                The language your agent primarily communicates in.
-              </p>
-            </div>
-          </section>
-
-          {/* Personality */}
-          <section className="sk-card">
-            <p className="sk-label">Personality</p>
-            <div className="sk-field mt-3">
-              <Label className="sk-label">Personality Traits</Label>
-              <div className="flex min-h-12 flex-wrap items-center gap-1.5 rounded-[20px] bg-[var(--art-paper)] px-3 py-2">
-                {personalityTraits.map((trait) => (
-                  <span
-                    key={trait}
-                    className="inline-flex items-center gap-1 rounded-full bg-[var(--art-ink)] py-1.5 pl-3.5 pr-1.5 text-xs font-medium text-[var(--art-paper)]"
-                  >
-                    {trait}
-                    <button
-                      type="button"
-                      onClick={() => removeTrait(trait)}
-                      className="-my-2 -mr-1.5 flex min-h-11 min-w-11 items-center justify-center rounded-full transition-colors hover:bg-[color-mix(in_srgb,var(--r-paper)_15%,transparent)]"
-                      aria-label={`Remove ${trait}`}
-                    >
-                      <SutaeruIcon name="close" signal={false} className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-                <input
-                  type="text"
-                  value={traitInput}
-                  onChange={(e) => setTraitInput(e.target.value)}
-                  onKeyDown={handleTraitKeyDown}
-                  placeholder={
-                    personalityTraits.length === 0
-                      ? "Type a trait and press Enter..."
-                      : personalityTraits.length < 10
-                      ? "Add another..."
-                      : ""
-                  }
-                  disabled={personalityTraits.length >= 10}
-                  className="min-w-[6rem] flex-1 bg-transparent text-sm outline-none"
-                />
-                {traitInput.trim() && (
-                  <button
-                    type="button"
-                    onClick={addTrait}
-                    className="flex min-h-11 min-w-11 shrink-0 items-center justify-center transition-colors"
-                    aria-label="Add trait"
-                  >
-                    <SutaeruIcon name="plus" signal={false} className="h-4 w-4" />
-                  </button>
-                )}
+                </select>
+                <svg className="fi" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
               </div>
-              <p className="sk-muted mt-2 text-xs">
-                Press Enter or , to add. Up to 10 traits.
-              </p>
+              <p className="lst-note">The language your agent primarily communicates in.</p>
             </div>
-          </section>
-        </div>
+          </ListFold>
+
+          <ListFold
+            id="personality"
+            index={3}
+            fold={fold}
+            label="Personality"
+            pick={personalityTraits.length ? `${personalityTraits.length} ${personalityTraits.length === 1 ? "trait" : "traits"}` : "None yet"}
+            mini={pickArt("tone-friendly")}
+          >
+            <TraitEditor
+              traits={personalityTraits}
+              value={traitInput}
+              onValue={setTraitInput}
+              onAdd={addTrait}
+              onRemove={removeTrait}
+              onKeyDown={handleTraitKeyDown}
+            />
+          </ListFold>
+        </ListFolds>
       </div>
-    </div>
+    </ListPage>
   );
 }

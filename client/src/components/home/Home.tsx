@@ -2,7 +2,7 @@ import * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DrivePicker } from "@/components/DrivePicker";
 import { markIntroSeen, shouldPlayIntro } from "@/components/brand";
-import { PRIVATE_HINT, SOURCE_ROWS, type ChatModeOption } from "@/components/chat/ModeMenu";
+import { SOURCE_ROWS, type ChatModeOption } from "@/components/chat/ModeMenu";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import { trpc } from "@/lib/trpc";
 import {
@@ -214,16 +214,7 @@ export function Home({
             toast.success(next ? "Thinking on: slower, more careful answers" : "Thinking off");
           },
           privateChat,
-          privateHint: PRIVATE_HINT,
-          onPrivateChange: (next) => {
-            if (!next) {
-              onPrivateChange(false);
-              return;
-            }
-            // Nothing in the product keeps a chat out of history or memory yet, so the
-            // switch says so rather than pretending. T-113 lists the API this needs.
-            toast.error(PRIVATE_HINT);
-          },
+          onPrivateChange,
           allowedTools,
           onToggleTool,
           sourceRows: SOURCE_ROWS,

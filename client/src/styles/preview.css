@@ -6,7 +6,6 @@
 .sutaeru-glyph-glint { stroke: var(--neon-orange); }
 .sutaeru-seal, .sutaeru-stamp { display: block; flex-shrink: 0; }
 .sutaeru-seal-ink { fill: var(--r-accent, #F4511E); }
-.skx-nav-drawer-seal { width: 18px; height: 18px; margin-left: -4px; }
 .sk-land-seal { width: 16px; height: 16px; margin-left: -2px; }
 .sutaeru-feature-icon { color: currentColor; overflow: visible; }
 .sutaeru-icon-signal { fill: var(--neon-orange); stroke: var(--neon-orange); }

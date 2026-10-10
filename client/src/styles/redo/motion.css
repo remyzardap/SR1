@@ -1,4 +1,52 @@
-/* Reduced Motion and View Transitions */
+/* Motion: M3 tokens, state layers, reduced motion and view transitions.
+   The tokens mirror client/src/lib/motion/tokens.ts (motion.test.ts keeps them in step). */
+
+:root {
+  --m-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --m-ease-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --m-ease-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --m-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --m-ease-standard-decelerate: cubic-bezier(0, 0, 0, 1);
+  --m-ease-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
+
+  --m-dur-short1: 50ms;
+  --m-dur-short2: 100ms;
+  --m-dur-short3: 150ms;
+  --m-dur-short4: 200ms;
+  --m-dur-medium1: 250ms;
+  --m-dur-medium2: 300ms;
+  --m-dur-medium3: 350ms;
+  --m-dur-medium4: 400ms;
+  --m-dur-long1: 450ms;
+  --m-dur-long2: 500ms;
+  --m-dur-long3: 550ms;
+  --m-dur-long4: 600ms;
+  --m-dur-extra-long1: 700ms;
+  --m-dur-extra-long2: 800ms;
+
+  --m-dur-short: var(--m-dur-short4);
+  --m-dur-medium: var(--m-dur-medium2);
+  --m-dur-long: var(--m-dur-long2);
+
+  /* State layer opacities (M3: hover .08, focus .10, press .10, drag .16). */
+  --m-state-hover: .08;
+  --m-state-focus: .10;
+  --m-state-press: .12;
+}
+
+/* ── State layers: add .m-state to any control for M3 hover/press feedback ──
+   The layer is a ::before in currentColor, so it works on ink and paper buttons in both themes. */
+.m-state { position: relative; isolation: isolate; -webkit-tap-highlight-color: transparent; }
+.m-state::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1;
+  background: currentColor; opacity: 0; pointer-events: none;
+  transition: opacity var(--m-dur-short3) var(--m-ease-standard);
+}
+@media (hover: hover) { .m-state:hover::before { opacity: var(--m-state-hover); } }
+.m-state:focus-visible::before { opacity: var(--m-state-focus); }
+.m-state:active::before { opacity: var(--m-state-press); transition-duration: var(--m-dur-short1); }
+.m-press { transition: transform var(--m-dur-short4) var(--m-ease-emphasized); }
+.m-press:active { transform: scale(.96); transition-duration: var(--m-dur-short2); }
 
 /* ── Reduced motion ───────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
@@ -14,8 +62,35 @@
   .intro :is(.sun, .word, .hero-seal) { transform: none !important; }
 }
 
-/* View transitions between screens (supported browsers), with the picture gliding from studio to run */
-::view-transition-old(root), ::view-transition-new(root) { animation-duration: 360ms; animation-timing-function: cubic-bezier(.16,1,.3,1); }
-::view-transition-group(shot) { animation-duration: 560ms; animation-timing-function: cubic-bezier(.16,1,.3,1); }
+/* ── Route transitions ────────────────────────────────────────────────────
+   lib/motion/routeTransition.ts sets data-vt="forward|back|fade" on <html> for the length of a
+   View Transition. Forward and back are an M3 shared X axis: the old page slides 30 px and fades out
+   on the accelerate curve, the new one arrives on the decelerate curve. */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--m-dur-medium3); animation-timing-function: var(--m-ease-emphasized); }
+::view-transition-group(shot) { animation-duration: 560ms; animation-timing-function: var(--m-ease-emphasized); }
 .top { view-transition-name: topbar; }
 .vt .view-enter { animation: none; }
+
+@keyframes m-axis-out-fwd { to { opacity: 0; transform: translateX(-30px); } }
+@keyframes m-axis-in-fwd { from { opacity: 0; transform: translateX(30px); } }
+@keyframes m-axis-out-back { to { opacity: 0; transform: translateX(30px); } }
+@keyframes m-axis-in-back { from { opacity: 0; transform: translateX(-30px); } }
+@keyframes m-fade-through-out { to { opacity: 0; } }
+@keyframes m-fade-through-in { from { opacity: 0; transform: scale(.98); } }
+
+:root[data-vt="forward"]::view-transition-old(root) { animation: m-axis-out-fwd var(--m-dur-short4) var(--m-ease-emphasized-accelerate) both; }
+:root[data-vt="forward"]::view-transition-new(root) { animation: m-axis-in-fwd var(--m-dur-medium4) var(--m-ease-emphasized-decelerate) var(--m-dur-short2) both; }
+:root[data-vt="back"]::view-transition-old(root) { animation: m-axis-out-back var(--m-dur-short4) var(--m-ease-emphasized-accelerate) both; }
+:root[data-vt="back"]::view-transition-new(root) { animation: m-axis-in-back var(--m-dur-medium4) var(--m-ease-emphasized-decelerate) var(--m-dur-short2) both; }
+:root[data-vt="fade"]::view-transition-old(root) { animation: m-fade-through-out var(--m-dur-short3) var(--m-ease-emphasized-accelerate) both; }
+:root[data-vt="fade"]::view-transition-new(root) { animation: m-fade-through-in var(--m-dur-medium2) var(--m-ease-emphasized-decelerate) var(--m-dur-short2) both; }
+
+/* CSS fallback where View Transitions are missing: the new page fades through on mount. */
+.m-route-enter { animation: m-fade-through-in var(--m-dur-medium2) var(--m-ease-emphasized-decelerate) both; }
+.m-route-enter[data-dir="forward"] { animation-name: m-axis-in-fwd; animation-duration: var(--m-dur-medium4); }
+.m-route-enter[data-dir="back"] { animation-name: m-axis-in-back; animation-duration: var(--m-dur-medium4); }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(*) { animation: none !important; }
+}
+[data-reduce-motion="true"]::view-transition-old(root), [data-reduce-motion="true"]::view-transition-new(root) { animation: none !important; }

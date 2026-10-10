@@ -30,12 +30,12 @@ export interface ShowcaseProps {
   className?: string;
 }
 
-function Card({ item, on, tabIndex, onPick, className }: { item: ShowcaseItem; on: boolean; tabIndex: 0 | -1; onPick: () => void; className?: string }) {
+function Card({ item, on, tabIndex, onPick, className, action }: { item: ShowcaseItem; on: boolean; tabIndex: 0 | -1; onPick: () => void; className?: string; action?: boolean }) {
   return (
     <button
       type="button"
-      role="radio"
-      aria-checked={on}
+      role={action ? undefined : "radio"}
+      aria-checked={action ? undefined : on}
       aria-label={item.description ? `${item.name}. ${item.description}` : item.name}
       tabIndex={tabIndex}
       data-id={item.id}
@@ -56,8 +56,19 @@ function Card({ item, on, tabIndex, onPick, className }: { item: ShowcaseItem; o
 /**
  * Exactly two options: two cards side by side, nothing hidden off screen.
  */
-export function TwoUp({ items, value, onChange, label, className }: Omit<ShowcaseProps, "size">) {
+export function TwoUp({ items, value, onChange, label, className, action }: Omit<ShowcaseProps, "size"> & { action?: boolean }) {
   const ids = items.map((i) => i.id);
+  /* "action": the cards go somewhere when pressed (a start screen), so they are plain buttons;
+     radio arrows would navigate on the first keypress. */
+  if (action) {
+    return (
+      <div className={cn("duo-sc", className)} role="group" aria-label={label}>
+        {items.map((it) => (
+          <Card key={it.id} item={it} on={false} tabIndex={0} onPick={() => onChange(it.id)} action />
+        ))}
+      </div>
+    );
+  }
   return (
     <div className={cn("duo-sc", className)} role="radiogroup" aria-label={label} onKeyDown={radioKeyDown(ids, value, onChange)}>
       {items.map((it) => (

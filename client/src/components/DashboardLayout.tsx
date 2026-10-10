@@ -40,6 +40,7 @@ import { trpc } from "@/lib/trpc";
 import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
 import { AppHeader } from "@/components/chrome/AppHeader";
 import { NavLogoMenu } from "@/components/chrome/NavLogoMenu";
+import { LivingBackground, livingVariantFor } from "@/components/art/LivingBackground";
 
 const menuItems: Array<{ icon: SutaeruIconName; label: string; path: string; group: string }> = [
   { icon: "ask", label: "Chat", path: "/chat", group: "workspace" },
@@ -464,6 +465,7 @@ function DashboardLayoutContent({
           scroll container: that keeps the mobile header and in-page sticky bars (Images) pinned. */}
       <SidebarInset className={noPadding ? undefined : "sk-inset-flow"}>
         <div ref={contentRef} className="flex flex-col flex-1 min-h-0 relative">
+          <LivingBackground variant={livingVariantFor(location)} />
           {isMobile && (location === "/chat" || location.startsWith("/sessions")) && (
             <NavLogoMenu variant="floating" />
           )}

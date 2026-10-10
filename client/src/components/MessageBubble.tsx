@@ -11,6 +11,7 @@ import { SpeakButton } from "./SpeakButton";
 import { PlanOptionCards } from "./PlanOptionCards";
 import type { ChatMessageData, ChatSource, PlanDirection } from "@/types/chat";
 import { ThinkingBlock } from "./chat/ThinkingBlock";
+import { AnswerFold } from "./chat/AnswerFold";
 import { CitationChip } from "./chat/CitationChip";
 import { citationAnchorId, createCitationPlugin, hostOf, numberedSources } from "@/lib/citations";
 import { SutaeruIcon } from "./SutaeruIcon";
@@ -142,8 +143,12 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
       ) : null}
       {isUser && references.length > 0 && <div className="sutaeru-message-references">{references.map((name) => <span key={name}><FileText />{name}</span>)}</div>}
       {!isUser && sources.length > 0 && (
-        <section className="sutaeru-message-sources" aria-label="Sources for this answer">
-          <p className="mono">Sources / {sources.length}</p>
+        <AnswerFold
+          className="sutaeru-message-sources"
+          label="Sources"
+          summary={`${sources.length} · ${[...new Set(numbered.map(({ source }) => hostOf(source.url)).filter(Boolean))].slice(0, 3).join(", ")}`}
+          opensForCitation={`src-${message.id}-`}
+        >
           <SourceCards
             label="Sources for this answer"
             activeId={activeSource ?? citationAnchorId(message.id, numbered[0].number)}
@@ -156,7 +161,7 @@ export function MessageBubble({ message, onSave, tools = [], isRunning = false, 
               href: source.url,
             }))}
           />
-        </section>
+        </AnswerFold>
       )}
       {!isUser && activity.length === 0 && tools.length > 0 && (
         <div className="sutaeru-message-tools">

@@ -101,6 +101,9 @@ jspm_packages/
 tmp/
 temp/
 
+# Playwright review screenshots (scripts/files-check.mjs output)
+shots/
+
 # Database
 *.db
 *.sqlite

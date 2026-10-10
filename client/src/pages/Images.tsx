@@ -14,7 +14,9 @@ import {
   FALLBACK_ENGINES,
   engineBrief,
   estimate,
+  PREP_MS,
   phaseOf,
+  runStatus,
   type Engine,
   type EngineId,
   type Quality,
@@ -53,9 +55,6 @@ interface Run {
 
 const MAX_PROMPT = 2000;
 const MAX_REFERENCE = 2;
-/* The bar ramps over the engine's usual time and waits at the end for the real picture. */
-const EST_MS = 900;
-const HOLD = 0.94;
 
 async function loadImageBlob(imageUrl: string): Promise<Blob> {
   const origin = import.meta.env.VITE_SR1_API_ORIGIN || "";
@@ -119,14 +118,15 @@ export default function Images() {
   }, [running]);
 
   let progress = 0;
+  let status: ReturnType<typeof runStatus> | null = null;
   if (run?.status === "done") progress = 1;
   else if (run?.status === "stopped") progress = run.p0;
   else if (run) {
-    const dur = Math.max(9000, run.secs * 1000);
-    progress = Math.min(HOLD, Math.max(0, (now - run.t0 - EST_MS) / dur));
+    status = runStatus({ elapsedMs: now - run.t0, expectedMs: run.secs * 1000, engine: run.engine });
+    progress = status.progress;
     progressRef.current = progress;
   }
-  const etaSeconds = run && run.status === "running" ? ((1 - progress) * Math.max(9000, run.secs * 1000)) / 1000 : null;
+  const etaSeconds = status?.etaSeconds ?? null;
 
   const refPhotos: RefPhoto[] = refs.flatMap((r) => (r.source === "device" ? [{ name: r.filename, src: r.dataUrl }] : []));
   const addRefs = useCallback((list: FileList | null) => {
@@ -266,8 +266,11 @@ export default function Images() {
       prompt={run.prompt}
       shot={run.shot}
       progress={progress}
-      phase={phaseOf(progress, now - run.t0 > EST_MS)}
+      phase={phaseOf(progress, now - run.t0 > PREP_MS)}
       etaSeconds={etaSeconds}
+      word={status?.word}
+      timeText={status?.timeText}
+      slow={status?.slow}
       took={run.took}
       pictures={pictures}
       pick={run.pick}

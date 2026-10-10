@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowUp, ArrowRight, ChevronLeft, Copy, Share2, FolderOpen, FileText, Presentation, Table2 } from "lucide-react";
 import { FocusBrackets, useReducedMotion } from "@/components/art";
 import { cn } from "@/lib/utils";
+import { AnswerFold } from "@/components/chat/AnswerFold";
 
 /** Presentational pieces of the Chat answer screen. No data fetching: the lab and the chat container both feed them. */
 
@@ -139,8 +140,7 @@ const TURN: Array<{ id: TurnKind; name: string; Icon: typeof FileText }> = [
 /** "Turn this into": pick an output, hand the answer to Agent. */
 export function TurnInto({ value, onChange, onHandOff, disabled }: { value: TurnKind; onChange: (k: TurnKind) => void; onHandOff: () => void; disabled?: boolean }) {
   return (
-    <div className="card turn">
-      <p className="mono">Turn this into</p>
+    <AnswerFold label="Turn this into" summary={TURN.find((t) => t.id === value)?.name} className="turn">
       <div className="turn-opts" role="radiogroup" aria-label="Output">
         {TURN.map(({ id, name, Icon }) => (
           <button key={id} type="button" className="turn-opt" role="radio" aria-checked={value === id} onClick={() => onChange(id)}>
@@ -152,7 +152,7 @@ export function TurnInto({ value, onChange, onHandOff, disabled }: { value: Turn
       <button type="button" className="btn ink big" style={{ width: "100%" }} disabled={disabled} onClick={onHandOff}>
         Hand to Agent <ArrowRight size={18} aria-hidden="true" />
       </button>
-    </div>
+    </AnswerFold>
   );
 }
 

@@ -1,122 +1,164 @@
-import type { FileItem } from "@/components/files/FilesView";
+import type { FileFilterId, FileItem, FileSort } from "@/components/files/fileModel";
+
+/* Fixtures for /__lab/files. Dates are stamped relative to "now" when the module loads, so the
+   list always reads Today / Yesterday / 3 days ago the way a real account does. */
+
+const MIN = 60_000;
+const HOUR = 60 * MIN;
+const DAY = 24 * HOUR;
+const NOW = Date.now();
+const KB = 1024;
+const MB = 1024 * KB;
+
+const ago = (ms: number) => new Date(NOW - ms).toISOString();
 
 export const SAMPLE_FILES: FileItem[] = [
   {
     id: 1,
-    kind: "report",
-    name: "Off grid solar cost per kWh",
-    meta: "Edited 2 h ago · 14 sources",
-    fresh: true,
-    sourcesCount: 14,
-    doc: {
-      title: "Off grid solar cost per kWh",
-      kicker: "Research report",
-      cover: "cov-solar",
-      figs: [
-        ["Low", "0.28"],
-        ["High", "0.45"],
-        ["Sources", "14"],
-      ],
-      bars: [0.9, 0.74, 0.62, 0.5],
-      meta: "Oct 2026 · 14 sources",
-    },
+    name: "Bakery loyalty card proposal",
+    kind: "document",
+    format: "docx",
+    fileSizeBytes: 38 * KB,
+    createdAt: ago(3 * HOUR),
+    updatedAt: ago(2 * HOUR),
+    fileUrl: "/files/bakery-loyalty-card.docx",
+    threadId: "t-bakery",
   },
   {
     id: 2,
-    kind: "deck",
-    name: "TGWI investor update Q3",
-    meta: "Yesterday · 18 slides",
-    doc: {
-      title: "TGWI investor update Q3",
-      kicker: "TGWI · October 2026",
-      cover: "cov-jakarta-bw",
-      meta: "01 / 18",
-    },
+    name: "Rooftop solar payback report",
+    kind: "report",
+    format: "pdf",
+    fileSizeBytes: 1.2 * MB,
+    createdAt: ago(2 * DAY),
+    updatedAt: ago(1 * DAY),
+    fileUrl: "/files/rooftop-solar-payback.pdf",
+    threadId: "t-solar",
+    sourcesCount: 14,
   },
   {
     id: 3,
-    kind: "sheet",
-    name: "Villa BOQ and budget",
-    meta: "3 days ago · 6 tabs",
-    doc: {
-      title: "Villa BOQ and budget",
-      kicker: "Site · Seminyak",
-      cover: "cov-villa",
-    },
-  },
-  {
-    id: 4,
+    name: "Coffee, golden hour",
     kind: "image",
-    name: "Ceramic mug, morning light",
-    meta: "Gemini · 1:1",
+    format: "png",
+    fileSizeBytes: 2.4 * MB,
+    createdAt: ago(3 * DAY),
+    fileUrl: "/studio/t/light-window.webp",
     photoUrl: "/studio/t/light-window.webp",
   },
   {
+    id: 4,
+    name: "City comparison",
+    kind: "sheet",
+    format: "xlsx",
+    fileSizeBytes: 21 * KB,
+    createdAt: ago(4 * DAY),
+    updatedAt: ago(4 * DAY),
+    fileUrl: "/files/city-comparison.xlsx",
+  },
+  {
     id: 5,
-    kind: "report",
-    name: "Clay thermal storage review",
-    meta: "Last week · 22 sources",
-    sourcesCount: 22,
-    doc: {
-      title: "Clay thermal storage review",
-      kicker: "Thermal research",
-      cover: "cov-clay",
-      figs: [
-        ["Sources", "22"],
-        ["Cycles", "4,000"],
-        ["Saved", "18%"],
-      ],
-      bars: [0.55, 0.7, 0.82, 0.95],
-      meta: "Oct 2026 · 22 sources",
-    },
+    name: "Studio walkthrough",
+    kind: "video",
+    format: "mp4",
+    fileSizeBytes: 18 * MB,
+    createdAt: ago(6 * DAY),
+    fileUrl: "/files/studio-walkthrough.mp4",
   },
   {
     id: 6,
+    name: "Solar pitch deck for the Bandung co-operative",
     kind: "deck",
-    name: "Kopdes PLTS proposal",
-    meta: "2 weeks ago · 12 slides",
-    doc: {
-      title: "Kopdes PLTS proposal",
-      kicker: "Koperasi desa · 2026",
-      cover: "cov-panels",
-      meta: "01 / 12",
-    },
+    format: "pptx",
+    fileSizeBytes: 3.1 * MB,
+    createdAt: ago(8 * DAY),
+    updatedAt: ago(7 * DAY),
+    fileUrl: "/files/solar-pitch-deck.pptx",
+    threadId: "t-bandung",
   },
   {
     id: 7,
-    kind: "image",
-    name: "Night lamp, film look",
-    meta: "OpenAI · 4:5",
-    photoUrl: "/studio/t/light-night.webp",
+    name: "Clay thermal storage review",
+    kind: "report",
+    format: "md",
+    fileSizeBytes: 14 * KB,
+    createdAt: ago(12 * DAY),
+    fileUrl: "/files/clay-thermal-review.md",
+    sourcesCount: 22,
+    styleLabel: "Quiet",
   },
   {
     id: 8,
-    kind: "report",
+    name: "Night lamp, film look",
+    kind: "image",
+    format: "webp",
+    fileSizeBytes: 1.8 * MB,
+    createdAt: ago(13 * DAY),
+    fileUrl: "/studio/t/light-night.webp",
+    photoUrl: "/studio/t/light-night.webp",
+  },
+  {
+    id: 9,
+    name: "Site voice note — Seminyak",
+    kind: "audio",
+    format: "m4a",
+    fileSizeBytes: 4 * MB,
+    createdAt: ago(16 * DAY),
+    fileUrl: "/files/site-voice-note.m4a",
+  },
+  {
+    id: 10,
+    name: "Villa BOQ and budget",
+    kind: "sheet",
+    format: "csv",
+    fileSizeBytes: 6 * KB,
+    createdAt: ago(20 * DAY),
+    fileUrl: "/files/villa-boq.csv",
+  },
+  {
+    id: 11,
+    name: "Original photo roll, villa site",
+    kind: "other",
+    format: "zip",
+    fileSizeBytes: 44 * MB,
+    createdAt: ago(26 * DAY),
+    fileUrl: "/files/villa-roll.zip",
+  },
+  {
+    id: 12,
     name: "Weekly market brief",
-    meta: "Step 3 of 5",
+    kind: "report",
+    format: "md",
     live: true,
-    doc: {
-      title: "Weekly market brief",
-      kicker: "Monday edition",
-      cover: "cov-jakarta",
-      figs: [
-        ["IDX", "+1.2%"],
-        ["Rupiah", "15,640"],
-        ["Coal", "Down 3%"],
-      ],
-      bars: [0.4, 0.5, 0.6, 0.8],
-      meta: "Step 3 of 5",
-    },
+    fileSizeBytes: null,
+    createdAt: ago(30 * MIN),
+    fileUrl: "/files/weekly-market-brief.md",
+    threadId: "t-market",
+  },
+  {
+    id: 13,
+    name: "Suppliers shortlist",
+    kind: "document",
+    format: "docx",
+    fileSizeBytes: 52 * KB,
+    createdAt: ago(34 * DAY),
+    trashed: true,
+    fileUrl: "/files/suppliers-shortlist.docx",
   },
 ];
+
+const LIVE_FILE = SAMPLE_FILES.find((f) => f.live)!;
+const TRASHED_FILE = SAMPLE_FILES.find((f) => f.trashed)!;
 
 export interface FilesLabStateConfig {
   name: string;
   label: string;
   files: FileItem[];
-  searchQuery: string;
-  activeFilter: string;
-  storageUsedBytes: number;
+  query: string;
+  filter: FileFilterId;
+  sort: FileSort;
+  view: "active" | "trashed";
+  storageUsedBytes?: number;
   storageCapBytes: number;
   isUploading?: boolean;
   uploadingFileName?: string;
@@ -124,53 +166,87 @@ export interface FilesLabStateConfig {
 }
 
 const STORAGE_CAP = 10 * 1024 * 1024 * 1024; // 10 GB
-const STORAGE_STANDARD = 2.4 * 1024 * 1024 * 1024; // 2.4 GB (6 of 24 segments)
-const STORAGE_NEARLY_FULL = 9.4 * 1024 * 1024 * 1024; // 9.4 GB (23 of 24 segments)
+const DATE_DESC: FileSort = { key: "date", dir: "desc" };
 
 export const FILES_LAB_STATES: Record<string, FilesLabStateConfig> = {
   populated: {
     name: "populated",
     label: "Populated",
     files: SAMPLE_FILES,
-    searchQuery: "",
-    activeFilter: "all",
-    storageUsedBytes: STORAGE_STANDARD,
+    query: "",
+    filter: "all",
+    sort: DATE_DESC,
+    view: "active",
     storageCapBytes: STORAGE_CAP,
   },
-  filtered: {
-    name: "filtered",
-    label: "Filtered (Decks)",
+  documents: {
+    name: "documents",
+    label: "Documents",
     files: SAMPLE_FILES,
-    searchQuery: "",
-    activeFilter: "deck",
-    storageUsedBytes: STORAGE_STANDARD,
+    query: "",
+    filter: "documents",
+    sort: DATE_DESC,
+    view: "active",
+    storageCapBytes: STORAGE_CAP,
+  },
+  images: {
+    name: "images",
+    label: "Images",
+    files: SAMPLE_FILES,
+    query: "",
+    filter: "images",
+    sort: DATE_DESC,
+    view: "active",
+    storageCapBytes: STORAGE_CAP,
+  },
+  sorted_by_size: {
+    name: "sorted_by_size",
+    label: "By size",
+    files: SAMPLE_FILES,
+    query: "",
+    filter: "all",
+    sort: { key: "size", dir: "desc" },
+    view: "active",
+    storageCapBytes: STORAGE_CAP,
+  },
+  sorted_by_name: {
+    name: "sorted_by_name",
+    label: "By name",
+    files: SAMPLE_FILES,
+    query: "",
+    filter: "all",
+    sort: { key: "name", dir: "asc" },
+    view: "active",
     storageCapBytes: STORAGE_CAP,
   },
   searching_no_match: {
     name: "searching_no_match",
     label: "Search No Match",
     files: SAMPLE_FILES,
-    searchQuery: "quantum battery",
-    activeFilter: "all",
-    storageUsedBytes: STORAGE_STANDARD,
+    query: "quantum battery",
+    filter: "all",
+    sort: DATE_DESC,
+    view: "active",
     storageCapBytes: STORAGE_CAP,
   },
   empty_per_kind: {
     name: "empty_per_kind",
-    label: "Empty (Videos)",
-    files: SAMPLE_FILES,
-    searchQuery: "",
-    activeFilter: "video",
-    storageUsedBytes: STORAGE_STANDARD,
+    label: "Empty (Sheets)",
+    files: SAMPLE_FILES.filter((f) => f.kind !== "sheet" && f.kind !== "deck"),
+    query: "",
+    filter: "sheets",
+    sort: DATE_DESC,
+    view: "active",
     storageCapBytes: STORAGE_CAP,
   },
   uploading: {
     name: "uploading",
     label: "Uploading",
     files: SAMPLE_FILES,
-    searchQuery: "",
-    activeFilter: "all",
-    storageUsedBytes: STORAGE_STANDARD,
+    query: "",
+    filter: "all",
+    sort: DATE_DESC,
+    view: "active",
     storageCapBytes: STORAGE_CAP,
     isUploading: true,
     uploadingFileName: "site-survey-2026.docx",
@@ -179,19 +255,32 @@ export const FILES_LAB_STATES: Record<string, FilesLabStateConfig> = {
   writing: {
     name: "writing",
     label: "Writing Live",
-    files: [SAMPLE_FILES[7]], // Only the live writing file
-    searchQuery: "",
-    activeFilter: "all",
-    storageUsedBytes: STORAGE_STANDARD,
+    files: [LIVE_FILE],
+    query: "",
+    filter: "all",
+    sort: DATE_DESC,
+    view: "active",
+    storageCapBytes: STORAGE_CAP,
+  },
+  trashed: {
+    name: "trashed",
+    label: "Trash",
+    files: [TRASHED_FILE],
+    query: "",
+    filter: "all",
+    sort: DATE_DESC,
+    view: "trashed",
     storageCapBytes: STORAGE_CAP,
   },
   storage_nearly_full: {
     name: "storage_nearly_full",
     label: "Storage Nearly Full",
     files: SAMPLE_FILES,
-    searchQuery: "",
-    activeFilter: "all",
-    storageUsedBytes: STORAGE_NEARLY_FULL,
+    query: "",
+    filter: "all",
+    sort: DATE_DESC,
+    view: "active",
+    storageUsedBytes: 9.4 * 1024 * 1024 * 1024,
     storageCapBytes: STORAGE_CAP,
   },
 };

@@ -170,3 +170,37 @@ All of these are inline in `client/src/pages/Chat.tsx`, which still mixes old sh
   - keyboard toggles a section; `aria-expanded` is correct.
 - **Composer test:** the mode chip label is never clipped at 360 px. Check that its `scrollWidth` is no larger than its `clientWidth`.
 - **Live check after each release:** Remy's screens (Home, mode sheet, thread sheet, Documents, Improve a file, Admin) compared with the boards.
+
+---
+
+## Status after Phase 1 and the plan for Phase 2 (updated 2026-10-09)
+
+### What happened in Phase 1
+- **Released and live** (main `dedf476`): the shared fold parts (`components/fold/**`: FoldSection, FoldGroup/useFoldState, PickTiles, Showcase, GoBar, PromptField, LiveTag, `/__lab/parts`), the Studio page rebuilt on them, and the /chat cleanup (bottom icon bar, run-details box, home recent list and hand-off card removed; spacious composer with the mode chip), plus 32 real images in `client/public/studio/o/` with `lib/pickArt.ts`.
+- **Not released, work saved on branches:** `fe/ss-image-run` (new image-creation animation), `fe/ss-art-motion` (DotRamp logo in the chat, LivingBackground, motion tokens, art upgrade).
+- **Still missing:** about two thirds of the images (AI Studio Gemini key ran out of credits; use Vertex), the mode/thread sheet, create flows, workspace pages, desktop layout.
+- **Lessons (rules for Phase 2):**
+  1. At most **2 agents at a time**, on `claude-sonnet-5-5`: the Claude usage limit is account-wide and five parallel agents hit it twice (03:50 and 08:50 UTC).
+  2. Agents run as headless `claude -p` in tmux, **not** as in-session subagents (a session restart killed those and lost 4 hours). Autosave cron (`/root/kimi-work/studio-standard/autosave.sh`, every 15 min) commits and pushes `fe/ss-*` worktrees.
+  3. Agents commit and push every slice, open a draft PR early, and write a status file.
+  4. Launch flags: `--permission-mode acceptEdits --allowedTools ... --add-dir /root/kimi-work --add-dir /root/sr1 --add-dir /tmp/claude-0`; `--dangerously-skip-permissions` is refused for root.
+  5. Release from clean worktrees: merge branches into develop, `npm ci`, `npm run check`, `npm test`, then main with `[skip ci]`, DB backup, `docker build` from the clean worktree, `docker compose up -d --no-build sutaeru`. Image merge conflicts: keep the `fe/ss-images` versions.
+
+### Phase 2 (remaining frontend), in this order
+Each item = one branch `fe/ss-<name>`, one draft PR into develop, then a release when two or three are merged and `check`/`test`/`build` pass.
+
+| # | Package | Branch | Notes |
+|---|---|---|---|
+| 2.1 | Finish image-creation animation | `fe/ss-image-run` | Resume in `/root/wt-ss-a`. Premium diffusion-style reveal, honest phases, cold-start state, reduced motion |
+| 2.2 | Finish art and motion | `fe/ss-art-motion` | Resume in `/root/wt-ss-b`. DotRamp logo in the real chat, LivingBackground, M3 motion tokens, icon upgrade. One-line mounts in Chat.tsx and DashboardLayout |
+| 2.3 | Remaining images | `fe/ss-images` | Vertex AI generation: nav-*, depth-*, tone-*, len-*, style-*, theme-*, motion-*, voice-*, reformat-before/after |
+| 2.4 | Mode and thread sheet + answer folds | `fe/ss-mode-sheet` | `components/chat/ModeSheet.tsx`; Showcase of five modes; Model/Sources/Tools/Private as folds; no vendor names; Answer folds Sources/Thinking/"Turn this into"; fix private-chat toast in the thread composer |
+| 2.5 | Create flows | `fe/ss-create` | Agent builder (keep existing Report/Deck/Sheet/Image/Brief/Monitor art as Showcase), New document, Improve document (real before/after images), Video |
+| 2.6 | Workspace pages | `fe/ss-workspace` | Files as a Google Drive style list (type icon, name, "type · size · date", type chips, sort), Settings, Admin, list pages, logo menu |
+| 2.7 | Desktop layout | `fe/ss-desktop` | At 1100px and up: folds left, sticky live preview and GoBar right |
+| 2.8 | QA and final release | n/a | Full lab pass, fix defects, release |
+
+Run order given the 2-agent limit: (2.1 + 2.2), then (2.3 + 2.4), then (2.5 + 2.6), then (2.7 + 2.8). Release after each pair.
+
+### Backend Phase 2
+The paused backend work (PRs #95 and #98) was held until the frontend is live. It is **not** part of this plan and starts only after Remy says so.

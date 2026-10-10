@@ -4,6 +4,7 @@ import LabIndex from "./LabIndex";
 import LabShell from "./LabShell";
 import LabBrand from "./LabBrand";
 import LabArt from "./LabArt";
+import LabMotion from "./LabMotion";
 import LabSettings from "./LabSettings";
 import LabDitherEdge from "./LabDitherEdge";
 import LabHalftoneFade from "./LabHalftoneFade";
@@ -19,6 +20,7 @@ import LabSession from "./LabSession";
 import LabDone from "./LabDone";
 
 import LabAgent from "./LabAgent";
+import LabCreate from "./LabCreate";
 
 import LabLanding from "./LabLanding";
 import LabLogin from "./LabLogin";
@@ -32,12 +34,16 @@ import LabSplash from "./LabSplash";
 
 import LabHome from "./LabHome";
 import LabComposer from "./LabComposer";
+import LabModeSheet from "./LabModeSheet";
 
 import LabStudio from "./LabStudio";
 import LabParts from "./LabParts";
+import LabMenu from "./LabMenu";
 import LabImageRun from "./LabImageRun";
 
 import LabPageStates from "./LabPageStates";
+import LabLists from "./LabLists";
+import LabAdmin from "./LabAdmin";
 
 export function LabRouter() {
   return (
@@ -52,12 +58,15 @@ export function LabRouter() {
       <Route path="/__lab/art/slider" component={LabSlider} />
       <Route path="/__lab/docs-states" component={LabDocsStates} />
       <Route path="/__lab/answer" component={LabAnswer} />
+      <Route path="/__lab/art/living" component={LabMotion} />
+      <Route path="/__lab/motion" component={LabMotion} />
       <Route path="/__lab/art" component={LabArt} />
       <Route path="/__lab/settings" component={LabSettings} />
       <Route path="/__lab/files" component={LabFiles} />
       <Route path="/__lab/session" component={LabSession} />
       <Route path="/__lab/done" component={LabDone} />
       <Route path="/__lab/agent" component={LabAgent} />
+      <Route path="/__lab/create" component={LabCreate} />
       <Route path="/__lab/landing" component={LabLanding} />
       <Route path="/__lab/login" component={LabLogin} />
       <Route path="/__lab/verify-email" component={LabVerifyEmail} />
@@ -69,10 +78,14 @@ export function LabRouter() {
       <Route path="/__lab/splash" component={LabSplash} />
       <Route path="/__lab/home" component={LabHome} />
       <Route path="/__lab/composer" component={LabComposer} />
+      <Route path="/__lab/mode-sheet" component={LabModeSheet} />
       <Route path="/__lab/studio" component={LabStudio} />
       <Route path="/__lab/parts" component={LabParts} />
+      <Route path="/__lab/menu" component={LabMenu} />
       <Route path="/__lab/image-run" component={LabImageRun} />
       <Route path="/__lab/page-states" component={LabPageStates} />
+      <Route path="/__lab/lists" component={LabLists} />
+      <Route path="/__lab/admin" component={LabAdmin} />
     </Switch>
   );
 }

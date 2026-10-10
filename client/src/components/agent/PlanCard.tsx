@@ -10,11 +10,10 @@ export interface PlanCardProps {
   className?: string;
 }
 
-/** "Sutaeru will" — the plan the current choices add up to. */
+/** The plan the current choices add up to. Its heading ("Sutaeru will") is the fold it sits in. */
 export function PlanCard({ plan, redrawing = false, className }: PlanCardProps) {
   return (
-    <div className={cn("card plan-card", className)} aria-busy={redrawing || undefined}>
-      <p className="mono">Sutaeru will</p>
+    <div className={cn("plan-card", className)} aria-busy={redrawing || undefined}>
       <div className="plan-flow" style={{ opacity: redrawing ? 0.4 : 1, transition: "opacity 240ms var(--ease)" }}>
         {plan.rows.map((row, i) => (
           <div className="pf" key={`${row.name}-${i}`}>

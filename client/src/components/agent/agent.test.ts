@@ -4,22 +4,16 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { Router } from "wouter";
 
 import { DocMini } from "@/components/DocMini";
-import { DEFAULT_SHOT, compose, photoTile } from "@/lib/studio";
+import { DEFAULT_SHOT } from "@/lib/studio";
 import { AGENT_LAB_STATES } from "@/lab/fixtures/agent";
 import LabAgent from "@/lab/LabAgent";
 import { planFor, BRIEF_SAMPLES, IMAGE_BRIEF, CREDITS_MESSAGE, BLANK_BRIEF_MESSAGE, AGENT_DEFAULTS, type AgentSelection, type AgentNotice } from "@/lib/agentBuilder";
 import { AgentBuilder } from "./AgentBuilder";
-import { AgentGoBar } from "./AgentGoBar";
 import { AgentScreen } from "./AgentScreen";
 import { DepthPicker } from "./DepthPicker";
 import { PlanCard } from "./PlanCard";
-import { StepRail } from "./StepRail";
 
-/*
- * StudioFrame loads a photograph through an effect, and its module does not import the
- * React namespace, so the node test transform cannot render it. The card's own markup is
- * what matters here; the picture data is checked against lib/studio below.
- */
+/* StudioFrame loads a photograph through an effect and cannot render in the node test transform. */
 vi.mock("@/components/studio/StudioFrame", () => ({
   StudioFrame: ({ shot }: { shot: unknown }) =>
     React.createElement("div", { className: "sf mock-frame", "data-shot": (shot as { shot: string }).shot }),
@@ -61,205 +55,108 @@ function screenMarkup(over: Partial<React.ComponentProps<typeof AgentScreen>> = 
 
 const count = (html: string, re: RegExp) => (html.match(re) || []).length;
 
-describe("StepRail", () => {
-  it("marks the first step current and counts four", () => {
-    const html = renderToStaticMarkup(React.createElement(StepRail));
-    expect(html).toContain('aria-label="Steps"');
-    expect(count(html, /class="st[ "]/g)).toBe(4);
-    expect(html).toContain('class="st cur" aria-current="step"');
-    expect(html).toContain('class="sq" aria-hidden="true"></i>Brief');
-    expect(html).not.toContain('class="num"');
-    expect(html).toContain(">Done</span>");
-    expect(count(html, /class="ln"[ >]/g)).toBe(3);
-  });
-
-  it("marks finished steps and connectors done", () => {
-    const html = renderToStaticMarkup(React.createElement(StepRail, { current: 2 }));
-    expect(count(html, /class="ln done"[ >]/g)).toBe(2);
-    expect(html).toContain('class="st done"');
-    expect(html).toContain('class="st cur" aria-current="step"><i class="sq" aria-hidden="true"></i>Build');
-  });
-});
-
 describe("AgentScreen", () => {
-  it("opens with the prototype's headline and lede", () => {
+  it("opens with the question and no step bar", () => {
     const html = screenMarkup();
-    expect(html).toContain('class="view view-enter wide"');
     expect(html).toContain('<h1 class="title">What should Sutaeru make?</h1>');
-    expect(html).toContain("Describe the outcome. Sutaeru plans it, works on it and hands back a finished file.");
-    expect(html).toContain('class="agent-grid"');
-    expect(html).toContain('class="agent-side"');
+    expect(html).not.toContain('aria-label="Steps"');
+    expect(html).not.toContain("Describe the outcome");
   });
 
-  it("offers six output cards as a radiogroup with one checked", () => {
+  it("offers the six outputs as one showcase radiogroup with one checked", () => {
     const html = screenMarkup();
-    expect(html).toContain('role="radiogroup" aria-label="What to make"');
-    expect(count(html, /class="out[ "]/g)).toBe(6);
-    expect(count(html, /<button[^>]*class="out is-on"/g)).toBe(1);
-    expect(count(html, /class="out" role="radio" aria-checked="false"/g)).toBe(5);
+    expect(html).toContain('aria-label="What to make"');
+    expect(count(html, /<button[^>]*class="sc[ "]/g)).toBe(6);
+    expect(count(html, /<button[^>]*class="sc on"/g)).toBe(1);
     expect(html).toContain("Cited research, ready to send");
-    expect(html).toContain("Set up the shot, then draw");
   });
 
-  it("draws a miniature document for each document card and a frame for the picture", () => {
+  it("keeps each output's own art", () => {
     const html = screenMarkup();
     for (const kind of ["report", "deck", "sheet", "brief", "monitor"]) {
       expect(html).toContain(`doc-stage doc-${kind}`);
     }
     expect(html).toContain('class="sf mock-frame" data-shot="medium"');
-    expect(html).toContain("Jinko Tiger Neo");
-  });
-
-  it("sets the picture card to the studio's own default shot and tile", () => {
     expect(DEFAULT_SHOT.shot).toBe("medium");
-    expect(photoTile(compose(DEFAULT_SHOT).photo)).toMatch(/^\/studio\/t\//);
   });
 
-  it("moves the selection bracket and check badge with the card", () => {
-    const html = screenMarkup({ agent: chosen({ out: "sheet" }) });
-    const onSheet = html.match(/<button[^>]*class="out is-on"[^>]*>.*?<\/button>/s)?.[0] ?? "";
-    expect(onSheet).toContain("Villa BOQ and budget");
-    expect(onSheet).toContain('aria-checked="true"');
-    expect(onSheet).toContain('class="art-brackets" data-tone="ink"');
-    expect(onSheet).toContain('class="check-badge"');
-    // FocusBrackets draws as soon as it is mounted, so the other five must not carry it.
-    // (The check badge stays CSS-driven — .is-on > .check-badge — as the prototype has it.)
-    const offCards = html.match(/<button[^>]*class="out"[^>]*>.*?<\/button>/gs) ?? [];
-    expect(offCards).toHaveLength(5);
-    for (const card of offCards) {
-      expect(card).not.toContain("art-brackets");
-    }
-  });
-
-  it("keeps the brief field wired to its label", () => {
-    const html = screenMarkup({ agent: chosen({ out: "brief" }) });
-    expect(html).toContain('<label class="mono" for="agent-brief">Your brief</label>');
-    expect(html).toContain('<textarea id="agent-brief"');
-    expect(html).toContain('rows="3"');
-    expect(html).toContain(BRIEF_SAMPLES.brief.brief);
-  });
-
-  it("hides the depth field for pictures and monitors", () => {
-    expect(screenMarkup({ agent: chosen({ out: "report" }) })).not.toContain('class="field" hidden');
-    for (const out of ["image", "monitor"] as const) {
-      const html = screenMarkup({ agent: chosen({ out }) });
-      expect(html).toContain('hidden=""');
-      expect(html).toContain('aria-label="How deep"');
-    }
-  });
-
-  it("shows the depth cards with their dot meters and source counts", () => {
-    const html = renderToStaticMarkup(React.createElement(DepthPicker, { selected: "deep", onSelect: noop }));
-    expect(count(html, /role="radio"/g)).toBe(3);
-    expect(count(html, /aria-checked="true"/g)).toBe(1);
-    expect(count(html, /<i class="on"/g)).toBe(6 + 14 + 30);
-    expect(html).toContain("6 sources · 2 min");
-    expect(html).toContain("14 sources · 6 min");
-    expect(html).toContain("40+ sources · 20 min");
-    // .brk.tight's geometry travels as props now: one bracket, on the chosen chip only.
-    expect(count(html, /class="art-brackets"/g)).toBe(1);
-    expect(html).toContain('data-tone="ink" style="inset:-6px;opacity:0.55"');
-    expect(html).toContain('viewBox="0 0 9 9"');
-  });
-
-  it("keeps the source pills and the Telegram switch pressable", () => {
-    const html = screenMarkup();
-    expect(count(html, /aria-pressed/g)).toBe(4);
-    expect(count(html, /aria-pressed="true"/g)).toBe(2);
-    expect(html).toContain('<span class="letter">W</span>Web');
-    expect(html).toContain('<span class="letter">G</span>Google Drive');
-    expect(html).toContain('role="switch" aria-checked="true" aria-label="Telegram when done"');
-  });
-
-  it("defaults the brief to the picture prompt when the picture card is picked", () => {
-    const html = screenMarkup({ agent: chosen({ out: "image", brief: IMAGE_BRIEF }) });
-    expect(html).toContain("A ceramic mug on a wooden table in soft morning light.");
-  });
-
-  it("prints the plan the side card shows", () => {
-    const html = screenMarkup({ agent: chosen({ out: "sheet", depth: "deep" }) });
-    expect(html).toContain('<p class="mono">Sutaeru will</p>');
-    expect(count(html, /class="pf"/g)).toBe(4);
-    expect(html).toContain("Take off quantities");
-    expect(html).toContain("40 line items");
-    expect(html).toContain(">About 10 min<");
-    expect(html).toContain(">9 cr<");
-  });
-
-  it("summarises the choice and its cost in the sticky footer", () => {
-    const html = screenMarkup();
-    expect(html).toContain('class="go-bar"');
-    expect(html).toContain("Report · Standard · Web, My files");
-    expect(html).toContain("About 5 min · 4 credits");
-    expect(html).toContain('class="btn ink big"');
-    expect(html).toContain(">Start");
-  });
-
-  it("changes the button label for a watch and a picture", () => {
-    expect(screenMarkup({ agent: chosen({ out: "monitor" }) })).toContain(">Start watching");
-    expect(screenMarkup({ agent: chosen({ out: "image" }) })).toContain(">Set up the shot");
-    expect(screenMarkup({ agent: chosen({ out: "monitor" }) })).toContain("Then every 6 h · 4 credits");
-  });
-
-  it("blocks Start with a validation message on the brief", () => {
+  it("keeps the brief wired for validation", () => {
     const html = screenMarkup({ agent: chosen({ brief: "" }), notice: validation });
-    expect(html).toContain('role="alert"');
-    expect(html).toContain(BLANK_BRIEF_MESSAGE);
+    expect(html).toContain('id="agent-brief"');
     expect(html).toContain('aria-invalid="true"');
     expect(html).toContain('aria-describedby="agent-brief-error"');
     expect(html).toContain('id="agent-brief-error"');
-    // .show is what rests the bracket: base.css keeps it at scale(1.04) without a .is-on parent.
-    expect(html).toContain('class="art-brackets show" data-tone="alert"');
+    expect(html).toContain('role="alert"');
+    expect(html).toContain(BLANK_BRIEF_MESSAGE);
+    expect(html).toContain('data-tone="alert"');
   });
 
-  it("says why Start is blocked when the workspace is out of credits", () => {
+  it("hides the depth fold for pictures and monitors", () => {
+    expect(screenMarkup({ agent: chosen({ out: "report" }) })).toContain('data-fold="depth"');
+    for (const out of ["image", "monitor"] as const) {
+      expect(screenMarkup({ agent: chosen({ out }) })).not.toContain('data-fold="depth"');
+    }
+  });
+
+  it("shows the depth tiles with their source counts", () => {
+    const html = renderToStaticMarkup(React.createElement(DepthPicker, { selected: "deep", onSelect: noop }));
+    expect(count(html, /role="radio"/g)).toBe(3);
+    expect(count(html, /aria-checked="true"/g)).toBe(1);
+    expect(html).toContain("6 sources · 2 min");
+    expect(html).toContain("40+ sources · 20 min");
+    expect(html).toContain("/studio/o/depth-deep.webp");
+  });
+
+  it("folds sources, the Telegram switch and the plan", () => {
+    /* On a phone the first fold is the only one open; a monitor has no depth, so Sources opens. */
+    const html = screenMarkup({ agent: chosen({ out: "monitor" }) });
+    expect(html).toContain('data-fold="sources"');
+    expect(html).toContain('<span class="letter">W</span>Web');
+    expect(html).toContain('role="switch" aria-checked="true" aria-label="Telegram when done"');
+    expect(html).toContain('data-fold="plan"');
+    expect(html).toContain("Sutaeru will");
+    const sheet = renderToStaticMarkup(React.createElement(PlanCard, { plan: planFor("sheet", "deep") }));
+    expect(count(sheet, /class="pf"/g)).toBe(4);
+    expect(sheet).toContain("Take off quantities");
+    expect(sheet).toContain("40 line items");
+  });
+
+  it("docks one bar with the summary, cost and label", () => {
+    const html = screenMarkup();
+    expect(html).toContain('class="gobar');
+    expect(html).toContain("Report · Standard · Web, My files");
+    expect(html).toContain("About 5 min · 4 credits");
+    expect(html).toContain(">Start");
+    expect(screenMarkup({ agent: chosen({ out: "monitor" }) })).toContain(">Start watching");
+    expect(screenMarkup({ agent: chosen({ out: "image" }) })).toContain(">Set up the shot");
+  });
+
+  it("says why Start is blocked when out of credits", () => {
     const html = screenMarkup({ notice: credits });
     expect(html).toContain(CREDITS_MESSAGE);
-    expect(html).toContain("color:var(--alert)");
     expect(html).not.toContain('aria-invalid="true"');
   });
 
-  it("shows a disabled, busy button while the task is being created", () => {
+  it("disables the bar while submitting", () => {
     const html = screenMarkup({ status: "submitting" });
-    expect(html).toContain('class="btn ink big" disabled="" aria-busy="true"');
-    expect(html).toContain('class="live-dot pulse"');
-    expect(count(html, /disabled/g)).toBeGreaterThan(6);
+    expect(html).toContain("disabled");
+    expect(html).toContain(">Starting");
   });
 
   it("fades the plan rows while they are being reworked", () => {
-    const settled = screenMarkup();
-    expect(settled).not.toContain('aria-busy="true"');
-    const redraw = screenMarkup({ redrawing: true });
+    const plan = planFor("report", "standard");
+    expect(renderToStaticMarkup(React.createElement(PlanCard, { plan }))).not.toContain('aria-busy="true"');
+    const redraw = renderToStaticMarkup(React.createElement(PlanCard, { plan, redrawing: true }));
     expect(redraw).toContain('aria-busy="true"');
     expect(redraw).toContain("opacity:0.4");
   });
 });
 
-describe("AgentGoBar", () => {
-  it("keeps the cost line and the arrow together", () => {
-    const html = renderToStaticMarkup(
-      React.createElement(AgentGoBar, {
-        summary: "Deck · Quick · No sources",
-        cost: "About 4 min · 1 credits",
-        label: "Start",
-        onStart: noop,
-      })
-    );
-    expect(html).toContain("<b class=\"tnum\">About 4 min · 1 credits</b>");
-    expect(html).toContain('class="sutaeru-feature-icon ico"');
-    expect(html).not.toContain('role="alert"');
-  });
-});
-
 describe("PlanCard", () => {
   it("draws one dashed row per step", () => {
-    const html = renderToStaticMarkup(
-      React.createElement(PlanCard, { plan: planFor("brief", "quick") })
-    );
+    const html = renderToStaticMarkup(React.createElement(PlanCard, { plan: planFor("brief", "quick") }));
     expect(count(html, /class="nd"/g)).toBe(4);
     expect(html).toContain("Research the costs");
-    expect(html).toContain("Starts with village_costs.csv");
-    expect(html).toContain(">54 s<");
     expect(html).toContain(">About 2 min<");
     expect(html).toContain(">1 cr<");
   });
@@ -323,7 +220,7 @@ describe("AgentBuilder container", () => {
         selection: chosen({ out: "deck", depth: "quick", brief: BRIEF_SAMPLES.deck.brief }),
       })
     );
-    expect(html).toContain('class="view view-enter wide"');
+    expect(html).toContain("view view-enter wide");
     expect(html).toContain("Turn the Q3 numbers into a 10 slide investor update");
     expect(html).toContain("Deck · Quick · Web, My files");
     expect(html).toContain("About 4 min · 1 credits");
@@ -339,7 +236,6 @@ describe("AgentBuilder container", () => {
         error: null,
       })
     );
-    // No window in this environment, so the saved draft cannot be read and nothing throws.
     expect(html).toContain(BRIEF_SAMPLES.report.brief);
     expect(html).toContain("Report · Standard · Web, My files");
     expect(html).toContain(">Start");
@@ -370,8 +266,8 @@ describe("Design lab fixtures", () => {
         notice: state.notice,
         redrawing: state.redrawing,
       });
-      expect(html, state.id).toContain('class="go-bar"');
-      expect(html, state.id).toContain(`class="out is-on"`);
+      expect(html, state.id).toContain('class="gobar');
+      expect(html, state.id).toContain('class="sc on"');
     }
   });
 
@@ -381,12 +277,11 @@ describe("Design lab fixtures", () => {
     );
     expect(fixed).toContain("Agent — task builder");
     expect(fixed).toContain("Villa BOQ and budget");
-    expect(fixed).toContain("Spreadsheet miniature");
 
     const live = renderToStaticMarkup(
       React.createElement(Router, { ssrPath: "/__lab/agent?state=live" }, React.createElement(LabAgent))
     );
     expect(live).toContain("sessionStorage");
-    expect(live).toContain('class="go-bar"');
+    expect(live).toContain('class="gobar');
   });
 });

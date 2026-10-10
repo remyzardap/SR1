@@ -42,18 +42,18 @@
 }
 .seg button {
   position: relative; z-index: 1;
-  min-width: 96px; height: 40px; border-radius: 20px;
+  min-width: 96px; height: 44px; border-radius: 22px;
   font: 700 15px/1 var(--disp); color: var(--quiet);
   transition: color var(--t) var(--ease);
 }
 .seg button[aria-pressed="true"] { color: var(--paper); }
 .seg .thumb {
   position: absolute; z-index: 0; top: 2px; bottom: 2px; left: 2px;
-  border-radius: 20px; background: var(--ink);
+  border-radius: 22px; background: var(--ink);
   transition: transform var(--t) var(--ease), width var(--t) var(--ease);
 }
 @media (min-width: 760px) { .seg button { min-width: 120px; height: 44px; font-size: 16px; border-radius: 22px; } .seg .thumb { border-radius: 22px; } }
-.seg.small button { min-width: 0; padding: 0 16px; height: 40px; font: 600 14px/1 var(--body); }
+.seg.small button { min-width: 0; padding: 0 16px; height: 44px; font: 600 14px/1 var(--body); }
 
 /* ── Navigation sheet (opened from the logo) ──────────────────────────── */
 .scrim { position: fixed; inset: 0; z-index: 60; background: var(--scrim); opacity: 0; pointer-events: none; transition: opacity var(--t) var(--ease); }
@@ -151,3 +151,26 @@
 
 /* Design lab: the lab frame already provides the gutter */
 .lab-wrap .view { padding-left: 0; padding-right: 0; min-height: 0; max-width: none; }
+
+/* ── Chat bar mark: the logo with the living dot ramp (components/chat/ChatBarMark) ── */
+.chat-bar-mark {
+  display: inline-flex; align-items: center; gap: 10px; flex: none;
+  height: 32px; color: var(--r-ink, var(--ink));
+}
+.chat-bar-mark-glyph { width: 44px; height: 24px; flex: none; }
+.chat-bar-mark-glyph path { stroke: currentColor; }
+.chat-bar-mark-ramp { display: block; width: 124px; height: 28px; flex: none; }
+.chat-bar-mark .chat-bar-mark-glyph { transition: opacity var(--m-dur-medium2, 300ms) var(--m-ease-standard, ease); }
+.chat-bar-mark[data-phase="error"] .chat-bar-mark-glyph { opacity: .6; }
+@media (max-width: 1279px) { .chat-bar-mark-ramp { width: 96px; } }
+
+/* The floating logo pill on phone chat carries a short ramp beside the glyph. */
+.skx-nav-floating-btn { gap: 6px; padding-right: 12px; }
+.skx-nav-floating-ramp { display: block; width: 64px; height: 22px; color: var(--r-ink, var(--ink)); flex: none; }
+
+/* Living background (components/art/LivingBackground): behind content, never in the way */
+.living-bg { position: fixed; inset: 0; width: 100vw; height: 100dvh; z-index: -1; pointer-events: none; display: block; }
+:root[data-living] [data-slot="sidebar-inset"],
+:root[data-living] [data-slot="sidebar-inset"] > div > main.bg-sutaeru { background: transparent; }
+@media print { .living-bg { display: none; } }
+:root[data-living] .lab-wrap { background: transparent !important; }

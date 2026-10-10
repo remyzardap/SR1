@@ -72,7 +72,7 @@
 .sk-field input:focus { border-color: var(--neon-orange); background: #fff; }
 .sk-field-error { color: var(--art-alert); font-size: 12px; padding-left: 8px; margin: 0; }
 .sk-auth-error { text-align: center; padding: 0; }
-.sk-auth-link { background: none; border: 0; padding: 4px 6px; color: var(--art-quiet); font: 400 14px var(--font-b); cursor: pointer; }
+.sk-auth-link { background: none; border: 0; padding: 4px 6px; min-height: 44px; color: var(--art-quiet); font: 400 14px var(--font-b); cursor: pointer; }
 .sk-auth-link:hover { color: var(--art-ink); }
 .sk-auth-forgot { align-self: flex-end; margin-top: -6px; }
 .sk-auth-switch { align-self: center; margin-top: 18px; }

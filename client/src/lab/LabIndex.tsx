@@ -136,7 +136,7 @@ export default function LabIndex() {
         >
           <b style={{ font: "700 15px/1.2 var(--disp)", display: "block", marginBottom: 4 }}>Files</b>
           <p style={{ margin: 0, color: "var(--quiet)", fontSize: 12 }}>
-            Files screen with storage meter, pill search, filters, miniature documents, live writing bar, and empty states.
+            Files as a Drive-style list: type tile, full name and “type · size · date” per row, type chips, sort, trash view, live writing bar, and storage folded into one line.
           </p>
         </Link>
         <Link
@@ -184,6 +184,10 @@ export default function LabIndex() {
           <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Composer</b>
           <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>Every composer state stacked: modes, files, private, recording, offline.</p>
         </Link>
+        <Link href="/__lab/mode-sheet" className="card" style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}>
+          <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Mode and thread sheet</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>Mode, Model, Sources, Tools as folds; the answer's one-line panels (?view=answer).</p>
+        </Link>
         <Link href="/__lab/studio" className="card" style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}>
           <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Image studio</b>
           <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>Set up the shot: viewfinder, every option tile group, style references, engines, sticky Begin bar.</p>
@@ -192,11 +196,25 @@ export default function LabIndex() {
           <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Shared parts</b>
           <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>Fold sections, pick tiles, showcase, two-up, prompt field, live tag and go bar in every state.</p>
         </Link>
+        <Link href="/__lab/menu" className="card" style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}>
+          <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Logo menu</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>The navigation sheet and popover: workspace tiles, working for you, recent chats, yours.</p>
+        </Link>
         <Link href="/__lab/image-run"className="card" style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}>
           <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Image run</b>
           <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>Dither reveal, converge bar, phases, stopped, error, done with variants.</p>
         </Link>
         <Link href="/__lab/page-states">Page states: loading, empty, error (Skills, Memories, Monitors, Admin)</Link>
+        <Link href="/__lab/lists" className="card" style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}>
+          <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>List pages</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>
+            The shared pattern behind Connections, Skills, Memories, Monitors, Identity, Invites, Audit logs and More: rows, folds, search, strip, empty.
+          </p>
+        </Link>
+        <Link href="/__lab/admin" className="card" style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}>
+          <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Admin</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>One stats strip, people rows, and invites, activity and health as folds. States: default, loading, empty, failed, denied.</p>
+        </Link>
       </div>
     </LabLayout>
   );
