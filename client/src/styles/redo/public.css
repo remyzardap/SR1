@@ -126,7 +126,7 @@
 .sk-spinner { width: 20px; height: 20px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.sk-auth-link { background: none; border: 0; color: var(--quiet); font-size: 14px; padding: 8px 0; }
+.sk-auth-link { background: none; border: 0; color: var(--quiet); font-size: 14px; padding: 8px 0; min-height: 44px; }
 .sk-auth-link:hover { color: var(--ink); }
 .sk-auth-switch { margin-top: 8px; width: 100%; text-align: center; }
 .sk-auth-forgot { align-self: flex-end; }
@@ -136,7 +136,7 @@
 /* ── Verify Email ─────────────────────────────────────────────────────────── */
 .sk-verify-email { background: var(--paper); color: var(--ink); font-family: var(--body); min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; }
 .sk-verify-card { width: min(100%, 420px); text-align: center; }
-.sk-verify-brand { display: inline-flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; font: 800 20px var(--disp); letter-spacing: -0.6px; margin-bottom: 32px; }
+.sk-verify-brand { display: inline-flex; align-items: center; min-height: 44px; gap: 12px; color: var(--ink); text-decoration: none; font: 800 20px var(--disp); letter-spacing: -0.6px; margin-bottom: 32px; }
 .sk-verify-brand .glyph { width: 46px; height: 25px; }
 .sk-verify-seal { width: 28px; height: 28px; flex: none; }
 .sk-verify-state { display: flex; flex-direction: column; align-items: center; gap: 16px; }
@@ -151,7 +151,7 @@
 /* ── Reset Password ───────────────────────────────────────────────────────── */
 .sk-reset-password { background: var(--paper); color: var(--ink); font-family: var(--body); min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; }
 .sk-reset-card { width: min(100%, 420px); }
-.sk-reset-brand { display: inline-flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; font: 800 20px var(--disp); letter-spacing: -0.6px; margin-bottom: 32px; }
+.sk-reset-brand { display: inline-flex; align-items: center; min-height: 44px; gap: 12px; color: var(--ink); text-decoration: none; font: 800 20px var(--disp); letter-spacing: -0.6px; margin-bottom: 32px; }
 .sk-reset-brand .glyph { width: 46px; height: 25px; }
 .sk-reset-seal { width: 28px; height: 28px; flex: none; }
 .sk-reset-header { text-align: center; margin-bottom: 28px; }

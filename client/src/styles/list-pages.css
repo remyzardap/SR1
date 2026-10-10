@@ -108,7 +108,7 @@
   color: var(--r-ink);
 }
 .lp-btn-quiet:hover { background: var(--r-panel); border-color: var(--r-rule); }
-.lp-btn-sm { min-height: 40px; padding: 0 16px; font-size: 14px; }
+.lp-btn-sm { min-height: 44px; padding: 0 16px; font-size: 14px; }
 /* Full width on a phone, its own width once there is room. */
 .lp-btn-self { align-self: stretch; }
 @media (min-width: 640px) { .lp-btn-self { align-self: flex-start; } }
