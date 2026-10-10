@@ -1,14 +1,16 @@
-/* Settings */
+/* Settings — the folds of SettingsView (components/settings/SettingsView.tsx).
+   The groups themselves are FoldSections (see fold.css); this file carries only the
+   settings-specific bodies: the sliders, the dither demo, the voice sample, the meters
+   and the 2FA panel. */
 
-.set-grid { display: grid; gap: 18px; margin-top: 24px; }
-@media (min-width: 1000px) { .set-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; } }
-.set-card { padding: 22px; }
-.themes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
-.theme-opt { position: relative; display: flex; flex-direction: column; gap: 8px; text-align: left; }
-.theme-opt .tp { position: relative; height: 92px; border-radius: 16px; overflow: hidden; outline: 2px solid transparent; outline-offset: 2px; transition: outline-color var(--t); }
-.theme-opt .tp svg { width: 100%; height: 100%; }
-.theme-opt[aria-checked="true"] .tp { outline-color: var(--ink); }
-.theme-opt span { font: 600 14px/1 var(--body); padding-left: 2px; }
+.settings-folds { margin-top: 8px; }
+/* One measure on a big screen: a fold row 1240px wide reads as a table, not a page. */
+.settings-view .head-row,
+.settings-view .settings-folds { max-width: 900px; margin-left: auto; margin-right: auto; }
+/* The two fine-adjust sliders under the voice tiles. */
+.set-fine { margin-top: 6px; }
+.set-fine .slider { margin-top: 10px; }
+.set-list { min-width: 0; }
 .slider { margin-top: 18px; }
 .slider .between .mono { font-size: 11px; }
 .slider input[type="range"] { width: 100%; margin: 10px 0 0; appearance: none; -webkit-appearance: none; height: 44px; margin-top: 4px; background: transparent; }
@@ -30,7 +32,7 @@
 
 /* Long strings (a TOTP secret) must not widen a column, and the 20-segment meter
    needs the prototype's layout guard, which lived in app.css:970. */
-.set-grid > * { min-width: 0; }
+.settings-folds > * { min-width: 0; }
 
 /* Below: the states the prototype never had — it only ever rendered settings with
    data present. Loading, error and empty are real here, so they get rules of their
