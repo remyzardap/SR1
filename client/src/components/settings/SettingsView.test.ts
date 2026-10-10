@@ -4,13 +4,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Router } from "wouter";
-import { SettingsView, voiceBucket, voiceSample, VOICE_SAMPLES } from "./SettingsView";
+import { SettingsView, SETTINGS_FOLD_IDS, voiceBucket, voiceSample, VOICE_SAMPLES } from "./SettingsView";
 import { settingsFixture, type SettingsState } from "@/lab/fixtures/settings";
 
 /**
  * SettingsView is presentational, so these are string assertions on rendered markup plus
  * the slider maths. There is no jsdom here (vitest.config.ts runs in node), so nothing
  * clicks a button — the lab at /__lab/settings is where the interactions get eyeballed.
+ *
+ * A closed fold renders nothing, so the markup tests ask for every section open.
  */
 
 function render(state: SettingsState = "default"): string {
@@ -18,8 +20,15 @@ function render(state: SettingsState = "default"): string {
     React.createElement(
       Router,
       { ssrPath: "/settings" },
-      React.createElement(SettingsView, settingsFixture(state))
+      React.createElement(SettingsView, { ...settingsFixture(state), openSections: SETTINGS_FOLD_IDS })
     )
+  );
+}
+
+/** The same screen with its own accordion: what the real page does on a phone. */
+function renderLive(state: SettingsState = "default"): string {
+  return renderToStaticMarkup(
+    React.createElement(Router, { ssrPath: "/settings" }, React.createElement(SettingsView, settingsFixture(state)))
   );
 }
 
@@ -54,7 +63,8 @@ describe("the ported screen", () => {
     for (const label of [
       "Theme",
       "Background art",
-      "Reduce motion",
+      "Motion",
+      "Reduced motion",
       "Art intensity",
       "How Sutaeru talks",
       "Account",
@@ -73,12 +83,28 @@ describe("the ported screen", () => {
     expect(html).toContain("/connections");
   });
 
-  it("shows three theme tiles with a live preview in each", () => {
+  it("shows three theme picture tiles", () => {
     expect(html).toContain('aria-label="Theme"');
-    expect((html.match(/class="theme-opt"/g) ?? []).length).toBe(3);
-    // The System tile is two palettes split by a diagonal.
-    expect((html.match(/<clipPath/g) ?? []).length).toBe(2);
-    expect(render("theme-dark")).toContain('aria-checked="true" data-theme-opt="dark"');
+    for (const art of ["theme-light", "theme-dark", "theme-auto"]) {
+      expect(html, `no picture for ${art}`).toContain(`/studio/o/${art}.webp`);
+    }
+    expect((html.match(/class="opt"/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect(render("theme-dark")).toContain('data-id="dark"');
+    expect(render("theme-dark")).toContain('aria-checked="true" tabindex="0" data-id="dark"');
+    // The folded header names the pick, which is the whole point of the fold.
+    expect(render("theme-dark")).toContain('data-fold="theme"');
+  });
+
+  it("folds every group and opens one at a time on a phone", () => {
+    const live = renderLive();
+    // Ten sections; with no window in node the phone layout applies, so exactly one is open.
+    expect((live.match(/data-fold="/g) ?? []).length).toBe(SETTINGS_FOLD_IDS.length);
+    expect((live.match(/data-state="open"/g) ?? []).length).toBe(3); // one section: root, trigger, body
+    expect(live).toContain('data-layout="phone"');
+    expect(live).toContain("Fold all");
+    // The folded header still says what the current pick is.
+    expect(live).toContain('data-fold="theme"');
+    expect(renderLive("theme-dark")).toContain(">Dark<");
   });
 
   it("labels the sliders with what they mean, not just a number", () => {
@@ -131,6 +157,7 @@ describe("the ported stylesheet", () => {
 
   it("carries the prototype's slider geometry", () => {
     expect(css).toMatch(/--p/); // the filled track
-    expect(css).toMatch(/\.set-card\s*\{[^}]*padding:\s*22px/);
+    expect(css).toMatch(/\.settings-folds\s*\{/);
+    expect(css).toMatch(/\.settings-view \.head-row,/);
   });
 });

@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Router } from "wouter";
-import { SettingsView } from "@/components/settings/SettingsView";
+import { SETTINGS_FOLD_IDS, SettingsView } from "@/components/settings/SettingsView";
 import { SETTINGS_STATE_NAMES, SETTINGS_STATES, settingsFixture } from "./settings";
 
 /**
@@ -18,7 +18,7 @@ function renderState(name: (typeof SETTINGS_STATE_NAMES)[number]): string {
     React.createElement(
       Router,
       { ssrPath: "/settings" },
-      React.createElement(SettingsView, settingsFixture(name))
+      React.createElement(SettingsView, { ...settingsFixture(name), openSections: SETTINGS_FOLD_IDS })
     )
   );
 }

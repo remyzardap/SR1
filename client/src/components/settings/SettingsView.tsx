@@ -1,15 +1,14 @@
 /**
- * Settings — the port of `VIEWS.settings` from design/sutaeru-app (app.js:1241-1326).
+ * Settings — the ported prototype screen on the Studio standard.
  *
- * Presentational only: every value comes in through props and every change goes back
- * out through a handler. Nothing here fetches or writes to storage — the container
- * that binds this to tRPC and to `lib/theme.ts` is `client/src/pages/Settings.tsx`.
+ * Presentational only: every value comes in through props and every change goes back out
+ * through a handler. Nothing here fetches or writes to storage — the container that binds
+ * this to tRPC and to `lib/theme.ts` is `client/src/pages/Settings.tsx`.
  *
- * The Appearance and "How Sutaeru talks" cards are a direct port (same markup
- * structure, class names and copy). The cards the prototype faked with sample data
- * (Notifications) are gone, and the screens the app already had real data for
- * (account, two-factor, plan, models, purge, connections) are restyled into the same
- * card language.
+ * Every group is a fold: one line when closed (label, the current pick in words, a mini
+ * picture), the tiles and controls when open. On phones one fold is open at a time; the
+ * fold a person last left open is the one they find open next visit. Theme, motion and
+ * voice are picture tiles (lib/pickArt.ts), not white select boxes.
  */
 
 import * as React from "react";
@@ -18,7 +17,9 @@ import { Link } from "wouter";
 
 import { FocusBrackets } from "@/components/art/FocusBrackets";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
+import { FoldAllButton, FoldGroup, FoldSection, PickTiles, useFoldState, type FoldState, type PickItem } from "@/components/fold";
 import { drawDitherRamp } from "@/lib/dither";
+import { pickArt } from "@/lib/pickArt";
 import type { ThemeChoice, VoiceStyle } from "@/lib/theme";
 
 /* ── Card data shapes (the container maps its queries onto these) ────────────────── */
@@ -105,11 +106,50 @@ export interface SettingsViewProps {
   onPurgePasswordChange(next: string): void;
   onPurgeSave(): void;
   onPurgeRetry(): void;
+  /** Overrides the localStorage key when the lab renders several states at once. */
+  foldKey?: string;
+  /**
+   * Sections forced open, whatever the page remembers. The lab and the markup tests use it
+   * to see every control at once; a closed fold does not render its body at all.
+   */
+  openSections?: string[];
 }
+
+/* ── Picture tiles ──────────────────────────────────────────────────────────────── */
+
+const THEME_ITEMS: PickItem[] = [
+  { id: "light", label: "Light", art: pickArt("theme-light") },
+  { id: "dark", label: "Dark", art: pickArt("theme-dark") },
+  { id: "system", label: "System", art: pickArt("theme-auto") },
+];
+
+const MOTION_ITEMS: PickItem[] = [
+  { id: "full", label: "Full motion", art: pickArt("motion-full") },
+  /* No motion-reduced picture yet (images package): the quiet bowl stands in for it. */
+  { id: "reduced", label: "Reduced motion", art: pickArt("style-keep") },
+];
+
+const LENGTH_ITEMS: PickItem[] = [
+  { id: "concise", label: "Concise", art: pickArt("depth-quick") },
+  { id: "balanced", label: "Balanced", art: pickArt("len-medium") },
+  { id: "detailed", label: "Detailed", art: pickArt("len-long") },
+];
+
+const TONE_ITEMS: PickItem[] = [
+  { id: "formal", label: "Formal", art: pickArt("tone-formal") },
+  { id: "neutral", label: "Neutral", art: pickArt("tone-plain") },
+  { id: "casual", label: "Casual", art: pickArt("tone-friendly") },
+];
+
+/** The middle of each bucket, so a tile sets the slider without fighting it. */
+const BUCKET_CENTRE: Record<string, number> = { concise: 15, balanced: 50, detailed: 85, formal: 15, neutral: 50, casual: 85 };
+
+/** The settings groups, in page order. Each one is a fold. */
+export const SETTINGS_FOLD_IDS = ["theme", "art", "motion", "voice", "account", "two-factor", "plan", "models", "purge", "connections"];
 
 /* ── Prototype copy ─────────────────────────────────────────────────────────────── */
 
-/** The sample answers behind the "How Sutaeru talks" sliders (app.js:1241-1244). */
+/** The sample answers behind the "How Sutaeru talks" tiles (app.js:1241-1244). */
 export const VOICE_SAMPLES = {
   concise: {
     formal: "Payback is 4 to 6 years. Larger systems recover faster.",
@@ -155,66 +195,6 @@ export function voiceSample(voice: VoiceStyle): string {
 
 function clampSlider(value: number): number {
   return Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : 0;
-}
-
-/* ── Theme previews (app.js:1252-1258) ──────────────────────────────────────────── */
-
-const PREVIEW_LIGHT = { bg: "#F7F6F2", card: "#FFFFFF", ink: "#242320", seg: "#DAD7CF" };
-const PREVIEW_DARK = { bg: "#1C1B19", card: "#252421", ink: "#F4F2EC", seg: "#403F3A" };
-type PreviewPalette = typeof PREVIEW_LIGHT;
-
-const THEME_OPTIONS: [ThemeChoice, string][] = [
-  ["light", "Light"],
-  ["dark", "Dark"],
-  ["system", "System"],
-];
-
-/** One mock screen: a title bar, a card with a line in it, a dot and the accent mark. */
-function PreviewPane({ palette }: { palette: PreviewPalette }) {
-  const w = 160;
-  return (
-    <>
-      <rect x={0} y={0} width={w} height={92} fill={palette.bg} />
-      <rect x={12} y={14} width={Math.min(70, w - 24)} height={8} rx={4} fill={palette.ink} />
-      <rect x={12} y={30} width={w - 24} height={34} rx={8} fill={palette.card} />
-      <rect x={20} y={40} width={Math.min(50, w - 40)} height={4} rx={2} fill={palette.seg} />
-      <circle cx={w - 24} cy={76} r={8} fill={palette.ink} />
-      <circle cx={18} cy={76} r={3} fill="#F4511E" />
-    </>
-  );
-}
-
-/**
- * The little mock screen inside each theme option. The System tile is the same pane
- * twice, split by a diagonal, so the tile itself shows the light/dark pairing.
- * (Ids are the prototype's: one System tile is on screen at a time.)
- */
-export function ThemePreview({ kind }: { kind: ThemeChoice }) {
-  if (kind === "system") {
-    return (
-      <svg viewBox="0 0 160 92" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <clipPath id="tpL">
-            <path d="M0 0H100L60 92H0Z" />
-          </clipPath>
-          <clipPath id="tpD">
-            <path d="M100 0H160V92H60Z" />
-          </clipPath>
-        </defs>
-        <g clipPath="url(#tpL)">
-          <PreviewPane palette={PREVIEW_LIGHT} />
-        </g>
-        <g clipPath="url(#tpD)">
-          <PreviewPane palette={PREVIEW_DARK} />
-        </g>
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 160 92" preserveAspectRatio="xMidYMid slice">
-      <PreviewPane palette={kind === "dark" ? PREVIEW_DARK : PREVIEW_LIGHT} />
-    </svg>
-  );
 }
 
 /* ── Small parts ────────────────────────────────────────────────────────────────── */
@@ -268,7 +248,7 @@ function rangeStyle(min: number, max: number, value: number): CSSProperties {
 }
 
 /**
- * A card body while its data is in flight. The bar is decorative, so the word
+ * A fold body while its data is in flight. The bar is decorative, so the word
  * has to travel separately: five `aria-hidden` skeletons read as five empty
  * cards.
  */
@@ -346,7 +326,26 @@ export function SettingsView(props: SettingsViewProps) {
     onVoiceChange,
   } = props;
 
+  const folds = useFoldState(props.foldKey ?? "settings", SETTINGS_FOLD_IDS, { first: "theme" });
+  // The lab and the markup tests can force every section open; a forced page has no
+  // accordion left to fold, so the Fold all pill steps aside.
+  const forced = props.openSections;
+  const group: FoldState = forced
+    ? { ...folds, isOpen: (id: string) => forced.includes(id), setOpen: () => {}, toggle: () => {} }
+    : folds;
   const twoFactorOn = twoFactor.status.status === "ready" && !!twoFactor.status.data;
+  const bucket = voiceBucket(voice);
+  const cap = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
+
+  // A two-factor code on screen must not be behind a fold: open the section when the
+  // flow starts, and leave the accordion alone otherwise.
+  const codeWanted = twoFactor.status.status === "ready" && (!!twoFactor.setup || twoFactor.turningOff);
+  const wasWanted = useRef(false);
+  const openTwoFactor = folds.setOpen;
+  useEffect(() => {
+    if (codeWanted && !wasWanted.current) openTwoFactor("two-factor", true);
+    wasWanted.current = codeWanted;
+  }, [codeWanted, openTwoFactor]);
 
   // The sample answer fades out, swaps, fades back — 140ms, or a jump under reduce
   // motion (app.js:1306-1310).
@@ -366,60 +365,43 @@ export function SettingsView(props: SettingsViewProps) {
 
   return (
     <section className="view wide view-enter settings-view">
-      <h1 className="title" style={{ fontSize: "clamp(40px,7vw,56px)" }}>
-        Settings
-      </h1>
-      <p className="lede" style={{ marginTop: 8 }}>
-        Make Sutaeru feel like yours. Changes apply as you make them.
-      </p>
+      <header className="head-row">
+        <div>
+          <h1 className="title" style={{ fontSize: "clamp(40px,7vw,56px)" }}>
+            Settings
+          </h1>
+          <p className="lede" style={{ marginTop: 8 }}>
+            Make Sutaeru feel like yours. Changes apply as you make them.
+          </p>
+        </div>
+        {!forced && <FoldAllButton state={folds} />}
+      </header>
 
-      <div className="set-grid">
-        {/* ── Appearance ───────────────────────────────────────────────────────── */}
-        <div className="card set-card">
-          <span className="mono">Theme</span>
-          <div className="themes" role="radiogroup" aria-label="Theme">
-            {THEME_OPTIONS.map(([id, name]) => (
-              <button
-                key={id}
-                type="button"
-                className="theme-opt"
-                role="radio"
-                aria-checked={theme === id}
-                data-theme-opt={id}
-                onClick={() => onThemeChange(id)}
-              >
-                <span className="tp">
-                  <ThemePreview kind={id} />
-                </span>
-                <span>{name}</span>
-              </button>
-            ))}
-          </div>
-          <div style={{ marginTop: 18 }}>
-            <div className="toggle-row">
-              <div className="tx">
-                <b>Background art</b>
-                <small>Registration marks, halftones and dither edges</small>
-              </div>
-              <ToggleSwitch
-                checked={backgroundArt}
-                label="Background art"
-                reduceMotion={reduceMotion}
-                onChange={onBackgroundArtChange}
-              />
+      <FoldGroup state={group} className="settings-folds">
+        {/* ── Theme ────────────────────────────────────────────────────────────── */}
+        <FoldSection id="theme" index={1} label="Theme" pick={cap(theme)} mini={THEME_ITEMS.find((t) => t.id === theme)?.art}>
+          <PickTiles label="Theme" items={THEME_ITEMS} value={theme} onChange={(id) => onThemeChange(id as ThemeChoice)} />
+        </FoldSection>
+
+        {/* ── Background art ───────────────────────────────────────────────────── */}
+        <FoldSection
+          id="art"
+          index={2}
+          label="Background art"
+          pick={backgroundArt ? `${artIntensity}%` : "Off"}
+          mini={<SutaeruIcon name="image" signal={false} />}
+        >
+          <div className="toggle-row" style={{ borderTop: 0 }}>
+            <div className="tx">
+              <b>Background art</b>
+              <small>Registration marks, halftones and dither edges</small>
             </div>
-            <div className="toggle-row">
-              <div className="tx">
-                <b>Reduce motion</b>
-                <small>Bars and dials jump to their state instead of moving</small>
-              </div>
-              <ToggleSwitch
-                checked={reduceMotion}
-                label="Reduce motion"
-                reduceMotion={reduceMotion}
-                onChange={onReduceMotionChange}
-              />
-            </div>
+            <ToggleSwitch
+              checked={backgroundArt}
+              label="Background art"
+              reduceMotion={reduceMotion}
+              onChange={onBackgroundArtChange}
+            />
           </div>
           <div className="slider">
             <div className="between">
@@ -439,313 +421,365 @@ export function SettingsView(props: SettingsViewProps) {
           <div className="intensity-demo">
             <IntensityDemo intensity={artIntensity} theme={theme} />
           </div>
-        </div>
+        </FoldSection>
+
+        {/* ── Motion ───────────────────────────────────────────────────────────── */}
+        <FoldSection
+          id="motion"
+          index={3}
+          label="Motion"
+          pick={reduceMotion ? "Reduced" : "Full"}
+          mini={MOTION_ITEMS.find((m) => m.id === (reduceMotion ? "reduced" : "full"))?.art}
+        >
+          <PickTiles
+            label="Motion"
+            items={MOTION_ITEMS}
+            value={reduceMotion ? "reduced" : "full"}
+            onChange={(id) => onReduceMotionChange(id === "reduced")}
+          />
+        </FoldSection>
 
         {/* ── How Sutaeru talks ────────────────────────────────────────────────── */}
-        <div className="card set-card">
-          <span className="mono">How Sutaeru talks</span>
-          <div className="slider">
-            <div className="between">
-              <span className="mono">Concise</span>
-              <span className="mono">Detailed</span>
+        <FoldSection
+          id="voice"
+          index={4}
+          label="How Sutaeru talks"
+          pick={`${cap(bucket.length)} · ${cap(bucket.tone)}`}
+          mini={LENGTH_ITEMS.find((l) => l.id === bucket.length)?.art}
+        >
+          <PickTiles
+            label="Concise to detailed"
+            items={LENGTH_ITEMS}
+            value={bucket.length}
+            onChange={(id) => onVoiceChange({ ...voice, detail: BUCKET_CENTRE[id] ?? voice.detail })}
+          />
+          <PickTiles
+            label="Formal to casual"
+            items={TONE_ITEMS}
+            value={bucket.tone}
+            onChange={(id) => onVoiceChange({ ...voice, tone: BUCKET_CENTRE[id] ?? voice.tone })}
+          />
+          <div className="set-fine">
+            <div className="slider">
+              <div className="between">
+                <span className="mono">Concise</span>
+                <span className="mono">Detailed</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={voice.detail}
+                style={rangeStyle(0, 100, voice.detail)}
+                aria-label="Concise to detailed"
+                onChange={(event) => onVoiceChange({ ...voice, detail: Number(event.target.value) })}
+              />
             </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={voice.detail}
-              style={rangeStyle(0, 100, voice.detail)}
-              aria-label="Concise to detailed"
-              onChange={(event) => onVoiceChange({ ...voice, detail: Number(event.target.value) })}
-            />
-          </div>
-          <div className="slider">
-            <div className="between">
-              <span className="mono">Formal</span>
-              <span className="mono">Casual</span>
+            <div className="slider">
+              <div className="between">
+                <span className="mono">Formal</span>
+                <span className="mono">Casual</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={voice.tone}
+                style={rangeStyle(0, 100, voice.tone)}
+                aria-label="Formal to casual"
+                onChange={(event) => onVoiceChange({ ...voice, tone: Number(event.target.value) })}
+              />
             </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={voice.tone}
-              style={rangeStyle(0, 100, voice.tone)}
-              aria-label="Formal to casual"
-              onChange={(event) => onVoiceChange({ ...voice, tone: Number(event.target.value) })}
-            />
           </div>
           <div className="voice-sample">
             <FocusBrackets className="show tight" />
             <span className="mono">Preview · rooftop solar payback</span>
             <p style={{ opacity: fading ? 0 : 1 }}>{sample}</p>
           </div>
-        </div>
+        </FoldSection>
 
         {/* ── Account ──────────────────────────────────────────────────────────── */}
-        <div className="card set-card">
-          <span className="mono">Account</span>
-          <div style={{ marginTop: 14 }}>
-            {account.status === "loading" && <LoadingRows />}
-            {account.status === "error" && <LoadError onRetry={props.onAccountRetry} />}
-            {account.status === "ready" &&
-              (account.data ? (
-                <div className="toggle-row" style={{ borderTop: 0 }}>
-                  <div className="tx">
-                    <b>{account.data.name || account.data.email || "Signed in"}</b>
-                    {account.data.email && <small>{account.data.email}</small>}
-                  </div>
-                  <Link href="/identity" className="btn">
-                    Edit profile
-                  </Link>
+        <FoldSection
+          id="account"
+          index={5}
+          label="Account"
+          pick={account.status === "ready" ? account.data?.name || account.data?.email || "Signed in" : undefined}
+          mini={<SutaeruIcon name="agent" signal={false} />}
+        >
+          {account.status === "loading" && <LoadingRows />}
+          {account.status === "error" && <LoadError onRetry={props.onAccountRetry} />}
+          {account.status === "ready" &&
+            (account.data ? (
+              <div className="toggle-row" style={{ borderTop: 0 }}>
+                <div className="tx">
+                  <b>{account.data.name || account.data.email || "Signed in"}</b>
+                  {account.data.email && <small>{account.data.email}</small>}
                 </div>
-              ) : (
-                <p className="set-note">Sign in to manage your account.</p>
-              ))}
-          </div>
-        </div>
+                <Link href="/identity" className="btn">
+                  Edit profile
+                </Link>
+              </div>
+            ) : (
+              <p className="set-note">Sign in to manage your account.</p>
+            ))}
+        </FoldSection>
 
         {/* ── Two-factor sign-in ───────────────────────────────────────────────── */}
-        <div className="card set-card">
-          <span className="mono">Two-factor sign-in</span>
-          <div style={{ marginTop: 14 }}>
-            {twoFactor.status.status === "loading" && <LoadingRows />}
-            {twoFactor.status.status === "error" && <LoadError onRetry={props.onTwoFactorRetry} />}
-            {twoFactor.status.status === "ready" && (
-              <>
-                <div className="toggle-row" style={{ borderTop: 0 }}>
-                  <div className="tx">
-                    <b>Two-factor sign-in</b>
-                    <small>
-                      {twoFactorOn
-                        ? "On. Sign in needs your password and a 6 digit code."
-                        : "Adds a 6 digit code from your authenticator app on top of your password."}
-                    </small>
-                  </div>
-                  <ToggleSwitch
-                    checked={twoFactorOn}
-                    label="Two-factor sign-in"
-                    reduceMotion={reduceMotion}
-                    disabled={twoFactor.busy}
-                    onChange={(next) => {
-                      props.onTwoFactorToggle(next);
-                    }}
-                  />
+        <FoldSection
+          id="two-factor"
+          index={6}
+          label="Two-factor sign-in"
+          pick={twoFactor.status.status === "ready" ? (twoFactorOn ? "On" : "Off") : undefined}
+          mini={<SutaeruIcon name="lock" signal={false} />}
+        >
+          {twoFactor.status.status === "loading" && <LoadingRows />}
+          {twoFactor.status.status === "error" && <LoadError onRetry={props.onTwoFactorRetry} />}
+          {twoFactor.status.status === "ready" && (
+            <>
+              <div className="toggle-row" style={{ borderTop: 0 }}>
+                <div className="tx">
+                  <b>Two-factor sign-in</b>
+                  <small>
+                    {twoFactorOn
+                      ? "On. Sign in needs your password and a 6 digit code."
+                      : "Adds a 6 digit code from your authenticator app on top of your password."}
+                  </small>
                 </div>
+                <ToggleSwitch
+                  checked={twoFactorOn}
+                  label="Two-factor sign-in"
+                  reduceMotion={reduceMotion}
+                  disabled={twoFactor.busy}
+                  onChange={(next) => {
+                    props.onTwoFactorToggle(next);
+                  }}
+                />
+              </div>
 
-                {twoFactor.error && (
-                  <p className="set-alert" role="alert">
-                    {twoFactor.error}
-                  </p>
-                )}
-
-                {twoFactor.setup && (
-                  <div className="panel set-panel" style={{ marginTop: 18, padding: 18 }}>
-                    <FocusBrackets className={twoFactor.error ? "show tight alert" : "show tight"} />
-                    <p className="set-note">Open your authenticator app, add Sutaeru, and scan this code.</p>
-                    <img
-                      className="set-qr"
-                      src={twoFactor.setup.qrDataUrl}
-                      alt="Scan this code with your authenticator app"
-                      width={176}
-                      height={176}
-                    />
-                    <div className="set-key">
-                      <span className="mono">Can&apos;t scan? Enter this key</span>
-                      <div className="between">
-                        <code className="set-key-value">{twoFactor.setup.secret}</code>
-                        <button type="button" className="btn" onClick={props.onTwoFactorCopyKey}>
-                          Copy key
-                          <SutaeruIcon name="copy" className="ico" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {(twoFactor.setup || twoFactor.turningOff) && (
-                  <form
-                    className="set-field-row"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      props.onTwoFactorSubmit();
-                    }}
-                  >
-                    <label className="set-field">
-                      <span className="mono">{twoFactor.turningOff ? "Code to confirm" : "Authentication code"}</span>
-                      <input
-                        className="set-input"
-                        data-testid={twoFactor.turningOff ? "input-2fa-disable-code" : "input-2fa-confirm-code"}
-                        autoFocus
-                        value={twoFactor.token}
-                        onChange={(event) => props.onTwoFactorTokenChange(event.target.value)}
-                        inputMode="numeric"
-                        autoComplete={twoFactor.setup ? "one-time-code" : "off"}
-                        maxLength={6}
-                        placeholder="000000"
-                      />
-                    </label>
-                    <button type="submit" className="btn" disabled={twoFactor.busy || twoFactor.token.length !== 6}>
-                      {twoFactor.busy ? "Working…" : twoFactor.turningOff ? "Turn off" : "Confirm"}
-                    </button>
-                    <button type="button" className="btn ghost" disabled={twoFactor.busy} onClick={props.onTwoFactorCancel}>
-                      Cancel
-                    </button>
-                  </form>
-                )}
-
-                {!twoFactor.setup && !twoFactor.turningOff && (
-                  twoFactorOn ? (
-                    <button type="button" className="btn ghost" onClick={() => props.onTwoFactorToggle(false)}>
-                      Turn off
-                    </button>
-                  ) : (
-                    <button type="button" className="btn" disabled={twoFactor.busy} onClick={() => props.onTwoFactorToggle(true)}>
-                      {twoFactor.busy ? "Working…" : "Turn on"}
-                    </button>
-                  )
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* ── Plan and usage ───────────────────────────────────────────────────── */}
-        <div className="card set-card">
-          <span className="mono">Plan and usage</span>
-          <div style={{ marginTop: 14 }}>
-            {plan.status.status === "loading" && <LoadingRows />}
-            {plan.status.status === "error" && <LoadError onRetry={props.onPlanRetry} />}
-            {plan.status.status === "ready" &&
-              (plan.status.data ? (
-                <>
-                  <p
-                    className="tnum"
-                    style={{ font: "800 34px/1 var(--disp)", letterSpacing: "-.03em", margin: "14px 0 4px" }}
-                  >
-                    {titleCase(plan.status.data.tier)} plan
-                    {plan.status.data.trialDaysLeft !== null && (
-                      <span style={{ color: "var(--quiet)", fontSize: 22 }}>
-                        {" "}
-                        · {plan.status.data.trialDaysLeft} days left
-                      </span>
-                    )}
-                  </p>
-                  <div className="storage set-meters" style={{ padding: 0, margin: "12px 0 0" }}>
-                    {plan.status.data.meters.map((meter) => (
-                      <div key={meter.label}>
-                        <div className="between">
-                          <span className="mono">{meter.label}</span>
-                          <span className="mono ink tnum">
-                            {meter.used} / {meter.limit}
-                          </span>
-                        </div>
-                        <Segments used={meter.used} limit={meter.limit} />
-                      </div>
-                    ))}
-                  </div>
-                  <p className="lede" style={{ fontSize: 14, marginTop: 12 }}>
-                    Messages and Think reset daily. Tasks and voice minutes reset monthly.
-                  </p>
-                  {plan.status.data.tier === "free" && (
-                    <button
-                      type="button"
-                      className="btn"
-                      style={{ marginTop: 14 }}
-                      disabled={plan.trialBusy}
-                      onClick={props.onStartTrial}
-                    >
-                      {plan.trialBusy ? "Starting…" : "Start free trial"}
-                    </button>
-                  )}
-                </>
-              ) : (
-                <p className="set-note">No usage yet.</p>
-              ))}
-          </div>
-        </div>
-
-        {/* ── Models ───────────────────────────────────────────────────────────── */}
-        <div className="card set-card">
-          <span className="mono">Models</span>
-          <div style={{ marginTop: 14 }}>
-            {models.status === "loading" && <LoadingRows />}
-            {models.status === "error" && <LoadError onRetry={props.onModelsRetry} />}
-            {models.status === "ready" &&
-              (models.data?.length ? (
-                <div>
-                  {models.data.map((model) => (
-                    <div className="toggle-row" key={model.id}>
-                      <div className="tx">
-                        <b>{model.label}</b>
-                      </div>
-                      {model.hasKey ? <span className="tag">Ready</span> : <span className="tag quiet">Not configured</span>}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="set-note">No models available.</p>
-              ))}
-          </div>
-        </div>
-
-        {/* ── Purge password ───────────────────────────────────────────────────── */}
-        <div className="card set-card">
-          <span className="mono">Purge password</span>
-          <div style={{ marginTop: 14 }}>
-            {purge.status.status === "loading" && <LoadingRows />}
-            {purge.status.status === "error" && <LoadError onRetry={props.onPurgeRetry} />}
-            {purge.status.status === "ready" && (
-              <>
-                <p className="set-note">
-                  {purge.status.data
-                    ? "A purge password is set. Enter a new one to replace it."
-                    : "Set a password required before wiping your data."}
+              {twoFactor.error && (
+                <p className="set-alert" role="alert">
+                  {twoFactor.error}
                 </p>
+              )}
+
+              {twoFactor.setup && (
+                <div className="panel set-panel" style={{ marginTop: 18, padding: 18 }}>
+                  <FocusBrackets className={twoFactor.error ? "show tight alert" : "show tight"} />
+                  <p className="set-note">Open your authenticator app, add Sutaeru, and scan this code.</p>
+                  <img
+                    className="set-qr"
+                    src={twoFactor.setup.qrDataUrl}
+                    alt="Scan this code with your authenticator app"
+                    width={176}
+                    height={176}
+                  />
+                  <div className="set-key">
+                    <span className="mono">Can&apos;t scan? Enter this key</span>
+                    <div className="between">
+                      <code className="set-key-value">{twoFactor.setup.secret}</code>
+                      <button type="button" className="btn" onClick={props.onTwoFactorCopyKey}>
+                        Copy key
+                        <SutaeruIcon name="copy" className="ico" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(twoFactor.setup || twoFactor.turningOff) && (
                 <form
                   className="set-field-row"
                   onSubmit={(event) => {
                     event.preventDefault();
-                    if (purge.password.length >= 4) props.onPurgeSave();
+                    props.onTwoFactorSubmit();
                   }}
                 >
                   <label className="set-field">
-                    <span className="sr">New purge password</span>
+                    <span className="mono">{twoFactor.turningOff ? "Code to confirm" : "Authentication code"}</span>
                     <input
                       className="set-input"
-                      type="password"
-                      minLength={4}
-                      maxLength={128}
-                      value={purge.password}
-                      onChange={(event) => props.onPurgePasswordChange(event.target.value)}
-                      placeholder="At least 4 characters"
+                      data-testid={twoFactor.turningOff ? "input-2fa-disable-code" : "input-2fa-confirm-code"}
+                      autoFocus
+                      value={twoFactor.token}
+                      onChange={(event) => props.onTwoFactorTokenChange(event.target.value)}
+                      inputMode="numeric"
+                      autoComplete={twoFactor.setup ? "one-time-code" : "off"}
+                      maxLength={6}
+                      placeholder="000000"
                     />
                   </label>
-                  <button type="submit" className="btn" disabled={purge.busy || purge.password.length < 4}>
-                    {purge.busy ? "Saving…" : "Save"}
+                  <button type="submit" className="btn" disabled={twoFactor.busy || twoFactor.token.length !== 6}>
+                    {twoFactor.busy ? "Working…" : twoFactor.turningOff ? "Turn off" : "Confirm"}
+                  </button>
+                  <button type="button" className="btn ghost" disabled={twoFactor.busy} onClick={props.onTwoFactorCancel}>
+                    Cancel
                   </button>
                 </form>
+              )}
+
+              {!twoFactor.setup && !twoFactor.turningOff &&
+                (twoFactorOn ? (
+                  <button type="button" className="btn ghost" onClick={() => props.onTwoFactorToggle(false)}>
+                    Turn off
+                  </button>
+                ) : (
+                  <button type="button" className="btn" disabled={twoFactor.busy} onClick={() => props.onTwoFactorToggle(true)}>
+                    {twoFactor.busy ? "Working…" : "Turn on"}
+                  </button>
+                ))}
+            </>
+          )}
+        </FoldSection>
+
+        {/* ── Plan and usage ───────────────────────────────────────────────────── */}
+        <FoldSection
+          id="plan"
+          index={7}
+          label="Plan and usage"
+          pick={plan.status.status === "ready" && plan.status.data ? `${titleCase(plan.status.data.tier)} plan` : undefined}
+          mini={<SutaeruIcon name="plan" signal={false} />}
+        >
+          {plan.status.status === "loading" && <LoadingRows />}
+          {plan.status.status === "error" && <LoadError onRetry={props.onPlanRetry} />}
+          {plan.status.status === "ready" &&
+            (plan.status.data ? (
+              <>
+                <p
+                  className="tnum"
+                  style={{ font: "800 34px/1 var(--disp)", letterSpacing: "-.03em", margin: "14px 0 4px" }}
+                >
+                  {titleCase(plan.status.data.tier)} plan
+                  {plan.status.data.trialDaysLeft !== null && (
+                    <span style={{ color: "var(--quiet)", fontSize: 22 }}>
+                      {" "}
+                      · {plan.status.data.trialDaysLeft} days left
+                    </span>
+                  )}
+                </p>
+                <div className="storage set-meters" style={{ padding: 0, margin: "12px 0 0" }}>
+                  {plan.status.data.meters.map((meter) => (
+                    <div key={meter.label}>
+                      <div className="between">
+                        <span className="mono">{meter.label}</span>
+                        <span className="mono ink tnum">
+                          {meter.used} / {meter.limit}
+                        </span>
+                      </div>
+                      <Segments used={meter.used} limit={meter.limit} />
+                    </div>
+                  ))}
+                </div>
+                <p className="lede" style={{ fontSize: 14, marginTop: 12 }}>
+                  Messages and Think reset daily. Tasks and voice minutes reset monthly.
+                </p>
+                {plan.status.data.tier === "free" && (
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{ marginTop: 14 }}
+                    disabled={plan.trialBusy}
+                    onClick={props.onStartTrial}
+                  >
+                    {plan.trialBusy ? "Starting…" : "Start free trial"}
+                  </button>
+                )}
               </>
-            )}
-          </div>
-        </div>
+            ) : (
+              <p className="set-note">No usage yet.</p>
+            ))}
+        </FoldSection>
+
+        {/* ── Models ───────────────────────────────────────────────────────────── */}
+        <FoldSection
+          id="models"
+          index={8}
+          label="Models"
+          pick={
+            models.status === "ready" && models.data?.length
+              ? `${models.data.filter((m) => m.hasKey).length} of ${models.data.length} ready`
+              : undefined
+          }
+          mini={<SutaeruIcon name="models" signal={false} />}
+        >
+          {models.status === "loading" && <LoadingRows />}
+          {models.status === "error" && <LoadError onRetry={props.onModelsRetry} />}
+          {models.status === "ready" &&
+            (models.data?.length ? (
+              <div className="set-list">
+                {models.data.map((model) => (
+                  <div className="toggle-row" key={model.id}>
+                    <div className="tx">
+                      <b>{model.label}</b>
+                    </div>
+                    {model.hasKey ? <span className="tag">Ready</span> : <span className="tag quiet">Not configured</span>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="set-note">No models available.</p>
+            ))}
+        </FoldSection>
+
+        {/* ── Purge password ───────────────────────────────────────────────────── */}
+        <FoldSection
+          id="purge"
+          index={9}
+          label="Purge password"
+          pick={purge.status.status === "ready" ? (purge.status.data ? "Set" : "Not set") : undefined}
+          mini={<SutaeruIcon name="lock" signal={false} />}
+        >
+          {purge.status.status === "loading" && <LoadingRows />}
+          {purge.status.status === "error" && <LoadError onRetry={props.onPurgeRetry} />}
+          {purge.status.status === "ready" && (
+            <>
+              <p className="set-note">
+                {purge.status.data
+                  ? "A purge password is set. Enter a new one to replace it."
+                  : "Set a password required before wiping your data."}
+              </p>
+              <form
+                className="set-field-row"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (purge.password.length >= 4) props.onPurgeSave();
+                }}
+              >
+                <label className="set-field">
+                  <span className="sr">New purge password</span>
+                  <input
+                    className="set-input"
+                    type="password"
+                    minLength={4}
+                    maxLength={128}
+                    value={purge.password}
+                    onChange={(event) => props.onPurgePasswordChange(event.target.value)}
+                    placeholder="At least 4 characters"
+                  />
+                </label>
+                <button type="submit" className="btn" disabled={purge.busy || purge.password.length < 4}>
+                  {purge.busy ? "Saving…" : "Save"}
+                </button>
+              </form>
+            </>
+          )}
+        </FoldSection>
 
         {/* ── Connections ──────────────────────────────────────────────────────── */}
-        <div className="card set-card">
-          <span className="mono">Connections</span>
-          <div className="between" style={{ marginTop: 12 }}>
+        <FoldSection id="connections" index={10} label="Connections" pick="Linked services" mini={<SutaeruIcon name="connections" signal={false} />}>
+          <div className="between">
             <p className="set-note">See which services are connected. Keys stay on the server.</p>
             <Link href="/connections" className="btn">
               Open
               <SutaeruIcon name="arrow" className="ico" />
             </Link>
           </div>
-        </div>
-      </div>
+        </FoldSection>
+      </FoldGroup>
     </section>
   );
 }
 
-/** The tier name arrives lower-case from the server; the card shows it capitalised. */
+/** The tier name arrives lower-case from the server; the fold shows it capitalised. */
 function titleCase(value: string): string {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
 }
