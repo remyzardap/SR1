@@ -1,0 +1,206 @@
+/* ── Logo menu: a spacious sheet on phones, a popover from 760 px ──────────
+   The one navigation surface (there is no bottom bar). Picture tiles for the
+   workspace, FoldSections for "Working for you", "Recent chats" and "Yours".
+   Motion is Material 3: emphasized decelerate on enter, accelerate on exit,
+   state layers on press, and everything still under reduced motion. */
+
+:root {
+  --lm-ease-out: cubic-bezier(0.05, 0.7, 0.1, 1);   /* M3 emphasized decelerate */
+  --lm-ease-in: cubic-bezier(0.3, 0, 0.8, 0.15);    /* M3 emphasized accelerate */
+  --lm-t-in: 420ms;
+  --lm-t-out: 200ms;
+  --lm-pop-w: 420px;
+}
+[data-reduce-motion="true"] { --lm-t-in: 0ms; --lm-t-out: 0ms; }
+@media (prefers-reduced-motion: reduce) { :root { --lm-t-in: 0ms; --lm-t-out: 0ms; } }
+
+/* ── Scrim ─────────────────────────────────────────────────────────────── */
+.lm-scrim {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(10, 9, 8, 0.55);
+  animation: lm-fade-in 240ms var(--lm-ease-out) both;
+}
+.lm-scrim[data-closing="true"] { animation: lm-fade-out var(--lm-t-out) var(--lm-ease-in) both; }
+@keyframes lm-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lm-fade-out { from { opacity: 1; } to { opacity: 0; } }
+
+/* ── Shared surface (sheet and popover hold the same content) ──────────── */
+.lm-surface {
+  z-index: 61;
+  display: flex; flex-direction: column; min-height: 0;
+  background: var(--paper); color: var(--ink);
+  overflow: hidden;
+}
+.lm-head {
+  flex: none; display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 6px 14px 4px 20px;
+}
+.lm-brand { display: inline-flex; align-items: center; gap: 10px; min-width: 0; color: var(--ink); }
+.lm-brand .lm-glyph { width: 52px; height: 28px; flex: none; color: var(--ink); }
+.lm-brand b { font: 800 20px/1 var(--disp); letter-spacing: -0.03em; white-space: nowrap; }
+.lm-close { flex: none; }
+
+.lm-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
+/* Edge fades say "there is more" without a scrollbar; they leave once the edge is reached. */
+.lm-body[data-fade-bottom="true"] {
+  -webkit-mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 44px), transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 44px), transparent 100%);
+}
+.lm-body[data-fade-top="true"]:not([data-fade-bottom="true"]) {
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 44px, #000 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 44px, #000 100%);
+}
+.lm-body[data-fade-top="true"][data-fade-bottom="true"] {
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 44px, #000 calc(100% - 44px), transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 44px, #000 calc(100% - 44px), transparent 100%);
+}
+
+/* New chat / Past chats: the two chat actions, side by side, 48 px tall. */
+.lm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 8px 20px 0; }
+.lm-actions .btn { height: 48px; }
+.lm-actions .sutaeru-feature-icon { flex: none; }
+.lm-close { color: var(--quiet); }
+.lm-close:hover { color: var(--ink); }
+
+/* ── Workspace picture tiles ───────────────────────────────────────────── */
+.lm-ws { padding: 20px 20px 0; }
+.lm-ws > .mono { display: block; }
+.lm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.lm-tile {
+  position: relative; display: flex; flex-direction: column; align-items: stretch;
+  border-radius: 20px; overflow: hidden; text-align: left; color: var(--ink);
+  background: var(--card);
+  box-shadow: var(--hi, inset 0 1px 0 rgba(255,255,255,.04)), 0 0 0 1px var(--stroke);
+  outline: 2px solid transparent; outline-offset: -2px;
+  transition: outline-color 200ms var(--ease, ease), transform 160ms var(--ease, ease), box-shadow 200ms var(--ease, ease);
+}
+.lm-tile:active { transform: scale(0.97); }
+.lm-tile:focus-visible { outline-color: var(--r-accent, var(--accent)); }
+.lm-tile[aria-current="page"] { outline-color: var(--ink); }
+.lm-tile-pic { position: relative; display: block; aspect-ratio: 3 / 2; background: var(--panel); overflow: hidden; }
+.lm-tile-pic > img.pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 520ms var(--ease, ease); }
+@media (hover: hover) { .lm-tile:hover .lm-tile-pic > img.pic { transform: scale(1.05); } }
+.lm-tile b { display: flex; align-items: center; gap: 6px; padding: 9px 11px 11px; font: 600 13.5px/1.2 var(--body); }
+.lm-tile b i { width: 6px; height: 6px; border-radius: 50%; background: var(--r-accent, var(--accent)); flex: none; }
+
+/* ── Fold sections inside the menu ─────────────────────────────────────── */
+.lm-secs { padding: 6px 20px 0; }
+.lm-secs .fold-trigger { min-height: 56px; }
+.lm-secs .fold-bi { padding-bottom: 12px; }
+.lm-live {
+  display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 11px;
+  background: var(--panel); color: var(--ink);
+  font: 500 10px/1 var(--mono); letter-spacing: 1.2px; text-transform: uppercase; white-space: nowrap;
+}
+.lm-live i { width: 6px; height: 6px; border-radius: 50%; background: var(--r-accent, var(--accent)); }
+.lm-live i.pulse { animation: lm-pulse 1.6s ease-in-out infinite; }
+@keyframes lm-pulse { 50% { opacity: 0.35; } }
+
+/* Running tasks and recent chats: quiet 48 px rows with a state layer. */
+.lm-rows { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+.lm-row {
+  position: relative; display: flex; align-items: center; gap: 12px; width: 100%;
+  min-height: 48px; padding: 8px 10px; border-radius: 14px;
+  text-align: left; color: var(--ink); background: transparent;
+  transition: background 150ms var(--ease, ease);
+}
+.lm-row::after {
+  content: ""; position: absolute; inset: 0; border-radius: 14px; background: var(--ink);
+  opacity: 0; transition: opacity 200ms; pointer-events: none;
+}
+@media (hover: hover) { .lm-row:hover::after { opacity: 0.035; } }
+.lm-row:active::after { opacity: 0.06; }
+.lm-row:focus-visible { outline: 2px solid var(--r-accent, var(--accent)); outline-offset: 2px; }
+.lm-row .lm-row-t { flex: 1; min-width: 0; }
+.lm-row .lm-row-t b { display: block; font: 600 14px/1.25 var(--body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lm-row .lm-row-t small { display: block; margin-top: 2px; font: 500 10px/1.3 var(--mono); letter-spacing: 1.1px; text-transform: uppercase; color: var(--quiet); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lm-row .lm-when { flex: none; font: 500 10px/1.3 var(--mono); letter-spacing: 1.1px; text-transform: uppercase; color: var(--quiet); }
+.lm-row .lm-row-arrow { flex: none; color: var(--rule); }
+.lm-row .live-dot { flex: none; }
+.lm-pick { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.lm-empty { margin: 6px 0 4px; font-size: 13px; line-height: 1.5; color: var(--quiet); }
+
+/* "Yours": the long tail as pills. The legacy neon `.pill` in index.css uppercases
+   everything; the menu keeps the board's quiet sentence-case chip. */
+.lm-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.lm-pills .pill {
+  min-height: 38px; padding: 0 15px; border-radius: 19px;
+  background: var(--panel); border-color: transparent; color: var(--ink);
+  font: 500 13.5px/1 var(--body); letter-spacing: 0; text-transform: none;
+}
+.lm-pills .pill.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+/* ── Footer: who is signed in ──────────────────────────────────────────── */
+.lm-foot {
+  flex: none; display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px calc(6px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid transparent;
+  background: linear-gradient(180deg, transparent, var(--paper) 40%);
+}
+.lm-avatar {
+  flex: none; width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--ink); color: var(--paper); font: 700 15px/1 var(--disp);
+}
+.lm-foot .lm-who { flex: 1; min-width: 0; }
+.lm-foot .lm-who b { display: block; font: 600 15px/1.2 var(--body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lm-foot .lm-who .mono { display: block; margin-top: 3px; font-size: 10px; letter-spacing: 0.6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lm-dots { display: flex; gap: 4px; flex: none; }
+.lm-dots i { width: 8px; height: 8px; border-radius: 3px; background: var(--seg, var(--panel)); }
+.lm-dots i.on { background: var(--ink); }
+/* On phones the plan line needs the width the meter would take. */
+@media (max-width: 759px) {
+  .lm-foot { padding-left: 16px; padding-right: 16px; }
+  .lm-dots { gap: 3px; }
+  .lm-dots i { width: 7px; height: 7px; }
+}
+
+/* ── Phone: bottom sheet ───────────────────────────────────────────────── */
+.lm-sheet {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  max-height: min(88vh, 820px);
+  max-height: min(88dvh, 820px);
+  border-radius: 30px 30px 0 0;
+  box-shadow: 0 -1px 0 var(--hair), 0 -24px 60px -20px rgba(0, 0, 0, 0.6);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  animation: lm-sheet-in var(--lm-t-in) var(--lm-ease-out) both;
+}
+.lm-grab { flex: none; width: 40px; height: 5px; border-radius: 3px; background: var(--seg, var(--panel)); margin: 10px auto 4px; }
+.lm-sheet[data-closing="true"] { animation: lm-sheet-out var(--lm-t-out) var(--lm-ease-in) both; }
+.lm-sheet.lm-settled:not([data-closing="true"]) { animation: none; }
+@keyframes lm-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes lm-sheet-out { from { transform: translateY(0); } to { transform: translateY(100%); } }
+
+/* ── 760 px and up: popover anchored under the logo ────────────────────── */
+.lm-pop {
+  position: fixed;
+  width: var(--lm-pop-w);
+  max-width: calc(100vw - 24px);
+  max-height: min(760px, calc(100vh - 24px));
+  max-height: min(760px, calc(100dvh - 24px));
+  border-radius: 28px;
+  border: 1px solid var(--stroke);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 28px 70px -28px rgba(0, 0, 0, 0.55);
+  transform-origin: top left;
+  animation: lm-pop-in 260ms var(--lm-ease-out) both;
+}
+.lm-pop[data-closing="true"] { animation: lm-pop-out 160ms var(--lm-ease-in) both; }
+.lm-pop.lm-settled:not([data-closing="true"]) { animation: none; }
+@keyframes lm-pop-in { from { opacity: 0; transform: scale(0.92) translateY(-8px); } to { opacity: 1; transform: none; } }
+@keyframes lm-pop-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(0.96) translateY(-6px); } }
+.lm-pop .lm-grab { display: none; }
+.lm-pop .lm-head { padding-top: 14px; }
+.lm-pop .lm-tile-pic { aspect-ratio: 16 / 10; }
+
+/* ── Reduced motion: the menu appears and disappears, it never travels ─── */
+@media (prefers-reduced-motion: reduce) {
+  .lm-scrim, .lm-sheet, .lm-pop, .lm-live i.pulse { animation: none; }
+  .lm-tile, .lm-tile-pic > img.pic, .lm-row { transition: none; }
+}
+[data-reduce-motion="true"] .lm-scrim,
+[data-reduce-motion="true"] .lm-sheet,
+[data-reduce-motion="true"] .lm-pop,
+[data-reduce-motion="true"] .lm-live i.pulse { animation: none; }
+[data-reduce-motion="true"] .lm-tile,
+[data-reduce-motion="true"] .lm-tile-pic > img.pic,
+[data-reduce-motion="true"] .lm-row { transition: none; }
