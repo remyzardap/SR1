@@ -42,6 +42,8 @@ import LabMenu from "./LabMenu";
 import LabImageRun from "./LabImageRun";
 
 import LabPageStates from "./LabPageStates";
+import LabLists from "./LabLists";
+import LabAdmin from "./LabAdmin";
 
 export function LabRouter() {
   return (
@@ -82,6 +84,8 @@ export function LabRouter() {
       <Route path="/__lab/menu" component={LabMenu} />
       <Route path="/__lab/image-run" component={LabImageRun} />
       <Route path="/__lab/page-states" component={LabPageStates} />
+      <Route path="/__lab/lists" component={LabLists} />
+      <Route path="/__lab/admin" component={LabAdmin} />
     </Switch>
   );
 }

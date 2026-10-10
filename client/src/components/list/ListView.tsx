@@ -34,6 +34,16 @@ export function useListFolds(pageKey: string, ids: string[], defaults: FoldDefau
 }
 
 /**
+ * A view of the page's fold state with the given sections pinned open. The lab and the
+ * markup tests need it: a closed fold renders no body at all, so its controls would be
+ * invisible to both. `undefined` leaves the real accordion alone.
+ */
+export function forcedFolds(fold: FoldState, ids?: string[]): FoldState {
+  if (!ids) return fold;
+  return { ...fold, isOpen: (id: string) => ids.includes(id), setOpen: () => {}, toggle: () => {} };
+}
+
+/**
  * Keeps a section open while it needs an answer (an open form, a two-factor code).
  * The container calls this instead of forcing `open`, so the accordion stays honest.
  */
@@ -57,12 +67,14 @@ export interface ListPageProps {
   fold: FoldState;
   /** Two columns and a wider measure at desktop (tables, admin). */
   wide?: boolean;
+  /** False when the fold state is pinned open by the caller: nothing left to fold. */
+  showFoldAll?: boolean;
   className?: string;
   children: ReactNode;
 }
 
 /** The page frame: `view` gutter, title, lede, actions, Fold all. */
-export function ListPage({ title, lede, actions, fold, wide = false, className, children }: ListPageProps) {
+export function ListPage({ title, lede, actions, fold, wide = false, showFoldAll = true, className, children }: ListPageProps) {
   return (
     <section className={cn("view view-enter lst-page", wide && "wide", className)}>
       <header className="head-row lst-head">
@@ -72,7 +84,7 @@ export function ListPage({ title, lede, actions, fold, wide = false, className, 
         </div>
         <div className="lst-actions">
           {actions}
-          <FoldAllButton state={fold} />
+          {showFoldAll ? <FoldAllButton state={fold} /> : null}
         </div>
       </header>
       {children}

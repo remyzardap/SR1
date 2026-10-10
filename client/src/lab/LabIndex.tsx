@@ -205,6 +205,16 @@ export default function LabIndex() {
           <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>Dither reveal, converge bar, phases, stopped, error, done with variants.</p>
         </Link>
         <Link href="/__lab/page-states">Page states: loading, empty, error (Skills, Memories, Monitors, Admin)</Link>
+        <Link href="/__lab/lists" className="card" style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}>
+          <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>List pages</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>
+            The shared pattern behind Connections, Skills, Memories, Monitors, Identity, Invites, Audit logs and More: rows, folds, search, strip, empty.
+          </p>
+        </Link>
+        <Link href="/__lab/admin" className="card" style={{ padding: 22, textDecoration: "none", color: "inherit", borderRadius: 18, display: "block" }}>
+          <b style={{ font: "700 17px/1.2 var(--disp)", display: "block", marginBottom: 6 }}>Admin</b>
+          <p style={{ margin: 0, color: "var(--quiet)", fontSize: 13 }}>One stats strip, people rows, and invites, activity and health as folds. States: default, loading, empty, failed, denied.</p>
+        </Link>
       </div>
     </LabLayout>
   );
