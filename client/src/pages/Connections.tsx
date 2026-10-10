@@ -221,6 +221,7 @@ export default function Connections() {
       lede="What Sutaeru can reach. Keys stay on the server."
       fold={fold}
       wide
+      className="sk-connections"
       actions={
         <button type="button" className="btn" onClick={() => setIsAdding(!isAdding)}>
           {isAdding ? "Cancel" : "Add Connection"}

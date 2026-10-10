@@ -23,7 +23,7 @@ import { describeInviteUsage, inviteCodeStatus, sortCodesNewestFirst } from "@/l
 import { copyInviteLinkFromWindow, shareInviteLinkFromWindow } from "@/lib/inviteShare";
 import { ListEmpty, ListFold, ListFolds, ListPage, Row, Rows, RowsSkeleton, useAutoOpen, useListFolds } from "@/components/list";
 import { pickArt } from "@/lib/pickArt";
-import "@/styles/invites.css";
+
 
 const SHARED_NOTE = "Sent on its way.";
 const COPIED_NOTE = "Copied. Paste it wherever you like.";
