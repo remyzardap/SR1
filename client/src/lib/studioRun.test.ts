@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_SHOT } from "./studio";
+import { DEFAULT_SHOT, type Shot } from "./studio";
 import { ENGINE_STYLE, PREP_MS, PREVIEW_CLARITY, RESOLVE_HOLD_MS, RESOLVE_MS, RUN_HOLD, approach, clarityOf, resolveClarity, engineBrief, estimate, labelFromPrompt, phaseOf, runProgress, runStatus, suggestEngine } from "./studioRun";
 
 describe("labelFromPrompt", () => {
@@ -134,5 +134,42 @@ describe("reveal curve", () => {
   });
   it("names engines without vendors", () => {
     for (const s of Object.values(ENGINE_STYLE)) expect(s).not.toMatch(/gemini|openai|wan|flux|qwen/i);
+  });
+});
+
+/** The engine behind a picture is ours to choose, not ours to name. */
+const VENDOR = /gemini|qwen|openai|claude|gpt|flux|kimi|anthropic|vertex|wan|sora|gemini-|\bgpt-/i;
+
+describe("engine copy the person reads", () => {
+  const all = ["gemini", "openai", "qwen"] as const;
+  const picks: { label: string; shot: Shot }[] = [
+    { label: "HELLO", shot: DEFAULT_SHOT },
+    { label: "", shot: { ...DEFAULT_SHOT, look: "film" as const } },
+    { label: "", shot: { ...DEFAULT_SHOT, light: "night" as const } },
+    { label: "", shot: { ...DEFAULT_SHOT, look: "painted" as const } },
+    { label: "", shot: { ...DEFAULT_SHOT, look: "clay" as const } },
+    { label: "", shot: { ...DEFAULT_SHOT, look: "ink" as const } },
+    { label: "", shot: DEFAULT_SHOT },
+  ];
+
+  it("explains every suggestion without naming a vendor or model", () => {
+    for (const { label, shot } of picks) {
+      const { why } = suggestEngine(shot, label, [...all]);
+      expect(why.length, label || shot.look).toBeGreaterThan(0);
+      expect(why, `${shot.look}/${shot.light}`).not.toMatch(VENDOR);
+    }
+  });
+
+  it("stays silent about the vendor when the pick falls back", () => {
+    const busy = [
+      ["openai"] as const,
+      ["forge"] as const,
+      ["qwen", "forge"] as const,
+    ];
+    for (const available of busy) {
+      for (const { label, shot } of picks) {
+        expect(suggestEngine(shot, label, [...available]).why).not.toMatch(VENDOR);
+      }
+    }
   });
 });

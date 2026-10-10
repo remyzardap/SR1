@@ -113,7 +113,9 @@ describe("Milestone 1: Tokens contract", () => {
       ["--quiet", "#B6BBC3"],
       ["--rule", "#6B6964"],
       ["--seg-off", "#403F3A"],
-      ["--alert", "#E0694E"],
+      // Lighter than the prototype's #E0694E: the prototype value measured 4.18:1 inside an
+      // alert tag on the dark card, under the 4.5:1 the brief requires (see scripts/contrast-check.mjs).
+      ["--alert", "#EE8266"],
       ["--hero", "#131211"],
     ];
     for (const [name, val] of darkTokens) {
