@@ -1,65 +1,8 @@
 /*
- * Connections page (reskin wave 2): letter tiles, ink/outline status pills and
- * the dark privacy card with the halftone corner accent. Shared surfaces come
- * from pages-reskin.css; everything here is scoped under .sk-connections.
+ * Connections page: the dark privacy card with its halftone corner accent. The rows
+ * themselves are the shared list pattern (styles/redo/list.css); shared surfaces come
+ * from pages-reskin.css. Everything here stays scoped under .sk-connections.
  */
-.sk-connections .skx-letter-tile {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  flex: none;
-  border-radius: 50%;
-  background: var(--r-panel);
-  color: var(--r-ink);
-  font: 600 22px var(--r-font-title);
-}
-.sk-connections .skx-outline-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 8px 16px;
-  border-radius: var(--r-radius-pill);
-  border: 1px solid var(--r-stroke);
-  background: var(--r-card);
-  color: var(--r-ink);
-  font: 500 var(--r-size-mono)/1 var(--r-font-mono);
-  letter-spacing: var(--r-track-mono);
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-/* Connection rows: tile, copy, status pill on the right. */
-.sk-connections .skx-conn-list { display: flex; flex-direction: column; gap: 12px; }
-.sk-connections .skx-conn-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-width: 0;
-}
-.sk-connections .skx-conn-copy { flex: 1 1 auto; }
-.sk-connections .skx-conn-meta {
-  margin: 2px 0 0;
-  font: 500 var(--r-size-mono)/1.5 var(--r-font-mono);
-  letter-spacing: var(--r-track-mono);
-  text-transform: uppercase;
-  color: var(--r-quiet);
-  overflow-wrap: anywhere;
-}
-.sk-connections .skx-conn-side {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-  flex: none;
-}
-.sk-connections .skx-conn-side .sk-btn { white-space: nowrap; }
-@media (max-width: 719px) {
-  .sk-connections .skx-conn-row { flex-wrap: wrap; }
-  .sk-connections .skx-conn-side { flex-direction: row; align-items: center; width: 100%; justify-content: space-between; }
-}
-
-/* Dark privacy card: copy left, halftone ramp bleeding to the right edge. */
 .sk-connections .skx-conn-privacy {
   position: relative;
   display: flex;
