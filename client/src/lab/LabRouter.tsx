@@ -20,6 +20,7 @@ import LabSession from "./LabSession";
 import LabDone from "./LabDone";
 
 import LabAgent from "./LabAgent";
+import LabCreate from "./LabCreate";
 
 import LabLanding from "./LabLanding";
 import LabLogin from "./LabLogin";
@@ -63,6 +64,7 @@ export function LabRouter() {
       <Route path="/__lab/session" component={LabSession} />
       <Route path="/__lab/done" component={LabDone} />
       <Route path="/__lab/agent" component={LabAgent} />
+      <Route path="/__lab/create" component={LabCreate} />
       <Route path="/__lab/landing" component={LabLanding} />
       <Route path="/__lab/login" component={LabLogin} />
       <Route path="/__lab/verify-email" component={LabVerifyEmail} />
