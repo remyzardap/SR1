@@ -20,7 +20,7 @@ const ITEMS = DEPTH_LEVELS.map((d) => ({
 /** Quick / Standard / Deep as three picture tiles. Only the things that read and write show it. */
 export function DepthPicker({ selected, onSelect, disabled }: DepthPickerProps) {
   return (
-    <div className="depths" aria-disabled={disabled || undefined} inert={disabled || undefined}>
+    <div className="depth-tiles" aria-disabled={disabled || undefined} inert={disabled || undefined}>
       <PickTiles label="How deep" items={ITEMS} value={selected} onChange={(id) => onSelect(id as AgentDepthId)} />
     </div>
   );
