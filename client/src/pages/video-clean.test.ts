@@ -15,13 +15,14 @@ describe("/video engine names", () => {
   });
 
   it("draws every engine name from the id-keyed map", () => {
-    expect(page).toContain("const engineName = (id: string) =>");
-    // pick, tile, go bar, on-frame chip, running and failed copy, retry chips
+    expect(page).toContain("const engineName = (e: { id: string; label: string }) => ENGINE_NAMES[e.id]");
     expect((page.match(/engineName\(/g) ?? []).length).toBeGreaterThanOrEqual(7);
   });
 
   it("names the engines by character, not by vendor", () => {
-    const names = [...page.matchAll(/(\w+): \{ name: "([^"]+)"/g)].map((m) => m[2]);
+    const map = page.match(/const ENGINE_NAMES[^=]*= \{([^}]*)\}/);
+    expect(map).not.toBeNull();
+    const names = [...map![1].matchAll(/\w+: "([^"]+)"/g)].map((m) => m[1]);
     expect(names.length).toBeGreaterThanOrEqual(4);
     for (const name of names) expect(name).not.toMatch(VENDOR);
     expect(names).toContain("GPU");
@@ -34,6 +35,6 @@ describe("/video engine names", () => {
   });
 
   it("still says something sensible for an engine the page has never seen", () => {
-    expect(page).toContain('const FALLBACK_META: EngineMeta = { name: "Engine"');
+    expect(page).toContain('ENGINE_NAMES[e.id] ?? "Engine"');
   });
 });
