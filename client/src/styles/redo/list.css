@@ -69,7 +69,7 @@
 .lst-body.clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .lst-meta { margin: 0; font-size: 10.5px; letter-spacing: 1.2px; }
 .lst-side { flex: 0 1 auto; margin-left: auto; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
-.lst-side .btn { min-height: 40px; padding: 0 14px; font-size: 14px; }
+.lst-side .btn { min-height: 44px; padding: 0 16px; font-size: 14px; }
 .lst-more { flex: 1 1 100%; min-width: 0; margin-top: 6px; padding-top: 10px; }
 .lst-ini { position: relative; z-index: 1; }
 /* A row whose name is a link: the link carries the whole tap target. */
@@ -162,3 +162,7 @@
 /* The lab's own gutter: .lab-wrap .view drops the page gutter, so a full-bleed lab
    screen re-adds it here and the tile rows reach the edge exactly as they do in the app. */
 .lab-gutter { padding: 0 var(--gutter); }
+
+/* An icon button borrowed from another sheet still gets a 44 px hit area inside a row. */
+.lst-side .lp-icon-btn { position: relative; }
+.lst-side .lp-icon-btn::after { content: ""; position: absolute; inset: -2px; }
