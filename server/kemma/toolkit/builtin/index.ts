@@ -14,6 +14,8 @@ import { registerSkillTools } from "./skills";
 import { registerVpsFiles } from "./vpsFiles";
 import { registerEmailTools } from "./email";
 import { registerCalendarTools } from "./calendar";
+import { registerMediaTools } from "./media";
+import { registerMonitorTools } from "./monitors";
 import { flag } from "../../../core/flags";
 
 let registered = false;
@@ -39,4 +41,9 @@ export function registerBuiltinTools(): void {
   }
   // Last: it is gated on flag("CONTEXT_MANAGER"), so the default tool list is unaffected.
   registerReadResult();
+  // P1-12 part 2: image, video, monitors — behind ACTION_TOOLS like email/calendar.
+  if (flag("ACTION_TOOLS")) {
+    registerMediaTools();
+    registerMonitorTools();
+  }
 }

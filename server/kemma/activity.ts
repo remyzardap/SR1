@@ -6,7 +6,7 @@
  * no I/O, so they are cheap to test.
  */
 
-export type ActivityKind = "search" | "read" | "code" | "file" | "drive" | "skill" | "think" | "write" | "tool";
+export type ActivityKind = "search" | "read" | "code" | "file" | "drive" | "skill" | "think" | "write" | "tool" | "image" | "video" | "job";
 export type ActivityStatus = "running" | "done" | "error";
 
 export interface ActivitySource {
@@ -72,6 +72,12 @@ export function describeToolStart(id: string, tool: string, input: unknown): Act
       return { id, kind: "code", status: "running", label: `Running ${str(input, "language") === "nodejs" ? "Node.js" : "Python"} code` };
     case "generate_file":
       return { id, kind: "file", status: "running", label: "Creating file", detail: clip(str(input, "filename")) };
+    case "generate_image":
+      return { id, kind: "image", status: "running", label: "Generating image", detail: clip(str(input, "prompt")) };
+    case "generate_video":
+      return { id, kind: "video", status: "running", label: "Starting video generation", detail: clip(str(input, "prompt")) };
+    case "create_monitor":
+      return { id, kind: "job", status: "running", label: "Creating monitor", detail: clip(str(input, "topic")) };
     case "vps_files":
       return { id, kind: "file", status: "running", label: "Checking the VPS", detail: clip(str(input, "path")) };
     case "safe_files":
@@ -83,6 +89,12 @@ export function describeToolStart(id: string, tool: string, input: unknown): Act
     default:
       if (tool.startsWith("drive_")) {
         return { id, kind: "drive", status: "running", label: "Checking Google Drive" };
+      }
+      if (tool.startsWith("email_")) {
+        return { id, kind: "tool", status: "running", label: `Email: ${tool.replace("email_", "")}` };
+      }
+      if (tool.startsWith("calendar_")) {
+        return { id, kind: "tool", status: "running", label: `Calendar: ${tool.replace("calendar_", "")}` };
       }
       return { id, kind: "tool", status: "running", label: `Running ${tool}` };
   }
@@ -107,6 +119,14 @@ function toSources(tool: string, data: unknown): ActivitySource[] {
   if (tool === "browse") {
     const r = data as { url?: string; title?: string } | null;
     if (r?.url) return [{ title: clip(String(r.title || hostOf(r.url) || "Page"), 90), url: r.url, host: hostOf(r.url) }];
+  }
+  if (tool === "generate_image") {
+    const r = data as { url?: string; prompt?: string; engine?: string } | null;
+    if (r?.url) return [{ title: clip(String(r.prompt || "Generated image"), 90), url: r.url, host: hostOf(r.url) }];
+  }
+  if (tool === "generate_video") {
+    const r = data as { jobId?: string; videoUrl?: string; prompt?: string } | null;
+    if (r?.videoUrl) return [{ title: clip(String(r.prompt || "Generated video"), 90), url: r.videoUrl, host: hostOf(r.videoUrl) }];
   }
   return [];
 }

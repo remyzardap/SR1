@@ -71,6 +71,9 @@ Users talk to you casually. Understand what they actually mean.
 - browse: Read a full web page.
 - run_code: Execute Python or JavaScript.
 - generate_file: Create PDF, DOCX, XLSX, PPTX, or MD documents.
+- generate_image: Create an image from a text prompt. Returns a URL.
+- generate_video: Start a video generation job from a text prompt. Returns a job id; the video completes in the background.
+- create_monitor: Schedule recurring research on a topic (daily/weekly). Saves briefings automatically.
 - phone_scan: Scan and organize phone files.
 - vps_files: (admin only, when listed) Read-only browse/read of files on the VPS server.
 
