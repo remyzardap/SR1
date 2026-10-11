@@ -70,6 +70,13 @@ export const NAV_DESTINATIONS: NavDestination[] = [
     match: (l) => l === "/video" || l.startsWith("/video/"),
   },
   {
+    label: "Build",
+    path: "/build",
+    icon: "code",
+    group: "more",
+    match: (l) => l === "/build" || l.startsWith("/build/"),
+  },
+  {
     label: "Memories",
     path: "/memories",
     icon: "memory",

@@ -42,6 +42,14 @@ import { captureInviteFromWindow } from "./lib/inviteCapture";
 import { SWUpdateHandler } from "./components/SWUpdateHandler";
 import { InstallPrompt } from "./components/InstallPrompt";
 
+/** Build carries the in-browser editor and bundler client, so it loads only when opened. */
+const Build = React.lazy(() => import("./pages/Build"));
+const BuildPage = () => (
+  <React.Suspense fallback={null}>
+    <Build />
+  </React.Suspense>
+);
+
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, loading } = useAuth();
   const [, navigate] = useLocation();
@@ -214,6 +222,15 @@ function AppRoutes() {
           </DashboardLayout>
         ) : (
           <ProtectedRoute component={Video} />
+        )}
+      </Route>
+      <Route path="/build">
+        {isAuthenticated ? (
+          <DashboardLayout noPadding>
+            <BuildPage />
+          </DashboardLayout>
+        ) : (
+          <ProtectedRoute component={BuildPage} />
         )}
       </Route>
       <Route path="/connections">
