@@ -44,12 +44,14 @@ import LabImageRun from "./LabImageRun";
 import LabPageStates from "./LabPageStates";
 import LabLists from "./LabLists";
 import LabAdmin from "./LabAdmin";
+import Build from "@/pages/Build";
 
 export function LabRouter() {
   return (
     <Switch>
       <Route path="/__lab" component={LabIndex} />
       <Route path="/__lab/shell" component={LabShell} />
+      <Route path="/__lab/build" component={Build} />
       <Route path="/__lab/brand" component={LabBrand} />
       <Route path="/__lab/art/dither-edge" component={LabDitherEdge} />
       <Route path="/__lab/art/halftone-fade" component={LabHalftoneFade} />

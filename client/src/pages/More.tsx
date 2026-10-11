@@ -27,6 +27,7 @@ const WORKSPACE: MoreItem[] = [
   { label: "Generate", href: "/generate", art: "image", meta: "Image, video" },
   { label: "Images", href: "/images", art: "nav-images", meta: "Generate" },
   { label: "Video", href: "/video", art: "nav-video", meta: "Generate" },
+  { label: "Build", href: "/build", art: "code", meta: "Apps" },
   { label: "Memories", href: "/memories", art: "style-keep", meta: "Recall" },
   { label: "Skills", href: "/skills", art: "code", meta: "Routines" },
   { label: "Monitors", href: "/monitors", art: "out-monitor", meta: "Scheduled" },

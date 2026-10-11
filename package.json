@@ -25,6 +25,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1002.0",
     "@aws-sdk/s3-request-presigner": "^3.1002.0",
+    "@codesandbox/sandpack-react": "^2.20.0",
     "@e2b/code-interpreter": "2.8.0",
     "@fontsource/epilogue": "^5.3.0",
     "@fontsource/inter": "^5.3.0",
