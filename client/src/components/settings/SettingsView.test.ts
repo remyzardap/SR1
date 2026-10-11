@@ -85,9 +85,8 @@ describe("the ported screen", () => {
 
   it("shows three theme picture tiles", () => {
     expect(html).toContain('aria-label="Theme"');
-    for (const art of ["theme-light", "theme-dark", "theme-auto"]) {
-      expect(html, `no picture for ${art}`).toContain(`/studio/o/${art}.webp`);
-    }
+    expect((html.match(/class="pic-paper"/g) ?? []).length).toBeGreaterThanOrEqual(3); // flat paper tiles
+    for (const art of ["theme-light", "theme-dark", "theme-auto"]) expect(html).not.toContain(`/studio/o/${art}.webp`);
     expect((html.match(/class="opt"/g) ?? []).length).toBeGreaterThanOrEqual(3);
     expect(render("theme-dark")).toContain('data-id="dark"');
     expect(render("theme-dark")).toContain('aria-checked="true" tabindex="0" data-id="dark"');

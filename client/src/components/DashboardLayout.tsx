@@ -47,6 +47,7 @@ const menuItems: Array<{ icon: SutaeruIconName; label: string; path: string; gro
   { icon: "make", label: "Documents", path: "/documents", group: "workspace" },
   { icon: "image", label: "Images", path: "/images", group: "workspace" },
   { icon: "files", label: "Files", path: "/files", group: "workspace" },
+  { icon: "code", label: "Build", path: "/build", group: "workspace" },
   { icon: "memory", label: "Memories", path: "/memories", group: "workspace" },
   { icon: "models", label: "Skills", path: "/skills", group: "workspace" },
   { icon: "schedule", label: "Monitors", path: "/monitors", group: "workspace" },

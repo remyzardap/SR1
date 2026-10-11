@@ -1,0 +1,247 @@
+/*
+ * Build mode: chat, code and live preview.
+ * Phone: one pane at a time behind three tabs. Desktop (1024px and up): all three side by side.
+ * Colours and type come from reskin-tokens.css.
+ */
+
+.bld {
+  /* The mobile AppHeader is 94px and sticky; the page fills what is left. */
+  height: calc(100dvh - 94px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--r-paper);
+  color: var(--r-ink);
+}
+@media (min-width: 1024px) {
+  .bld { height: 100dvh; }
+}
+.bld .sp-wrapper,
+.bld > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+.bld-shell { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.bld [hidden] { display: none !important; }
+
+/* ── Top bar ─────────────────────────────────────────────────────────────── */
+.bld-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--r-stroke);
+}
+.bld-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--r-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1.54px;
+  text-transform: uppercase;
+  color: var(--r-quiet);
+  min-width: 64px;
+}
+.bld-live {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--r-accent);
+  animation: bld-pulse 1.4s var(--r-ease-out) infinite;
+}
+@keyframes bld-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .bld-live { animation: none; } }
+[data-reduce-motion="true"] .bld-live { animation: none; }
+
+.bld-tabs {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  padding: 3px;
+  max-width: 260px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: var(--r-panel);
+  box-shadow: 0 0 0 1px var(--r-stroke);
+}
+.bld-tabs button {
+  flex: 1;
+  height: 38px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--r-quiet);
+  font-family: var(--r-font-title);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background var(--r-motion) var(--r-ease-out), color var(--r-motion) var(--r-ease-out);
+}
+.bld-tabs button[aria-pressed="true"] { background: var(--r-ink); color: var(--r-paper); }
+
+.bld-ghost {
+  margin-left: auto;
+  height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  box-shadow: 0 0 0 1px var(--r-stroke);
+  color: var(--r-ink);
+  font-family: var(--r-font-title);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.bld-ghost:hover { background: var(--r-panel); }
+
+/* ── Panes ───────────────────────────────────────────────────────────────── */
+.bld-panes { flex: 1; min-height: 0; display: flex; }
+.bld-pane { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+
+@media (min-width: 1024px) {
+  .bld-chat { flex: 0 0 360px; border-right: 1px solid var(--r-stroke); }
+  .bld-code { flex: 1.15; flex-direction: row; border-right: 1px solid var(--r-stroke); }
+  .bld-preview { flex: 1; }
+}
+
+/* Sandpack pieces fill their pane. */
+.bld-code .bld-files {
+  flex: 0 0 180px;
+  height: 100%;
+  overflow: auto;
+  border-right: 1px solid var(--r-stroke);
+  background: var(--r-paper);
+}
+.bld-code .bld-editor { flex: 1; min-width: 0; height: 100%; }
+.bld-preview .bld-frame { flex: 1; height: 100%; }
+.bld .sp-preview-container { background: #fff; }
+.bld .sp-cm, .bld .cm-editor { height: 100%; }
+
+/* ── Chat ────────────────────────────────────────────────────────────────── */
+.bld-thread {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 20px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.bld-empty { margin: auto 0; padding-bottom: 12px; }
+.bld-empty h1 {
+  margin: 0;
+  font-family: var(--r-font-title);
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1.05;
+  letter-spacing: -1.2px;
+}
+.bld-empty h1 { color: var(--r-ink); }
+.bld-empty p { margin: 10px 0 0; font-size: 16px; line-height: 1.45; color: var(--r-quiet); }
+.bld-ideas { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+.bld-ideas button {
+  min-height: 48px;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--r-card);
+  box-shadow: 0 0 0 1px var(--r-stroke);
+  color: var(--r-ink);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+.bld-ideas button:hover:not(:disabled) { box-shadow: 0 0 0 1.5px var(--r-ink); }
+
+.bld-msg { margin: 0; font-size: 15.5px; line-height: 1.5; color: var(--r-ink); }
+.bld-msg p { color: inherit; }
+.bld-msg-user {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 12px 16px;
+  border-radius: 26px 26px 8px 26px;
+  background: var(--r-panel);
+  white-space: pre-wrap;
+}
+.bld-msg-bot p { margin: 0; }
+.bld-msg-bot.is-error p:first-child { color: var(--r-alert); }
+.bld-note {
+  margin-top: 6px !important;
+  font-family: var(--r-font-mono);
+  font-size: 11px;
+  letter-spacing: .6px;
+  color: var(--r-quiet);
+}
+.bld-undo {
+  margin-top: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  box-shadow: 0 0 0 1px var(--r-stroke);
+  color: var(--r-ink);
+  font-family: var(--r-font-mono);
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.bld-undo:hover:not(:disabled) { background: var(--r-panel); }
+.bld-working {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--r-font-mono);
+  font-size: 11px;
+  letter-spacing: 1.54px;
+  text-transform: uppercase;
+  color: var(--r-quiet);
+}
+
+.bld-composer {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 8px 8px 18px;
+  border-radius: 28px;
+  background: var(--r-card);
+  box-shadow: 0 0 0 1px var(--r-stroke), var(--r-shadow);
+}
+.bld-composer textarea {
+  flex: 1;
+  min-height: 44px;
+  max-height: 160px;
+  padding: 11px 0;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: none;
+  color: var(--r-ink);
+  font: inherit;
+  font-size: 16px; /* 16px keeps iOS from zooming on focus */
+  line-height: 1.4;
+}
+.bld-composer textarea::placeholder { color: var(--r-quiet); }
+.bld-send {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--r-ink);
+  color: var(--r-paper);
+  cursor: pointer;
+}
+.bld-send:disabled { opacity: .35; cursor: default; }

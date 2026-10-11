@@ -212,7 +212,7 @@ describe("the mode chip and its sheet", () => {
     expect(html).toContain('aria-label="Mode"');
     expect(html).toContain('role="radiogroup"');
     expect(html).toContain("Quick answers, with search");
-    expect(html).toContain("/studio/o/fast.webp");
+    expect(html).toContain("pic-paper"); // the mode pictures are flat paper tiles
     // The Mode section is open and Sources is a folded row naming what is on.
     expect(html).toContain('data-fold="sources"');
     expect(html).toContain(">Web<");

@@ -1,14 +1,17 @@
 import * as React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { FoldGroup, FoldSection, Pic, useFoldState } from "@/components/fold";
+import { FoldGroup, FoldSection, useFoldState } from "@/components/fold";
 import { SutaeruGlyph } from "@/components/SutaeruGlyph";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
 import { cn } from "@/lib/utils";
 
+import { MenuCardArt } from "./MenuCard";
+import { TILE_CARD } from "./menuModel";
+
 /* The logo menu, presentational: a spacious sheet on phones, a popover from 760 px up.
-   It is the one navigation surface (there is no bottom bar): picture tiles for the
-   workspace, then "Working for you", "Recent chats" and "Yours" as fold sections,
+   It is the one navigation surface (there is no bottom bar): picture cards for the
+   workspace (one paper card at a time, swipe sideways), then "Working for you", "Recent chats" and "Yours" as fold sections,
    one open at a time on phones. The container (NavLogoMenu) owns the data, the
    trigger and the navigation; everything here is props in, callbacks out. */
 
@@ -97,6 +100,34 @@ export function LogoMenuSheet({
   const closeRef = useRef<HTMLButtonElement>(null);
   const [settled, setSettled] = useState(false);
   const fold = useFoldState("menu", FOLD_IDS, { first: "recent" });
+
+  /* The card carousel: which card is centred, and a jump to the current page on open. */
+  const snapRef = useRef<HTMLDivElement>(null);
+  const [card, setCard] = useState(0);
+  const pitch = useCallback(() => {
+    const first = snapRef.current?.querySelector<HTMLElement>(".lm-slide");
+    return first ? first.offsetWidth + 12 : 0;
+  }, []);
+  const onSnapScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const w = pitch();
+      if (!w) return;
+      const i = Math.max(0, Math.min(tiles.length - 1, Math.round(e.currentTarget.scrollLeft / w)));
+      setCard((prev) => (prev === i ? prev : i));
+    },
+    [pitch, tiles.length]
+  );
+  useEffect(() => {
+    if (!open) return;
+    const at = Math.max(0, tiles.findIndex((t) => t.active));
+    const t = window.setTimeout(() => {
+      const el = snapRef.current;
+      if (el && at > 0) el.scrollLeft = at * pitch();
+      setCard(at);
+    }, 0);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   /* Once the enter animation has played, drop it: a finished transform animation keeps the
      surface on its own compositor layer, and Chromium then leaves the scroll body's
@@ -225,26 +256,41 @@ export function LogoMenuSheet({
           </div>
 
           <div className="lm-ws">
-            <span className="mono">Workspace</span>
-            <div className="lm-grid">
-              {tiles.map((t) => (
-                <button
-                  key={t.href}
-                  type="button"
-                  className="lm-tile"
-                  aria-current={t.active ? "page" : undefined}
-                  onClick={() => onNavigate(t.href)}
-                >
-                  <span className="lm-tile-pic">
-                    <Pic art={t.art} eager />
-                  </span>
-                  <b>
-                    {t.label}
-                    {t.active && <i aria-hidden="true" />}
-                  </b>
-                </button>
-              ))}
-            </div>
+            <section aria-roledescription="carousel" aria-label="Modes">
+              <div ref={snapRef} className="lm-snap" onScroll={onSnapScroll}>
+                {tiles.map((t, i) => {
+                  const spec = TILE_CARD[t.href] ?? { kind: "report" as const, sub: "" };
+                  return (
+                    <button
+                      key={t.href}
+                      type="button"
+                      className="lm-slide"
+                      role="group"
+                      aria-roledescription="slide"
+                      aria-label={`${t.label}, ${i + 1} of ${tiles.length}`}
+                      aria-current={t.active ? "page" : undefined}
+                      onClick={() => onNavigate(t.href)}
+                    >
+                      <span className="lm-card-art" aria-hidden="true">
+                        <MenuCardArt kind={spec.kind} art={t.art} />
+                      </span>
+                      <span className="lm-card-cap">
+                        <span>
+                          <span className="lm-card-name">{t.label}</span>
+                          {spec.sub && <span className="lm-card-sub">{spec.sub}</span>}
+                        </span>
+                        <span className="lm-card-go">{t.active ? "Here" : "Open"}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="lm-dots-nav" aria-hidden="true">
+                {tiles.map((t, i) => (
+                  <i key={t.href} data-on={i === card ? "true" : "false"} />
+                ))}
+              </div>
+            </section>
           </div>
 
           <div className="lm-secs">
