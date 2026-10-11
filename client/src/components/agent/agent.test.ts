@@ -104,7 +104,8 @@ describe("AgentScreen", () => {
     expect(count(html, /aria-checked="true"/g)).toBe(1);
     expect(html).toContain("6 sources · 2 min");
     expect(html).toContain("40+ sources · 20 min");
-    expect(html).toContain("/studio/o/depth-deep.webp");
+    expect(count(html, /class="pic-paper"/g)).toBe(3); // flat paper tiles, no photos
+    expect(html).not.toContain("/studio/o/depth-deep.webp");
   });
 
   it("folds sources, the Telegram switch and the plan", () => {

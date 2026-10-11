@@ -1,7 +1,6 @@
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 
-import { Pic } from "@/components/fold";
 import { DocMini } from "@/components/art/DocMini";
 
 import type { MenuCardKind } from "./menuModel";
@@ -92,13 +91,13 @@ function StudioPages({ art }: { art: string }) {
     <Stage>
       <span className="lm-paper" style={{ left: 52, top: 22, width: 190, height: 236, padding: "8px 8px 0", transform: "rotate(-5deg)" }}>
         <span className="lm-ph" style={{ height: 156 }}>
-          <Pic art={art} eager />
+          <img className="pic" src={art} alt="" loading="eager" decoding="async" draggable={false} />
         </span>
         <span className="lm-k" style={{ padding: "11px 2px", fontSize: 6.5 }}>Golden hour</span>
       </span>
       <span className="lm-paper" style={{ left: 206, top: 60, width: 122, height: 160, padding: "6px 6px 0", transform: "rotate(6deg)" }}>
         <span className="lm-ph" style={{ height: 104 }}>
-          <Pic art={art} eager />
+          <img className="pic" src={art} alt="" loading="eager" decoding="async" draggable={false} />
         </span>
         <span className="lm-k" style={{ padding: "9px 2px", fontSize: 5.5 }}>4:5</span>
       </span>
@@ -111,12 +110,12 @@ function VideoPages({ art }: { art: string }) {
     <Stage>
       <span className="lm-paper" style={{ left: 92, top: 58, width: 240, height: 150, padding: 6, transform: "rotate(4deg)" }}>
         <span className="lm-ph" style={{ height: "100%" }}>
-          <Pic art={art} eager />
+          <img className="pic" src={art} alt="" loading="eager" decoding="async" draggable={false} />
         </span>
       </span>
       <span className="lm-paper" style={{ left: 34, top: 26, width: 282, height: 178, padding: "6px 6px 0", transform: "rotate(-1.5deg)" }}>
         <span className="lm-ph" style={{ height: 132 }}>
-          <Pic art={art} eager />
+          <img className="pic" src={art} alt="" loading="eager" decoding="async" draggable={false} />
         </span>
         <span style={{ position: "relative", display: "block", height: 2, margin: "15px 4px 0", borderRadius: 1, background: "#E4E1DA" }}>
           <i style={{ position: "absolute", left: 0, top: 0, height: 2, width: "40%", borderRadius: 1, background: "#242320" }} />
