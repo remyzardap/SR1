@@ -181,3 +181,8 @@
 [data-bg-art="off"] body::before,
 [data-bg-art="off"] body::after,
 [data-bg-art="off"] .sutaeru-chat > div[style*="feTurbulence"] { display: none !important; }
+
+/* Thread composer: same quiet bar as Home. No focus outline or orange on the field or the bar. */
+.sutaeru-chat .sutaeru-run-controls .sutaeru-input-box { border: 0 !important; border-radius: 28px !important; box-shadow: 0 0 0 .5px var(--r-stroke), 0 8px 24px -12px rgba(36,35,32,.2) !important; transition: box-shadow .2s; }
+.sutaeru-chat .sutaeru-run-controls .sutaeru-input-box:focus-within { box-shadow: 0 0 0 .5px var(--r-rule), 0 12px 30px -12px rgba(36,35,32,.3) !important; }
+.sutaeru-chat .sutaeru-composer-textarea:focus, .sutaeru-chat .sutaeru-composer-textarea:focus-visible { outline: 0 !important; box-shadow: none !important; border-color: transparent !important; }

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { FocusBrackets, Sheet } from "@/components/art";
+import { Sheet } from "@/components/art";
 import { ModeMenu, type ChatModeOption, type ModeSourceRow } from "@/components/chat/ModeMenu";
 import { SutaeruIcon, type SutaeruIconName } from "@/components/SutaeruIcon";
 import { MAX_MB } from "@/lib/attachments";
@@ -196,7 +196,6 @@ export function HomeComposer({
         Private · nothing is added to memory
       </p>
       <div className={cn("composer-wrap", "is-on", listening && "listening")} ref={wrapRef} id="cw">
-        <FocusBrackets />
         <form className="composer dock" id="composer" autoComplete="off" onSubmit={handleSubmit} ref={formRef}>
           <div className="attachments" id="atts">
             {attachments.map((row) => (

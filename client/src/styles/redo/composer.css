@@ -4,13 +4,16 @@
    thread composer (ChatInput) wears the same numbers in chat-reskin.css. */
 .composer {
   position: relative;
-  background: var(--card); border: 1px solid var(--stroke); border-radius: 30px;
-  padding: 20px 22px 14px;
+  background: var(--card); border: 0; border-radius: 28px;
+  padding: 18px 20px 12px;
   display: flex; flex-direction: column; gap: 14px;
-  box-shadow: var(--shadow);
-  transition: border-color var(--t) var(--ease);
+  /* Apple-style bar: one hairline and a soft grey lift. Focus deepens the lift; there is no
+     orange border, outline or glow anywhere in the bar. */
+  box-shadow: 0 0 0 .5px var(--stroke), 0 8px 24px -12px rgba(36,35,32,.2);
+  transition: box-shadow var(--t) var(--ease);
 }
-.composer:focus-within { border-color: var(--accent-deep); }
+.composer:focus-within { box-shadow: 0 0 0 .5px var(--rule), 0 12px 30px -12px rgba(36,35,32,.3); }
+.composer textarea:focus, .composer textarea:focus-visible { outline: 0; box-shadow: none; }
 .composer textarea {
   border: 0; outline: 0; resize: none; background: transparent;
   font: 400 18px/1.5 var(--body); min-height: 81px; max-height: 220px;
