@@ -422,15 +422,16 @@ unless `--cache` is passed.
 
 ## 🔍 Verification Commands
 
-Production runs on Cloud Run (service `sutaeru`, region `asia-southeast2`), not a local container.
+Production runs on the VPS (Docker Compose: app, Postgres, Caddy). Pushes to `main` deploy it
+through `.github/workflows/deploy.yml`. Cloud Run is no longer used; it was detached.
 
 ```bash
-# Check the env vars configured on the live service
-gcloud run services describe sutaeru --region asia-southeast2 \
-  --format="yaml(spec.template.spec.containers[0].env)"
+# On the VPS: container state and the env the app actually sees
+cd /root/sr1 && docker compose ps
+docker compose exec sutaeru printenv | sort
 
 # Tail recent logs (secret load status, migration status, startup errors)
-gcloud run services logs read sutaeru --region asia-southeast2 --limit 50
+docker compose logs --tail=50 sutaeru
 
 # Test endpoints
 curl -I https://sutaeru.com
