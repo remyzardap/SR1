@@ -155,6 +155,7 @@ export default function LabFiles() {
             setFiles((prev) => prev.filter((x) => x.id !== f.id));
           }}
           onAskSutaeru={() => toast("Ask Sutaeru to make one")}
+          onBack={() => toast("Back clicked")}
         />
       </div>
     </LabLayout>
