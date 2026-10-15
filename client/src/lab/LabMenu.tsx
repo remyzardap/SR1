@@ -32,12 +32,17 @@ export default function LabMenu() {
   const set = (params.get("set") as MenuSet) || "busy";
   const member = params.get("role") === "member";
 
+  const widthParam = params.get("width");
+  const width =
+    widthParam === "360" ? 360 : widthParam === "390" ? 390 : widthParam === "1280" ? 1280 : "full";
+
   const [open, setOpen] = useState(params.get("open") === "1");
   const [closing, setClosing] = useState(false);
   const wasOpen = useRef(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
   const isWide = useMediaQuery("(min-width: 760px)");
+  const isSheet = width === 360 || width === 390 || (!isWide && width === "full");
 
   useEffect(() => {
     if (open) {
@@ -147,9 +152,21 @@ export default function LabMenu() {
             <Link href={href({ open: "1" })} style={ctl}>
               open on load
             </Link>
+            {(["full", "360", "390", "1280"] as const).map((w) => {
+              const isSelected = (w === "full" && width === "full") || String(width) === w;
+              return (
+                <Link
+                  key={w}
+                  href={href({ width: w === "full" ? null : w })}
+                  style={isSelected ? on : ctl}
+                >
+                  {w === "full" ? "full" : `${w}px`}
+                </Link>
+              );
+            })}
           </div>
           <p className="mono" style={{ marginTop: 18 }}>
-            {isWide ? "popover (760 px and up)" : "sheet (phone)"} · fold state: {set} · role: {member ? "member" : "admin"}
+            {isSheet ? "sheet (phone)" : "popover (760 px and up)"} · state: {set} · role: {member ? "member" : "admin"} · width: {String(width)}
           </p>
         </div>
       </div>
@@ -159,7 +176,7 @@ export default function LabMenu() {
           <LogoMenuSheet
             open={open}
             closing={closing}
-            mode={isWide ? "popover" : "sheet"}
+            mode={isSheet ? "sheet" : "popover"}
             anchor={anchor}
             tiles={MENU_TILES}
             runs={runs}

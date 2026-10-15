@@ -42,108 +42,131 @@ function composerProps(overrides: Partial<HomeComposerProps> = {}): HomeComposer
   };
 }
 
-function screen(overrides: Partial<React.ComponentProps<typeof HomeScreen>> = {}) {
+function quietScreen(overrides: Partial<React.ComponentProps<typeof HomeScreen>> = {}) {
+  const composer = {
+    value: "",
+    onChange: () => {},
+    onSubmit: () => {},
+    onListen: () => {},
+    onStopListen: () => {},
+    listening: false,
+    offline: false,
+    attachments: [],
+    onAddAttachment: () => {},
+    onRemoveAttachment: () => {},
+    ...overrides.composer,
+  };
   return renderToStaticMarkup(
     React.createElement(HomeScreen, {
-      composer: composerProps(),
       ...overrides,
+      composer,
     })
   );
 }
 
-describe("Home screen markup, ported from VIEWS.home", () => {
-  it("carries the prototype's section, hero and wordmark lockup", () => {
-    const html = screen();
-    expect(html).toContain('class="view home view-enter"');
-    expect(html).toContain("home-hero lockup no-intro");
-    expect(html).toContain('class="glyph sutaeru-glyph mark"');
-    expect(html).toContain('<h1 class="word">Sutaeru</h1>');
-    expect(html).toContain("hero-seal");
-    expect(html).toContain('<p class="mono tagline">Ask once. We do the rest.</p>');
+describe("Quiet Home screen markup, ported from Main.dc.html", () => {
+  it("carries the Quiet header with brand logo, name, seal and avatar", () => {
+    const html = quietScreen();
+    expect(html).toContain('class="q-header"');
+    expect(html).toContain('aria-label="Open menu"');
+    expect(html).toContain("q-brand-name");
+    expect(html).toContain("Sutaeru");
+    expect(html).toContain('aria-label="スタエル"');
+    expect(html).toContain('aria-label="Account"');
+    expect(html).toContain(">R<");
   });
 
-  it("plays the intro only when it is asked to", () => {
-    expect(screen({ intro: true })).toContain("home-hero lockup intro");
-    expect(screen({ intro: false })).toContain("home-hero lockup no-intro");
+  it("renders the floating artifacts hero with 3 cards", () => {
+    const html = quietScreen();
+    expect(html).toContain('class="q-hero"');
+    expect(html).toContain("Villa build");
+    expect(html).toContain("budget");
+    expect(html).toContain("Q4 pipeline");
+    expect(html).toContain("PV module");
+    expect(html).toContain("supplier comparison");
+    expect(html).toContain("Writing");
+    expect(html).toContain("qsheen");
   });
 
-  it("renders the refined 27-dot halftone ramp that fades out at both ends", () => {
-    const html = screen();
-    expect(html).toContain('class="ramp art-deco"');
-    expect(html).toContain('id="ramp"');
-    expect(html.match(/--d:/g)).toHaveLength(27);
-    expect(html).toContain("--d:1.6px");
-    expect(html).toContain("--d:13px");
+  it("renders the center brand mark, date/status pill and What's next headline", () => {
+    const html = quietScreen();
+    expect(html).toContain('class="q-main"');
+    expect(html).toContain("q-badge");
+    expect(html).toContain("What’s");
+    expect(html).toContain("next?");
   });
 
-  it("shows the private note and the dashed composer only when private is on", () => {
-    const plain = screen();
-    expect(plain).toContain("private-note mono");
-    expect(plain).toContain("Private · nothing is added to memory");
+  it("renders the 6 mode cards with index badges and running indicator", () => {
+    const html = quietScreen();
+    expect(html).toContain('aria-label="Mode"');
+    expect(html).toContain("Chat");
+    expect(html).toContain("01");
+    expect(html).toContain("Agent");
+    expect(html).toContain("02");
+    expect(html).toContain("qlive");
+    expect(html).toContain("Studio");
+    expect(html).toContain("Docs");
+    expect(html).toContain("Video");
+    expect(html).toContain("Files");
+  });
+
+  it("marks the selected mode card with aria-pressed", () => {
+    const chatActive = quietScreen({ activeModeIndex: 0 });
+    expect(chatActive).toMatch(/aria-pressed="true"[^>]*>[\s\S]*Chat/);
+
+    const agentActive = quietScreen({ activeModeIndex: 1 });
+    expect(agentActive).toMatch(/aria-pressed="true"[^>]*>[\s\S]*Agent/);
+  });
+
+  it("shows the private-on class only when private is on", () => {
+    const plain = quietScreen();
     expect(plain).not.toContain("private-on");
-    expect(screen({ composer: composerProps({ privateChat: true }) })).toContain("view home view-enter private-on");
+    const privateOn = quietScreen({ composer: { ...composerProps(), privateChat: true } });
+    expect(privateOn).toContain("home private-on");
   });
 
-  it("docks the composer with the focus brackets always on, as Home has them", () => {
-    const html = screen();
-    expect(html).toContain('class="composer-wrap is-on"');
-    expect(html).toContain('class="art-brackets"');
-    expect(html).toContain('class="composer dock"');
-    // The server renderer keeps the React spelling; the browser reads it case-insensitively.
-    expect(html).toMatch(/autocomplete="off"/i);
-    expect(html).toContain('<label class="sr" for="q">Ask Sutaeru</label>');
-    expect(html).toMatch(/enterkeyhint="send"/i);
+  it("docks the composer with the pill bar, add file button and textarea", () => {
+    const html = quietScreen();
+    expect(html).toContain('class="q-dock"');
+    expect(html).toContain("qbar");
+    expect(html).toContain('aria-label="Add a file"');
+    expect(html).toMatch(/<textarea[^>]*id="qAsk"/);
+    expect(html).toMatch(/rows="1"/);
   });
 
-  it("gives the field three lines", () => {
-    expect(screen()).toMatch(/<textarea[^>]*rows="3"/);
+  it("swaps the placeholders and speak/send button based on state and value", () => {
+    expect(quietScreen()).toContain('placeholder="Ask anything"');
+    expect(quietScreen({ composer: { ...composerProps(), offline: true } })).toContain('placeholder="Ask now. It sends when you reconnect."');
+    expect(quietScreen({ composer: { ...composerProps(), listening: true } })).toContain('placeholder="Listening…"');
+    expect(quietScreen({ composer: { ...composerProps(), listening: true } })).toContain('aria-label="Stop listening"');
+    expect(quietScreen()).toContain('aria-label="Speak"');
+    expect(quietScreen({ composer: { ...composerProps(), value: "hello" } })).toContain('aria-label="Send"');
   });
 
-  it("swaps the placeholders and the send button the way the prototype does", () => {
-    expect(screen()).toContain('placeholder="Ask anything…"');
-    expect(screen({ composer: composerProps({ offline: true }) })).toContain('placeholder="Ask now. It sends when you reconnect."');
-    expect(screen({ composer: composerProps({ listening: true }) })).toContain('placeholder="Listening…"');
-    expect(screen({ composer: composerProps({ listening: true }) })).toContain('class="composer-wrap is-on listening"');
-    // Nothing typed: the button is the mic.
-    expect(screen()).toContain('aria-label="Talk to Sutaeru"');
-    expect(screen()).toContain('<span class="mic-ico" id="sendIco">');
-    expect(screen()).toContain('class="voice-meter"');
-    // Something typed: it becomes Send with the up arrow.
-    expect(screen({ composer: composerProps({ value: "hello" }) })).toContain('aria-label="Send"');
-  });
-
-  it("shows the current mode on a chip that opens the mode sheet", () => {
-    const fast = screen();
-    expect(fast).toContain("mode-chip");
-    expect(fast).toContain("Mode: Fast. Change mode, model and sources");
-    expect(fast).toContain('aria-haspopup="dialog"');
-    expect(screen({ composer: composerProps({ mode: "deep" }) })).toContain("Mode: Deep research.");
-    expect(screen({ composer: composerProps({ mode: "image" }) })).toContain("Mode: Image.");
-  });
-
-  it("keeps the sources pill out of the tools row", () => {
-    const html = screen();
-    expect(html).not.toContain("src-text");
-    expect(html).not.toContain(">No sources<");
-  });
-
-  it("says why the private switch cannot be used yet", () => {
-    const html = screen({ composer: composerProps({ privateHint: "Private chats are not available yet." }) });
-    expect(html).toContain('aria-disabled="true"');
-    expect(html).toContain('title="Private chats are not available yet."');
-  });
-
-  it("has no recent list, hand-off card or example prompts", () => {
-    const html = screen();
+  it("has no legacy recent list, hand-off card or example prompts", () => {
+    const html = quietScreen();
     expect(html).not.toContain("Recently updated");
     expect(html).not.toContain("Hand off a project");
     expect(html).not.toContain("recent-row");
   });
 
-  it("puts the banners between the hero and the composer", () => {
-    const html = screen({ banners: React.createElement("p", { className: "mono" }, "No connection.") });
-    expect(html.indexOf("No connection.")).toBeGreaterThan(html.indexOf("ramp"));
-    expect(html.indexOf("No connection.")).toBeLessThan(html.indexOf("composer-wrap"));
+  it("puts the banners in the dock above composer", () => {
+    const html = quietScreen({ banners: React.createElement("p", { className: "mono" }, "No connection.") });
+    expect(html).toContain("No connection.");
+    expect(html).toContain("q-dock-banners");
+  });
+
+  it("renders attached file chips with remove buttons and metadata", () => {
+    const html = quietScreen({
+      composer: {
+        ...composerProps(),
+        attachments: [{ id: "held-0", name: "ledger.xlsx", meta: "312 KB" }],
+      },
+    });
+    expect(html).toContain("ledger.xlsx");
+    expect(html).toContain("312 KB");
+    expect(html).toContain('aria-label="Remove ledger.xlsx"');
+    expect(html).toContain("q-dock-att-chip");
   });
 });
 

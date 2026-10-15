@@ -83,7 +83,14 @@ describe("Home container", () => {
     expect(render({ offline: true })).toContain("Ask now. It sends when you reconnect.");
   });
 
-  it("shows the mode the page is in on the chip", () => {
-    expect(render()).toContain("Mode: Fast.");
+  it("shows the mode navigation with the active mode pressed", () => {
+    const html = render();
+    expect(html).toContain('aria-label="Mode"');
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain("Chat");
+
+    const agentHtml = render({ mode: "agent" });
+    expect(agentHtml).toContain('aria-label="Mode"');
+    expect(agentHtml).toContain('aria-pressed="true"');
   });
 });
