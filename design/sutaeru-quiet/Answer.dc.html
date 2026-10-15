@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sutaeru chat</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+textarea{font:inherit;color:inherit}
+textarea::placeholder{color:var(--quiet);opacity:1}
+.qbar{box-shadow:inset 0 1px 0 var(--hi),0 0 0 1px var(--stroke),0 16px 36px -18px var(--lift);transition:box-shadow .25s}
+.qbar:focus-within{box-shadow:inset 0 1px 0 var(--hi),0 0 0 1px var(--stroke),0 20px 44px -18px var(--lift)}
+.qtap{transition:transform .18s cubic-bezier(.2,.8,.2,1),opacity .18s}
+.qtap:active{transform:scale(.96);opacity:.8}
+.qrow{scrollbar-width:none}.qrow::-webkit-scrollbar{display:none}
+.qmono{font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:500;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase}
+@keyframes qHero{0%,100%{transform:scale(1) translateY(0)}50%{transform:scale(1.035) translateY(-6px)}}
+@keyframes qRise{0%{transform:translateY(14px);opacity:0}100%{transform:translateY(0);opacity:1}}
+@keyframes qSwap{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.qcard{border-radius:22px;overflow:hidden;background:var(--panel);box-shadow:0 0 0 1px var(--stroke)}
+.qsheen{animation:qSheen 2.6s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes qSheen{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
+@keyframes qKen{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+@keyframes qFloat{0%,100%{transform:translateY(0) rotate(var(--r,0deg))}50%{transform:translateY(-8px) rotate(var(--r,0deg))}}
+@keyframes qStamp{0%{transform:scale(2.2) rotate(-24deg);opacity:0}60%{transform:scale(.92) rotate(-12deg);opacity:1}100%{transform:scale(1) rotate(-12deg);opacity:1}}
+@keyframes qSpin{to{transform:rotate(360deg)}}
+
+
+</style>
+</helmet>
+<div style="{{rootStyle}}">
+<img src="/_blob/6cea0d246137dbdbf1bc34a0ffa8255b" alt="" aria-hidden="true" width="390" height="844" style="position:absolute;inset:0;width:390px;height:844px;object-fit:cover">
+  <div aria-hidden="true" style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(19,18,17,.75),rgba(19,18,17,0) 18%,rgba(19,18,17,0) 80%,rgba(19,18,17,.85))"></div>
+  <div style="position:relative;z-index:2;display:flex;flex-direction:column;height:100%">
+  <header style="position:relative;z-index:5;display:flex;align-items:center;gap:6px;height:60px;padding:0 8px;flex:none"><button type="button" class="qtap" aria-label="Back" style="flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:0;background:none;color:var(--ink)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><span style="flex:1"></span><button type="button" class="qtap" aria-label="More" style="flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:0;background:none;color:var(--ink)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.4" fill="currentColor"></circle><circle cx="12" cy="12" r="1.4" fill="currentColor"></circle><circle cx="19" cy="12" r="1.4" fill="currentColor"></circle></svg></button></header>
+  <main style="position:relative;flex:1;min-height:0;overflow:hidden;padding:4px 14px 0">
+    <div style="display:flex;justify-content:center;margin-bottom:14px"><span class="qmono" style="padding:6px 12px;border-radius:10px;background:rgba(37,36,33,.75);color:var(--quiet);font-size:9px">Today</span></div>
+    <div style="display:flex;justify-content:flex-end;animation:qRise .8s cubic-bezier(.2,.8,.2,1) 0s both"><p style="margin:0;max-width:250px;padding:11px 14px 9px 16px;border-radius:20px 20px 6px 20px;background:var(--card);box-shadow:0 1px 0 rgba(0,0,0,.25);font-size:16px;line-height:1.35">Is rooftop solar worth it in Malang? <span class="qmono" style="font-size:8.5px;color:var(--quiet);margin-left:6px;letter-spacing:.06em">21:41</span></p></div>
+    <div style="margin-top:14px;max-width:330px;padding:18px 18px 14px;border-radius:20px 20px 20px 6px;background:rgba(37,36,33,.92);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 0 0 1px var(--stroke),0 1px 0 rgba(0,0,0,.25);animation:qRise .8s cubic-bezier(.2,.8,.2,1) 0.2s both">
+      <div style="display:flex;align-items:center;gap:8px"><svg width="30" height="16" style="display:block;" viewBox="0 0 144 76" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M72 38C64 18 52 8 36 8C19 8 8 20 8 38s11 30 28 30c16 0 28-10 36-30C80 18 92 8 108 8c17 0 28 12 28 30s-11 30-28 30c-16 0-28-10-36-30Z" pathLength="1" stroke="currentColor" stroke-width="9" stroke-linejoin="round"></path><g transform="translate(108 39) scale(.9) translate(-108 -39)"><clipPath id="agscr0"><rect x="84" y="10" width="48" height="50.2"></rect></clipPath><g clip-path="url(#agscr0)"><circle cx="108" cy="46.4" r="6.3" fill="var(--accent, #F4511E)"></circle></g><g fill="currentColor"><path d="M89.2 21.4L90.5 22.5Q108 27.1 125.5 22.5L126.8 21.4L126.2 25.0Q108 29.9 89.8 25.0Z"></path><path d="M91.6 26.7Q108 30.7 124.4 26.7L124.2 28.9Q108 32.9 91.8 28.9Z"></path><path d="M106.7 30.4H109.3V35.2H106.7Z"></path><path d="M90.6 35.1H125.4V37.7H90.6Z"></path><path d="M95.8 27.6H99.6L98.6 57.6H94.4ZM116.4 27.6H120.2L121.6 57.6H117.4Z"></path></g><g stroke-linecap="round"><path d="M91.6 60.6H103.2M112.8 60.6H124.4" stroke="currentColor" stroke-width="1.7"></path></g><g stroke-linecap="round"><path d="M104.8 60.6H111.2" stroke="var(--accent, #F4511E)" stroke-width="1.7"></path><path d="M106.3 63.8H109.7" stroke="var(--accent, #F4511E)" stroke-width="1.5"></path></g></g></svg><span class="qmono" style="color:var(--quiet)">Sutaeru</span></div>
+      <h2 style="margin:14px 0 0;font-family:var(--disp);font-weight:800;font-size:30px;line-height:1;letter-spacing:-.045em"><span style="display:block">Yes. Paid back</span><span style="display:block;color:var(--quiet)">in 5.8 years.</span></h2>
+      <div style="display:flex;align-items:flex-end;gap:7px;margin-top:20px;height:82px" aria-label="Savings by year, even in year 6" role="img"><i style="flex:1;display:block;height:18%;border-radius:6px 6px 2px 2px;background:var(--stroke)"></i><i style="flex:1;display:block;height:30%;border-radius:6px 6px 2px 2px;background:var(--stroke)"></i><i style="flex:1;display:block;height:44%;border-radius:6px 6px 2px 2px;background:var(--stroke)"></i><i style="flex:1;display:block;height:58%;border-radius:6px 6px 2px 2px;background:var(--stroke)"></i><i style="flex:1;display:block;height:72%;border-radius:6px 6px 2px 2px;background:var(--stroke)"></i><i style="flex:1;display:block;height:86%;border-radius:6px 6px 2px 2px;background:#F4511E"></i><i style="flex:1;display:block;height:100%;border-radius:6px 6px 2px 2px;background:var(--stroke)"></i></div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px" class="qmono"><span style="color:var(--quiet)">Y1</span><span style="color:#F4511E">Y6</span><span style="color:var(--quiet)">Y7</span></div>
+      <div class="qrow" style="display:flex;gap:9px;margin:18px -18px 0;padding:0 18px;overflow-x:auto"><div style="flex:none;width:104px"><div style="position:relative;width:104px;height:78px;border-radius:16px;overflow:hidden;background:#EFEDE7;box-shadow:0 0 0 1px var(--stroke)">
+      <div style="position:absolute;left:12px;top:10px;width:80px;height:88px;border-radius:6px;background:#fff;box-shadow:0 1px 2px rgba(20,18,16,.12),0 10px 18px -10px rgba(20,18,16,.35);transform:rotate(-2deg);padding:9px 9px 0;box-sizing:border-box;color:#242320">
+        <span style="display:block;font:500 6.5px/1 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#8A8780">pln.co.id</span>
+        <b style="display:block;margin-top:6px;font:800 10.5px/1.05 'Inter Tight',sans-serif;letter-spacing:-.02em">Rooftop PV tariff rules 2026</b>
+        <i style="display:block;height:3px;width:92%;margin-top:7px;border-radius:2px;background:#E4E1DA"></i><i style="display:block;height:3px;width:74%;margin-top:4px;border-radius:2px;background:#E4E1DA"></i><i style="display:block;height:3px;width:84%;margin-top:4px;border-radius:2px;background:#E4E1DA"></i>
+      </div></div><span class="qmono" style="display:block;margin-top:7px;color:var(--quiet);font-size:9px">pln.co.id</span></div><div style="flex:none;width:104px"><div style="position:relative;width:104px;height:78px;border-radius:16px;overflow:hidden;background:#EFEDE7;box-shadow:0 0 0 1px var(--stroke)">
+      <div style="position:absolute;left:12px;top:10px;width:80px;height:88px;border-radius:6px;background:#fff;box-shadow:0 1px 2px rgba(20,18,16,.12),0 10px 18px -10px rgba(20,18,16,.35);transform:rotate(-2deg);padding:9px 9px 0;box-sizing:border-box;color:#242320">
+        <span style="display:block;font:500 6.5px/1 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#8A8780">iea.org</span>
+        <b style="display:block;margin-top:6px;font:800 10.5px/1.05 'Inter Tight',sans-serif;letter-spacing:-.02em">Solar costs keep falling</b>
+        <i style="display:block;height:3px;width:92%;margin-top:7px;border-radius:2px;background:#E4E1DA"></i><i style="display:block;height:3px;width:74%;margin-top:4px;border-radius:2px;background:#E4E1DA"></i><i style="display:block;height:3px;width:84%;margin-top:4px;border-radius:2px;background:#E4E1DA"></i>
+      </div></div><span class="qmono" style="display:block;margin-top:7px;color:var(--quiet);font-size:9px">iea.org</span></div><div style="flex:none;width:104px"><div style="position:relative;width:104px;height:78px;border-radius:16px;overflow:hidden;background:#EFEDE7;box-shadow:0 0 0 1px var(--stroke)">
+      <div style="position:absolute;left:12px;top:10px;width:80px;height:88px;border-radius:6px;background:#fff;box-shadow:0 1px 2px rgba(20,18,16,.12),0 10px 18px -10px rgba(20,18,16,.35);transform:rotate(-2deg);padding:9px 9px 0;box-sizing:border-box;color:#242320">
+        <span style="display:block;font:500 6.5px/1 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#8A8780">esdm.go.id</span>
+        <b style="display:block;margin-top:6px;font:800 10.5px/1.05 'Inter Tight',sans-serif;letter-spacing:-.02em">Net metering in Java</b>
+        <i style="display:block;height:3px;width:92%;margin-top:7px;border-radius:2px;background:#E4E1DA"></i><i style="display:block;height:3px;width:74%;margin-top:4px;border-radius:2px;background:#E4E1DA"></i><i style="display:block;height:3px;width:84%;margin-top:4px;border-radius:2px;background:#E4E1DA"></i>
+      </div></div><span class="qmono" style="display:block;margin-top:7px;color:var(--quiet);font-size:9px">esdm.go.id</span></div></div>
+      <div style="display:flex;align-items:center;gap:2px;margin:8px -10px 0"><button type="button" class="qtap" aria-label="Copy" style="flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:0;background:none;color:var(--quiet)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="3"></rect><path d="M5 15V6a2 2 0 0 1 2-2h8"></path></svg></button><button type="button" class="qtap" aria-label="Try again" style="flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:0;background:none;color:var(--quiet)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"></path></svg></button><button type="button" class="qtap" aria-label="Share" style="flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:0;background:none;color:var(--quiet)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7 8l5-5 5 5M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"></path></svg></button><span style="flex:1"></span><span class="qmono" style="font-size:8.5px;color:var(--quiet);letter-spacing:.06em;margin-right:10px">21:41</span></div>
+    </div>
+  </main>
+  <footer style="position:relative;z-index:6;flex:none;padding:4px 14px 22px">
+    <div class="qbar" style="border-radius:30px;background:var(--glass);-webkit-backdrop-filter:blur(28px) saturate(1.5);backdrop-filter:blur(28px) saturate(1.5)">
+      <div style="display:flex;align-items:center;gap:4px;min-height:58px;padding:7px 8px"><button type="button" class="qtap" aria-label="Add a file" style="flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;border:0;background:none;color:var(--quiet)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button><span style="flex:1;padding:0 4px;font-size:17px;color:var(--quiet)">Reply</span><button type="button" class="qtap" aria-label="Speak" style="flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;border:0;background:none;color:var(--ink)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 10v4M9 7v10M13 4v16M17 8v8M21 11v2"></path></svg></button></div>
+    </div>
+  </footer>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = this.props.theme !== 'light';
+    const v = dark ? {bg:'#131211', panel:'#2E2D2A', card:'#252421', stroke:'#3A3935', ink:'#F4F2EC', quiet:'#A8A69F', glass:'rgba(37,36,33,.82)', lift:'rgba(0,0,0,.6)', hi:'rgba(255,255,255,.06)'} : {bg:'#F7F6F2', panel:'#EFEDE7', card:'#FFFFFF', stroke:'#E6E4DE', ink:'#242320', quiet:'#8A8780', glass:'rgba(255,255,255,.84)', lift:'rgba(36,35,32,.22)', hi:'rgba(255,255,255,.9)'};
+    const rootStyle = ['width:390px','height:844px','box-sizing:border-box','display:flex','flex-direction:column','overflow:hidden','position:relative','background:' + v.bg]
+      .concat(Object.keys(v).map(k => '--' + k + ':' + v[k]))
+      .concat(["--disp:'Inter Tight','Inter',system-ui,sans-serif","--body:'Inter',system-ui,sans-serif","font-family:'Inter',system-ui,sans-serif",'color:' + v.ink,'-webkit-font-smoothing:antialiased']).join(';');
+    return { rootStyle };
+  }
+}
+</script>
+</body>
+</html>

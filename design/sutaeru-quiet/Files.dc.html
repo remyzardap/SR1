@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sutaeru files</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+textarea{font:inherit;color:inherit}
+textarea::placeholder{color:var(--quiet);opacity:1}
+.qbar{box-shadow:inset 0 1px 0 var(--hi),0 0 0 1px var(--stroke),0 16px 36px -18px var(--lift);transition:box-shadow .25s}
+.qbar:focus-within{box-shadow:inset 0 1px 0 var(--hi),0 0 0 1px var(--stroke),0 20px 44px -18px var(--lift)}
+.qtap{transition:transform .18s cubic-bezier(.2,.8,.2,1),opacity .18s}
+.qtap:active{transform:scale(.96);opacity:.8}
+.qidx{position:absolute;left:8px;top:8px;padding:4px 6px;border-radius:7px;font-size:8px;letter-spacing:.12em;color:#fff;background:rgba(20,18,16,.5);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.qlive{position:absolute;right:10px;top:10px;width:8px;height:8px;border-radius:50%;background:#F4511E;box-shadow:0 0 0 3px rgba(244,81,30,.25);animation:qPulse 1.8s ease-in-out infinite}
+@keyframes qPulse{0%,100%{box-shadow:0 0 0 3px rgba(244,81,30,.25)}50%{box-shadow:0 0 0 7px rgba(244,81,30,0)}}
+.qrow{scrollbar-width:none}.qrow::-webkit-scrollbar{display:none}
+.qmono{font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:500;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase}
+@keyframes qHero{0%,100%{transform:scale(1) translateY(0)}50%{transform:scale(1.035) translateY(-6px)}}
+@keyframes qRise{0%{transform:translateY(14px);opacity:0}100%{transform:translateY(0);opacity:1}}
+@keyframes qSwap{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.qcard{border-radius:22px;overflow:hidden;background:var(--panel);box-shadow:0 0 0 1px var(--stroke)}
+.qsheen{animation:qSheen 2.6s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes qSheen{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
+@keyframes qKen{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+@keyframes qFloat{0%,100%{transform:translateY(0) rotate(var(--r,0deg))}50%{transform:translateY(-8px) rotate(var(--r,0deg))}}
+@keyframes qStamp{0%{transform:scale(2.2) rotate(-24deg);opacity:0}60%{transform:scale(.92) rotate(-12deg);opacity:1}100%{transform:scale(1) rotate(-12deg);opacity:1}}
+@keyframes qSpin{to{transform:rotate(360deg)}}
+
+.qidx{position:absolute;left:10px;top:10px;padding:4px 7px;border-radius:7px;font-size:8.5px;letter-spacing:.12em;color:#fff;background:rgba(20,18,16,.5);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.qlive{display:inline-block;width:8px;height:8px;border-radius:50%;background:#F4511E;animation:qPulse 1.8s ease-in-out infinite}
+@keyframes qPulse{0%,100%{box-shadow:0 0 0 3px rgba(244,81,30,.25)}50%{box-shadow:0 0 0 7px rgba(244,81,30,0)}}
+.qdots{background:radial-gradient(circle,var(--stroke) 1.1px,transparent 1.5px) 0 0/14px 14px}
+@keyframes qBlink{to{visibility:hidden}}
+.qblink{animation:qBlink 1.2s steps(2,start) infinite}
+</style>
+</helmet>
+<div style="{{rootStyle}}">
+<header style="position:relative;z-index:5;display:flex;align-items:center;gap:6px;height:60px;padding:0 8px;flex:none"><button type="button" class="qtap" aria-label="Back" style="flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:0;background:none;color:var(--ink)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button><span style="flex:1"></span><button type="button" class="qtap" aria-label="Search" style="flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:0;background:none;color:var(--ink)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg></button></header>
+  <div style="display:flex;align-items:flex-end;gap:12px;padding:0 22px 16px;animation:qRise .8s cubic-bezier(.2,.8,.2,1) 0s both">
+    <h1 style="flex:1;margin:0;font-family:var(--disp);font-weight:800;font-size:30px;line-height:1;letter-spacing:-.045em"><span style="display:block;color:var(--ink)">Files</span><span style="display:block;color:var(--quiet)">Everything</span></h1>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px;color:var(--ink)"><svg role="img" aria-label="24" width="57" height="36" viewBox="0 0 57.2 36.4" fill="currentColor" style="display:block;overflow:visible"><circle cx="7.8" cy="2.6" r="1.98"></circle><circle cx="13.0" cy="2.6" r="1.98"></circle><circle cx="18.2" cy="2.6" r="1.98"></circle><circle cx="2.6" cy="7.8" r="1.98"></circle><circle cx="23.4" cy="7.8" r="1.98"></circle><circle cx="23.4" cy="13.0" r="1.98"></circle><circle cx="18.2" cy="18.2" r="1.98"></circle><circle cx="13.0" cy="23.4" r="1.98"></circle><circle cx="7.8" cy="28.6" r="1.98"></circle><circle cx="2.6" cy="33.8" r="1.98"></circle><circle cx="7.8" cy="33.8" r="1.98"></circle><circle cx="13.0" cy="33.8" r="1.98"></circle><circle cx="18.2" cy="33.8" r="1.98"></circle><circle cx="23.4" cy="33.8" r="1.98"></circle><circle cx="49.4" cy="2.6" r="1.98"></circle><circle cx="44.2" cy="7.8" r="1.98"></circle><circle cx="49.4" cy="7.8" r="1.98"></circle><circle cx="39.0" cy="13.0" r="1.98"></circle><circle cx="49.4" cy="13.0" r="1.98"></circle><circle cx="33.8" cy="18.2" r="1.98"></circle><circle cx="49.4" cy="18.2" r="1.98"></circle><circle cx="33.8" cy="23.4" r="1.98"></circle><circle cx="39.0" cy="23.4" r="1.98"></circle><circle cx="44.2" cy="23.4" r="1.98"></circle><circle cx="49.4" cy="23.4" r="1.98"></circle><circle cx="54.6" cy="23.4" r="1.98"></circle><circle cx="49.4" cy="28.6" r="1.98"></circle><circle cx="49.4" cy="33.8" r="1.98"></circle></svg><span class="qmono" style="font-size:8.5px;color:var(--quiet)">Items</span></div></div>
+  <div class="qrow" style="display:flex;gap:8px;overflow-x:auto;padding:4px 16px 16px;flex:none"><span style="flex:none;height:36px;padding:0 16px;display:flex;align-items:center;border-radius:18px;font-family:var(--disp);font-weight:700;font-size:14px;background:var(--ink);color:var(--bg)">All<span style="margin-left:7px;font-family:'JetBrains Mono',monospace;font-size:10px;opacity:.6">24</span></span><span style="flex:none;height:36px;padding:0 16px;display:flex;align-items:center;border-radius:18px;font-family:var(--disp);font-weight:600;font-size:14px;background:var(--panel);color:var(--ink)">Docs<span style="margin-left:7px;font-family:'JetBrains Mono',monospace;font-size:10px;opacity:.55">9</span></span><span style="flex:none;height:36px;padding:0 16px;display:flex;align-items:center;border-radius:18px;font-family:var(--disp);font-weight:600;font-size:14px;background:var(--panel);color:var(--ink)">Images<span style="margin-left:7px;font-family:'JetBrains Mono',monospace;font-size:10px;opacity:.55">8</span></span><span style="flex:none;height:36px;padding:0 16px;display:flex;align-items:center;border-radius:18px;font-family:var(--disp);font-weight:600;font-size:14px;background:var(--panel);color:var(--ink)">Video<span style="margin-left:7px;font-family:'JetBrains Mono',monospace;font-size:10px;opacity:.55">3</span></span><span style="flex:none;height:36px;padding:0 16px;display:flex;align-items:center;border-radius:18px;font-family:var(--disp);font-weight:600;font-size:14px;background:var(--panel);color:var(--ink)">Sheets<span style="margin-left:7px;font-family:'JetBrains Mono',monospace;font-size:10px;opacity:.55">4</span></span></div>
+  <main style="position:relative;flex:1;min-height:0;overflow:hidden;padding:0 16px">
+    <div style="display:flex;gap:12px"><div style="flex:1;display:flex;flex-direction:column;gap:12px;"><div style="position:relative;height:160px;border-radius:20px;overflow:hidden;background:var(--panel);box-shadow:0 0 0 1px var(--stroke)"><img src="/_blob/864739a32ff25921ef07f286e4414e59" alt="" width="173" height="160" style="display:block;width:100%;height:100%;object-fit:cover"><span class="qmono" style="position:absolute;left:10px;bottom:10px;padding:5px 8px;border-radius:8px;font-size:9px;color:#fff;background:rgba(20,18,16,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)">Report</span></div><div style="position:relative;height:130px;border-radius:20px;overflow:hidden;background:var(--panel);box-shadow:0 0 0 1px var(--stroke)"><img src="/_blob/d11bb2cffee0c851690dba2ed87399cb" alt="" width="173" height="130" style="display:block;width:100%;height:100%;object-fit:cover"><span class="qmono" style="position:absolute;left:10px;bottom:10px;padding:5px 8px;border-radius:8px;font-size:9px;color:#fff;background:rgba(20,18,16,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)">Image</span></div><div style="position:relative;height:160px;border-radius:20px;overflow:hidden;background:var(--panel);box-shadow:0 0 0 1px var(--stroke)"><img src="/_blob/c1ab2bb39878739542ab26cf05ac9d41" alt="" width="173" height="160" style="display:block;width:100%;height:100%;object-fit:cover"><span class="qmono" style="position:absolute;left:10px;bottom:10px;padding:5px 8px;border-radius:8px;font-size:9px;color:#fff;background:rgba(20,18,16,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)">Video</span></div></div><div style="flex:1;display:flex;flex-direction:column;gap:12px;margin-top:28px"><div style="position:relative;height:112px;border-radius:20px;overflow:hidden;background:var(--panel);box-shadow:0 0 0 1px var(--stroke)"><img src="/_blob/2fe87ee75f2f84859bddb29e5604b13d" alt="" width="173" height="112" style="display:block;width:100%;height:100%;object-fit:cover"><span class="qmono" style="position:absolute;left:10px;bottom:10px;padding:5px 8px;border-radius:8px;font-size:9px;color:#fff;background:rgba(20,18,16,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)">Sheet</span></div><div style="position:relative;height:112px;border-radius:20px;overflow:hidden;background:var(--panel);box-shadow:0 0 0 1px var(--stroke)"><img src="/_blob/1d84790ed0e3b8f343b6df99e21c37c3" alt="" width="173" height="112" style="display:block;width:100%;height:100%;object-fit:cover"><span class="qmono" style="position:absolute;left:10px;bottom:10px;padding:5px 8px;border-radius:8px;font-size:9px;color:#fff;background:rgba(20,18,16,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)">Brief</span></div><div style="position:relative;height:130px;border-radius:20px;overflow:hidden;background:var(--panel);box-shadow:0 0 0 1px var(--stroke)"><img src="/_blob/745a616db9b0ce115e6830ab980bdab8" alt="" width="173" height="130" style="display:block;width:100%;height:100%;object-fit:cover"><span class="qmono" style="position:absolute;left:10px;bottom:10px;padding:5px 8px;border-radius:8px;font-size:9px;color:#fff;background:rgba(20,18,16,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)">Chat</span></div></div></div>
+    <div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:0;height:120px;background:linear-gradient(to top,var(--bg) 20%,rgba(0,0,0,0))"></div>
+  </main>
+  <div style="flex:none;display:flex;justify-content:center;padding:0 0 30px"><button type="button" class="qtap" aria-label="Add a file" style="width:60px;height:60px;display:grid;place-items:center;border-radius:50%;border:0;background:var(--ink);color:var(--bg);box-shadow:0 16px 30px -12px var(--lift)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = this.props.theme !== 'light';
+    const v = dark ? {bg:'#131211', panel:'#2E2D2A', card:'#252421', stroke:'#3A3935', ink:'#F4F2EC', quiet:'#A8A69F', glass:'rgba(37,36,33,.82)', lift:'rgba(0,0,0,.6)', hi:'rgba(255,255,255,.06)'} : {bg:'#F7F6F2', panel:'#EFEDE7', card:'#FFFFFF', stroke:'#E6E4DE', ink:'#242320', quiet:'#8A8780', glass:'rgba(255,255,255,.84)', lift:'rgba(36,35,32,.22)', hi:'rgba(255,255,255,.9)'};
+    const rootStyle = ['width:390px','height:844px','box-sizing:border-box','display:flex','flex-direction:column','overflow:hidden','position:relative','background:' + v.bg]
+      .concat(Object.keys(v).map(k => '--' + k + ':' + v[k]))
+      .concat(["--disp:'Inter Tight','Inter',system-ui,sans-serif","--body:'Inter',system-ui,sans-serif","font-family:'Inter',system-ui,sans-serif",'color:' + v.ink,'-webkit-font-smoothing:antialiased']).join(';');
+    return { rootStyle };
+  }
+}
+</script>
+</body>
+</html>
