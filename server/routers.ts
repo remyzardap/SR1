@@ -75,6 +75,7 @@ import { googleRouter } from "./routers/google";
 import { telegramRouter } from "./routers/telegramRouter";
 import { openclawRouter } from "./routers/openclawRouter";
 import { spacesRouter } from "./routers/spaces";
+import { buildRouter } from "./routers/build";
 
 const FORMAT_MIME: Record<string, string> = {
   pdf: "application/pdf",
@@ -498,6 +499,7 @@ export const appRouter = router({
   openclaw: openclawRouter,
   kemma: kemmaRouter,
   spaces: spacesRouter,
+  build: buildRouter,
   // ─── Settings router ────────────────────────────────────────────────────────
   settings: router({
     // ─── Avatar upload ─────────────────────────────────────────────────────
