@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { toast } from "sonner";
 
 import { ImageRunScreen, type RunPicture } from "@/components/studio/ImageRunScreen";
+import { QuietStudioScreen, type QuietComposerShape, type QuietImageItem } from "@/components/studio/QuietStudioScreen";
 import { StudioScreen, type RefPhoto } from "@/components/studio/StudioScreen";
 import { useStudioForm } from "@/components/studio/useStudioForm";
 import { useSeoMeta } from "@/hooks/useSeoMeta";
@@ -44,7 +45,6 @@ interface Run {
   shot: Shot;
   t0: number;
   secs: number;
-  /** Progress when it stopped. */
   p0: number;
   took: number;
   pictures: RunPicture[];
@@ -71,6 +71,16 @@ function slug(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 40) || "image";
 }
 
+/* Sample images for the Quiet gallery when there are no real images yet. */
+const SAMPLE_QUIET_IMAGES: QuietImageItem[] = [
+  { id: "sample-1", src: "/studio/l/var-window-2.webp", alt: "Soft window light still life", height: 214 },
+  { id: "sample-2", src: "/studio/l/var-golden-2.webp", alt: "Golden hour landscape", height: 150 },
+  { id: "sample-3", src: "/studio/l/var-studio-2.webp", alt: "Studio portrait", height: 176 },
+  { id: "sample-4", src: "/studio/l/var-backlit-2.webp", alt: "Backlit silhouette", height: 150 },
+  { id: "sample-5", src: "/studio/l/var-night-2.webp", alt: "Night lamp scene", height: 196 },
+  { id: "sample-6", src: "/studio/l/var-window-3.webp", alt: "Window light portrait", height: 180 },
+];
+
 export default function Images() {
   useSeoMeta({ title: "Images", path: "/images" });
   const [, navigate] = useLocation();
@@ -81,6 +91,9 @@ export default function Images() {
   const [refs, setRefs] = useState<Attachment[]>([]);
   const [run, setRun] = useState<Run | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [view, setView] = useState<"gallery" | "studio" | "run">("gallery");
+  const [composerShape, setComposerShape] = useState<QuietComposerShape>("4:5");
+  const [composerText, setComposerText] = useState("");
 
   const runId = useRef(0);
   const blobUrls = useRef<string[]>([]);
@@ -93,9 +106,7 @@ export default function Images() {
         const usable = data.engines.filter((e) => e.available);
         if (live && usable.length > 0) setEngines(usable);
       })
-      .catch(() => {
-        /* Offline or signed out in a preview: the sample engines stay. */
-      });
+      .catch(() => {});
     return () => {
       live = false;
     };
@@ -109,7 +120,6 @@ export default function Images() {
     [],
   );
 
-  /* Progress for the running picture, from the engine's usual time. */
   const running = run?.status === "running";
   useEffect(() => {
     if (!running) return;
@@ -218,6 +228,34 @@ export default function Images() {
     toast("Generation cancelled.");
   }
 
+  function handleComposerSubmit(text: string) {
+    form.setPrompt(text);
+    setView("studio");
+  }
+
+  /* Gallery view (Quiet design) */
+  if (view === "gallery" && !run) {
+    return (
+      <QuietStudioScreen
+        images={SAMPLE_QUIET_IMAGES}
+        makingImage={false}
+        composer={{
+          placeholder: "Describe an image",
+          shape: composerShape,
+          onShapeChange: setComposerShape,
+          onAddFile: () => {},
+          onSpeak: () => {},
+          onSubmit: handleComposerSubmit,
+          value: composerText,
+          onChange: setComposerText,
+        }}
+        onBack={() => navigate("/chat")}
+        onImageClick={() => navigate("/chat")}
+      />
+    );
+  }
+
+  /* Studio form view */
   if (!run) {
     return (
       <StudioScreen
@@ -246,14 +284,15 @@ export default function Images() {
         maxRefs={MAX_REFERENCE}
         onAddRefs={addRefs}
         onRemoveRef={(i) => setRefs((prev) => prev.filter((_, idx) => idx !== i))}
-        onBegin={() => void begin()}
+        onBegin={() => { setView("run"); void begin(); }}
         canBegin={form.prompt.trim().length > 0}
-        onBack={() => navigate("/generate")}
-        backLabel="Create"
+        onBack={() => setView("gallery")}
+        backLabel="Studio"
       />
     );
   }
 
+  /* Run view */
   const pictures: RunPicture[] = run.pictures.length ? run.pictures : [{ id: "preview", shot: run.shot, alt: run.prompt }];
   const file = run.files[run.pick];
 
@@ -282,6 +321,7 @@ export default function Images() {
       onBackToStudio={() => {
         if (run.status === "running") cancel();
         setRun(null);
+        setView("studio");
       }}
       onEngine={(id) => void begin({ engine: id, count: run.count })}
       onVariations={() => void begin({ engine: run.engine, count: 4 })}
