@@ -9,7 +9,7 @@
    - painted and clay show a real style reference
    The engine still draws the final picture; the choices reach it as words in the prompt. */
 
-export type AspectRatio = "1:1" | "4:3" | "16:9" | "3:4" | "9:16";
+export type AspectRatio = "1:1" | "4:3" | "16:9" | "3:4" | "9:16" | "4:5";
 
 export type ShotId = "detail" | "close" | "medium" | "wide";
 export type AngleId = "top" | "high" | "eye" | "low" | "dutch";
@@ -83,6 +83,7 @@ export const SHAPES: Array<StudioOption<AspectRatio> & { r: number }> = [
   { id: "16:9", label: "Wide", sub: "16:9", words: "", r: 16 / 9 },
   { id: "3:4", label: "Portrait", sub: "3:4", words: "", r: 3 / 4 },
   { id: "9:16", label: "Story", sub: "9:16", words: "", r: 9 / 16 },
+  { id: "4:5", label: "Portrait", sub: "4:5", words: "", r: 4 / 5 },
 ];
 
 export const GROUP_TITLES: Record<StudioGroup, string> = {
