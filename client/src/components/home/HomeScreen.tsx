@@ -585,12 +585,12 @@ export function HomeScreen({
             onKeyDown={handleKeyDown}
             className="q-dock-textarea"
           />
-          {!hasText && (
+          {(!hasText || isListening) && (
             <button
               type="button"
-              className={cn("qtap q-dock-btn q-speak", composer.listening && "qlive-active")}
-              aria-label={composer.listening ? "Stop listening" : "Speak"}
-              onClick={composer.listening ? composer.onStopListen : composer.onListen}
+              className={cn("qtap q-dock-btn q-speak", isListening && "qlive-active")}
+              aria-label={isListening ? "Stop listening" : "Speak"}
+              onClick={isListening ? composer.onStopListen : composer.onListen}
             >
               <svg width="22" height="22" viewBox="0 0 22 22" fill="currentColor" aria-hidden="true" style={{ animation: "qSwap .3s ease both" }}>
                 <circle cx="3" cy="9.3" r="1.25" />
@@ -614,7 +614,7 @@ export function HomeScreen({
               </svg>
             </button>
           )}
-          {hasText && (
+          {hasText && !isListening && (
             <button
               type="button"
               className="qtap q-dock-btn q-send"

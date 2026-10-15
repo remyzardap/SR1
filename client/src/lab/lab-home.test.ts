@@ -1,33 +1,32 @@
 import { describe, expect, it } from "vitest";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { HomeScreen } from "@/components/home/HomeScreen";
-import type { HomeComposerProps } from "@/components/home/HomeComposer";
-import { HOME_LAB_STATES, LAB_HOME_SOURCES, homeLabComposer } from "./fixtures/home";
+import { HomeScreen, DEFAULT_HOME_MODES } from "@/components/home/HomeScreen";
+import { HOME_LAB_STATES, LAB_HOME_WIDTHS, homeLabComposer } from "./fixtures/home";
 
 const noop = () => {};
 
-function composerProps(state: Parameters<typeof homeLabComposer>[0]): HomeComposerProps {
-  return {
-    ...homeLabComposer(state),
-    onChange: noop,
-    onSubmit: noop,
-    onListen: noop,
-    onStopListen: noop,
-    onModeChange: noop,
-    onOpenSettings: noop,
-    onThinkingChange: noop,
-    onPrivateChange: noop,
-    onToggleTool: noop,
-    sourceRows: LAB_HOME_SOURCES,
-    onAddAttachment: noop,
-    onRemoveAttachment: noop,
-  };
-}
-
 function render(state: Parameters<typeof homeLabComposer>[0]) {
+  const comp = homeLabComposer(state);
   return renderToStaticMarkup(
-    React.createElement(HomeScreen, { composer: composerProps(state), listening: state === "recording" })
+    React.createElement(HomeScreen, {
+      modes: DEFAULT_HOME_MODES,
+      activeModeIndex: state === "deep" ? 3 : state === "image" ? 2 : 0,
+      listening: state === "recording",
+      composer: {
+        value: comp.value,
+        listening: comp.listening,
+        offline: comp.offline,
+        privateChat: comp.privateChat,
+        attachments: comp.attachments,
+        onChange: noop,
+        onSubmit: noop,
+        onListen: noop,
+        onStopListen: noop,
+        onAddAttachment: noop,
+        onRemoveAttachment: noop,
+      },
+    })
   );
 }
 
@@ -44,9 +43,9 @@ describe("Home lab states", () => {
 
   it.each(HOME_LAB_STATES)("renders /__lab/home?state=%s with the screen's own markup", (state) => {
     const html = render(state);
-    expect(html).toContain('class="view home view-enter');
-    expect(html).toContain("mode-chip");
-    // Home is the mark, the wordmark, the ramp and the composer, nothing else.
+    expect(html).toContain('class="home');
+    expect(html).toContain('aria-label="Mode"');
+    // Home is Quiet: hero artifacts, center mark, composer, nothing else.
     expect(html).not.toContain("Recently updated");
     expect(html).not.toContain("Hand off a project");
   });
@@ -56,14 +55,17 @@ describe("Home lab states", () => {
 
     const files = render("files");
     expect(files).toContain("supplier_quotes.pdf");
-    expect(files).toContain("Uploading");
+    expect(files).toContain("2.4 MB");
 
     const recording = render("recording");
-    expect(recording).toContain('class="composer-wrap is-on listening"');
     expect(recording).toContain('placeholder="Listening…"');
+    expect(recording).toContain('aria-label="Stop listening"');
 
     expect(render("offline")).toContain("Ask now. It sends when you reconnect.");
-    expect(render("deep")).toContain("Deep research");
-    expect(render("image")).toContain("Image");
+    expect(render("private")).toContain("home private-on");
+  });
+
+  it("includes width fixtures for 360, 390, and 1280", () => {
+    expect(LAB_HOME_WIDTHS).toEqual([360, 390, 1280]);
   });
 });

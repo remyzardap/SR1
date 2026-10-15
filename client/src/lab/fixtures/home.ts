@@ -96,3 +96,10 @@ export function homeLabComposer(state: HomeLabState): HomeComposerFixture {
     initialPanel: state === "attach" ? "attach" : state === "mode" ? "mode" : null,
   };
 }
+
+export const LAB_HOME_WIDTHS = [360, 390, 1280] as const;
+export type LabHomeWidth = (typeof LAB_HOME_WIDTHS)[number];
+
+export const LAB_HOME_THEMES = ["light", "dark"] as const;
+export type LabHomeTheme = (typeof LAB_HOME_THEMES)[number];
+
