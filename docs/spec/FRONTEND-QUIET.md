@@ -1,7 +1,7 @@
 # Frontend redo 2: port the Quiet canvas
 
 Visual target: `design/sutaeru-quiet/` (supersedes `design/sutaeru-canvas/` and `design/sutaeru-app/` once Phase 5 is done).
-Rollback: git tag `pre-quiet` is the last commit before this work. Work happens on `redo/quiet-canvas`, one PR per screen.
+Rollback: commit `fe72c48` (main on Oct 11, 2026) is the last commit before this work. The `pre-quiet` tag could not be pushed from the build session; create it with `git tag pre-quiet fe72c48 && git push origin pre-quiet`. Work happens on `redo/quiet-canvas`, one PR per screen.
 
 ## Decisions (owner, 2026-10-15)
 
