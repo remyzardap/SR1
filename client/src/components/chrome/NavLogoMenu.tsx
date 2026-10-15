@@ -195,6 +195,13 @@ export function NavLogoMenu({ variant = "header", className }: NavLogoMenuProps)
     setIsOpen(false);
   }, [location]);
 
+  // Open on global event (e.g. from Home brand button)
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener("sutaeru:open-logo-menu", handleOpen);
+    return () => window.removeEventListener("sutaeru:open-logo-menu", handleOpen);
+  }, []);
+
   const shown = isOpen || closing;
 
   /* Past chats: the same list the chat sidebar shows, fetched only while the menu is up. */
