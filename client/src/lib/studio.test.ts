@@ -45,7 +45,7 @@ describe("studio option tables", () => {
   });
 
   it("lists the shapes in the order the picker shows them, with a real ratio", () => {
-    expect(ids(SHAPES)).toEqual(["1:1", "4:3", "16:9", "3:4", "9:16"]);
+    expect(ids(SHAPES)).toEqual(["1:1", "4:3", "16:9", "3:4", "9:16", "4:5"]);
     expect(shapeOf("4:3").r).toBeCloseTo(4 / 3, 6);
     expect(shapeOf("9:16").r).toBeCloseTo(9 / 16, 6);
   });

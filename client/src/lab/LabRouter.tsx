@@ -40,6 +40,7 @@ import LabStudio from "./LabStudio";
 import LabParts from "./LabParts";
 import LabMenu from "./LabMenu";
 import LabImageRun from "./LabImageRun";
+import LabQuietStudio from "./LabQuietStudio";
 
 import LabPageStates from "./LabPageStates";
 import LabLists from "./LabLists";
@@ -87,6 +88,7 @@ export function LabRouter() {
       <Route path="/__lab/image-run" component={LabImageRun} />
       <Route path="/__lab/page-states" component={LabPageStates} />
       <Route path="/__lab/lists" component={LabLists} />
+      <Route path="/__lab/quiet-studio" component={LabQuietStudio} />
       <Route path="/__lab/admin" component={LabAdmin} />
     </Switch>
   );
