@@ -113,6 +113,13 @@ export const NAV_DESTINATIONS: NavDestination[] = [
   },
   // Account & settings
   {
+    label: "Voice",
+    path: "/voice",
+    icon: "voice",
+    group: "more",
+    match: (l) => l === "/voice",
+  },
+  {
     label: "Settings",
     path: "/settings",
     icon: "settings",

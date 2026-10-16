@@ -28,6 +28,7 @@ import Memories from "./pages/Memories";
 import Monitors from "./pages/Monitors";
 import Images from "./pages/Images";
 import Video from "./pages/Video";
+import Voice from "./pages/Voice";
 import Connections from "./pages/Connections";
 import More from "./pages/More";
 import ResetPassword from "./pages/ResetPassword";
@@ -222,6 +223,15 @@ function AppRoutes() {
           </DashboardLayout>
         ) : (
           <ProtectedRoute component={Video} />
+        )}
+      </Route>
+      <Route path="/voice">
+        {isAuthenticated ? (
+          <DashboardLayout>
+            <Voice />
+          </DashboardLayout>
+        ) : (
+          <ProtectedRoute component={Voice} />
         )}
       </Route>
       <Route path="/build">
