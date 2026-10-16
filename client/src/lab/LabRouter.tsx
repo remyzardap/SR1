@@ -44,6 +44,7 @@ import LabImageRun from "./LabImageRun";
 import LabPageStates from "./LabPageStates";
 import LabLists from "./LabLists";
 import LabAdmin from "./LabAdmin";
+import LabVoice from "./LabVoice";
 import Build from "@/pages/Build";
 
 export function LabRouter() {
@@ -88,6 +89,7 @@ export function LabRouter() {
       <Route path="/__lab/page-states" component={LabPageStates} />
       <Route path="/__lab/lists" component={LabLists} />
       <Route path="/__lab/admin" component={LabAdmin} />
+      <Route path="/__lab/voice" component={LabVoice} />
     </Switch>
   );
 }
