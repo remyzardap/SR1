@@ -1,3 +1,4 @@
+import * as React from "react";
 import type { VoicePhase } from "@/hooks/useVoiceDictation";
 
 export interface VoiceScreenProps {
