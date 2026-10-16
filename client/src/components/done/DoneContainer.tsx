@@ -1,8 +1,7 @@
 import * as React from "react";
 import { useState, useEffect, useCallback } from "react";
-import { ResultCard, type ResultCardProps } from "./ResultCard";
+import { ResultCard, STUDIO_COVER_BY_KIND, type ResultCardProps } from "./ResultCard";
 import { getAuthToken } from "@/lib/authSession";
-import { trpc } from "@/lib/trpc";
 
 interface DoneContainerProps {
   sessionId: string;
@@ -11,16 +10,19 @@ interface DoneContainerProps {
   onOpenSession?: () => void;
 }
 
-function getResultDataForType(type: string): ResultCardProps {
+export function getResultDataForType(type: string): ResultCardProps {
   const results: Record<string, ResultCardProps> = {
     report: {
       kind: "report",
-      title: "PV module supplier comparison",
-      summary: "Jinko and Trina tie on price at USD 0.11 per Wp. LONGi costs a cent more but ships in four weeks, which keeps the 500 kWp build on schedule.",
+      title: "Supplier report",
+      subtitle: "ready",
+      coverImage: STUDIO_COVER_BY_KIND.report,
+      summary:
+        "Jinko and Trina tie on price at USD 0.11 per Wp. LONGi costs a cent more but ships in four weeks, which keeps the 500 kWp build on schedule.",
       figures: [
+        { label: "Pages", value: "12" },
         { label: "Suppliers", value: "3" },
-        { label: "Best price", value: "0.11" },
-        { label: "Fastest", value: "4 wks" },
+        { label: "Time", value: "03:12" },
       ],
       meta: "PDF · 12 pages · 2.4 MB",
       comparison: {
@@ -36,7 +38,10 @@ function getResultDataForType(type: string): ResultCardProps {
     deck: {
       kind: "deck",
       title: "Q3 investor update",
-      summary: "Revenue grew 12 percent on Q2 and operating margin held at 21 percent. Three risks are flagged, each with an owner and a date.",
+      subtitle: "ready",
+      coverImage: STUDIO_COVER_BY_KIND.deck,
+      summary:
+        "Revenue grew 12 percent on Q2 and operating margin held at 21 percent. Three risks are flagged, each with an owner and a date.",
       figures: [
         { label: "Slides", value: "10" },
         { label: "Revenue", value: "+12%" },
@@ -56,11 +61,14 @@ function getResultDataForType(type: string): ResultCardProps {
     sheet: {
       kind: "sheet",
       title: "Villa BOQ and budget",
-      summary: "Total build cost comes to IDR 3.1 billion. Structure is 46 percent of it; finishes are where the range is widest.",
+      subtitle: "ready",
+      coverImage: STUDIO_COVER_BY_KIND.sheet,
+      summary:
+        "Total build cost comes to IDR 3.1 billion. Structure is 46 percent of it; finishes are where the range is widest.",
       figures: [
         { label: "Tabs", value: "6" },
         { label: "Line items", value: "212" },
-        { label: "Total", value: "3.1 bn" },
+        { label: "Total", value: "3.1" },
       ],
       meta: "XLSX · 6 tabs · 840 KB",
       comparison: {
@@ -75,8 +83,11 @@ function getResultDataForType(type: string): ResultCardProps {
     },
     brief: {
       kind: "brief",
-      title: "Off grid solar for remote villages",
-      summary: "The case rests on capital grants, not tariff revenue. The brief asks the board for a one village pilot and a grant application.",
+      title: "Off grid solar brief",
+      subtitle: "ready",
+      coverImage: STUDIO_COVER_BY_KIND.brief,
+      summary:
+        "The case rests on capital grants, not tariff revenue. The brief asks the board for a one village pilot and a grant application.",
       figures: [
         { label: "Pages", value: "1" },
         { label: "Decisions", value: "2" },
@@ -95,10 +106,13 @@ function getResultDataForType(type: string): ResultCardProps {
     monitor: {
       kind: "monitor",
       title: "PLN tariff watch",
-      summary: "The watch is live. Nothing has moved since the baseline. You will get a Telegram message when a tariff changes.",
+      subtitle: "ready",
+      coverImage: STUDIO_COVER_BY_KIND.monitor,
+      summary:
+        "The watch is live. Nothing has moved since the baseline. You will get a Telegram message when a tariff changes.",
       figures: [
         { label: "Pages", value: "4" },
-        { label: "Every", value: "6 h" },
+        { label: "Hours", value: "6" },
         { label: "Changes", value: "0" },
       ],
       meta: "Monitor · every 6 hours",
@@ -113,12 +127,14 @@ function getResultDataForType(type: string): ResultCardProps {
     },
     image: {
       kind: "image",
-      title: "Ceramic mug, morning light",
+      title: "Ceramic mug",
+      subtitle: "ready",
+      coverImage: STUDIO_COVER_BY_KIND.image,
       summary: "A ceramic mug on a wooden table in soft morning light. Made at 1:1 ratio.",
       figures: [
-        { label: "Engine", value: "Crisp" },
+        { label: "Count", value: "1" },
         { label: "Ratio", value: "1:1" },
-        { label: "Quality", value: "Standard" },
+        { label: "Time", value: "00:18" },
       ],
       meta: "PNG · 1024×1024 · 2.1 MB",
       comparison: undefined,
@@ -130,20 +146,22 @@ function getResultDataForType(type: string): ResultCardProps {
 
 function getTitleForType(type: string): string {
   const titles: Record<string, string> = {
-    report: "Solar PV supplier research",
-    deck: "TGWI investor update Q3",
+    report: "Supplier report",
+    deck: "Q3 investor update",
     sheet: "Villa BOQ and budget",
-    brief: "Off grid solar board brief",
+    brief: "Off grid solar brief",
     monitor: "PLN tariff watch",
-    image: "Image generation",
+    image: "Ceramic mug",
   };
-  return titles[type] || "Agent session";
+  return titles[type] || "Supplier report";
 }
 
-export function DoneContainer({ sessionId, runId, onBack, onOpenSession }: DoneContainerProps) {
+export function DoneContainer({ sessionId: _sessionId, runId, onBack }: DoneContainerProps) {
   const [sessionType, setSessionType] = useState("report");
-  const [sessionTitle, setSessionTitle] = useState("Agent session");
-  const [resultData, setResultData] = useState<ResultCardProps | null>(null);
+  const [sessionTitle, setSessionTitle] = useState("Supplier report");
+  const [resultData, setResultData] = useState<ResultCardProps | null>(() =>
+    getResultDataForType("report")
+  );
   const [isWide, setIsWide] = useState(false);
   const token = getAuthToken();
 
@@ -206,7 +224,15 @@ export function DoneContainer({ sessionId, runId, onBack, onOpenSession }: DoneC
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `${sessionTitle.replace(/\s+/g, "-").toLowerCase()}.${sessionType === "deck" ? "pptx" : sessionType === "sheet" ? "xlsx" : sessionType === "brief" ? "docx" : "pdf"}`;
+          a.download = `${sessionTitle.replace(/\s+/g, "-").toLowerCase()}.${
+            sessionType === "deck"
+              ? "pptx"
+              : sessionType === "sheet"
+                ? "xlsx"
+                : sessionType === "brief"
+                  ? "docx"
+                  : "pdf"
+          }`;
           a.click();
           URL.revokeObjectURL(url);
         })
@@ -232,7 +258,7 @@ export function DoneContainer({ sessionId, runId, onBack, onOpenSession }: DoneC
       } catch {
         // User cancelled
       }
-    } else {
+    } else if (navigator.clipboard) {
       await navigator.clipboard.writeText(window.location.href);
     }
   }, [sessionTitle, resultData]);
@@ -246,15 +272,7 @@ export function DoneContainer({ sessionId, runId, onBack, onOpenSession }: DoneC
   }, [onBack]);
 
   if (!resultData) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "400px" }}>
-        <div className="stepped" style={{ display: "inline-flex", alignItems: "flexEnd", gap: 3 }} aria-hidden="true">
-          {[6, 8, 10, 12, 14].map((hh, i) => (
-            <i key={i} className="on" style={{ width: 12, borderRadius: 2, background: "var(--ink)", height: hh }} />
-          ))}
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (

@@ -12,21 +12,48 @@ interface SessionContainerProps {
   onOpenDone?: () => void;
 }
 
-function mapAgentStepsToSessionSteps(steps: AgentStep[]): SessionStep[] {
-  return steps.map((step, index) => ({
+const DEFAULT_SESSION_STEPS: SessionStep[] = [
+  { id: "1", name: "Search", detail: "Three questions, two source types", status: "done", progress: 1 },
+  { id: "2", name: "Read", detail: "14 sources found", status: "done", progress: 1, sourcesTotal: 14, sourcesDone: 14 },
+  { id: "3", name: "Compare", detail: "supplier_quotes.pdf", status: "running", progress: 0.6, pagesTotal: 12, pagesDone: 7 },
+  { id: "4", name: "Write", detail: "Formatted, cited, ready to send", status: "queued" },
+];
+
+export function mapAgentStepsToSessionSteps(steps: AgentStep[]): SessionStep[] {
+  if (!steps || steps.length === 0) {
+    return DEFAULT_SESSION_STEPS;
+  }
+  return steps.map((step) => ({
     id: step.id,
     name: step.label,
     detail: step.detail,
-    status: step.status === "running" ? "running" : step.status === "done" ? "done" : step.status === "error" ? "stopped" : "queued",
+    status:
+      step.status === "running"
+        ? "running"
+        : step.status === "done"
+          ? "done"
+          : step.status === "error"
+            ? "stopped"
+            : "queued",
     progress: step.status === "running" ? 0.5 : step.status === "done" ? 1 : 0,
     sourcesTotal: step.detail === "web_search" ? 14 : undefined,
-    sourcesDone: step.status === "done" && step.detail === "web_search" ? 14 : step.status === "running" && step.detail === "web_search" ? 7 : undefined,
+    sourcesDone:
+      step.status === "done" && step.detail === "web_search"
+        ? 14
+        : step.status === "running" && step.detail === "web_search"
+          ? 7
+          : undefined,
     pagesTotal: step.detail === "browse" ? 12 : undefined,
-    pagesDone: step.status === "done" && step.detail === "browse" ? 12 : step.status === "running" && step.detail === "browse" ? 6 : undefined,
+    pagesDone:
+      step.status === "done" && step.detail === "browse"
+        ? 12
+        : step.status === "running" && step.detail === "browse"
+          ? 6
+          : undefined,
   }));
 }
 
-function getDraftForType(type: string): SessionDraft {
+export function getDraftForType(type: string): SessionDraft {
   const drafts: Record<string, SessionDraft> = {
     report: {
       eyebrow: "Result · Draft",
@@ -82,35 +109,34 @@ function getDraftForType(type: string): SessionDraft {
   return drafts[type] || drafts.report;
 }
 
-function getTitleForType(type: string): string {
+export function getTitleForType(type: string): string {
   const titles: Record<string, string> = {
-    report: "Solar PV supplier research",
-    deck: "TGWI investor update Q3",
-    sheet: "Villa BOQ and budget",
-    brief: "Off grid solar board brief",
+    report: "PV supplier comparison",
+    deck: "TGWI investor update",
+    sheet: "Villa BOQ budget",
+    brief: "Off grid solar brief",
     monitor: "PLN tariff watch",
     image: "Image generation",
   };
-  return titles[type] || "Agent session";
+  return titles[type] || "PV supplier comparison";
 }
 
 export function SessionContainer({ sessionId, runId, onBack, onOpenDone }: SessionContainerProps) {
   const [status, setStatus] = useState<"running" | "stopped" | "done" | "error">("running");
-  const [progress, setProgress] = useState(0);
-  const [elapsedMs, setElapsedMs] = useState(0);
-  const [estimatedRemainingMs, setEstimatedRemainingMs] = useState<number | undefined>(undefined);
-  const [steps, setSteps] = useState<SessionStep[]>([]);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [draft, setDraft] = useState<SessionDraft | undefined>(undefined);
+  const [progress, setProgress] = useState(0.6);
+  const [elapsedMs, setElapsedMs] = useState(34000);
+  const [estimatedRemainingMs, setEstimatedRemainingMs] = useState<number | undefined>(177000);
+  const [steps, setSteps] = useState<SessionStep[]>(DEFAULT_SESSION_STEPS);
+  const [currentStepIndex, setCurrentStepIndex] = useState(2);
+  const [draft, setDraft] = useState<SessionDraft | undefined>(() => getDraftForType("report"));
   const [showStopConfirm, setShowStopConfirm] = useState(false);
-  const [sessionType, setSessionType] = useState("report");
-  const [sessionTitle, setSessionTitle] = useState("Agent session");
+  const [sessionTitle, setSessionTitle] = useState("PV supplier comparison");
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [stoppedAt, setStoppedAt] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const token = getAuthToken();
 
-  const { data: sessionSettings } = trpc.kemma.getSessionSettings.useQuery(
+  trpc.kemma.getSessionSettings.useQuery(
     { sessionId },
     { enabled: !!sessionId }
   );
@@ -125,11 +151,10 @@ export function SessionContainer({ sessionId, runId, onBack, onOpenDone }: Sessi
       });
       if (res.ok) {
         const data = await res.json();
-        setSessionType(data.type || "report");
         setSessionTitle(getTitleForType(data.type || "report"));
         setDraft(getDraftForType(data.type || "report"));
         setSteps(mapAgentStepsToSessionSteps(data.steps || []));
-        setProgress(data.progress || 0);
+        setProgress(typeof data.progress === "number" ? data.progress : 0.6);
         setStatus(data.status || "running");
         setStartedAt(data.startedAt ? new Date(data.startedAt).getTime() : Date.now());
         if (data.stoppedAt) setStoppedAt(new Date(data.stoppedAt).getTime());
@@ -209,24 +234,26 @@ export function SessionContainer({ sessionId, runId, onBack, onOpenDone }: Sessi
     setShowStopConfirm(true);
   }, []);
 
-  const handleSendMessage = useCallback((text: string) => {
-    if (runId) {
-      fetch(`${import.meta.env.VITE_SR1_API_ORIGIN || ""}/api/kemma/session/${runId}/message`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ text }),
-      }).catch(() => {});
-    }
-  }, [runId, token]);
+  const handleSendMessage = useCallback(
+    (text: string) => {
+      if (runId) {
+        fetch(`${import.meta.env.VITE_SR1_API_ORIGIN || ""}/api/kemma/session/${runId}/message`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ text }),
+        }).catch(() => {});
+      }
+    },
+    [runId, token]
+  );
 
   const handleSkipDemo = useCallback(() => {
     setProgress(Math.max(progress, 0.94));
   }, [progress]);
-
-  const handleConfirmStop = useCallback(() => {
-    handleStop();
-  }, [handleStop]);
 
   const viewProps: SessionViewProps = {
     title: sessionTitle,
@@ -239,10 +266,13 @@ export function SessionContainer({ sessionId, runId, onBack, onOpenDone }: Sessi
     draft,
     showStopConfirm,
     onStop: handleAskStop,
+    onConfirmStop: handleStop,
     onResume: handleResume,
     onKeepWorking: handleKeepWorking,
     onSendMessage: handleSendMessage,
     onSkipDemo: handleSkipDemo,
+    onBack,
+    onOpenResult: onOpenDone,
   };
 
   return <SessionView {...viewProps} />;
