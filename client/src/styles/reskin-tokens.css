@@ -40,6 +40,8 @@
   --scrim: rgba(28, 27, 25, .32);
   --shadow: 0 1px 2px rgba(36, 35, 32, .06), 0 18px 40px -22px rgba(36, 35, 32, .28);
   --lift: 0 24px 60px -28px rgba(36, 35, 32, .45);
+  --glass: rgba(255, 255, 255, .84);
+  --hi: rgba(255, 255, 255, .9);
 
   --disp: "Inter Tight", "Inter", system-ui, sans-serif;
   --body: "Inter", system-ui, sans-serif;
@@ -82,6 +84,8 @@
   --r-lift: var(--lift);
   --r-wash: rgba(255, 255, 255, 0.30);
   --r-noise-opacity: 0.035;
+  --r-glass: var(--glass);
+  --r-hi: var(--hi);
 
   --r-font-title: var(--disp);
   --r-font-body: var(--body);
@@ -130,11 +134,15 @@
     --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 18px 40px -22px rgba(0, 0, 0, .7);
     --lift: 0 24px 60px -28px rgba(0, 0, 0, .9);
     --grain: .03;
+    --glass: rgba(37, 36, 33, .82);
+    --hi: rgba(255, 255, 255, .06);
     color-scheme: dark;
 
     --r-accent-ink: var(--paper);
     --r-wash: rgba(255, 255, 255, 0.03);
     --r-noise-opacity: 0.02;
+    --r-glass: var(--glass);
+    --r-hi: var(--hi);
   }
 }
 
@@ -162,11 +170,15 @@
   --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 18px 40px -22px rgba(0, 0, 0, .7);
   --lift: 0 24px 60px -28px rgba(0, 0, 0, .9);
   --grain: .03;
+  --glass: rgba(37, 36, 33, .82);
+  --hi: rgba(255, 255, 255, .06);
   color-scheme: dark;
 
   --r-accent-ink: var(--paper);
   --r-wash: rgba(255, 255, 255, 0.03);
   --r-noise-opacity: 0.02;
+  --r-glass: var(--glass);
+  --r-hi: var(--hi);
 }
 
 :root[data-theme="light"],
@@ -192,11 +204,15 @@
   --scrim: rgba(28, 27, 25, .32);
   --shadow: 0 1px 2px rgba(36, 35, 32, .06), 0 18px 40px -22px rgba(36, 35, 32, .28);
   --lift: 0 24px 60px -28px rgba(36, 35, 32, .45);
+  --glass: rgba(255, 255, 255, .84);
+  --hi: rgba(255, 255, 255, .9);
   color-scheme: light;
 
   --r-accent-ink: var(--ink);
   --r-wash: rgba(255, 255, 255, 0.30);
   --r-noise-opacity: 0.035;
+  --r-glass: var(--glass);
+  --r-hi: var(--hi);
 }
 
 [data-reduce-motion="true"] {

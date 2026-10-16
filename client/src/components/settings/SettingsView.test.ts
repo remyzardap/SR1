@@ -4,7 +4,14 @@ import fs from "node:fs";
 import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Router } from "wouter";
-import { SettingsView, SETTINGS_FOLD_IDS, voiceBucket, voiceSample, VOICE_SAMPLES } from "./SettingsView";
+import {
+  SettingsView,
+  SETTINGS_FOLD_IDS,
+  YouDotNumber,
+  voiceBucket,
+  voiceSample,
+  VOICE_SAMPLES,
+} from "./SettingsView";
 import { settingsFixture, type SettingsState } from "@/lab/fixtures/settings";
 
 /**
@@ -50,8 +57,59 @@ describe("voice sample maths", () => {
   });
 });
 
+describe("Quiet You dot-matrix numbers", () => {
+  it("renders 5x7 dot-matrix SVG digits with accessible label", () => {
+    const svg = renderToStaticMarkup(
+      React.createElement(YouDotNumber, { value: 128 })
+    );
+    expect(svg).toContain('role="img"');
+    expect(svg).toContain('aria-label="128"');
+    expect(svg).toContain('viewBox="0 0 68.0 28.0"');
+    expect(svg).toContain("<circle");
+  });
+
+  it("clamps negative or NaN values safely to 0", () => {
+    const neg = renderToStaticMarkup(React.createElement(YouDotNumber, { value: -42 }));
+    expect(neg).toContain('aria-label="0"');
+    const nan = renderToStaticMarkup(React.createElement(YouDotNumber, { value: Number.NaN }));
+    expect(nan).toContain('aria-label="0"');
+  });
+});
+
 describe("the ported screen", () => {
   const html = render();
+
+  it("renders the Quiet You board at the top with hero, stats, and theme picker", () => {
+    expect(html).toContain('class="you-board"');
+    expect(html).toContain('data-testid="you-board"');
+    expect(html).toContain('<span class="you-name">Remy</span>');
+    expect(html).toContain('<span class="you-role">Owner</span>');
+    expect(html).toContain("スタエル");
+
+    // Three stat cards linking to /memories, /skills, and /connections
+    expect(html).toContain('href="/memories"');
+    expect(html).toContain('aria-label="128"');
+    expect(html).toContain(">Memories<");
+    expect(html).toContain('href="/skills"');
+    expect(html).toContain('aria-label="12"');
+    expect(html).toContain(">Skills<");
+    expect(html).toContain('href="/connections"');
+    expect(html).toContain('aria-label="4"');
+    expect(html).toContain(">Connected<");
+
+    // Quiet three-way theme picker (Dark, Light, Auto)
+    expect(html).toContain('aria-label="Quick theme picker"');
+    expect(html).toContain('<span class="qmono you-theme-name">Dark</span>');
+    expect(html).toContain('<span class="qmono you-theme-name">Light</span>');
+    expect(html).toContain('<span class="qmono you-theme-name is-active">Auto</span>');
+    expect(render("theme-dark")).toContain('<span class="qmono you-theme-name is-active">Dark</span>');
+    expect(render("theme-light")).toContain('<span class="qmono you-theme-name is-active">Light</span>');
+
+    // Photo avatar fixture renders the studio photo
+    const photoHtml = render("identity-photo");
+    expect(photoHtml).toContain('/studio/o/nav-agent.webp');
+    expect(photoHtml).toContain('class="you-avatar-img"');
+  });
 
   it("keeps the prototype's heading and lede", () => {
     expect(html).toContain('class="view wide view-enter settings-view"');
@@ -59,7 +117,7 @@ describe("the ported screen", () => {
     expect(html).toContain("Make Sutaeru feel like yours. Changes apply as you make them.");
   });
 
-  it("keeps every setting that already existed", () => {
+  it("keeps every setting that already existed plus identity fields", () => {
     for (const label of [
       "Theme",
       "Background art",
@@ -68,6 +126,12 @@ describe("the ported screen", () => {
       "Art intensity",
       "How Sutaeru talks",
       "Account",
+      "Display Name",
+      "Handle",
+      "Bio",
+      "Primary Language",
+      "Personality",
+      "Save identity",
       "Two-factor sign-in",
       "Plan",
       "Engines",
@@ -81,6 +145,13 @@ describe("the ported screen", () => {
     expect(html).toContain('role="switch"');
     expect(html).toContain('type="range"');
     expect(html).toContain("/connections");
+    expect(html).toContain('class="you-id-editor"');
+    expect(html).toContain('placeholder="Your Name"');
+    expect(html).toContain('placeholder="username"');
+    expect(html).toContain('placeholder="Tell others about your agent..."');
+    expect(html).toContain('aria-label="Personality trait"');
+    expect(render("identity-saving")).toContain("Saving…");
+    expect(render("identity-saving")).toContain("Uploading…");
   });
 
   it("shows three theme picture tiles", () => {
@@ -153,11 +224,15 @@ describe("the ported stylesheet", () => {
   it("keeps interactive targets at the 44px minimum", () => {
     expect(css).toMatch(/\.set-input\s*\{[^}]*min-height:\s*44px/);
     expect(css).toMatch(/input\[type="range"\]\s*\{[^}]*height:\s*44px/);
+    expect(css).toMatch(/\.you-top-btn\s*\{[^}]*width:\s*44px/);
   });
 
-  it("carries the prototype's slider geometry", () => {
+  it("carries the prototype's slider geometry and Quiet You rules", () => {
     expect(css).toMatch(/--p/); // the filled track
     expect(css).toMatch(/\.settings-folds\s*\{/);
     expect(css).toMatch(/\.settings-view \.head-row,/);
+    expect(css).toMatch(/\.you-board\s*\{/);
+    expect(css).toMatch(/\.you-stat-card\s*\{/);
+    expect(css).toMatch(/\.you-theme-btn\s*\{/);
   });
 });

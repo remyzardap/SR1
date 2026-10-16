@@ -64,6 +64,7 @@ export function LabRouter() {
       <Route path="/__lab/motion" component={LabMotion} />
       <Route path="/__lab/art" component={LabArt} />
       <Route path="/__lab/settings" component={LabSettings} />
+      <Route path="/__lab/you" component={LabSettings} />
       <Route path="/__lab/files" component={LabFiles} />
       <Route path="/__lab/session" component={LabSession} />
       <Route path="/__lab/done" component={LabDone} />

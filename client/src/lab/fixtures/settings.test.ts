@@ -43,6 +43,8 @@ describe("settings lab fixtures", () => {
       "intensity-max",
       "voice-min",
       "voice-max",
+      "identity-photo",
+      "identity-saving",
     ]) {
       expect(SETTINGS_STATE_NAMES, `missing lab state ${name}`).toContain(name);
     }
@@ -50,6 +52,11 @@ describe("settings lab fixtures", () => {
     expect(SETTINGS_STATES["intensity-max"].artIntensity).toBe(100);
     expect(SETTINGS_STATES["voice-min"].voice).toEqual({ detail: 0, tone: 0 });
     expect(SETTINGS_STATES["voice-max"].voice).toEqual({ detail: 100, tone: 100 });
+    expect(
+      SETTINGS_STATES["identity-photo"].identity?.status.status === "ready"
+        ? SETTINGS_STATES["identity-photo"].identity.status.data?.avatarUrl
+        : null
+    ).toBe("/studio/o/nav-agent.webp");
   });
 
   it("keeps the data-heavy cards reachable in every status", () => {
@@ -69,7 +76,16 @@ describe("settings lab fixtures", () => {
       props.onArtIntensityChange(50);
       props.onVoiceChange({ detail: 1, tone: 2 });
       props.onAccountRetry();
-      props.onTwoFactorToggle();
+      props.onBack();
+      props.onStatsRetry();
+      props.onIdentityChange({ displayName: "Remy" });
+      props.onIdentityTraitInputChange("Calm");
+      props.onIdentityTraitAdd();
+      props.onIdentityTraitRemove("Calm");
+      props.onIdentityAvatarRemove();
+      props.onIdentitySave();
+      props.onIdentityRetry();
+      props.onTwoFactorToggle(true);
       props.onTwoFactorTokenChange("123456");
       props.onTwoFactorSubmit();
       props.onTwoFactorCancel();

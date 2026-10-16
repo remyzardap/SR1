@@ -1,12 +1,474 @@
-/* Settings — the folds of SettingsView (components/settings/SettingsView.tsx).
-   The groups themselves are FoldSections (see fold.css); this file carries only the
-   settings-specific bodies: the sliders, the dither demo, the voice sample, the meters
-   and the 2FA panel. */
+/* Settings & Quiet You — the Quiet You board at the top of SettingsView
+   (design/sutaeru-quiet/You.dc.html) plus the folds of SettingsView
+   (components/settings/SettingsView.tsx).
+   The groups themselves are FoldSections (see fold.css); this file carries the
+   Quiet You profile/stat/theme board and the settings-specific bodies: the sliders,
+   the dither demo, the voice sample, the identity editor, the meters and the 2FA panel. */
 
 .settings-folds { margin-top: 8px; }
 /* One measure on a big screen: a fold row 1240px wide reads as a table, not a page. */
+.settings-view .you-board,
 .settings-view .head-row,
 .settings-view .settings-folds { max-width: 900px; margin-left: auto; margin-right: auto; }
+
+/* ── Quiet You board (design/sutaeru-quiet/You.dc.html) ─────────────────────── */
+@keyframes qRise {
+  0% { transform: translateY(14px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.qtap {
+  transition: transform .18s cubic-bezier(.2, .8, .2, 1), opacity .18s;
+}
+.qtap:active {
+  transform: scale(.96);
+  opacity: .8;
+}
+
+.qcard {
+  border-radius: 22px;
+  overflow: hidden;
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--stroke);
+}
+
+.qmono {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 10.5px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.you-board {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 36px;
+}
+
+.you-top {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 60px;
+  padding: 0 8px;
+  flex: none;
+}
+
+.you-top-btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  border: 0;
+  background: none;
+  color: var(--ink);
+}
+.you-top-btn:hover {
+  background: var(--panel);
+}
+
+.you-spacer {
+  flex: 1;
+}
+
+.you-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 22px 0;
+  animation: qRise .8s cubic-bezier(.2, .8, .2, 1) 0s both;
+  min-width: 0;
+}
+
+.you-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--disp);
+  font-weight: 800;
+  font-size: 30px;
+  letter-spacing: -.04em;
+}
+
+.you-avatar-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.you-heading {
+  margin: 0;
+  font-family: var(--disp);
+  font-weight: 800;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: -.045em;
+  min-width: 0;
+}
+
+.you-name {
+  display: block;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.you-role {
+  display: block;
+  color: var(--quiet);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.you-seal {
+  display: block;
+  flex: none;
+  width: 28px;
+  height: 28px;
+}
+
+.you-stats {
+  display: flex;
+  gap: 10px;
+  padding: 34px 20px 0;
+  animation: qRise .8s cubic-bezier(.2, .8, .2, 1) 0.15s both;
+}
+
+.you-stat-card {
+  flex: 1;
+  min-width: 0;
+  height: 176px;
+  min-height: 44px;
+  padding: 16px 14px 14px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow: inset 0 1px 0 var(--hi, rgba(255, 255, 255, .7)), 0 0 0 1px var(--stroke);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  text-decoration: none;
+}
+.you-stat-card:hover {
+  box-shadow: inset 0 1px 0 var(--hi, rgba(255, 255, 255, .7)), 0 0 0 1px var(--rule);
+}
+
+.you-stat-icon {
+  color: var(--ink);
+  display: block;
+  flex: none;
+}
+.you-stat-icon.accent {
+  color: #F4511E;
+}
+
+.you-stat-num {
+  display: block;
+  overflow: visible;
+  max-width: 100%;
+  height: 28px;
+}
+
+.you-stat-label {
+  margin-top: 8px;
+  font-size: 9px;
+  color: var(--quiet);
+  display: block;
+}
+
+.you-themes {
+  display: flex;
+  gap: 12px;
+  padding: 30px 20px 0;
+  animation: qRise .8s cubic-bezier(.2, .8, .2, 1) 0.3s both;
+}
+
+.you-theme-btn {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  text-align: center;
+}
+
+.you-theme-preview {
+  display: block;
+  height: 84px;
+  border-radius: 16px;
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+  transition: outline-color .18s var(--ease);
+}
+.you-theme-preview.is-active {
+  outline-color: var(--ink);
+}
+
+.you-theme-surface {
+  position: relative;
+  display: block;
+  height: 84px;
+}
+.you-theme-surface.dark {
+  background: #131211;
+}
+.you-theme-surface.light {
+  background: #F7F6F2;
+}
+.you-theme-surface.auto {
+  background: linear-gradient(90deg, #F7F6F2 50%, #131211 50%);
+}
+
+.you-theme-pill {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: 22px;
+  height: 12px;
+  border-radius: 6px;
+  font-style: normal;
+}
+.you-theme-surface.dark .you-theme-pill {
+  border: 2px solid #F4F2EC;
+}
+.you-theme-surface.light .you-theme-pill {
+  border: 2px solid #242320;
+}
+.you-theme-surface.auto .you-theme-pill {
+  border: 2px solid #8A8780;
+}
+
+.you-theme-line {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 34px;
+  height: 7px;
+  border-radius: 4px;
+  opacity: .85;
+  width: 46%;
+  font-style: normal;
+}
+.you-theme-surface.dark .you-theme-line {
+  background: #F4F2EC;
+}
+.you-theme-surface.light .you-theme-line {
+  background: #242320;
+}
+.you-theme-surface.auto .you-theme-line {
+  background: #8A8780;
+}
+
+.you-theme-bar {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  height: 16px;
+  border-radius: 8px;
+  font-style: normal;
+}
+.you-theme-surface.dark .you-theme-bar {
+  background: #2E2D2A;
+}
+.you-theme-surface.light .you-theme-bar {
+  background: #E6E4DE;
+}
+.you-theme-surface.auto .you-theme-bar {
+  background: #8A8780;
+}
+
+.you-theme-name {
+  display: block;
+  margin-top: 9px;
+  color: var(--quiet);
+}
+.you-theme-name.is-active {
+  color: var(--ink);
+}
+
+@media (max-width: 374px) {
+  .you-hero { padding-left: 14px; padding-right: 14px; gap: 12px; }
+  .you-stats { padding-left: 14px; padding-right: 14px; gap: 8px; }
+  .you-stat-card { padding: 14px 10px 12px; }
+  .you-themes { padding-left: 14px; padding-right: 14px; gap: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .you-hero,
+  .you-stats,
+  .you-themes,
+  .qtap,
+  .set-skeleton {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+[data-reduce-motion="true"] .you-hero,
+[data-reduce-motion="true"] .you-stats,
+[data-reduce-motion="true"] .you-themes,
+[data-reduce-motion="true"] .qtap,
+[data-reduce-motion="true"] .set-skeleton {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ── Identity profile fields inside Settings ────────────────────────────────── */
+.you-id-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hair);
+}
+
+.you-id-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.you-id-avatar-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.you-id-avatar-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.you-id-avatar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.you-id-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.you-id-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.you-id-textarea {
+  min-height: 88px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--stroke);
+  background: var(--card);
+  color: var(--ink);
+  font: 400 15px/1.45 var(--body);
+  outline: 0;
+  resize: vertical;
+}
+.you-id-textarea:focus {
+  border-color: var(--accent-deep);
+}
+.you-id-textarea::placeholder {
+  color: var(--quiet);
+}
+
+.you-id-select {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 16px;
+  border: 1px solid var(--stroke);
+  background: var(--card);
+  color: var(--ink);
+  font: 400 15px/1.4 var(--body);
+  outline: 0;
+}
+.you-id-select:focus {
+  border-color: var(--accent-deep);
+}
+
+.you-id-traits {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.you-id-trait {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  font: 500 13px/1 var(--body);
+}
+
+.you-id-trait-del {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: 50%;
+  color: var(--quiet);
+}
+.you-id-trait-del:hover {
+  color: var(--ink);
+}
+
+.you-id-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.you-links-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* ── Existing SettingsView folds ────────────────────────────────────────────── */
 /* The two fine-adjust sliders under the voice tiles. */
 .set-fine { margin-top: 6px; }
 .set-fine .slider { margin-top: 10px; }

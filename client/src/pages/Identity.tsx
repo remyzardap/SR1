@@ -291,7 +291,7 @@ export default function Identity() {
       }
       fold={fold}
       wide
-      className="id-view"
+      className="id-view sk-identity"
       actions={
         <button onClick={handleSave} disabled={upsertMutation.isPending} className="btn">
           {upsertMutation.isPending ? "Saving..." : isNewIdentity ? "Create Identity" : "Save Changes"}

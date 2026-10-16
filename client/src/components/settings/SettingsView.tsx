@@ -1,26 +1,30 @@
 /**
- * Settings — the ported prototype screen on the Studio standard.
+ * Settings & Quiet You — the ported Quiet You screen (`design/sutaeru-quiet/You.dc.html`)
+ * at the top of `/settings`, plus every existing setting and identity field in folds below.
  *
  * Presentational only: every value comes in through props and every change goes back out
  * through a handler. Nothing here fetches or writes to storage — the container that binds
  * this to tRPC and to `lib/theme.ts` is `client/src/pages/Settings.tsx`.
  *
- * Every group is a fold: one line when closed (label, the current pick in words, a mini
- * picture), the tiles and controls when open. On phones one fold is open at a time; the
- * fold a person last left open is the one they find open next visit. Theme, motion and
- * voice are picture tiles (lib/pickArt.ts), not white select boxes.
+ * The top board renders the Quiet You hero (avatar, display name, role subtitle, SutaeruSeal),
+ * three dot-matrix stat cards (Memories, Skills, Connected) linking to `/memories`, `/skills`,
+ * and `/connections`, and the three-way Quiet theme picker (Dark, Light, Auto).
+ * Below the board, every settings group is a fold: one line when closed (label, the current
+ * pick in words, a mini picture), the tiles and controls when open.
  */
 
 import * as React from "react";
-import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ChangeEvent, type KeyboardEvent, type MouseEvent } from "react";
 import { Link } from "wouter";
 
 import { FocusBrackets } from "@/components/art/FocusBrackets";
+import { SutaeruSeal } from "@/components/brand/SutaeruSeal";
 import { SutaeruIcon } from "@/components/SutaeruIcon";
 import { FoldAllButton, FoldGroup, FoldSection, PickTiles, useFoldState, type FoldState, type PickItem } from "@/components/fold";
 import { drawDitherRamp } from "@/lib/dither";
 import { pickArt } from "@/lib/pickArt";
 import type { ThemeChoice, VoiceStyle } from "@/lib/theme";
+import { cn } from "@/lib/utils";
 
 /* ── Card data shapes (the container maps its queries onto these) ────────────────── */
 
@@ -35,6 +39,29 @@ export type Resource<T> =
 export interface AccountInfo {
   name: string;
   email: string;
+}
+
+export interface YouStats {
+  memories: number;
+  skills: number;
+  connections: number;
+}
+
+export interface IdentityProfile {
+  handle: string;
+  displayName: string;
+  bio: string;
+  avatarUrl: string;
+  primaryLanguage: string;
+  personalityTraits: string[];
+  roleLabel?: string;
+}
+
+export interface IdentityState {
+  status: Resource<IdentityProfile>;
+  traitInput: string;
+  uploadingAvatar: boolean;
+  saving: boolean;
 }
 
 export interface TwoFactorSetup {
@@ -84,6 +111,8 @@ export interface SettingsViewProps {
   artIntensity: number;
   voice: VoiceStyle;
   account: Resource<AccountInfo>;
+  stats?: Resource<YouStats>;
+  identity?: IdentityState;
   twoFactor: TwoFactorState;
   plan: { status: Resource<PlanInfo>; trialBusy: boolean };
   models: Resource<ModelInfo[]>;
@@ -94,6 +123,16 @@ export interface SettingsViewProps {
   onArtIntensityChange(next: number): void;
   onVoiceChange(next: VoiceStyle): void;
   onAccountRetry(): void;
+  onBack?(): void;
+  onStatsRetry?(): void;
+  onIdentityChange?(patch: Partial<IdentityProfile>): void;
+  onIdentityTraitInputChange?(next: string): void;
+  onIdentityTraitAdd?(): void;
+  onIdentityTraitRemove?(trait: string): void;
+  onIdentityAvatarFile?(file: File): void;
+  onIdentityAvatarRemove?(): void;
+  onIdentitySave?(): void;
+  onIdentityRetry?(): void;
   onTwoFactorToggle(next: boolean): void;
   onTwoFactorTokenChange(next: string): void;
   onTwoFactorSubmit(): void;
@@ -114,6 +153,29 @@ export interface SettingsViewProps {
    */
   openSections?: string[];
 }
+
+/* ── Identity languages ─────────────────────────────────────────────────────────── */
+
+export const IDENTITY_LANGUAGES = [
+  { value: "en", label: "English" },
+  { value: "id", label: "Indonesian" },
+  { value: "zh", label: "Chinese (Mandarin)" },
+  { value: "es", label: "Spanish" },
+  { value: "fr", label: "French" },
+  { value: "de", label: "German" },
+  { value: "ja", label: "Japanese" },
+  { value: "ko", label: "Korean" },
+  { value: "pt", label: "Portuguese" },
+  { value: "ar", label: "Arabic" },
+  { value: "hi", label: "Hindi" },
+  { value: "ru", label: "Russian" },
+  { value: "it", label: "Italian" },
+  { value: "tr", label: "Turkish" },
+  { value: "nl", label: "Dutch" },
+  { value: "pl", label: "Polish" },
+  { value: "vi", label: "Vietnamese" },
+  { value: "th", label: "Thai" },
+] as const;
 
 /* ── Picture tiles ──────────────────────────────────────────────────────────────── */
 
@@ -197,6 +259,117 @@ function clampSlider(value: number): number {
   return Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : 0;
 }
 
+/* ── Quiet You dot-matrix glyphs & numbers (design/sutaeru-quiet/You.dc.html) ───── */
+
+const YOU_DIGIT_BITMAPS: Record<string, number[]> = {
+  "0": [0b01110, 0b10001, 0b10011, 0b10101, 0b11001, 0b10001, 0b01110],
+  "1": [0b00100, 0b01100, 0b00100, 0b00100, 0b00100, 0b00100, 0b01110],
+  "2": [0b01110, 0b10001, 0b00001, 0b00010, 0b00100, 0b01000, 0b11111],
+  "3": [0b11111, 0b00001, 0b00010, 0b00110, 0b00001, 0b10001, 0b01110],
+  "4": [0b00010, 0b00110, 0b01010, 0b10010, 0b11111, 0b00010, 0b00010],
+  "5": [0b11111, 0b10000, 0b11110, 0b00001, 0b00001, 0b10001, 0b01110],
+  "6": [0b01110, 0b10000, 0b11110, 0b10001, 0b10001, 0b10001, 0b01110],
+  "7": [0b11111, 0b00001, 0b00010, 0b00100, 0b01000, 0b01000, 0b01000],
+  "8": [0b01110, 0b10001, 0b10001, 0b01110, 0b10001, 0b10001, 0b01110],
+  "9": [0b01110, 0b10001, 0b10001, 0b01111, 0b00001, 0b00001, 0b01110],
+};
+
+/** 5×7 dot-matrix number matching `You.dc.html` (step 4, radius 1.52, height 28). */
+export function YouDotNumber({ value }: { value: number }) {
+  const safe = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+  const digits = String(safe);
+  const STEP = 4;
+  const RADIUS = 1.52;
+  const COLS_PER_DIGIT = 6;
+  const circles: Array<{ cx: number; cy: number; key: string }> = [];
+
+  for (let d = 0; d < digits.length; d++) {
+    const bitmap = YOU_DIGIT_BITMAPS[digits[d]] ?? YOU_DIGIT_BITMAPS["0"];
+    const colOffset = d * COLS_PER_DIGIT;
+    for (let row = 0; row < 7; row++) {
+      const cy = 2 + row * STEP;
+      const mask = bitmap[row];
+      for (let col = 0; col < 5; col++) {
+        if ((mask & (1 << (4 - col))) !== 0) {
+          const cx = 2 + (colOffset + col) * STEP;
+          circles.push({ cx, cy, key: `${d}-${row}-${col}` });
+        }
+      }
+    }
+  }
+
+  const width = (digits.length * COLS_PER_DIGIT - 1) * STEP;
+  const height = 28;
+
+  return (
+    <svg
+      role="img"
+      aria-label={String(safe)}
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width.toFixed(1)} ${height.toFixed(1)}`}
+      fill="currentColor"
+      className="you-stat-num"
+    >
+      {circles.map((c) => (
+        <circle key={c.key} cx={c.cx.toFixed(1)} cy={c.cy.toFixed(1)} r={RADIUS.toFixed(2)} />
+      ))}
+    </svg>
+  );
+}
+
+/** 55×55 dot-matrix Memories glyph from `You.dc.html` line 47. */
+function MemoriesDotGlyph() {
+  return (
+    <svg aria-hidden="true" width="55" height="55" viewBox="0 0 55 55" fill="currentColor">
+      <circle cx="12.5" cy="7.5" r="2.00" /><circle cx="17.5" cy="7.5" r="2.00" /><circle cx="22.5" cy="7.5" r="2.00" /><circle cx="27.5" cy="7.5" r="2.00" /><circle cx="32.5" cy="7.5" r="2.00" /><circle cx="37.5" cy="7.5" r="2.00" /><circle cx="42.5" cy="7.5" r="2.00" />
+      <circle cx="7.5" cy="12.5" r="2.00" /><circle cx="47.5" cy="12.5" r="2.00" />
+      <circle cx="7.5" cy="17.5" r="2.00" /><circle cx="12.5" cy="17.5" r="2.00" /><circle cx="17.5" cy="17.5" r="2.00" /><circle cx="22.5" cy="17.5" r="2.00" /><circle cx="27.5" cy="17.5" r="2.00" /><circle cx="32.5" cy="17.5" r="2.00" /><circle cx="37.5" cy="17.5" r="2.00" /><circle cx="42.5" cy="17.5" r="2.00" /><circle cx="47.5" cy="17.5" r="2.00" />
+      <circle cx="7.5" cy="22.5" r="2.00" /><circle cx="47.5" cy="22.5" r="2.00" />
+      <circle cx="7.5" cy="27.5" r="2.00" /><circle cx="12.5" cy="27.5" r="2.00" /><circle cx="17.5" cy="27.5" r="2.00" /><circle cx="22.5" cy="27.5" r="2.00" /><circle cx="27.5" cy="27.5" r="2.00" /><circle cx="32.5" cy="27.5" r="2.00" /><circle cx="37.5" cy="27.5" r="2.00" /><circle cx="42.5" cy="27.5" r="2.00" /><circle cx="47.5" cy="27.5" r="2.00" />
+      <circle cx="7.5" cy="32.5" r="2.00" /><circle cx="47.5" cy="32.5" r="2.00" />
+      <circle cx="7.5" cy="37.5" r="2.00" /><circle cx="12.5" cy="37.5" r="2.00" /><circle cx="17.5" cy="37.5" r="2.00" /><circle cx="22.5" cy="37.5" r="2.00" /><circle cx="27.5" cy="37.5" r="2.00" /><circle cx="32.5" cy="37.5" r="2.00" /><circle cx="37.5" cy="37.5" r="2.00" /><circle cx="42.5" cy="37.5" r="2.00" /><circle cx="47.5" cy="37.5" r="2.00" />
+      <circle cx="7.5" cy="42.5" r="2.00" /><circle cx="47.5" cy="42.5" r="2.00" />
+      <circle cx="12.5" cy="47.5" r="2.00" /><circle cx="17.5" cy="47.5" r="2.00" /><circle cx="22.5" cy="47.5" r="2.00" /><circle cx="27.5" cy="47.5" r="2.00" /><circle cx="32.5" cy="47.5" r="2.00" /><circle cx="37.5" cy="47.5" r="2.00" /><circle cx="42.5" cy="47.5" r="2.00" />
+    </svg>
+  );
+}
+
+/** 55×55 dot-matrix Skills star glyph from `You.dc.html` line 49. */
+function SkillsDotGlyph() {
+  return (
+    <svg aria-hidden="true" width="55" height="55" viewBox="0 0 55 55" fill="currentColor">
+      <circle cx="27.5" cy="2.5" r="2.00" />
+      <circle cx="27.5" cy="7.5" r="2.00" />
+      <circle cx="22.5" cy="12.5" r="2.00" /><circle cx="27.5" cy="12.5" r="2.00" /><circle cx="32.5" cy="12.5" r="2.00" />
+      <circle cx="17.5" cy="17.5" r="2.00" /><circle cx="22.5" cy="17.5" r="2.00" /><circle cx="27.5" cy="17.5" r="2.00" /><circle cx="32.5" cy="17.5" r="2.00" /><circle cx="37.5" cy="17.5" r="2.00" />
+      <circle cx="2.5" cy="22.5" r="2.00" /><circle cx="7.5" cy="22.5" r="2.00" /><circle cx="12.5" cy="22.5" r="2.00" /><circle cx="17.5" cy="22.5" r="2.00" /><circle cx="22.5" cy="22.5" r="2.00" /><circle cx="27.5" cy="22.5" r="2.00" /><circle cx="32.5" cy="22.5" r="2.00" /><circle cx="37.5" cy="22.5" r="2.00" /><circle cx="42.5" cy="22.5" r="2.00" /><circle cx="47.5" cy="22.5" r="2.00" /><circle cx="52.5" cy="22.5" r="2.00" />
+      <circle cx="7.5" cy="27.5" r="2.00" /><circle cx="12.5" cy="27.5" r="2.00" /><circle cx="17.5" cy="27.5" r="2.00" /><circle cx="22.5" cy="27.5" r="2.00" /><circle cx="27.5" cy="27.5" r="2.00" /><circle cx="32.5" cy="27.5" r="2.00" /><circle cx="37.5" cy="27.5" r="2.00" /><circle cx="42.5" cy="27.5" r="2.00" /><circle cx="47.5" cy="27.5" r="2.00" />
+      <circle cx="17.5" cy="32.5" r="2.00" /><circle cx="22.5" cy="32.5" r="2.00" /><circle cx="27.5" cy="32.5" r="2.00" /><circle cx="32.5" cy="32.5" r="2.00" /><circle cx="37.5" cy="32.5" r="2.00" />
+      <circle cx="17.5" cy="37.5" r="2.00" /><circle cx="22.5" cy="37.5" r="2.00" /><circle cx="32.5" cy="37.5" r="2.00" /><circle cx="37.5" cy="37.5" r="2.00" />
+      <circle cx="12.5" cy="42.5" r="2.00" /><circle cx="17.5" cy="42.5" r="2.00" /><circle cx="37.5" cy="42.5" r="2.00" /><circle cx="42.5" cy="42.5" r="2.00" />
+      <circle cx="12.5" cy="47.5" r="2.00" /><circle cx="42.5" cy="47.5" r="2.00" />
+    </svg>
+  );
+}
+
+/** 55×55 dot-matrix Connected link glyph from `You.dc.html` line 51. */
+function ConnectedDotGlyph() {
+  return (
+    <svg aria-hidden="true" width="55" height="55" viewBox="0 0 55 55" fill="currentColor">
+      <circle cx="7.5" cy="7.5" r="2.00" /><circle cx="12.5" cy="7.5" r="2.00" /><circle cx="17.5" cy="7.5" r="2.00" /><circle cx="37.5" cy="7.5" r="2.00" /><circle cx="42.5" cy="7.5" r="2.00" /><circle cx="47.5" cy="7.5" r="2.00" />
+      <circle cx="2.5" cy="12.5" r="2.00" /><circle cx="7.5" cy="12.5" r="2.00" /><circle cx="17.5" cy="12.5" r="2.00" /><circle cx="22.5" cy="12.5" r="2.00" /><circle cx="32.5" cy="12.5" r="2.00" /><circle cx="37.5" cy="12.5" r="2.00" /><circle cx="47.5" cy="12.5" r="2.00" /><circle cx="52.5" cy="12.5" r="2.00" />
+      <circle cx="2.5" cy="17.5" r="2.00" /><circle cx="22.5" cy="17.5" r="2.00" /><circle cx="32.5" cy="17.5" r="2.00" /><circle cx="52.5" cy="17.5" r="2.00" />
+      <circle cx="2.5" cy="22.5" r="2.00" /><circle cx="22.5" cy="22.5" r="2.00" /><circle cx="27.5" cy="22.5" r="2.00" /><circle cx="32.5" cy="22.5" r="2.00" /><circle cx="52.5" cy="22.5" r="2.00" />
+      <circle cx="2.5" cy="27.5" r="2.00" /><circle cx="27.5" cy="27.5" r="2.00" /><circle cx="52.5" cy="27.5" r="2.00" />
+      <circle cx="2.5" cy="32.5" r="2.00" /><circle cx="22.5" cy="32.5" r="2.00" /><circle cx="27.5" cy="32.5" r="2.00" /><circle cx="32.5" cy="32.5" r="2.00" /><circle cx="52.5" cy="32.5" r="2.00" />
+      <circle cx="2.5" cy="37.5" r="2.00" /><circle cx="22.5" cy="37.5" r="2.00" /><circle cx="32.5" cy="37.5" r="2.00" /><circle cx="52.5" cy="37.5" r="2.00" />
+      <circle cx="2.5" cy="42.5" r="2.00" /><circle cx="7.5" cy="42.5" r="2.00" /><circle cx="17.5" cy="42.5" r="2.00" /><circle cx="22.5" cy="42.5" r="2.00" /><circle cx="32.5" cy="42.5" r="2.00" /><circle cx="37.5" cy="42.5" r="2.00" /><circle cx="47.5" cy="42.5" r="2.00" /><circle cx="52.5" cy="42.5" r="2.00" />
+      <circle cx="7.5" cy="47.5" r="2.00" /><circle cx="12.5" cy="47.5" r="2.00" /><circle cx="17.5" cy="47.5" r="2.00" /><circle cx="37.5" cy="47.5" r="2.00" /><circle cx="42.5" cy="47.5" r="2.00" /><circle cx="47.5" cy="47.5" r="2.00" />
+    </svg>
+  );
+}
+
 /* ── Small parts ────────────────────────────────────────────────────────────────── */
 
 /** The prototype's tick(): a short buzz on a press, never under reduce motion. */
@@ -264,7 +437,7 @@ function LoadingRows() {
 function LoadError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="between">
-      <p className="set-note">Couldn't load this right now.</p>
+      <p className="set-note">Couldn&apos;t load this right now.</p>
       <button type="button" className="btn" onClick={onRetry}>
         Try again
       </button>
@@ -305,7 +478,228 @@ function IntensityDemo({ intensity, theme }: { intensity: number; theme: ThemeCh
   return <canvas ref={ref} aria-hidden="true" />;
 }
 
+/* ── Identity editor inside Account fold ────────────────────────────────────────── */
+
+function IdentityEditorSection({
+  identity,
+  onChange,
+  onTraitInputChange,
+  onTraitAdd,
+  onTraitRemove,
+  onAvatarFile,
+  onAvatarRemove,
+  onSave,
+  onRetry,
+}: {
+  identity: IdentityState;
+  onChange?: (patch: Partial<IdentityProfile>) => void;
+  onTraitInputChange?: (next: string) => void;
+  onTraitAdd?: () => void;
+  onTraitRemove?: (trait: string) => void;
+  onAvatarFile?: (file: File) => void;
+  onAvatarRemove?: () => void;
+  onSave?: () => void;
+  onRetry?: () => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  if (identity.status.status === "loading") {
+    return (
+      <div className="you-id-editor">
+        <LoadingRows />
+      </div>
+    );
+  }
+
+  if (identity.status.status === "error") {
+    return (
+      <div className="you-id-editor">
+        <LoadError onRetry={() => onRetry?.()} />
+      </div>
+    );
+  }
+
+  const profile = identity.status.data;
+  if (!profile) return null;
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) onAvatarFile?.(file);
+    if (event.target) event.target.value = "";
+  };
+
+  const handleTraitKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" || event.key === ",") {
+      event.preventDefault();
+      onTraitAdd?.();
+    } else if (event.key === "Backspace" && !identity.traitInput && profile.personalityTraits.length > 0) {
+      onTraitRemove?.(profile.personalityTraits[profile.personalityTraits.length - 1]);
+    }
+  };
+
+  const traitsFull = profile.personalityTraits.length >= 10;
+
+  return (
+    <div className="you-id-editor">
+      <div className="you-id-avatar-row">
+        <span className="you-id-avatar-thumb" aria-hidden="true">
+          <img src={profile.avatarUrl || pickArt("nav-agent")} alt="Avatar preview" />
+        </span>
+        <div className="you-id-avatar-actions">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            hidden
+            onChange={handleFileChange}
+          />
+          <button
+            type="button"
+            className="btn"
+            disabled={identity.uploadingAvatar}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {identity.uploadingAvatar ? "Uploading…" : "Upload image"}
+          </button>
+          {profile.avatarUrl && (
+            <button type="button" className="btn ghost" onClick={() => onAvatarRemove?.()}>
+              Remove avatar
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="you-id-grid">
+        <label className="you-id-field">
+          <span className="mono">Display Name</span>
+          <input
+            className="set-input"
+            type="text"
+            value={profile.displayName}
+            maxLength={255}
+            placeholder="Your Name"
+            onChange={(event) => onChange?.({ displayName: event.target.value })}
+          />
+        </label>
+        <label className="you-id-field">
+          <span className="mono">Handle</span>
+          <input
+            className="set-input"
+            type="text"
+            value={profile.handle}
+            maxLength={64}
+            placeholder="username"
+            onChange={(event) => onChange?.({ handle: event.target.value.replace(/[^a-z0-9_-]/gi, "") })}
+          />
+        </label>
+      </div>
+
+      <label className="you-id-field">
+        <span className="mono">Bio</span>
+        <textarea
+          className="you-id-textarea"
+          rows={3}
+          value={profile.bio}
+          placeholder="Tell others about your agent..."
+          onChange={(event) => onChange?.({ bio: event.target.value })}
+        />
+      </label>
+
+      <label className="you-id-field">
+        <span className="mono">Primary Language</span>
+        <select
+          className="you-id-select"
+          value={profile.primaryLanguage}
+          onChange={(event) => onChange?.({ primaryLanguage: event.target.value })}
+        >
+          <option value="">Select a language...</option>
+          {IDENTITY_LANGUAGES.map((lang) => (
+            <option key={lang.value} value={lang.value}>
+              {lang.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <div className="you-id-field">
+        <span className="mono">Personality</span>
+        <div className="you-id-traits">
+          {profile.personalityTraits.map((trait) => (
+            <span className="you-id-trait" key={trait}>
+              {trait}
+              <button
+                type="button"
+                className="you-id-trait-del"
+                aria-label={`Remove ${trait}`}
+                onClick={() => onTraitRemove?.(trait)}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+        <div className="set-field-row">
+          <label className="set-field">
+            <span className="sr">Personality trait</span>
+            <input
+              className="set-input"
+              type="text"
+              aria-label="Personality trait"
+              value={identity.traitInput}
+              disabled={traitsFull}
+              placeholder={
+                profile.personalityTraits.length === 0
+                  ? "Type a trait and press Enter..."
+                  : traitsFull
+                    ? "Maximum 10 traits"
+                    : "Add another..."
+              }
+              onChange={(event) => onTraitInputChange?.(event.target.value)}
+              onKeyDown={handleTraitKeyDown}
+            />
+          </label>
+          <button
+            type="button"
+            className="btn"
+            disabled={traitsFull || !identity.traitInput.trim()}
+            onClick={() => onTraitAdd?.()}
+          >
+            Add trait
+          </button>
+        </div>
+      </div>
+
+      <div className="you-id-footer">
+        <span className="set-note">Standing profile and instructions for your agent.</span>
+        <button type="button" className="btn ink" disabled={identity.saving} onClick={() => onSave?.()}>
+          {identity.saving ? "Saving…" : "Save identity"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ── The screen ─────────────────────────────────────────────────────────────────── */
+
+const DEFAULT_STATS: YouStats = { memories: 128, skills: 12, connections: 4 };
+
+const DEFAULT_IDENTITY: IdentityState = {
+  status: {
+    status: "ready",
+    data: {
+      handle: "remy",
+      displayName: "Remy",
+      bio: "",
+      avatarUrl: "",
+      primaryLanguage: "en",
+      personalityTraits: [],
+      roleLabel: "Owner",
+    },
+  },
+  traitInput: "",
+  uploadingAvatar: false,
+  saving: false,
+};
 
 export function SettingsView(props: SettingsViewProps) {
   const {
@@ -326,6 +720,9 @@ export function SettingsView(props: SettingsViewProps) {
     onVoiceChange,
   } = props;
 
+  const statsResource = props.stats ?? { status: "ready", data: DEFAULT_STATS };
+  const identityState = props.identity ?? DEFAULT_IDENTITY;
+
   const folds = useFoldState(props.foldKey ?? "settings", SETTINGS_FOLD_IDS, { first: "theme" });
   // The lab and the markup tests can force every section open; a forced page has no
   // accordion left to fold, so the Fold all pill steps aside.
@@ -336,6 +733,8 @@ export function SettingsView(props: SettingsViewProps) {
   const twoFactorOn = twoFactor.status.status === "ready" && !!twoFactor.status.data;
   const bucket = voiceBucket(voice);
   const cap = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
+
+  const settingsHeadRef = useRef<HTMLElement | null>(null);
 
   // A two-factor code on screen must not be behind a fold: open the section when the
   // flow starts, and leave the accordion alone otherwise.
@@ -363,13 +762,176 @@ export function SettingsView(props: SettingsViewProps) {
     return () => window.clearTimeout(timer);
   }, [voice, sample, reduceMotion]);
 
+  // Derive Quiet You profile hero display values
+  const identityData = identityState.status.status === "ready" ? identityState.status.data : null;
+  const accountData = account.status === "ready" ? account.data : null;
+  const isAnon = account.status === "ready" && account.data === null && !identityData?.displayName;
+
+  const profileName = isAnon
+    ? "Guest"
+    : identityData?.displayName || accountData?.name || identityData?.handle || accountData?.email || "Remy";
+  const profileRole = isAnon
+    ? "Sign in"
+    : identityData?.roleLabel || (identityData?.handle ? `@${identityData.handle}` : "Owner");
+  const profileAvatarUrl = identityData?.avatarUrl || "";
+  const profileInitial = (profileName.trim().charAt(0) || "R").toUpperCase();
+
+  const counts: YouStats =
+    statsResource.status === "ready" && statsResource.data
+      ? statsResource.data
+      : { memories: 0, skills: 0, connections: 0 };
+
+  const scrollToSettings = () => {
+    settingsHeadRef.current?.scrollIntoView?.({
+      behavior: reduceMotion || prefersReducedMotion() ? "auto" : "smooth",
+    });
+  };
+
   return (
     <section className="view wide view-enter settings-view">
-      <header className="head-row">
-        <div>
-          <h1 className="title">
-            Settings
+      {/* ── Quiet You board (design/sutaeru-quiet/You.dc.html) ──────────────────── */}
+      <div className="you-board" data-testid="you-board">
+        <header className="you-top">
+          <button
+            type="button"
+            className="qtap you-top-btn"
+            aria-label="Back"
+            onClick={() => props.onBack?.()}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+          </button>
+          <span className="you-spacer" />
+          <button
+            type="button"
+            className="qtap you-top-btn"
+            aria-label="More settings"
+            onClick={scrollToSettings}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+              <circle cx="16" cy="7" r="2" />
+              <circle cx="10" cy="17" r="2" />
+            </svg>
+          </button>
+        </header>
+
+        <section className="you-hero" aria-label="Profile">
+          <span className="you-avatar" aria-hidden="true">
+            {profileAvatarUrl ? (
+              <img src={profileAvatarUrl} alt="" className="you-avatar-img" />
+            ) : (
+              profileInitial
+            )}
+          </span>
+          <h1 className="you-heading">
+            <span className="you-name">{profileName}</span>
+            <span className="you-role">{profileRole}</span>
           </h1>
+          <span className="you-spacer" />
+          <SutaeruSeal size={28} rough={false} className="you-seal" />
+        </section>
+
+        <div className="you-stats" role="group" aria-label="Workspace counts">
+          <Link href="/memories" className="qtap you-stat-card" aria-label={`Memories: ${counts.memories}`}>
+            <span className="you-stat-icon accent">
+              <MemoriesDotGlyph />
+            </span>
+            <span className="you-spacer" />
+            <YouDotNumber value={counts.memories} />
+            <span className="qmono you-stat-label">Memories</span>
+          </Link>
+
+          <Link href="/skills" className="qtap you-stat-card" aria-label={`Skills: ${counts.skills}`}>
+            <span className="you-stat-icon">
+              <SkillsDotGlyph />
+            </span>
+            <span className="you-spacer" />
+            <YouDotNumber value={counts.skills} />
+            <span className="qmono you-stat-label">Skills</span>
+          </Link>
+
+          <Link href="/connections" className="qtap you-stat-card" aria-label={`Connected: ${counts.connections}`}>
+            <span className="you-stat-icon">
+              <ConnectedDotGlyph />
+            </span>
+            <span className="you-spacer" />
+            <YouDotNumber value={counts.connections} />
+            <span className="qmono you-stat-label">Connected</span>
+          </Link>
+        </div>
+
+        {statsResource.status === "error" && props.onStatsRetry && (
+          <LoadError onRetry={props.onStatsRetry} />
+        )}
+
+        <div className="you-themes" role="group" aria-label="Quick theme picker">
+          <button
+            type="button"
+            className="qtap you-theme-btn"
+            aria-pressed={theme === "dark"}
+            onClick={(event) => {
+              tick(reduceMotion, event);
+              onThemeChange("dark");
+            }}
+          >
+            <span className={cn("qcard you-theme-preview", theme === "dark" && "is-active")}>
+              <span className="you-theme-surface dark">
+                <i className="you-theme-pill" />
+                <i className="you-theme-line" />
+                <i className="you-theme-bar" />
+              </span>
+            </span>
+            <span className={cn("qmono you-theme-name", theme === "dark" && "is-active")}>Dark</span>
+          </button>
+
+          <button
+            type="button"
+            className="qtap you-theme-btn"
+            aria-pressed={theme === "light"}
+            onClick={(event) => {
+              tick(reduceMotion, event);
+              onThemeChange("light");
+            }}
+          >
+            <span className={cn("qcard you-theme-preview", theme === "light" && "is-active")}>
+              <span className="you-theme-surface light">
+                <i className="you-theme-pill" />
+                <i className="you-theme-line" />
+                <i className="you-theme-bar" />
+              </span>
+            </span>
+            <span className={cn("qmono you-theme-name", theme === "light" && "is-active")}>Light</span>
+          </button>
+
+          <button
+            type="button"
+            className="qtap you-theme-btn"
+            aria-pressed={theme === "system"}
+            onClick={(event) => {
+              tick(reduceMotion, event);
+              onThemeChange("system");
+            }}
+          >
+            <span className={cn("qcard you-theme-preview", theme === "system" && "is-active")}>
+              <span className="you-theme-surface auto">
+                <i className="you-theme-pill" />
+                <i className="you-theme-line" />
+                <i className="you-theme-bar" />
+              </span>
+            </span>
+            <span className={cn("qmono you-theme-name", theme === "system" && "is-active")}>Auto</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── All settings & identity folds ───────────────────────────────────────── */}
+      <header className="head-row" ref={settingsHeadRef}>
+        <div>
+          <h2 className="title">
+            Settings
+          </h2>
           <p className="lede">
             Make Sutaeru feel like yours. Changes apply as you make them.
           </p>
@@ -498,7 +1060,7 @@ export function SettingsView(props: SettingsViewProps) {
           </div>
         </FoldSection>
 
-        {/* ── Account ──────────────────────────────────────────────────────────── */}
+        {/* ── Account & Identity ───────────────────────────────────────────────── */}
         <FoldSection
           id="account"
           index={5}
@@ -510,15 +1072,28 @@ export function SettingsView(props: SettingsViewProps) {
           {account.status === "error" && <LoadError onRetry={props.onAccountRetry} />}
           {account.status === "ready" &&
             (account.data ? (
-              <div className="toggle-row" style={{ borderTop: 0 }}>
-                <div className="tx">
-                  <b>{account.data.name || account.data.email || "Signed in"}</b>
-                  {account.data.email && <small>{account.data.email}</small>}
+              <>
+                <div className="toggle-row" style={{ borderTop: 0 }}>
+                  <div className="tx">
+                    <b>{account.data.name || account.data.email || "Signed in"}</b>
+                    {account.data.email && <small>{account.data.email}</small>}
+                  </div>
+                  <Link href="/identity" className="btn">
+                    Edit profile
+                  </Link>
                 </div>
-                <Link href="/identity" className="btn">
-                  Edit profile
-                </Link>
-              </div>
+                <IdentityEditorSection
+                  identity={identityState}
+                  onChange={props.onIdentityChange}
+                  onTraitInputChange={props.onIdentityTraitInputChange}
+                  onTraitAdd={props.onIdentityTraitAdd}
+                  onTraitRemove={props.onIdentityTraitRemove}
+                  onAvatarFile={props.onIdentityAvatarFile}
+                  onAvatarRemove={props.onIdentityAvatarRemove}
+                  onSave={props.onIdentitySave}
+                  onRetry={props.onIdentityRetry}
+                />
+              </>
             ) : (
               <p className="set-note">Sign in to manage your account.</p>
             ))}
@@ -759,13 +1334,24 @@ export function SettingsView(props: SettingsViewProps) {
           )}
         </FoldSection>
 
-        {/* ── Connections ──────────────────────────────────────────────────────── */}
+        {/* ── Connections, Skills & Memories ───────────────────────────────────── */}
         <FoldSection id="connections" index={10} label="Connections" pick="Linked services" mini={<SutaeruIcon name="connections" signal={false} />}>
           <div className="between">
             <p className="set-note">See which services are connected. Keys stay on the server.</p>
             <Link href="/connections" className="btn">
               Open
               <SutaeruIcon name="arrow" className="ico" />
+            </Link>
+          </div>
+          <div className="you-links-row">
+            <Link href="/memories" className="btn ghost">
+              Memories ({counts.memories})
+            </Link>
+            <Link href="/skills" className="btn ghost">
+              Skills ({counts.skills})
+            </Link>
+            <Link href="/identity" className="btn ghost">
+              Identity profile
             </Link>
           </div>
         </FoldSection>

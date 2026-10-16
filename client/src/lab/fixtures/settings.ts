@@ -1,23 +1,25 @@
 /**
- * Fixtures for `/__lab/settings`.
+ * Fixtures for `/__lab/settings` and `/__lab/you`.
  *
- * Lab-only: the app never imports this file. The data-heavy cards on the settings
- * screen read from tRPC, so the lab supplies its own samples — the prototype's fake
- * values where it had them (app.js:1241-1326) and the real query shapes where it did
- * not. Every state `SettingsView` can be in gets a name, so `?state=<name>` renders
- * that one on its own.
+ * Lab-only: the app never imports this file. The data-heavy cards on the You/Settings
+ * screen read from tRPC, so the lab supplies its own samples — the Quiet board's values
+ * (`You.dc.html`: Remy, Owner, 128 Memories, 12 Skills, 4 Connected) and the prototype's
+ * fake values where it had them (app.js:1241-1326) plus the real query shapes. Every state
+ * `SettingsView` can be in gets a name, so `?state=<name>` renders that one on its own.
  */
 
 import type {
   AccountInfo,
+  IdentityProfile,
+  IdentityState,
   ModelInfo,
   PlanInfo,
-  PurgeState,
   Resource,
   SettingsViewProps,
   TwoFactorSetup,
   TwoFactorState,
   UsageMeter,
+  YouStats,
 } from "@/components/settings/SettingsView";
 import { ART_INTENSITY_DEFAULT, VOICE_DEFAULT, type ThemeChoice, type VoiceStyle } from "@/lib/theme";
 
@@ -27,7 +29,26 @@ function ready<T>(data: T | null): Resource<T> {
   return { status: "ready", data };
 }
 
-const ACCOUNT: AccountInfo = { name: "Rani Prameswari", email: "rani@sutaeru.app" };
+const ACCOUNT: AccountInfo = { name: "Remy", email: "remy@sutaeru.app" };
+
+const STATS: YouStats = { memories: 128, skills: 12, connections: 4 };
+
+const IDENTITY_PROFILE: IdentityProfile = {
+  handle: "remy",
+  displayName: "Remy",
+  bio: "Building quiet tools for thinking and making.",
+  avatarUrl: "",
+  primaryLanguage: "en",
+  personalityTraits: ["Concise", "Direct"],
+  roleLabel: "Owner",
+};
+
+const IDENTITY_READY: IdentityState = {
+  status: ready(IDENTITY_PROFILE),
+  traitInput: "",
+  uploadingAvatar: false,
+  saving: false,
+};
 
 /** The four meters the quota query returns, with plausible usage on each. */
 const METERS: UsageMeter[] = [
@@ -103,7 +124,7 @@ function fakeQrDataUrl(): string {
 
 type HandlerKeys = Extract<keyof SettingsViewProps, `on${string}`>;
 
-export type SettingsHandlers = Pick<SettingsViewProps, HandlerKeys>;
+export type SettingsHandlers = Required<Pick<SettingsViewProps, HandlerKeys>>;
 export type SettingsData = Omit<SettingsViewProps, HandlerKeys>;
 
 /** The lab never saves anything; every control is wired to a no-op of the right shape. */
@@ -114,6 +135,16 @@ const NOOP: SettingsHandlers = {
   onArtIntensityChange: () => {},
   onVoiceChange: () => {},
   onAccountRetry: () => {},
+  onBack: () => {},
+  onStatsRetry: () => {},
+  onIdentityChange: () => {},
+  onIdentityTraitInputChange: () => {},
+  onIdentityTraitAdd: () => {},
+  onIdentityTraitRemove: () => {},
+  onIdentityAvatarFile: () => {},
+  onIdentityAvatarRemove: () => {},
+  onIdentitySave: () => {},
+  onIdentityRetry: () => {},
   onTwoFactorToggle: () => {},
   onTwoFactorTokenChange: () => {},
   onTwoFactorSubmit: () => {},
@@ -137,6 +168,8 @@ const BASE: SettingsData = {
   artIntensity: ART_INTENSITY_DEFAULT,
   voice: { ...VOICE_DEFAULT } as VoiceStyle,
   account: ready(ACCOUNT),
+  stats: ready(STATS),
+  identity: IDENTITY_READY,
   twoFactor: OFF,
   plan: { status: ready(PLAN), trialBusy: false },
   models: ready(MODELS),
@@ -157,9 +190,27 @@ export const SETTINGS_STATES = {
   "intensity-max": { ...BASE, artIntensity: 100 },
   "voice-min": { ...BASE, voice: { detail: 0, tone: 0 } },
   "voice-max": { ...BASE, voice: { detail: 100, tone: 100 } },
+  "identity-photo": {
+    ...BASE,
+    identity: {
+      ...IDENTITY_READY,
+      status: ready({ ...IDENTITY_PROFILE, avatarUrl: "/studio/o/nav-agent.webp" }),
+    },
+  },
+  "identity-saving": {
+    ...BASE,
+    identity: {
+      ...IDENTITY_READY,
+      traitInput: "Analytical",
+      uploadingAvatar: true,
+      saving: true,
+    },
+  },
   "all-loading": {
     ...BASE,
     account: { status: "loading" },
+    stats: { status: "loading" },
+    identity: { ...IDENTITY_READY, status: { status: "loading" } },
     twoFactor: { ...OFF, status: { status: "loading" } },
     plan: { status: { status: "loading" }, trialBusy: false },
     models: { status: "loading" },
@@ -168,12 +219,18 @@ export const SETTINGS_STATES = {
   "all-error": {
     ...BASE,
     account: { status: "error" },
+    stats: { status: "error" },
+    identity: { ...IDENTITY_READY, status: { status: "error" } },
     twoFactor: { ...OFF, status: { status: "error" } },
     plan: { status: { status: "error" }, trialBusy: false },
     models: { status: "error" },
     purge: { status: { status: "error" }, password: "", busy: false },
   },
-  "account-anon": { ...BASE, account: ready(null) },
+  "account-anon": {
+    ...BASE,
+    account: ready(null),
+    identity: { ...IDENTITY_READY, status: ready(null) },
+  },
   "2fa-setup": { ...BASE, twoFactor: { ...OFF, setup: SETUP, token: "123456" } },
   "2fa-verifying": { ...BASE, twoFactor: { ...OFF, setup: SETUP, token: "123456", busy: true } },
   "2fa-rejected": {
@@ -202,6 +259,6 @@ export type SettingsState = keyof typeof SETTINGS_STATES;
 export const SETTINGS_STATE_NAMES = Object.keys(SETTINGS_STATES) as SettingsState[];
 
 /** The full props for one state, no-op handlers included. */
-export function settingsFixture(state: SettingsState): SettingsViewProps {
+export function settingsFixture(state: SettingsState): SettingsViewProps & SettingsHandlers {
   return { ...SETTINGS_STATES[state], ...NOOP };
 }
