@@ -1,25 +1,24 @@
 import * as React from "react";
-import { Route, Switch } from "wouter";
+import { useLocation } from "wouter";
 import LabIndex from "./LabIndex";
-import LabShell from "./LabShell";
+import LabAnswer from "./LabAnswer";
+import LabFiles from "./LabFiles";
+import LabDone from "./LabDone";
+import LabAgent from "./LabAgent";
+import LabHome from "./LabHome";
+import LabSession from "./LabSession";
+import LabSettings from "./LabSettings";
+import LabDocsStates from "./LabDocsStates";
+import LabStudio from "./LabStudio";
+import LabImageRun from "./LabImageRun";
+import LabPageStates from "./LabPageStates";
 import LabBrand from "./LabBrand";
 import LabArt from "./LabArt";
-import LabSettings from "./LabSettings";
 import LabDitherEdge from "./LabDitherEdge";
 import LabHalftoneFade from "./LabHalftoneFade";
 import LabPaperGrain from "./LabPaperGrain";
 import LabRegistrationMarks from "./LabRegistrationMarks";
 import LabSlider from "./LabSlider";
-import LabDocsStates from "./LabDocsStates";
-import LabAnswer from "./LabAnswer";
-
-import LabFiles from "./LabFiles";
-
-import LabSession from "./LabSession";
-import LabDone from "./LabDone";
-
-import LabAgent from "./LabAgent";
-
 import LabLanding from "./LabLanding";
 import LabLogin from "./LabLogin";
 import LabVerifyEmail from "./LabVerifyEmail";
@@ -29,48 +28,42 @@ import LabFirstRun from "./LabFirstRun";
 import LabOffline from "./LabOffline";
 import LabInstall from "./LabInstall";
 import LabSplash from "./LabSplash";
-
-import LabHome from "./LabHome";
-
-import LabStudio from "./LabStudio";
-import LabImageRun from "./LabImageRun";
-
-import LabPageStates from "./LabPageStates";
+import PolishPreview from "./PolishPreview";
 
 export function LabRouter() {
-  return (
-    <Switch>
-      <Route path="/__lab" component={LabIndex} />
-      <Route path="/__lab/shell" component={LabShell} />
-      <Route path="/__lab/brand" component={LabBrand} />
-      <Route path="/__lab/art/dither-edge" component={LabDitherEdge} />
-      <Route path="/__lab/art/halftone-fade" component={LabHalftoneFade} />
-      <Route path="/__lab/art/paper-grain" component={LabPaperGrain} />
-      <Route path="/__lab/art/registration-marks" component={LabRegistrationMarks} />
-      <Route path="/__lab/art/slider" component={LabSlider} />
-      <Route path="/__lab/docs-states" component={LabDocsStates} />
-      <Route path="/__lab/answer" component={LabAnswer} />
-      <Route path="/__lab/art" component={LabArt} />
-      <Route path="/__lab/settings" component={LabSettings} />
-      <Route path="/__lab/files" component={LabFiles} />
-      <Route path="/__lab/session" component={LabSession} />
-      <Route path="/__lab/done" component={LabDone} />
-      <Route path="/__lab/agent" component={LabAgent} />
-      <Route path="/__lab/landing" component={LabLanding} />
-      <Route path="/__lab/login" component={LabLogin} />
-      <Route path="/__lab/verify-email" component={LabVerifyEmail} />
-      <Route path="/__lab/reset-password" component={LabResetPassword} />
-      <Route path="/__lab/onboarding" component={LabOnboarding} />
-      <Route path="/__lab/first-run" component={LabFirstRun} />
-      <Route path="/__lab/offline" component={LabOffline} />
-      <Route path="/__lab/install" component={LabInstall} />
-      <Route path="/__lab/splash" component={LabSplash} />
-      <Route path="/__lab/home" component={LabHome} />
-      <Route path="/__lab/studio" component={LabStudio} />
-      <Route path="/__lab/image-run" component={LabImageRun} />
-      <Route path="/__lab/page-states" component={LabPageStates} />
-    </Switch>
-  );
+  const [location] = useLocation();
+
+  if (location === "/__lab" || location === "/__lab/") return <LabIndex />;
+  if (location.startsWith("/__lab/polish/")) return <PolishPreview />;
+  if (location.startsWith("/__lab/home")) return <LabHome />;
+  if (location.startsWith("/__lab/answer")) return <LabAnswer />;
+  if (location.startsWith("/__lab/agent")) return <LabAgent />;
+  if (location.startsWith("/__lab/done")) return <LabDone />;
+  if (location.startsWith("/__lab/files")) return <LabFiles />;
+  if (location.startsWith("/__lab/session")) return <LabSession />;
+  if (location.startsWith("/__lab/settings")) return <LabSettings />;
+  if (location.startsWith("/__lab/docs-states")) return <LabDocsStates />;
+  if (location.startsWith("/__lab/studio")) return <LabStudio />;
+  if (location.startsWith("/__lab/image-run")) return <LabImageRun />;
+  if (location.startsWith("/__lab/page-states")) return <LabPageStates />;
+  if (location.startsWith("/__lab/brand")) return <LabBrand />;
+  if (location.startsWith("/__lab/art/dither-edge")) return <LabDitherEdge />;
+  if (location.startsWith("/__lab/art/halftone-fade")) return <LabHalftoneFade />;
+  if (location.startsWith("/__lab/art/paper-grain")) return <LabPaperGrain />;
+  if (location.startsWith("/__lab/art/registration-marks")) return <LabRegistrationMarks />;
+  if (location.startsWith("/__lab/art/slider")) return <LabSlider />;
+  if (location.startsWith("/__lab/art")) return <LabArt />;
+  if (location.startsWith("/__lab/landing")) return <LabLanding />;
+  if (location.startsWith("/__lab/login")) return <LabLogin />;
+  if (location.startsWith("/__lab/verify-email")) return <LabVerifyEmail />;
+  if (location.startsWith("/__lab/reset-password")) return <LabResetPassword />;
+  if (location.startsWith("/__lab/onboarding")) return <LabOnboarding />;
+  if (location.startsWith("/__lab/first-run")) return <LabFirstRun />;
+  if (location.startsWith("/__lab/offline")) return <LabOffline />;
+  if (location.startsWith("/__lab/install")) return <LabInstall />;
+  if (location.startsWith("/__lab/splash")) return <LabSplash />;
+
+  return <LabIndex />;
 }
 
 export default LabRouter;

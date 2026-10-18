@@ -110,93 +110,55 @@ export function LabLayout({ title, children, bleed = false }: { title: string; c
             </h1>
           </div>
 
-          {/* Controls group: theme, background, and 2x zoom inspection link */}
-          <div
-            className="lab-controls"
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 12,
-              alignItems: "center",
-            }}
-          >
-            {/* Background art surface selector (?bg=paper|card) */}
-            <div
+          {/* Collapsible inspection controls — kept out of the way of the actual screen preview. */}
+          <details className="lab-controls-disclosure" style={{ minWidth: 0 }}>
+            <summary
               style={{
+                cursor: "pointer",
+                listStyle: "none",
                 display: "inline-flex",
-                background: "var(--panel, rgba(36,35,32,0.05))",
-                padding: 3,
+                alignItems: "center",
+                gap: 8,
+                padding: "7px 12px",
                 borderRadius: 999,
                 border: "1px solid var(--stroke, rgba(36,35,32,0.12))",
+                background: "var(--card, #FFFFFF)",
+                color: "var(--ink, #242320)",
+                font: "700 11px/1 var(--mono, monospace)",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
               }}
             >
-              {(["paper", "card"] as const).map((b) => (
-                <Link
-                  key={b}
-                  href={makeUrl({ bg: b })}
-                  style={{
-                    padding: "4px 12px",
-                    borderRadius: 999,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.04em",
-                    fontFamily: "var(--mono, monospace)",
-                    background: bg === b ? "var(--ink, #242320)" : "transparent",
-                    color: bg === b ? "var(--paper, #F7F6F2)" : "var(--quiet, #6B6964)",
-                    textDecoration: "none",
-                    transition: "all 140ms ease",
-                  }}
-                >
-                  bg:{b}
-                </Link>
-              ))}
-            </div>
-
-            {/* Theme switcher */}
-            <div style={{ display: "inline-flex", gap: 6 }}>
-              {(["light", "dark", "system"] as const).map((t) => (
-                <Link
-                  key={t}
-                  href={makeUrl({ theme: t })}
-                  className={cn("pill", theme === t && "is-active")}
-                  style={{
-                    padding: "6px 13px",
-                    borderRadius: 999,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    border: "1px solid var(--stroke, rgba(36,35,32,0.12))",
-                    background: theme === t ? "var(--ink, #242320)" : "var(--card, #FFFFFF)",
-                    color: theme === t ? "var(--paper, #F7F6F2)" : "var(--ink, #242320)",
-                    textDecoration: "none",
-                    transition: "all 140ms ease",
-                  }}
-                >
-                  {t}
-                </Link>
-              ))}
-            </div>
-
-            {/* 2x zoom inspection link for inspecting art edges */}
-            <Link
-              href={makeUrl({ zoom: is2x ? null : "2x" })}
-              className={cn("pill", is2x && "is-active")}
-              data-testid="link-zoom-2x"
+              <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>+</span>
+              Preview controls
+            </summary>
+            <div
+              className="lab-controls"
               style={{
-                padding: "6px 14px",
-                borderRadius: 999,
-                fontSize: 12,
-                fontWeight: 700,
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 12,
+                alignItems: "center",
+                marginTop: 10,
+                padding: 12,
+                borderRadius: 18,
                 border: "1px solid var(--stroke, rgba(36,35,32,0.12))",
-                background: is2x ? "var(--ink, #242320)" : "var(--card, #FFFFFF)",
-                color: is2x ? "var(--paper, #F7F6F2)" : "var(--ink, #242320)",
-                textDecoration: "none",
-                fontFamily: "var(--mono, monospace)",
+                background: "var(--panel, rgba(36,35,32,0.05))",
               }}
             >
-              {is2x ? "1x Zoom" : "2x Zoom"}
-            </Link>
-          </div>
+              <div style={{ display: "inline-flex", background: "var(--panel, rgba(36,35,32,0.05))", padding: 3, borderRadius: 999, border: "1px solid var(--stroke, rgba(36,35,32,0.12))" }}>
+                {(["paper", "card"] as const).map((b) => (
+                  <Link key={b} href={makeUrl({ bg: b })} style={{ padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", fontFamily: "var(--mono, monospace)", background: bg === b ? "var(--ink, #242320)" : "transparent", color: bg === b ? "var(--paper, #F7F6F2)" : "var(--quiet, #6B6964)", textDecoration: "none" }}>bg:{b}</Link>
+                ))}
+              </div>
+              <div style={{ display: "inline-flex", gap: 6 }}>
+                {(["light", "dark", "system"] as const).map((t) => (
+                  <Link key={t} href={makeUrl({ theme: t })} className={cn("pill", theme === t && "is-active")} style={{ padding: "6px 13px", borderRadius: 999, fontSize: 12, fontWeight: 600, border: "1px solid var(--stroke, rgba(36,35,32,0.12))", background: theme === t ? "var(--ink, #242320)" : "var(--card, #FFFFFF)", color: theme === t ? "var(--paper, #F7F6F2)" : "var(--ink, #242320)", textDecoration: "none" }}>{t}</Link>
+                ))}
+              </div>
+              <Link href={makeUrl({ zoom: is2x ? null : "2x" })} className={cn("pill", is2x && "is-active")} data-testid="link-zoom-2x" style={{ padding: "6px 14px", borderRadius: 999, fontSize: 12, fontWeight: 700, border: "1px solid var(--stroke, rgba(36,35,32,0.12))", background: is2x ? "var(--ink, #242320)" : "var(--card, #FFFFFF)", color: is2x ? "var(--paper, #F7F6F2)" : "var(--ink, #242320)", textDecoration: "none", fontFamily: "var(--mono, monospace)" }}>{is2x ? "1x Zoom" : "2x Zoom"}</Link>
+            </div>
+          </details>
         </header>
 
         <main

@@ -101,11 +101,11 @@ export function AppHeader({
     <>
       <Crosshair
         className="skx-crosshair-tl"
-        style={{ left: 12, top: "calc(env(safe-area-inset-top, 0px) + var(--top-h, 60px) + 10px)" }}
+        style={{ left: 16, top: "calc(env(safe-area-inset-top, 0px) + var(--top-h, 60px) + 14px)" }}
       />
       <Crosshair
         className="skx-crosshair-tr"
-        style={{ right: 12, top: "calc(env(safe-area-inset-top, 0px) + var(--top-h, 60px) + 10px)" }}
+        style={{ right: 16, top: "calc(env(safe-area-inset-top, 0px) + var(--top-h, 60px) + 14px)" }}
       />
 
       <header className={cn("top skx-header", className)}>
@@ -122,7 +122,7 @@ export function AppHeader({
                 className="thumb"
                 style={{
                   transform: activeMode === "agent" ? "translateX(100%)" : "translateX(0%)",
-                  width: "calc(50% - 3px)",
+                  width: "calc(50% - 4px)",
                 }}
               />
               <button

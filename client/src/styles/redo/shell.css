@@ -34,26 +34,28 @@
 .glyph path { stroke: currentColor; }
 .glyph .sun { fill: var(--accent); }
 
-/* Chat | Agent switch with a sliding thumb */
+/* Chat | Agent switch with a sliding thumb (canvas: 188x44, 4px padding, 17px thumb radius) */
 .seg {
   position: relative; display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr;
-  padding: 2px; border-radius: 24px;
-  background: var(--panel); border: 1px solid var(--hair);
+  padding: 4px; border-radius: 22px;
+  background: var(--panel); border: 1px solid var(--stroke);
 }
 .seg button {
   position: relative; z-index: 1;
-  min-width: 96px; height: 40px; border-radius: 20px;
-  font: 700 15px/1 var(--disp); color: var(--quiet);
+  min-width: 88px; height: 34px; border-radius: 17px;
+  font: 700 16px/1 var(--disp); letter-spacing: -.01em; color: var(--quiet);
   transition: color var(--t) var(--ease);
 }
+.seg button:not([aria-pressed="true"]) { font-weight: 600; }
 .seg button[aria-pressed="true"] { color: var(--paper); }
 .seg .thumb {
-  position: absolute; z-index: 0; top: 2px; bottom: 2px; left: 2px;
-  border-radius: 20px; background: var(--ink);
+  position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 4px;
+  border-radius: 17px; background: var(--ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
   transition: transform var(--t) var(--ease), width var(--t) var(--ease);
 }
-@media (min-width: 760px) { .seg button { min-width: 120px; height: 44px; font-size: 16px; border-radius: 22px; } .seg .thumb { border-radius: 22px; } }
-.seg.small button { min-width: 0; padding: 0 16px; height: 40px; font: 600 14px/1 var(--body); }
+@media (min-width: 760px) { .seg button { min-width: 108px; height: 36px; } }
+.seg.small button { min-width: 0; padding: 0 16px; height: 34px; font: 600 14px/1 var(--body); }
 
 /* ── Navigation sheet (opened from the logo) ──────────────────────────── */
 .scrim { position: fixed; inset: 0; z-index: 60; background: var(--scrim); opacity: 0; pointer-events: none; transition: opacity var(--t) var(--ease); }

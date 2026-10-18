@@ -6,23 +6,28 @@
  */
 
 /* ── AppHeader ─────────────────────────────────────────────────────────────── */
+/* The redo shell (.top) owns the bar geometry; this sheet is imported later, so it must not
+   re-impose the old 94px band. Height = the 60px reference row plus the safe area on top. */
 .skx-header {
   position: sticky;
   top: 0;
   z-index: 40;
-  height: 94px;
+  height: calc(var(--top-h, 60px) + env(safe-area-inset-top, 0px));
   background: var(--r-paper);
   color: var(--r-ink);
   padding-top: env(safe-area-inset-top, 0px);
+  border-bottom: 1px solid var(--r-hair);
 }
+/* Registration marks: 11px, hairline, .45 opacity, inset 16px, 14px under the seam. */
 .skx-crosshair {
   position: absolute;
-  top: 12px;
+  width: 11px;
+  height: 11px;
   color: var(--r-quiet);
-  opacity: 0.55;
+  opacity: 0.45;
 }
-.skx-crosshair-tl { left: 12px; }
-.skx-crosshair-tr { right: 12px; }
+.skx-crosshair-tl { left: 16px; }
+.skx-crosshair-tr { right: 16px; }
 .skx-header-row {
   position: absolute;
   left: 24px;
@@ -60,7 +65,8 @@
   border-radius: 50%;
   background: var(--r-ink);
   color: var(--r-paper);
-  font: 600 16px var(--r-font-title);
+  font: 700 17px/1 var(--r-font-title);
+  letter-spacing: -0.01em;
 }
 
 /* ── PageTitle ─────────────────────────────────────────────────────────────── */
