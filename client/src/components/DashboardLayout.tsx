@@ -68,7 +68,7 @@ const MORE_LABELLED = ["/memories", "/skills", "/monitors"];
 
 /** Mono word shown in the mobile AppHeader for the current route. */
 function mobileHeaderLabel(location: string): string {
-  if (location === "/chat" || location.startsWith("/sessions")) return "WORKSPACE";
+  if (location === "/chat" || location.startsWith("/sessions")) return "CHAT";
   if (location.startsWith("/images") || location.startsWith("/video")) return "STUDIO";
   if (location === "/generate" || (location.startsWith("/atelier") && location.includes("mode=describe"))) return "GENERATE";
   if (location.startsWith("/atelier") || location.startsWith("/documents")) return "DOCUMENTS";
@@ -466,10 +466,7 @@ function DashboardLayoutContent({
       <SidebarInset className={noPadding ? undefined : "sk-inset-flow"}>
         <div ref={contentRef} className="flex flex-col flex-1 min-h-0 relative">
           <LivingBackground variant={livingVariantFor(location)} />
-          {isMobile && (location === "/chat" || location.startsWith("/sessions")) && (
-            <NavLogoMenu variant="floating" />
-          )}
-          {isMobile && location !== "/chat" && !location.startsWith("/sessions") && (
+          {isMobile && (
             <AppHeader label={mobileHeaderLabel(location)} userInitial={user?.name || user?.email || "?"} />
           )}
           <main className={noPadding ? "flex-1 min-w-0 flex flex-col overflow-hidden bg-sutaeru" : "flex-1 min-w-0 p-3 sm:p-6 overflow-x-clip bg-sutaeru"}>{children}</main>

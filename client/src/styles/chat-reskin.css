@@ -18,18 +18,20 @@
 .sutaeru-chat .sutaeru-status-copy span { font-size: 13px; color: var(--r-ink); }
 .sutaeru-chat .sutaeru-timer { font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); color: var(--r-quiet); }
 
-/* ── Transcript ──────────────────────────────────────────────────────────── */
-.sutaeru-chat .sutaeru-message-label { gap: 10px; }
-.sutaeru-chat .sutaeru-message-label strong { font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: var(--r-quiet); }
-.sutaeru-chat .sutaeru-message-label span { font: 500 var(--r-size-mono)/1.4 var(--r-font-mono); letter-spacing: var(--r-track-mono); text-transform: uppercase; color: var(--r-quiet); }
+/* ── Transcript (design canvas: Chat answer) ────────────────────────────── */
+/* No name and time row: your bubble sits right, Sutaeru's answer sits on the paper. The row stays for
+   screen readers. */
+.sutaeru-chat .sutaeru-message-label { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.sutaeru-chat .sutaeru-editorial-message { margin-bottom: 0; gap: 10px; }
 
-/* Your question: an ink bubble, right aligned. */
-.sutaeru-chat .sutaeru-user-content { background: var(--r-ink) !important; color: var(--r-paper) !important; border: 0 !important; border-radius: var(--r-radius-bubble) !important; padding: 14px 22px !important; box-shadow: none !important; }
-.sutaeru-chat .sutaeru-user-content * { color: var(--r-paper) !important; }
+/* Your question: a panel bubble, right aligned, the tail corner small. */
+.sutaeru-chat .sutaeru-user-content { background: var(--r-panel) !important; color: var(--r-ink) !important; border: 0 !important; border-radius: 24px 24px 8px 24px !important; padding: 12px 16px !important; max-width: 82%; font: 400 15.5px/1.45 var(--r-font-body); box-shadow: none !important; }
+.sutaeru-chat .sutaeru-user-content * { color: var(--r-ink) !important; }
 
-/* Sutaeru's answer: a card on the paper, one hairline stroke. */
-.sutaeru-chat .sutaeru-assistant-content { background: var(--r-card); border: 1px solid var(--r-stroke); border-radius: 28px; padding: 22px; box-shadow: var(--r-shadow-card, inset 0 1px 0 rgba(255,255,255,.7), 0 1px 2px rgba(36,35,32,.04), 0 10px 28px -20px rgba(36,35,32,.22)); font: 400 16px/1.7 var(--r-font-body); color: var(--r-ink); overflow-wrap: anywhere; text-wrap: pretty; }
-.sutaeru-chat .sutaeru-assistant-content :is(p, li) { line-height: 1.75; }
+/* Sutaeru's answer: plain text on the paper. */
+.sutaeru-chat .sutaeru-assistant-content { background: transparent; border: 0; border-radius: 0; padding: 0; box-shadow: none; font: 400 16px/1.62 var(--r-font-body); color: var(--r-ink); }
+.sutaeru-chat .sutaeru-assistant-content :is(p, li) { line-height: 1.62; }
+.sutaeru-chat .sutaeru-assistant-content p + p { margin-top: 12px; }
 .sutaeru-chat .sutaeru-assistant-content :is(h1, h2, h3) { font-family: var(--r-font-title); font-weight: 700; letter-spacing: 0; }
 
 /* Sources: a row of citation chips over a grid of source cards. */
@@ -106,8 +108,14 @@
 .sutaeru-chat .sutaeru-chat-transcript > div { margin-inline: auto; width: 100%; }
 
 @media (max-width: 767px) {
-  /* The floating logo button has no header around it: keep the first message clear of it. */
-  .sutaeru-chat .sutaeru-chat-transcript .sutaeru-chat-content { padding-top: calc(max(14px, env(safe-area-inset-top, 0px)) + 52px); }
+  /* The header is a real row above the thread now: 20px gutters, 18px between turns, as on the canvas. */
+  .sutaeru-chat .sutaeru-chat-transcript { padding: 0; }
+  .sutaeru-chat .sutaeru-chat-transcript .sutaeru-chat-content { padding: 20px 20px 24px; gap: 0; }
+  .sutaeru-chat .sutaeru-answer-flow { display: flex; flex-direction: column; gap: 18px; padding-block: 0; }
+  /* Thread composer: one line to start, 17px, tools row under it (canvas "Ask a follow-up"). */
+  .sutaeru-chat .sutaeru-run-controls { padding: 0 16px max(14px, env(safe-area-inset-bottom)); }
+  .sutaeru-chat .sutaeru-run-controls .sutaeru-input-box { padding: 14px 12px 12px 22px; }
+  .sutaeru-chat .sutaeru-run-controls .sutaeru-composer-textarea { min-height: 34px; font-size: 17px !important; }
   .sutaeru-chat .sutaeru-run-controls { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
   .sutaeru-chat .sutaeru-run-controls .sutaeru-composer-tools { gap: 2px; }
   .sutaeru-chat .sutaeru-run-controls .icon-btn.flat, .sutaeru-chat .sutaeru-run-controls .sk-attach-button { width: 40px; min-width: 40px; }
@@ -122,7 +130,7 @@
    the composer is the only thing docked at the bottom (history and new chat are in the logo
    menu, the mode and its sheet are the chip in the tools row). */
 @media (max-width: 1023px) {
-  .sutaeru-chat { height: 100dvh !important; }
+  .sutaeru-chat { height: calc(100dvh - var(--top-h, 64px) - env(safe-area-inset-top, 0px)) !important; }
   .sutaeru-chat .sutaeru-chat-header,
   .sutaeru-chat .sutaeru-chat-mobile-modes,
   .sutaeru-chat .sutaeru-run-status { display: none !important; }
