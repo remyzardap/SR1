@@ -7,6 +7,18 @@ import type { NavDestination } from "./NavLogoMenu";
 /* Pure builders for the logo menu's sections, so the mapping from destinations,
    sessions and running threads to what the sheet shows is testable on its own. */
 
+/** What each workspace card draws, and the one short line under its name. The cards are
+    paper pages like the Report, Deck and Sheet previews, never an icon. */
+export type MenuCardKind = "chat" | "report" | "studio" | "brief" | "video" | "sheet";
+export const TILE_CARD: Record<string, { kind: MenuCardKind; sub: string }> = {
+  "/chat": { kind: "chat", sub: "Ask anything." },
+  "/generate": { kind: "report", sub: "Hand it the job." },
+  "/images": { kind: "studio", sub: "Say it. See it." },
+  "/documents": { kind: "brief", sub: "Write, then polish." },
+  "/files": { kind: "sheet", sub: "Everything it made." },
+  "/video": { kind: "video", sub: "Pictures that move." },
+};
+
 /** The workspace tiles, in the order the menu shows them, with their picture. */
 export const TILE_ART: Record<string, PickArtId> = {
   "/chat": "nav-chat",

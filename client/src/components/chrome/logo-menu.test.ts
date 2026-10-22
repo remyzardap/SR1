@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { LogoMenuSheet, type MenuTile } from "./LogoMenuSheet";
 import { NAV_DESTINATIONS, type NavDestination } from "./NavLogoMenu";
-import { buildChats, buildPills, buildRuns, buildTiles, relTime } from "./menuModel";
+import { TILE_CARD, buildChats, buildPills, buildRuns, buildTiles, relTime } from "./menuModel";
 import { MENU_CHATS, MENU_PERSON_ADMIN, MENU_PILLS, MENU_RUNS, MENU_TILES } from "@/lab/fixtures/menu";
 
 const at = (path: string) => (d: NavDestination) => (d.match ? d.match(path) : d.path === path);
@@ -79,14 +79,14 @@ describe("logo menu sheet markup", () => {
     const html = renderToStaticMarkup(React.createElement(LogoMenuSheet, props));
     /* Folded bodies stay out of the markup (Radix Collapsible), so only the open
        section's rows and every folded header are visible here. */
-    for (const want of ["Workspace", "Working for you", "Recent chats", "Yours", "New chat", "Past chats", "2 running", "Rewrite the onboarding email"]) {
+    for (const want of ["Working for you", "Recent chats", "Yours", "New chat", "Past chats", "2 running", "Rewrite the onboarding email"]) {
       expect(html, want).toContain(want);
     }
     expect(html).toContain('role="dialog"');
     expect(html).toContain('aria-modal="true"');
     expect(html).toContain('aria-expanded="true"');
     expect(html).toContain('aria-current="page"');
-    expect(html).toContain("/studio/o/nav-chat.webp");
+    expect(html).toContain("/studio/o/nav-images.webp");
     expect(html).toContain("lm-dots");
     expect(html).toContain("free plan · 38/50 messages");
   });
@@ -109,5 +109,16 @@ describe("logo menu sheet markup", () => {
     expect(sheet).toContain("lm-sheet");
     expect(pop).toContain("lm-pop");
     expect(pop).toContain("top:60px");
+  });
+
+  it("draws the workspace as one swipeable paper card per tile, with a card spec for each", () => {
+    for (const t of MENU_TILES) expect(TILE_CARD[t.href]).toBeTruthy();
+    const html = renderToStaticMarkup(React.createElement(LogoMenuSheet, { ...props, tiles: MENU_TILES }));
+    expect(html).toContain('aria-roledescription="carousel"');
+    expect(html).toContain("Chat, 1 of 6");
+    expect(html).toContain("Video, 6 of 6");
+    expect(html).not.toContain("lm-tile");
+    expect(html.match(/lm-card-go">Here</g)).toHaveLength(1);
+    expect(html.match(/lm-card-go">Open</g)).toHaveLength(5);
   });
 });
