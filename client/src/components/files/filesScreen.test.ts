@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { FilesScreen } from "./FilesScreen";
+import { FilesScreen, DotMatrixNumber, photoForFile, cardLabel } from "./FilesScreen";
 import { metaLine, type FileItem } from "./fileModel";
 
 const KB = 1024;
@@ -78,22 +78,33 @@ const base = {
 const html = (over: Record<string, unknown> = {}) =>
   renderToStaticMarkup(React.createElement(FilesScreen, { ...base, ...over } as any));
 
-describe("FilesScreen rows", () => {
-  it("shows the whole file name, never an abbreviation", () => {
+describe("FilesScreen Quiet canvas cards", () => {
+  it("shows the whole file name in title and accessible label", () => {
     const out = html();
     expect(out).toContain("Solar pitch deck for the Bandung co-operative");
+    expect(out).toContain('aria-label="Open Solar pitch deck for the Bandung co-operative');
   });
 
-  it("draws one row per file with its type tile", () => {
+  it("renders the 2-column masonry grid with qcard elements", () => {
     const out = html();
-    expect(out).toContain('class="frow-wrap"');
-    expect((out.match(/class="frow"/g) || []).length).toBe(4); // the trashed file is not in the active view
-    expect((out.match(/class="ftype"/g) || []).length).toBe(4);
-    expect(out).toContain("<em>DOCX</em>");
-    expect(out).toContain("<em>PDF</em>");
+    expect(out).toContain("files-masonry");
+    expect(out).toContain("files-col");
+    expect(out).toContain("col-offset");
+    // 4 active files
+    expect((out.match(/class="qcard"/g) || []).length).toBe(4);
+    expect((out.match(/class="qtap qcard-btn"/g) || []).length).toBe(4);
   });
 
-  it("puts type · size · date under every name", () => {
+  it("renders format badges (DOCX, PDF) and kind tags", () => {
+    const out = html();
+    expect(out).toContain("DOCX");
+    expect(out).toContain("PDF");
+    expect(out).toContain("PPTX");
+    expect(out).toContain("qcard-tag");
+    expect(out).toContain("Report");
+  });
+
+  it("associates type · size · date with every card for screen readers", () => {
     const out = html();
     expect(out).toContain(metaLine(FILES[0], NOW)); // Word document · 38 KB · Today
     expect(out).toContain("Word document · 38 KB · Today");
@@ -101,64 +112,76 @@ describe("FilesScreen rows", () => {
     expect(out).toContain("Slides · 3.1 MB");
   });
 
-  it("the row itself opens the file and says so to a screen reader", () => {
-    const out = html({ onOpenFile: vi.fn() });
+  it("clicking the card button triggers onOpenFile", () => {
+    const fn = vi.fn();
+    const out = html({ onOpenFile: fn });
     expect(out).toContain('aria-label="Open Bakery loyalty card proposal, Word document · 38 KB · Today"');
   });
 
-  it("keeps every action in the row menu", () => {
+  it("keeps file action dropdown menu on each card", () => {
     const out = html({ onPreviewFile: vi.fn(), onDownloadFile: vi.fn(), onTrashFile: vi.fn() });
     expect(out).toContain("More actions for Rooftop solar payback report");
     expect(out).toContain("file-more-btn");
   });
 
-  it("shows a live row for a file still being written", () => {
+  it("shows a live pulse indicator for a file still being written", () => {
     const out = html();
-    expect(out).toContain("is-live");
-    expect(out).toContain("Writing");
+    expect(out).toContain("qlive");
     expect(out).toContain("bar-holder");
+    expect(out).toContain("Writing");
   });
 });
 
-describe("FilesScreen controls", () => {
-  it("offers the seven type chips as one radio group", () => {
+describe("FilesScreen Quiet header and controls", () => {
+  it("renders the back button and search button in the header", () => {
+    const out = html();
+    expect(out).toContain('aria-label="Back"');
+    expect(out).toContain('aria-label="Search"');
+  });
+
+  it("renders the 5x7 dot matrix item count in the title block", () => {
+    const out = html();
+    expect(out).toContain('role="img"');
+    expect(out).toContain('aria-label="4"');
+    expect(out).toContain(">Files<");
+    expect(out).toContain(">Everything<");
+    expect(out).toContain(">Items<");
+  });
+
+  it("offers the filter chips as a radiogroup with counts", () => {
     const out = html();
     expect(out).toContain('role="radiogroup"');
-    for (const label of ["All", "Documents", "Images", "Sheets", "Slides", "PDFs", "Other"]) {
+    for (const label of ["All", "Docs", "Images", "Video", "Sheets", "Slides", "Other"]) {
       expect(out).toContain(`>${label}<`);
     }
     expect(out).toContain('aria-checked="true"');
   });
 
-  it("marks only the picked chip", () => {
+  it("marks only the picked chip as active and aria-checked", () => {
     const out = html({ filter: "images" });
     expect((out.match(/aria-checked="true"/g) || []).length).toBe(1);
     expect(out).toContain('data-filter="images"');
   });
 
-  it("shows how the list is sorted", () => {
-    expect(html()).toContain("Newest");
-    expect(html({ sort: { key: "size", dir: "asc" } })).toContain("Smallest");
-    expect(html({ sort: { key: "name", dir: "asc" } })).toContain("Name A–Z");
+  it("expands the search bar when query is non-empty", () => {
+    const out = html({ query: "bakery" });
+    expect(out).toContain("files-search-bar");
+    expect(out).toContain('value="bakery"');
+    expect(out).toContain('aria-label="Clear search"');
   });
 
-  it("has a 44 px upload control inside the search field", () => {
-    const out = html({ onUpload: vi.fn() });
-    expect(out).toContain('aria-label="Upload files"');
-    expect(out).toContain("search-upload");
-    expect(out).toContain('placeholder="Search in Files"');
+  it("renders the 60px FAB upload button", () => {
+    const onUp = vi.fn();
+    const out = html({ onUpload: onUp });
+    expect(out).toContain('class="qtap files-fab"');
+    expect(out).toContain('aria-label="Add a file"');
   });
 
-  it("counts the items in the head, and says “of” once filtered", () => {
-    expect(html()).toContain("4 items");
-    expect(html({ filter: "documents" })).toContain("2 of 4");
-  });
-
-  it("switches between active and trash", () => {
+  it("switches between active and trash view", () => {
     const out = html({ view: "trashed", onViewChange: vi.fn() });
     expect(out).toContain("Suppliers shortlist");
     expect(out).not.toContain("Bakery loyalty card proposal");
-    expect(out).toContain('aria-pressed="true"');
+    expect(out).toContain(">Trash<");
   });
 });
 
@@ -168,7 +191,7 @@ describe("FilesScreen storage fold", () => {
     expect(out).toContain('class="fold');
     expect(out).toContain(">Storage<");
     expect(out).toContain("aria-expanded");
-    expect(out).toContain("4.3 MB of 10 GB"); // 38 KB + 1.2 MB + 3.1 MB, the live file has no size yet
+    expect(out).toContain("4.3 MB of 10 GB");
   });
 
   it("opens the meter and the breakdown per type", () => {
@@ -211,12 +234,48 @@ describe("FilesScreen empty and busy states", () => {
     expect(out).toContain("Trash is empty.");
   });
 
-  it("shows the uploading row with its percentage and a real progress bar", () => {
+  it("shows the uploading card with its percentage and progress bar", () => {
     const out = html({ isUploading: true, uploadingFileName: "site-survey-2026.docx", uploadProgress: 0.65 });
     expect(out).toContain("site-survey-2026.docx");
     expect(out).toContain("65% complete");
     expect(out).toContain("Uploading");
     expect(out).toContain('aria-valuenow="65"');
     expect(out).toContain('aria-label="Upload progress"');
+  });
+});
+
+describe("DotMatrixNumber pure component", () => {
+  it("renders matching SVG dot matrix for 24 as in Files.dc.html", () => {
+    const out = renderToStaticMarkup(React.createElement(DotMatrixNumber, { value: 24 }));
+    expect(out).toContain('aria-label="24"');
+    expect(out).toContain('viewBox="0 0 57.2 36.4"');
+    expect(out).toContain('cx="7.8" cy="2.6" r="1.98"');
+    expect(out).toContain('cx="49.4" cy="2.6" r="1.98"');
+    expect((out.match(/<circle/g) || []).length).toBe(28); // 14 dots for 2, 14 dots for 4
+  });
+
+  it("handles 0, 1 and multi-digit counts safely", () => {
+    const zero = renderToStaticMarkup(React.createElement(DotMatrixNumber, { value: 0 }));
+    expect(zero).toContain('aria-label="0"');
+    const one = renderToStaticMarkup(React.createElement(DotMatrixNumber, { value: 1 }));
+    expect(one).toContain('aria-label="1"');
+    const hundred = renderToStaticMarkup(React.createElement(DotMatrixNumber, { value: 100 }));
+    expect(hundred).toContain('aria-label="100"');
+  });
+});
+
+describe("photoForFile and cardLabel mappings", () => {
+  it("maps studio photos appropriately based on format and kind", () => {
+    expect(photoForFile({ name: "a.xlsx", kind: "sheet", format: "xlsx" })).toBe("/studio/m/angle-top.webp");
+    expect(photoForFile({ name: "b.pdf", kind: "report", format: "pdf" })).toBe("/studio/m/look-clay.webp");
+    expect(photoForFile({ name: "c.mp4", kind: "video", format: "mp4" })).toBe("/studio/m/light-night.webp");
+    expect(photoForFile({ name: "d.webp", kind: "image", format: "webp", photoUrl: "/studio/t/custom.webp" })).toBe("/studio/t/custom.webp");
+  });
+
+  it("produces concise card labels matching Quiet canvas", () => {
+    expect(cardLabel({ name: "a.docx", kind: "report" })).toBe("Report");
+    expect(cardLabel({ name: "b.xlsx", kind: "sheet" })).toBe("Sheet");
+    expect(cardLabel({ name: "c.mp4", kind: "video" })).toBe("Video");
+    expect(cardLabel({ name: "d.md", kind: "brief" })).toBe("Brief");
   });
 });

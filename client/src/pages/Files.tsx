@@ -274,6 +274,7 @@ export default function Files() {
           if (rec) void openAsBrief(rec);
         }}
         onAskSutaeru={() => navigate("/documents")}
+        onBack={() => navigate("/chat")}
       />
 
       {/* Document brief dialog */}
