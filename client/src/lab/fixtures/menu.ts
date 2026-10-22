@@ -49,3 +49,10 @@ export const MENU_PERSON_MEMBER: MenuPerson = {
   plan: "free plan · 4/50 messages",
   meter: { used: 4, of: 50 },
 };
+
+export const LAB_MENU_WIDTHS = [360, 390, 1280] as const;
+export type LabMenuWidth = (typeof LAB_MENU_WIDTHS)[number];
+
+export const LAB_MENU_THEMES = ["light", "dark"] as const;
+export type LabMenuTheme = (typeof LAB_MENU_THEMES)[number];
+

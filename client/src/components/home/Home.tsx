@@ -20,8 +20,9 @@ import {
   type DriveAttachment,
 } from "@/lib/attachments";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 import type { HomeAttachmentRow } from "./HomeComposer";
-import { HomeScreen } from "./HomeScreen";
+import { HomeScreen, DEFAULT_HOME_MODES } from "./HomeScreen";
 
 /** A file the browser is still reading; its row shows the prototype's upload bar. */
 interface PendingFile {
@@ -55,6 +56,8 @@ export interface HomeProps {
   onPrivateChange: (next: boolean) => void;
   offline: boolean;
   banners?: ReactNode;
+  userInitial?: string;
+  onOpenMenu?: () => void;
 }
 
 /** The glyph a chip shows: photos, documents and Drive files, in the prototype's own set. */
@@ -85,7 +88,10 @@ export function Home({
   onPrivateChange,
   offline,
   banners,
+  userInitial,
+  onOpenMenu,
 }: HomeProps) {
+  const [, setLocation] = useLocation();
   const deviceInput = useRef<HTMLInputElement | null>(null);
   const cameraInput = useRef<HTMLInputElement | null>(null);
   const attachmentsRef = useRef(attachments);
@@ -180,12 +186,58 @@ export function Home({
     onAttachmentsChange(attachmentsRef.current.filter((_, at) => at !== index));
   }
 
+  const activeModeIndex = useMemo(() => {
+    if (mode === "agent") return 1;
+    if (mode === "studio" || mode === "image") return 2;
+    if (mode === "docs" || mode === "document") return 3;
+    if (mode === "video") return 4;
+    if (mode === "files") return 5;
+    return 0; // "chat" / "fast"
+  }, [mode]);
+
+  const handleSelectMode = useCallback(
+    (index: number) => {
+      const target = DEFAULT_HOME_MODES[index];
+      if (!target) return;
+      if (target.key === "agent") {
+        onModeChange("agent");
+      } else if (target.key === "chat") {
+        onModeChange("fast");
+      } else {
+        setLocation(target.path);
+      }
+    },
+    [onModeChange, setLocation]
+  );
+
+  const handleOpenMenu = useCallback(() => {
+    if (onOpenMenu) {
+      onOpenMenu();
+    } else if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("sutaeru:open-logo-menu"));
+    }
+  }, [onOpenMenu]);
+
+  const handleAccountClick = useCallback(() => {
+    if (onOpenSettings) {
+      onOpenSettings();
+    } else {
+      setLocation("/settings");
+    }
+  }, [onOpenSettings, setLocation]);
+
   return (
     <>
       <HomeScreen
         intro={intro}
         listening={voice.listening}
         banners={banners}
+        modes={DEFAULT_HOME_MODES}
+        activeModeIndex={activeModeIndex}
+        onSelectMode={handleSelectMode}
+        userInitial={userInitial || "R"}
+        onOpenMenu={handleOpenMenu}
+        onAccountClick={handleAccountClick}
         composer={{
           value,
           onChange: onValueChange,
@@ -204,31 +256,12 @@ export function Home({
           onStopListen: voice.stop,
           listening: voice.listening,
           offline,
-          mode,
-          modes,
-          onModeChange,
-          onOpenSettings,
-          thinking,
-          onThinkingChange: (next) => {
-            onThinkingChange(next);
-            toast.success(next ? "Thinking on: slower, more careful answers" : "Thinking off");
-          },
           privateChat,
-          onPrivateChange,
-          allowedTools,
-          onToggleTool,
-          sourceRows: SOURCE_ROWS,
           attachments: composerAttachments,
-          onAddAttachment: (kind) => {
-            if (kind === "drive") {
-              setDriveOpen(true);
-              return;
-            }
-            if (kind === "camera") cameraInput.current?.click();
-            else deviceInput.current?.click();
+          onAddAttachment: () => {
+            deviceInput.current?.click();
           },
           onRemoveAttachment: removeRow,
-          driveEmail: google?.connected ? google.email : null,
         }}
       />
       <input
